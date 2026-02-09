@@ -1,0 +1,20 @@
+# Gradle
+.gradle/
+build/
+gradle-app.setting
+!gradle/wrapper/gradle-wrapper.jar
+
+# Kotlin
+.kotlin/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+out/
+
+# Compose / WASM
+kotlin-js-store/
+
+# OS
+.DS_Store
+Thumbs.db
