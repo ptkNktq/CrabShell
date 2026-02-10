@@ -15,6 +15,9 @@ out/
 # Compose / WASM
 kotlin-js-store/
 
+# Firebase
+firebase-service-account.json
+
 # OS
 .DS_Store
 Thumbs.db
