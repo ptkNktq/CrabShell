@@ -9,6 +9,11 @@ application {
     mainClass.set("server.ApplicationKt")
 }
 
+// サーバー実行時の作業ディレクトリをプロジェクトルートに設定
+tasks.named<JavaExec>("run") {
+    workingDir = rootProject.projectDir
+}
+
 dependencies {
     implementation(project(":shared"))
 
