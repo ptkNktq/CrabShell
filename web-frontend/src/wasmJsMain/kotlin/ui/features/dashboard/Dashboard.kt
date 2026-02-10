@@ -12,8 +12,8 @@ import androidx.compose.ui.unit.dp
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.launch
-import shared.model.DashboardItem
-import shared.model.Status
+import model.DashboardItem
+import model.Status
 import ui.features.auth.authenticatedClient
 
 @Composable

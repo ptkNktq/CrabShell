@@ -1,7 +1,7 @@
 package ui.features.auth
 
 import kotlinx.coroutines.await
-import shared.model.User
+import model.User
 
 @OptIn(ExperimentalWasmJsInterop::class)
 object AuthRepository {
