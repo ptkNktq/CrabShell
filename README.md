@@ -24,10 +24,10 @@ web-frontend/   → Compose for Web（WASM）フロントエンド
 
 ```bash
 # サーバー起動（フロントエンドも自動ビルド）
-gradle :server:run
+./gradlew :server:run
 
 # フロントエンドのみビルド
-gradle :web-frontend:wasmJsBrowserDistribution
+./gradlew :web-frontend:wasmJsBrowserDistribution
 ```
 
 サーバーは `http://localhost:8080` で起動。
@@ -38,34 +38,22 @@ gradle :web-frontend:wasmJsBrowserDistribution
 docker compose up -d --build
 ```
 
-## ブランチ戦略
+## ブランチ戦略（GitHub Flow）
 
-- `main` に直接 push しない — 常に PR 経由
-- ブランチは `main` から切る
-- PR は Squash merge でマージ
-- マージ後にブランチ削除
+`main` ブランチを常にデプロイ可能な状態に保つシンプルなフローを採用。
+
+1. `main` から機能ブランチを作成
+2. ブランチ上でコミットを重ねる
+3. Pull Request を作成してレビューを依頼
+4. レビュー承認後、`main` にマージ
+5. マージ後にブランチを削除
 
 ### ブランチ命名規則
 
 `feat/`, `fix/`, `chore/`, `refactor/` + 簡潔な説明（例: `feat/websocket-realtime`）
 
-## 並行開発（git worktree）
+### ルール
 
-複数の機能を並行開発する場合は `git worktree` を使い、ブランチごとに別ディレクトリで作業する。
-
-```bash
-# worktree 作成（メインリポジトリの親ディレクトリに配置）
-git worktree add ../CrabShell-<task> -b feat/<task>
-
-# 例: テーマ更新と認証機能を並行開発
-git worktree add ../CrabShell-theme -b feat/theme-update
-git worktree add ../CrabShell-auth -b feat/firebase-auth
-
-# 各 worktree で独立してビルド・起動
-cd ../CrabShell-theme && docker compose up -d --build
-
-# 作業完了後に削除
-git worktree remove ../CrabShell-theme
-```
-
-これにより、各作業ディレクトリでブランチが固定され、Claude Code 等による並行作業時のブランチ切り替え事故を防げる。
+- `main` に直接 push しない — 常に PR 経由
+- PR はマージ前にレビューを受ける
+- マージ後にブランチを削除して整理する
