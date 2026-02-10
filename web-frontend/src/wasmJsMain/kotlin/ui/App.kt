@@ -1,6 +1,5 @@
 package ui
 
-import Sidebar
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -9,6 +8,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import ui.components.Sidebar
 import ui.features.dashboard.DashboardScreen
 
 private val CrabShellColorScheme = darkColorScheme(
