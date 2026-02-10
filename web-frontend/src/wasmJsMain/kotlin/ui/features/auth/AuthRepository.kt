@@ -3,6 +3,7 @@ package ui.features.auth
 import kotlinx.coroutines.await
 import shared.model.User
 
+@OptIn(ExperimentalWasmJsInterop::class)
 object AuthRepository {
 
     private val auth by lazy { firebaseAuth(getFirebase()) }
