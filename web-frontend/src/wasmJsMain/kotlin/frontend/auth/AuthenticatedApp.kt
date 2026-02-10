@@ -2,6 +2,7 @@ package frontend.auth
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -21,6 +22,7 @@ private val LoadingColorScheme = darkColorScheme(
 
 @Composable
 fun AuthenticatedApp() {
+    SelectionContainer {
     when (AuthStateHolder.state) {
         is AuthState.Loading -> {
             MaterialTheme(colorScheme = LoadingColorScheme) {
@@ -43,5 +45,6 @@ fun AuthenticatedApp() {
         is AuthState.Authenticated -> {
             App()
         }
+    }
     }
 }
