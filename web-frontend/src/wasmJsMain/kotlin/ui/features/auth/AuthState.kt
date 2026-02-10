@@ -3,7 +3,7 @@ package ui.features.auth
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import shared.model.User
+import model.User
 
 sealed class AuthState {
     data object Loading : AuthState()
