@@ -1,0 +1,8 @@
+.gradle/
+build/
+server/build/
+shared/build/
+web-frontend/build/
+.kotlin/
+.idea/
+*.iml
