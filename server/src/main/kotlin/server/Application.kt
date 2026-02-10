@@ -10,6 +10,8 @@ import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.http.content.*
+import server.auth.FirebaseAdmin
+import server.auth.authenticated
 import shared.model.DashboardItem
 import shared.model.Status
 
@@ -19,9 +21,12 @@ fun main() {
 }
 
 fun Application.module() {
+    FirebaseAdmin.initialize()
+
     install(ContentNegotiation) { json() }
     install(CORS) {
         allowHeader(HttpHeaders.ContentType)
+        allowHeader(HttpHeaders.Authorization)
         allowMethod(HttpMethod.Get)
         allowMethod(HttpMethod.Post)
         allowMethod(HttpMethod.Delete)
@@ -30,8 +35,10 @@ fun Application.module() {
 
     routing {
         route("/api") {
-            get("/items") {
-                call.respond(sampleItems())
+            authenticated {
+                get("/items") {
+                    call.respond(sampleItems())
+                }
             }
         }
 

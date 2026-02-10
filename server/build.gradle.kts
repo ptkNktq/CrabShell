@@ -19,6 +19,7 @@ dependencies {
     implementation(libs.ktor.server.host.common)
     implementation(libs.ktor.serialization.kotlinx.json.jvm)
     implementation(libs.logback.classic)
+    implementation(libs.firebase.admin)
 }
 
 // Compose Wasm フロントエンドのビルド出力をサーバーの静的リソースにコピー
