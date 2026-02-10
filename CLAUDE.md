@@ -61,18 +61,26 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 
 ## Docker
 
+### 本番用
+
 ```bash
-# ビルド＆バックグラウンド起動
-docker compose up -d --build
-
-# 停止
-docker compose down
-
-# ログ確認
-docker compose logs -f
+docker compose up -d --build    # ビルド＆バックグラウンド起動
+docker compose down              # 停止
+docker compose logs -f           # ログ確認
 ```
 
 Dockerfile はマルチステージビルド（Gradle でビルド → JRE で実行）。ビルドステージで WASM フロントエンド + fat JAR を生成し、実行ステージは `eclipse-temurin:21-jre` 上で `app.jar` を起動する。ポート 8080 を公開。
+
+### 開発用
+
+```bash
+docker compose -f docker-compose.dev.yml up -d --build   # 初回起動
+docker compose -f docker-compose.dev.yml up -d            # 2回目以降
+docker compose -f docker-compose.dev.yml down              # 停止
+docker compose -f docker-compose.dev.yml logs -f           # ログ確認
+```
+
+`Dockerfile.dev` + `docker-compose.dev.yml` を使用。fat JAR を生成せず `gradle :server:run` で起動する。ソースコードはボリュームマウントされるため、コンテナ再起動だけで変更が反映される。Gradle キャッシュは named volume で永続化。
 
 ## Branch Strategy (GitHub Flow)
 
