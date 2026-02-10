@@ -23,28 +23,28 @@ private val LoadingColorScheme = darkColorScheme(
 @Composable
 fun AuthenticatedApp() {
     SelectionContainer {
-    when (AuthStateHolder.state) {
-        is AuthState.Loading -> {
-            MaterialTheme(colorScheme = LoadingColorScheme) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background,
-                ) {
-                    Box(
+        when (AuthStateHolder.state) {
+            is AuthState.Loading -> {
+                MaterialTheme(colorScheme = LoadingColorScheme) {
+                    Surface(
                         modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
+                        color = MaterialTheme.colorScheme.background,
                     ) {
-                        CircularProgressIndicator()
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CircularProgressIndicator()
+                        }
                     }
                 }
             }
+            is AuthState.Unauthenticated -> {
+                LoginScreen()
+            }
+            is AuthState.Authenticated -> {
+                App()
+            }
         }
-        is AuthState.Unauthenticated -> {
-            LoginScreen()
-        }
-        is AuthState.Authenticated -> {
-            App()
-        }
-    }
     }
 }
