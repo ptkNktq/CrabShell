@@ -1,10 +1,10 @@
-package frontend
+package ui
 
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
-import frontend.auth.AuthRepository
-import frontend.auth.AuthenticatedApp
 import kotlinx.browser.document
+import ui.features.auth.AuthRepository
+import ui.features.auth.AuthenticatedApp
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {

@@ -1,4 +1,4 @@
-package frontend.auth
+package ui.features.auth
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
