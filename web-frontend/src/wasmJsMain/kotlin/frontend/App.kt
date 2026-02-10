@@ -17,18 +17,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import io.ktor.client.*
 import io.ktor.client.call.*
-import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
-import io.ktor.serialization.kotlinx.json.*
+import frontend.auth.AuthRepository
+import frontend.auth.authenticatedClient
 import kotlinx.coroutines.launch
 import shared.model.DashboardItem
 import shared.model.Status
-
-private val client = HttpClient {
-    install(ContentNegotiation) { json() }
-}
 
 private val CrabShellColorScheme = darkColorScheme(
     primary = Color(0xFFE8844A),
@@ -68,6 +63,7 @@ fun App() {
 private fun Sidebar() {
     var expanded by remember { mutableStateOf(false) }
     val sidebarWidth by animateDpAsState(targetValue = if (expanded) 240.dp else 72.dp)
+    val scope = rememberCoroutineScope()
 
     Surface(
         modifier = Modifier.fillMaxHeight().width(sidebarWidth),
@@ -90,6 +86,33 @@ private fun Sidebar() {
             SidebarItem(Icons.Default.Notifications, "Notifications", expanded)
             SidebarItem(Icons.Default.Settings, "Settings", expanded)
             SidebarItem(Icons.Default.Person, "Profile", expanded)
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // ログアウトボタン
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                    .clickable { scope.launch { AuthRepository.signOut() } }
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Logout,
+                    contentDescription = "Sign out",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+                if (expanded) {
+                    Text(
+                        text = "Sign Out",
+                        modifier = Modifier.padding(start = 16.dp),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                    )
+                }
+            }
         }
     }
 }
@@ -136,7 +159,7 @@ private fun DashboardScreen() {
     LaunchedEffect(Unit) {
         scope.launch {
             try {
-                items = client.get("/api/items").body()
+                items = authenticatedClient.get("/api/items").body()
                 loading = false
             } catch (e: Exception) {
                 error = e.message

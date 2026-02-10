@@ -3,3 +3,7 @@ services:
     build: .
     ports:
       - "2722:8080"
+    environment:
+      - FIREBASE_SERVICE_ACCOUNT_PATH=/app/firebase-service-account.json
+    volumes:
+      - ./firebase-service-account.json:/app/firebase-service-account.json:ro
