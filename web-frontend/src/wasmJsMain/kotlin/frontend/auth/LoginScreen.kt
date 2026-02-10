@@ -19,6 +19,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 // テーマ変更ブランチとの衝突を避けるため、ログイン画面用に独自カラースキーム定義
@@ -66,6 +67,29 @@ private fun LoginCard() {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    // パスワードマネージャ連携: 隠しフォームの表示・autofill検知
+    DisposableEffect(Unit) {
+        setLoginFormVisible(true)
+        onDispose { setLoginFormVisible(false) }
+    }
+    LaunchedEffect(Unit) {
+        // パスワードマネージャのautofillをポーリングで検知
+        while (true) {
+            delay(500)
+            val filledEmail = getLoginEmailValue().toString()
+            val filledPassword = getLoginPasswordValue().toString()
+            if (filledEmail.isNotEmpty() && filledEmail != email) {
+                email = filledEmail
+            }
+            if (filledPassword.isNotEmpty() && filledPassword != password) {
+                password = filledPassword
+            }
+        }
+    }
+    // Compose側の入力を隠しフォームに同期（パスワードマネージャの保存用）
+    LaunchedEffect(email) { setLoginEmailValue(email.toJsString()) }
+    LaunchedEffect(password) { setLoginPasswordValue(password.toJsString()) }
 
     val performSignIn = {
         if (email.isBlank() || password.isBlank()) {

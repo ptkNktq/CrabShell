@@ -33,6 +33,11 @@
 <div id="ComposeTarget">
     <div class="loading">Loading CrabShell...</div>
 </div>
+<!-- パスワードマネージャ連携用の隠しフォーム -->
+<form id="login-form" autocomplete="on" style="position: fixed; top: 0; left: 0; z-index: -1; pointer-events: none;">
+    <input id="login-email" type="email" name="email" autocomplete="username" tabindex="-1" />
+    <input id="login-password" type="password" name="password" autocomplete="current-password" tabindex="-1" />
+</form>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="firebase-config.js"></script>
