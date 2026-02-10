@@ -9,9 +9,27 @@ application {
     mainClass.set("server.ApplicationKt")
 }
 
-// サーバー実行時の作業ディレクトリをプロジェクトルートに設定
+// サーバー実行時の作業ディレクトリをプロジェクトルートに設定し、
+// 起動前にポート 8080 を使用中のプロセスを停止する
 tasks.named<JavaExec>("run") {
     workingDir = rootProject.projectDir
+    doFirst {
+        val port = 8080
+        ProcessBuilder("lsof", "-ti:$port")
+            .redirectErrorStream(true)
+            .start()
+            .let { proc ->
+                val pids = proc.inputStream.bufferedReader().readText().trim()
+                proc.waitFor()
+                if (pids.isNotEmpty()) {
+                    logger.lifecycle("Killing existing process on port $port (PID: $pids)")
+                    ProcessBuilder("kill", *pids.lines().toTypedArray())
+                        .start()
+                        .waitFor()
+                    Thread.sleep(1000)
+                }
+            }
+    }
 }
 
 dependencies {
