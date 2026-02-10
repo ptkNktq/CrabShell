@@ -48,3 +48,24 @@ docker compose up -d --build
 ### ブランチ命名規則
 
 `feat/`, `fix/`, `chore/`, `refactor/` + 簡潔な説明（例: `feat/websocket-realtime`）
+
+## 並行開発（git worktree）
+
+複数の機能を並行開発する場合は `git worktree` を使い、ブランチごとに別ディレクトリで作業する。
+
+```bash
+# worktree 作成（メインリポジトリの親ディレクトリに配置）
+git worktree add ../CrabShell-<task> -b feat/<task>
+
+# 例: テーマ更新と認証機能を並行開発
+git worktree add ../CrabShell-theme -b feat/theme-update
+git worktree add ../CrabShell-auth -b feat/firebase-auth
+
+# 各 worktree で独立してビルド・起動
+cd ../CrabShell-theme && docker compose up -d --build
+
+# 作業完了後に削除
+git worktree remove ../CrabShell-theme
+```
+
+これにより、各作業ディレクトリでブランチが固定され、Claude Code 等による並行作業時のブランチ切り替え事故を防げる。

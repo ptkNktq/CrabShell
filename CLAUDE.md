@@ -74,6 +74,36 @@ docker compose logs -f
 
 Dockerfile はマルチステージビルド（Gradle でビルド → JRE で実行）。ビルドステージで WASM フロントエンド + fat JAR を生成し、実行ステージは `eclipse-temurin:21-jre` 上で `app.jar` を起動する。ポート 8080 を公開。
 
+## Parallel Development with git worktree
+
+複数の Claude Code セッションで並行作業する場合は `git worktree` を使う。**メインの作業ディレクトリでブランチを切り替えてはならない。**
+
+```bash
+# worktree を作成して別ブランチで作業
+git worktree add ../CrabShell-<task> <branch-name>
+
+# 例
+git worktree add ../CrabShell-theme feature/theme-update
+git worktree add ../CrabShell-sidebar feature/sidebar-navigation
+
+# 不要になったら削除
+git worktree remove ../CrabShell-<task>
+```
+
+### ルール
+
+- **このディレクトリのブランチを勝手に切り替えないこと。** 他のセッションが同じリポジトリで作業中の可能性がある。
+- 新しい機能ブランチで作業する場合は、必ず `git worktree add` で別ディレクトリを作成してからそこで作業する。
+- worktree ディレクトリの命名規則: `CrabShell-<短い説明>`（例: `CrabShell-auth`, `CrabShell-theme`）
+- 各 worktree は独立したディレクトリなので、`docker compose` や `gradle` コマンドはその worktree 内で実行すること。
+
+## Commit Policy
+
+- **こまめにコミットすること。** ユーザーの指示を待たず、意味のある単位で自発的にコミットする。
+- 1コミット = 1つの論理的変更。複数ファイルにまたがっても「1つの目的」ならまとめてよいが、目的が異なる変更は分ける。
+- 例: 「依存追加」「UI実装」「バグ修正」は別々のコミットにする。「UIコンポーネント追加 + それを使う画面の更新」は1コミットでよい。
+- コミットメッセージは英語、1行目は簡潔に（50文字以内目安）。
+
 ## Notes
 
 - No tests, linting, or formatting tools are currently configured.
