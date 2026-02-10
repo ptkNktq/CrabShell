@@ -67,6 +67,23 @@ private fun LoginCard() {
     var isLoading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
+    val performSignIn = {
+        if (email.isBlank() || password.isBlank()) {
+            errorMessage = "Please enter email and password"
+        } else if (!isLoading) {
+            isLoading = true
+            errorMessage = null
+            scope.launch {
+                val result = AuthRepository.signIn(email, password)
+                isLoading = false
+                if (result.isFailure) {
+                    errorMessage = result.exceptionOrNull()?.message
+                        ?: "Authentication failed"
+                }
+            }
+        }
+    }
+
     Card(
         modifier = Modifier.width(400.dp).padding(16.dp),
         colors = CardDefaults.cardColors(
@@ -131,6 +148,9 @@ private fun LoginCard() {
                     keyboardType = KeyboardType.Password,
                     imeAction = ImeAction.Done,
                 ),
+                keyboardActions = KeyboardActions(
+                    onDone = { performSignIn() },
+                ),
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading,
             )
@@ -146,22 +166,7 @@ private fun LoginCard() {
             Spacer(modifier = Modifier.height(8.dp))
 
             Button(
-                onClick = {
-                    if (email.isBlank() || password.isBlank()) {
-                        errorMessage = "Please enter email and password"
-                        return@Button
-                    }
-                    isLoading = true
-                    errorMessage = null
-                    scope.launch {
-                        val result = AuthRepository.signIn(email, password)
-                        isLoading = false
-                        if (result.isFailure) {
-                            errorMessage = result.exceptionOrNull()?.message
-                                ?: "Authentication failed"
-                        }
-                    }
-                },
+                onClick = { performSignIn() },
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 enabled = !isLoading,
             ) {
