@@ -61,41 +61,46 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 
 ## Docker
 
+### 本番用
+
 ```bash
-# ビルド＆バックグラウンド起動
-docker compose up -d --build
-
-# 停止
-docker compose down
-
-# ログ確認
-docker compose logs -f
+docker compose up -d --build    # ビルド＆バックグラウンド起動
+docker compose down              # 停止
+docker compose logs -f           # ログ確認
 ```
 
 Dockerfile はマルチステージビルド（Gradle でビルド → JRE で実行）。ビルドステージで WASM フロントエンド + fat JAR を生成し、実行ステージは `eclipse-temurin:21-jre` 上で `app.jar` を起動する。ポート 8080 を公開。
 
-## Parallel Development with git worktree
-
-複数の Claude Code セッションで並行作業する場合は `git worktree` を使う。**メインの作業ディレクトリでブランチを切り替えてはならない。**
+### 開発用
 
 ```bash
-# worktree を作成して別ブランチで作業
-git worktree add ../CrabShell-<task> <branch-name>
-
-# 例
-git worktree add ../CrabShell-theme feature/theme-update
-git worktree add ../CrabShell-sidebar feature/sidebar-navigation
-
-# 不要になったら削除
-git worktree remove ../CrabShell-<task>
+docker compose -f docker-compose.dev.yml up -d --build   # 初回起動
+docker compose -f docker-compose.dev.yml up -d            # 2回目以降
+docker compose -f docker-compose.dev.yml down              # 停止
+docker compose -f docker-compose.dev.yml logs -f           # ログ確認
 ```
+
+`Dockerfile.dev` + `docker-compose.dev.yml` を使用。fat JAR を生成せず `gradle :server:run` で起動する。ソースコードはボリュームマウントされるため、コンテナ再起動だけで変更が反映される。Gradle キャッシュは named volume で永続化。
+
+## Branch Strategy (GitHub Flow)
+
+`main` ブランチを常にデプロイ可能な状態に保つ。
+
+1. `main` から機能ブランチを作成（`git checkout -b feat/xxx`）
+2. ブランチ上でコミットを重ねる
+3. Pull Request を作成してレビューを依頼
+4. レビュー承認後、`main` にマージ
+5. マージ後にブランチを削除
+
+### ブランチ命名規則
+
+`feat/`, `fix/`, `chore/`, `refactor/` + 簡潔な説明（例: `feat/websocket-realtime`）
 
 ### ルール
 
-- **このディレクトリのブランチを勝手に切り替えないこと。** 他のセッションが同じリポジトリで作業中の可能性がある。
-- 新しい機能ブランチで作業する場合は、必ず `git worktree add` で別ディレクトリを作成してからそこで作業する。
-- worktree ディレクトリの命名規則: `CrabShell-<短い説明>`（例: `CrabShell-auth`, `CrabShell-theme`）
-- 各 worktree は独立したディレクトリなので、`docker compose` や `gradle` コマンドはその worktree 内で実行すること。
+- `main` に直接 push しない — 常に PR 経由
+- PR はマージ前にレビューを受ける
+- マージ後にブランチを削除して整理する
 
 ## Commit Policy
 

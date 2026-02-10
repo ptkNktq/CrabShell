@@ -1,0 +1,4 @@
+FROM gradle:8.12-jdk21
+RUN apt-get update && apt-get install -y libatomic1 && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+CMD ["gradle", ":server:run", "--no-daemon"]
