@@ -1,10 +1,9 @@
-// Firebase設定値（公開情報 — Firebaseコンソールから取得して置き換えてください）
 var firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID",
+    apiKey: "AIzaSyBZkmr4YzzA57mph_CfUrmolEsPeLPTaEY",
+    authDomain: "crabshell-d0206.firebaseapp.com",
+    projectId: "crabshell-d0206",
+    storageBucket: "crabshell-d0206.firebasestorage.app",
+    messagingSenderId: "642027990476",
+    appId: "1:642027990476:web:326d78c90b8fa515c8c169",
 };
 firebase.initializeApp(firebaseConfig);
