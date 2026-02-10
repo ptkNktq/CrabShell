@@ -1,4 +1,4 @@
-package frontend
+package ui
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
@@ -19,11 +19,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import io.ktor.client.call.*
 import io.ktor.client.request.*
-import frontend.auth.AuthRepository
-import frontend.auth.authenticatedClient
 import kotlinx.coroutines.launch
 import shared.model.DashboardItem
 import shared.model.Status
+import ui.features.auth.AuthRepository
+import ui.features.auth.authenticatedClient
 
 private val CrabShellColorScheme = darkColorScheme(
     primary = Color(0xFFE8844A),

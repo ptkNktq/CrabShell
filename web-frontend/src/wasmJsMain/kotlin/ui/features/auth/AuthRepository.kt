@@ -1,6 +1,5 @@
-package frontend.auth
+package ui.features.auth
 
-import kotlin.js.JsString
 import kotlinx.coroutines.await
 import shared.model.User
 

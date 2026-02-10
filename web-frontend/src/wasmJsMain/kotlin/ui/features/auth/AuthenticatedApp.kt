@@ -1,4 +1,4 @@
-package frontend.auth
+package ui.features.auth
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,7 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import frontend.App
+import ui.App
 
 // ローディング画面用カラースキーム（テーマブランチとの衝突回避）
 private val LoadingColorScheme = darkColorScheme(
