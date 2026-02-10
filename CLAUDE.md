@@ -97,6 +97,13 @@ git worktree remove ../CrabShell-<task>
 - worktree ディレクトリの命名規則: `CrabShell-<短い説明>`（例: `CrabShell-auth`, `CrabShell-theme`）
 - 各 worktree は独立したディレクトリなので、`docker compose` や `gradle` コマンドはその worktree 内で実行すること。
 
+## Commit Policy
+
+- **こまめにコミットすること。** ユーザーの指示を待たず、意味のある単位で自発的にコミットする。
+- 1コミット = 1つの論理的変更。複数ファイルにまたがっても「1つの目的」ならまとめてよいが、目的が異なる変更は分ける。
+- 例: 「依存追加」「UI実装」「バグ修正」は別々のコミットにする。「UIコンポーネント追加 + それを使う画面の更新」は1コミットでよい。
+- コミットメッセージは英語、1行目は簡潔に（50文字以内目安）。
+
 ## Notes
 
 - No tests, linting, or formatting tools are currently configured.
