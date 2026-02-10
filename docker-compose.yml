@@ -3,9 +3,7 @@ services:
     build: .
     ports:
       - "2722:8080"
-    # Firebase認証を有効にする場合、以下のコメントを解除し
-    # firebase-service-account.json をプロジェクトルートに配置してください
-    # environment:
-    #   - FIREBASE_SERVICE_ACCOUNT_PATH=/app/firebase-service-account.json
-    # volumes:
-    #   - ./firebase-service-account.json:/app/firebase-service-account.json:ro
+    environment:
+      - FIREBASE_SERVICE_ACCOUNT_PATH=/app/firebase-service-account.json
+    volumes:
+      - ./firebase-service-account.json:/app/firebase-service-account.json:ro
