@@ -8,20 +8,18 @@ CrabShell is a Kotlin Multiplatform dashboard application with a Ktor server bac
 
 ## Build Commands
 
-No `gradlew` wrapper is checked in — use the system `gradle` command.
-
 ```bash
 # Run the server (includes building the WASM frontend automatically)
-gradle :server:run
+./gradlew :server:run
 
 # Build the WASM frontend only
-gradle :web-frontend:wasmJsBrowserDistribution
+./gradlew :web-frontend:wasmJsBrowserDistribution
 
 # Build the server (also triggers frontend build via copyWasmFrontend task)
-gradle :server:build
+./gradlew :server:build
 
 # Build the shared library
-gradle :shared:build
+./gradlew :shared:build
 ```
 
 The server listens on `0.0.0.0:8080`. Building the server automatically copies the compiled WASM frontend into `server/build/resources/main/static/` so the server serves both API and UI.
