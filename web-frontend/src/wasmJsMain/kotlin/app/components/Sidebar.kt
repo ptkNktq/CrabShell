@@ -14,7 +14,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import app.BuildConfig
 
 @Composable
 fun Sidebar(onSignOut: () -> Unit) {
@@ -69,6 +71,16 @@ fun Sidebar(onSignOut: () -> Unit) {
                     )
                 }
             }
+
+            // バージョン表示
+            Text(
+                text = if (expanded) "v${BuildConfig.VERSION}" else BuildConfig.VERSION,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+            )
         }
     }
 }

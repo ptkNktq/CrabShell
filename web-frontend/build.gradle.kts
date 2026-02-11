@@ -4,6 +4,28 @@ plugins {
     alias(libs.plugins.compose.compiler)
 }
 
+// ビルド時にコミットハッシュを BuildConfig.kt として生成
+val generateBuildConfig by tasks.registering {
+    val outputDir = layout.buildDirectory.dir("generated/buildconfig")
+    outputs.dir(outputDir)
+    doLast {
+        val commitHash = providers.exec {
+            commandLine("git", "rev-parse", "--short", "HEAD")
+        }.standardOutput.asText.get().trim()
+        val file = outputDir.get().file("app/BuildConfig.kt").asFile
+        file.parentFile.mkdirs()
+        file.writeText(
+            """
+            |package app
+            |
+            |object BuildConfig {
+            |    const val VERSION: String = "$commitHash"
+            |}
+            """.trimMargin()
+        )
+    }
+}
+
 kotlin {
     wasmJs {
         browser {
@@ -15,6 +37,9 @@ kotlin {
     }
 
     sourceSets {
+        wasmJsMain {
+            kotlin.srcDir(generateBuildConfig.map { it.outputs.files.singleFile })
+        }
         wasmJsMain.dependencies {
             implementation(compose.runtime)
             implementation(compose.foundation)
