@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalWasmJsInterop::class)
+
 package feature.dashboard
 
 import androidx.compose.runtime.getValue
@@ -8,10 +10,17 @@ import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import model.DashboardItem
+import model.Feeding
+import model.FeedingLog
+import model.MealTime
 
-class DashboardViewModel(scope: CoroutineScope) {
-    var items by mutableStateOf<List<DashboardItem>>(emptyList())
+@JsFun("() => { const d = new Date(); const mm = String(d.getMonth()+1).padStart(2,'0'); const dd = String(d.getDate()).padStart(2,'0'); return d.getFullYear()+'-'+mm+'-'+dd; }")
+private external fun todayDateJs(): String
+
+class DashboardViewModel(private val scope: CoroutineScope) {
+    private val today: String = todayDateJs()
+
+    var feedingLog by mutableStateOf(FeedingLog(date = today))
         private set
     var loading by mutableStateOf(true)
         private set
@@ -19,16 +28,29 @@ class DashboardViewModel(scope: CoroutineScope) {
         private set
 
     init {
-        scope.launch { loadItems() }
+        scope.launch { loadToday() }
     }
 
-    private suspend fun loadItems() {
+    private suspend fun loadToday() {
         try {
-            items = authenticatedClient.get("/api/items").body()
+            feedingLog = authenticatedClient.get("/api/feeding/$today").body()
             loading = false
         } catch (e: Exception) {
             error = e.message
             loading = false
+        }
+    }
+
+    fun feed(mealTime: MealTime) {
+        scope.launch {
+            try {
+                val feeding: Feeding = authenticatedClient.put("/api/feeding/$today/$mealTime").body()
+                feedingLog = feedingLog.copy(
+                    feedings = feedingLog.feedings + (mealTime to feeding)
+                )
+            } catch (e: Exception) {
+                error = e.message
+            }
         }
     }
 }
