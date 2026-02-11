@@ -1,3 +1,5 @@
+import java.io.ByteArrayOutputStream
+
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.compose.multiplatform)
@@ -9,9 +11,13 @@ val generateBuildConfig by tasks.registering {
     val outputDir = layout.buildDirectory.dir("generated/buildconfig")
     outputs.dir(outputDir)
     doLast {
-        val commitHash = providers.exec {
+        val out = ByteArrayOutputStream()
+        exec {
             commandLine("git", "rev-parse", "--short", "HEAD")
-        }.standardOutput.asText.get().trim()
+            workingDir = rootProject.projectDir
+            standardOutput = out
+        }
+        val commitHash = out.toString().trim()
         val file = outputDir.get().file("app/BuildConfig.kt").asFile
         file.parentFile.mkdirs()
         file.writeText(
