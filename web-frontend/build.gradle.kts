@@ -23,12 +23,14 @@ kotlin {
             implementation(compose.materialIconsExtended)
             implementation(compose.components.resources)
 
-            implementation(libs.ktor.client.core)
+            // Ktor WASM engine（wasmJs ターゲットの実行に必要）
             implementation(libs.ktor.client.js.wasm)
-            implementation(libs.ktor.client.content.negotiation)
-            implementation(libs.ktor.serialization.kotlinx.json)
 
-            implementation(project(":shared"))
+            // モジュール依存
+            implementation(project(":core:auth"))
+            implementation(project(":core:ui"))
+            implementation(project(":feature:auth"))
+            implementation(project(":feature:dashboard"))
         }
     }
 }
