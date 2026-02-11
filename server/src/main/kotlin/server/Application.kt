@@ -14,6 +14,7 @@ import model.DashboardItem
 import model.Status
 import server.auth.FirebaseAdmin
 import server.auth.authenticated
+import server.feeding.feedingRoutes
 
 fun main() {
     embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::module)
@@ -29,6 +30,7 @@ fun Application.module() {
         allowHeader(HttpHeaders.Authorization)
         allowMethod(HttpMethod.Get)
         allowMethod(HttpMethod.Post)
+        allowMethod(HttpMethod.Put)
         allowMethod(HttpMethod.Delete)
         anyHost()
     }
@@ -40,6 +42,7 @@ fun Application.module() {
                     call.respond(sampleItems())
                 }
             }
+            feedingRoutes()
         }
 
         // Compose Wasm フロントエンドを配信
