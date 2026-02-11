@@ -6,9 +6,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.WbTwilight
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -21,6 +21,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import model.Feeding
 import model.MealTime
+
+@JsFun("(iso) => { const d = new Date(iso); return d.toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'Asia/Tokyo'}); }")
+private external fun toJstHHMM(iso: JsString): JsString
 
 @Composable
 fun FeedingScreen() {
@@ -81,21 +84,24 @@ fun FeedingScreen() {
                             MealCard(
                                 mealTime = MealTime.MORNING,
                                 label = "Morning",
-                                icon = Icons.Default.LightMode,
+                                icon = Icons.Default.WbTwilight,
+                                iconTint = Color(0xCDFF4E4E),
                                 feeding = vm.log.feedings[MealTime.MORNING] ?: Feeding(),
                                 onFeed = { vm.feed(MealTime.MORNING) },
                             )
                             MealCard(
                                 mealTime = MealTime.LUNCH,
                                 label = "Lunch",
-                                icon = Icons.Default.WbTwilight,
+                                icon = Icons.Default.WbSunny,
+                                iconTint = Color(0xFFFBC02D),
                                 feeding = vm.log.feedings[MealTime.LUNCH] ?: Feeding(),
                                 onFeed = { vm.feed(MealTime.LUNCH) },
                             )
                             MealCard(
                                 mealTime = MealTime.EVENING,
                                 label = "Evening",
-                                icon = Icons.Default.DarkMode,
+                                icon = Icons.Default.Bedtime,
+                                iconTint = Color(0xFF5C6BC0),
                                 feeding = vm.log.feedings[MealTime.EVENING] ?: Feeding(),
                                 onFeed = { vm.feed(MealTime.EVENING) },
                             )
@@ -140,6 +146,7 @@ private fun MealCard(
     mealTime: MealTime,
     label: String,
     icon: ImageVector,
+    iconTint: Color,
     feeding: Feeding,
     onFeed: () -> Unit,
 ) {
@@ -166,7 +173,7 @@ private fun MealCard(
                 Icon(
                     imageVector = icon,
                     contentDescription = label,
-                    tint = if (feeding.done) doneColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = if (feeding.done) doneColor else iconTint,
                 )
                 Column {
                     Text(
@@ -176,7 +183,7 @@ private fun MealCard(
                     val ts = feeding.timestamp
                     if (feeding.done && ts != null) {
                         Text(
-                            text = formatTimestamp(ts),
+                            text = toJstHHMM(ts.toJsString()).toString(),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -219,13 +226,4 @@ private fun NoteSection(note: String, onNoteChange: (String) -> Unit, onSave: ()
     Button(onClick = onSave) {
         Text("Save Note")
     }
-}
-
-/** ISO-8601 タイムスタンプから時刻部分 (HH:MM) を抽出 */
-private fun formatTimestamp(timestamp: String): String {
-    // "2026-02-11T08:30:00Z" → "08:30"
-    val timePartIndex = timestamp.indexOf('T')
-    if (timePartIndex == -1) return timestamp
-    val timePart = timestamp.substring(timePartIndex + 1)
-    return timePart.take(5) // "HH:MM"
 }

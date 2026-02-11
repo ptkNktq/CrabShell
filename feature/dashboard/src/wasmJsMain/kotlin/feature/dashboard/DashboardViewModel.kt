@@ -17,6 +17,9 @@ import model.MealTime
 @JsFun("() => { const d = new Date(); const mm = String(d.getMonth()+1).padStart(2,'0'); const dd = String(d.getDate()).padStart(2,'0'); return d.getFullYear()+'-'+mm+'-'+dd; }")
 private external fun todayDateJs(): String
 
+@JsFun("(iso) => { const d = new Date(iso); return d.toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'Asia/Tokyo'}); }")
+external fun toJstHHMM(iso: JsString): JsString
+
 class DashboardViewModel(private val scope: CoroutineScope) {
     private val today: String = todayDateJs()
 
