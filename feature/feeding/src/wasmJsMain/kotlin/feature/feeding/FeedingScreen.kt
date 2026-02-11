@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalWasmJsInterop::class)
+
 package feature.feeding
 
 import androidx.compose.foundation.layout.*
@@ -25,6 +27,8 @@ fun FeedingScreen() {
     val scope = rememberCoroutineScope()
     val vm = remember { FeedingViewModel(scope) }
 
+    val today = remember { todayDateJs().toString() }
+
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
     ) {
@@ -36,60 +40,77 @@ fun FeedingScreen() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 日付セレクター
-        DateSelector(
-            date = vm.selectedDate,
-            onPrevious = { vm.goToPreviousDay() },
-            onNext = { vm.goToNextDay() },
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth().weight(1f),
+        ) {
+            // 左側: カレンダー
+            CalendarView(
+                selectedDate = vm.selectedDate,
+                today = today,
+                onDateSelected = { vm.loadLog(it) },
+                modifier = Modifier.width(300.dp),
+            )
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.width(24.dp))
 
-        when {
-            vm.loading -> {
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            }
-
-            vm.error != null -> {
-                Text("Error: ${vm.error}", color = MaterialTheme.colorScheme.error)
-            }
-
-            else -> {
-                // 朝・昼・晩のカード
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    MealCard(
-                        mealTime = MealTime.MORNING,
-                        label = "Morning",
-                        icon = Icons.Default.LightMode,
-                        feeding = vm.log.feedings[MealTime.MORNING] ?: Feeding(),
-                        onFeed = { vm.feed(MealTime.MORNING) },
-                    )
-                    MealCard(
-                        mealTime = MealTime.LUNCH,
-                        label = "Lunch",
-                        icon = Icons.Default.WbTwilight,
-                        feeding = vm.log.feedings[MealTime.LUNCH] ?: Feeding(),
-                        onFeed = { vm.feed(MealTime.LUNCH) },
-                    )
-                    MealCard(
-                        mealTime = MealTime.EVENING,
-                        label = "Evening",
-                        icon = Icons.Default.DarkMode,
-                        feeding = vm.log.feedings[MealTime.EVENING] ?: Feeding(),
-                        onFeed = { vm.feed(MealTime.EVENING) },
-                    )
-                }
+            // 右側: 既存コンテンツ
+            Column(modifier = Modifier.weight(1f)) {
+                // 日付セレクター
+                DateSelector(
+                    date = vm.selectedDate,
+                    onPrevious = { vm.goToPreviousDay() },
+                    onNext = { vm.goToNextDay() },
+                )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 備考欄
-                NoteSection(
-                    note = vm.noteDraft,
-                    onNoteChange = { vm.updateNoteDraft(it) },
-                    onSave = { vm.saveNote() },
-                )
+                when {
+                    vm.loading -> {
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    }
+
+                    vm.error != null -> {
+                        Text("Error: ${vm.error}", color = MaterialTheme.colorScheme.error)
+                    }
+
+                    else -> {
+                        // 朝・昼・晩のカード
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            MealCard(
+                                mealTime = MealTime.MORNING,
+                                label = "Morning",
+                                icon = Icons.Default.LightMode,
+                                feeding = vm.log.feedings[MealTime.MORNING] ?: Feeding(),
+                                onFeed = { vm.feed(MealTime.MORNING) },
+                            )
+                            MealCard(
+                                mealTime = MealTime.LUNCH,
+                                label = "Lunch",
+                                icon = Icons.Default.WbTwilight,
+                                feeding = vm.log.feedings[MealTime.LUNCH] ?: Feeding(),
+                                onFeed = { vm.feed(MealTime.LUNCH) },
+                            )
+                            MealCard(
+                                mealTime = MealTime.EVENING,
+                                label = "Evening",
+                                icon = Icons.Default.DarkMode,
+                                feeding = vm.log.feedings[MealTime.EVENING] ?: Feeding(),
+                                onFeed = { vm.feed(MealTime.EVENING) },
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // 備考欄
+                        NoteSection(
+                            note = vm.noteDraft,
+                            onNoteChange = { vm.updateNoteDraft(it) },
+                            onSave = { vm.saveNote() },
+                        )
+                    }
+                }
             }
         }
     }

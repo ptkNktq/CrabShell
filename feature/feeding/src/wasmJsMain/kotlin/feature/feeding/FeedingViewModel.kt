@@ -88,24 +88,3 @@ class FeedingViewModel(private val scope: CoroutineScope) {
         loadLog(shiftDateJs(selectedDate.toJsString(), 1).toString())
     }
 }
-
-/** 今日の日付を YYYY-MM-DD 形式で返す */
-@JsFun("""() => {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return y + '-' + m + '-' + day;
-}""")
-private external fun todayDateJs(): JsString
-
-/** 日付文字列を days 日ずらす */
-@JsFun("""(dateStr, days) => {
-    const d = new Date(dateStr + 'T00:00:00');
-    d.setDate(d.getDate() + days);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return y + '-' + m + '-' + day;
-}""")
-private external fun shiftDateJs(dateStr: JsString, days: Int): JsString
