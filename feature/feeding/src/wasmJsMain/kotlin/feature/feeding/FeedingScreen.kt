@@ -152,9 +152,10 @@ private fun MealCard(
                         text = label,
                         style = MaterialTheme.typography.titleMedium,
                     )
-                    if (feeding.done && feeding.timestamp != null) {
+                    val ts = feeding.timestamp
+                    if (feeding.done && ts != null) {
                         Text(
-                            text = formatTimestamp(feeding.timestamp),
+                            text = formatTimestamp(ts),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
