@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalWasmJsInterop::class)
+
 package feature.dashboard
 
 import androidx.compose.foundation.background
@@ -6,7 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bedtime
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.WbTwilight
 import androidx.compose.material3.*
@@ -61,13 +63,6 @@ fun DashboardScreen() {
     }
 }
 
-/** ISO-8601 timestamp ("2025-01-15T20:05:30.123Z") → "HH:MM" */
-private fun formatTimestamp(iso: String): String {
-    val t = iso.substringAfter('T').substringBefore('Z').substringBefore('+')
-    val parts = t.split(':')
-    return if (parts.size >= 2) "${parts[0]}:${parts[1]}" else t
-}
-
 @Composable
 fun DailyFeedingCard(
     feedingLog: FeedingLog,
@@ -78,8 +73,9 @@ fun DailyFeedingCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(16.dp),
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -89,7 +85,7 @@ fun DailyFeedingCard(
 
             HeaderSection(doneCount = doneCount)
 
-            Divider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+            HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -100,13 +96,16 @@ fun DailyFeedingCard(
                     Triple(MealTime.LUNCH, Icons.Default.WbSunny, Color(0xFFFBC02D)),
                     Triple(MealTime.EVENING, Icons.Default.Bedtime, Color(0xFF5C6BC0)),
                 )
-                for ((mealTime, icon, tint) in meals) {
+                val labels = listOf("Morning", "Lunch", "Evening")
+                for ((index, triple) in meals.withIndex()) {
+                    val (mealTime, icon, tint) = triple
                     val feeding = feedingLog.feedings[mealTime]
                     FeedingSection(
+                        label = labels[index],
                         icon = icon,
                         tint = tint,
                         isDone = feeding?.done == true,
-                        time = feeding?.timestamp?.let { formatTimestamp(it) },
+                        time = feeding?.timestamp?.let { toJstHHMM(it.toJsString()).toString() },
                         onClick = { onFeedClick(mealTime) },
                         modifier = Modifier.weight(1f)
                     )
@@ -134,7 +133,7 @@ fun HeaderSection(
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = "Check status",
+                text = "Today",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -160,6 +159,7 @@ fun HeaderSection(
 
 @Composable
 private fun FeedingSection(
+    label: String,
     icon: ImageVector,
     tint: Color,
     isDone: Boolean,
@@ -189,14 +189,19 @@ private fun FeedingSection(
             )
         }
 
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
         if (isDone) {
-            // 完了アイコンと時刻
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(
-                    imageVector = Icons.Default.CheckCircle,
+                    imageVector = Icons.Default.Check,
                     contentDescription = null,
                     tint = Color(0xFF4CAF50),
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier.size(28.dp)
                 )
                 Text(
                     text = time ?: "--:--",
@@ -205,13 +210,12 @@ private fun FeedingSection(
                 )
             }
         } else {
-            // 未完了ならボタン
-            FilledTonalButton(
+            Button(
                 onClick = onClick,
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(0.dp)
             ) {
-                Text("DONE", style = MaterialTheme.typography.labelMedium)
+                Text("Feed", style = MaterialTheme.typography.labelMedium)
             }
         }
     }
