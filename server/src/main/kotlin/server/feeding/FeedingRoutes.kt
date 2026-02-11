@@ -1,7 +1,7 @@
 package server.feeding
 
-import com.google.cloud.firestore.FirestoreOptions
 import com.google.cloud.firestore.SetOptions
+import com.google.firebase.cloud.FirestoreClient
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -13,7 +13,7 @@ import server.auth.FirebaseTokenKey
 import server.auth.authenticated
 import java.time.Instant
 
-private val firestore by lazy { FirestoreOptions.getDefaultInstance().service }
+private val firestore by lazy { FirestoreClient.getFirestore() }
 
 fun Route.feedingRoutes() {
     route("/feeding") {
