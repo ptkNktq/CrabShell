@@ -11,9 +11,12 @@ kotlin {
 
     sourceSets {
         wasmJsMain.dependencies {
+            api(project(":shared"))
+
             api(compose.runtime)
             api(compose.foundation)
             api(compose.material3)
+            api(compose.materialIconsExtended)
             api(compose.ui)
         }
     }
