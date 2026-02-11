@@ -6,19 +6,18 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.WbSunny
-import androidx.compose.material.icons.filled.WbTwilight
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import core.ui.theme.FeedingDoneColor
+import core.ui.theme.color
+import core.ui.theme.icon
+import core.ui.theme.label
 import model.Feeding
 import model.MealTime
 
@@ -81,30 +80,13 @@ fun FeedingScreen() {
                     else -> {
                         // 朝・昼・晩のカード
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            MealCard(
-                                mealTime = MealTime.MORNING,
-                                label = "Morning",
-                                icon = Icons.Default.WbTwilight,
-                                iconTint = Color(0xCDFF4E4E),
-                                feeding = vm.log.feedings[MealTime.MORNING] ?: Feeding(),
-                                onFeed = { vm.feed(MealTime.MORNING) },
-                            )
-                            MealCard(
-                                mealTime = MealTime.LUNCH,
-                                label = "Lunch",
-                                icon = Icons.Default.WbSunny,
-                                iconTint = Color(0xFFFBC02D),
-                                feeding = vm.log.feedings[MealTime.LUNCH] ?: Feeding(),
-                                onFeed = { vm.feed(MealTime.LUNCH) },
-                            )
-                            MealCard(
-                                mealTime = MealTime.EVENING,
-                                label = "Evening",
-                                icon = Icons.Default.Bedtime,
-                                iconTint = Color(0xFF5C6BC0),
-                                feeding = vm.log.feedings[MealTime.EVENING] ?: Feeding(),
-                                onFeed = { vm.feed(MealTime.EVENING) },
-                            )
+                            for (mealTime in MealTime.entries) {
+                                MealCard(
+                                    mealTime = mealTime,
+                                    feeding = vm.log.feedings[mealTime] ?: Feeding(),
+                                    onFeed = { vm.feed(mealTime) },
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(24.dp))
@@ -144,19 +126,14 @@ private fun DateSelector(date: String, onPrevious: () -> Unit, onNext: () -> Uni
 @Composable
 private fun MealCard(
     mealTime: MealTime,
-    label: String,
-    icon: ImageVector,
-    iconTint: Color,
     feeding: Feeding,
     onFeed: () -> Unit,
 ) {
-    val doneColor = Color(0xFF4CAF50)
-
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = if (feeding.done)
-                doneColor.copy(alpha = 0.1f)
+                FeedingDoneColor.copy(alpha = 0.1f)
             else
                 MaterialTheme.colorScheme.surfaceVariant,
         ),
@@ -171,13 +148,13 @@ private fun MealCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Icon(
-                    imageVector = icon,
-                    contentDescription = label,
-                    tint = if (feeding.done) doneColor else iconTint,
+                    imageVector = mealTime.icon,
+                    contentDescription = mealTime.label,
+                    tint = mealTime.color,
                 )
                 Column {
                     Text(
-                        text = label,
+                        text = mealTime.label,
                         style = MaterialTheme.typography.titleMedium,
                     )
                     val ts = feeding.timestamp
@@ -195,7 +172,7 @@ private fun MealCard(
                 Icon(
                     imageVector = Icons.Default.Check,
                     contentDescription = "Done",
-                    tint = doneColor,
+                    tint = FeedingDoneColor,
                     modifier = Modifier.size(28.dp),
                 )
             } else {

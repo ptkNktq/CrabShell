@@ -7,10 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.WbSunny
-import androidx.compose.material.icons.filled.WbTwilight
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -21,6 +18,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import core.ui.theme.FeedingDoneColor
+import core.ui.theme.color
+import core.ui.theme.icon
+import core.ui.theme.label
 import model.FeedingLog
 import model.MealTime
 
@@ -91,19 +92,12 @@ fun DailyFeedingCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                val meals = listOf(
-                    Triple(MealTime.MORNING, Icons.Default.WbTwilight, Color(0xCDFF4E4E)),
-                    Triple(MealTime.LUNCH, Icons.Default.WbSunny, Color(0xFFFBC02D)),
-                    Triple(MealTime.EVENING, Icons.Default.Bedtime, Color(0xFF5C6BC0)),
-                )
-                val labels = listOf("Morning", "Lunch", "Evening")
-                for ((index, triple) in meals.withIndex()) {
-                    val (mealTime, icon, tint) = triple
+                for (mealTime in MealTime.entries) {
                     val feeding = feedingLog.feedings[mealTime]
                     FeedingSection(
-                        label = labels[index],
-                        icon = icon,
-                        tint = tint,
+                        label = mealTime.label,
+                        icon = mealTime.icon,
+                        tint = mealTime.color,
                         isDone = feeding?.done == true,
                         time = feeding?.timestamp?.let { toJstHHMM(it.toJsString()).toString() },
                         onClick = { onFeedClick(mealTime) },
@@ -200,7 +194,7 @@ private fun FeedingSection(
                 Icon(
                     imageVector = Icons.Default.Check,
                     contentDescription = null,
-                    tint = Color(0xFF4CAF50),
+                    tint = FeedingDoneColor,
                     modifier = Modifier.size(28.dp)
                 )
                 Text(
