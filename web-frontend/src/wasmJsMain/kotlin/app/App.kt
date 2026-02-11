@@ -2,6 +2,7 @@ package app
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
@@ -25,15 +26,17 @@ fun App() {
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
         ) {
-            Row(modifier = Modifier.fillMaxSize()) {
-                Sidebar(
-                    currentScreen = currentScreen,
-                    onNavigate = { currentScreen = it },
-                    onSignOut = { scope.launch { AuthRepository.signOut() } },
-                )
-                when (currentScreen) {
-                    Screen.Dashboard -> DashboardScreen()
-                    Screen.Feeding -> FeedingScreen()
+            SelectionContainer {
+                Row(modifier = Modifier.fillMaxSize()) {
+                    Sidebar(
+                        currentScreen = currentScreen,
+                        onNavigate = { currentScreen = it },
+                        onSignOut = { scope.launch { AuthRepository.signOut() } },
+                    )
+                    when (currentScreen) {
+                        Screen.Dashboard -> DashboardScreen()
+                        Screen.Feeding -> FeedingScreen()
+                    }
                 }
             }
         }
