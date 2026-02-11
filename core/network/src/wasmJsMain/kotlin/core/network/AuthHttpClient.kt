@@ -1,9 +1,9 @@
-package frontend.auth
+package core.network
 
+import core.auth.AuthStateHolder
 import io.ktor.client.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.request.*
 import io.ktor.serialization.kotlinx.json.*
 
 val authenticatedClient = HttpClient {

@@ -1,7 +1,35 @@
+import java.io.ByteArrayOutputStream
+
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.compose.compiler)
+}
+
+// ビルド時にコミットハッシュを BuildConfig.kt として生成
+val generateBuildConfig by tasks.registering {
+    val outputDir = layout.buildDirectory.dir("generated/buildconfig")
+    outputs.dir(outputDir)
+    doLast {
+        val out = ByteArrayOutputStream()
+        exec {
+            commandLine("git", "rev-parse", "--short", "HEAD")
+            workingDir = rootProject.projectDir
+            standardOutput = out
+        }
+        val commitHash = out.toString().trim()
+        val file = outputDir.get().file("app/BuildConfig.kt").asFile
+        file.parentFile.mkdirs()
+        file.writeText(
+            """
+            |package app
+            |
+            |object BuildConfig {
+            |    const val VERSION: String = "$commitHash"
+            |}
+            """.trimMargin()
+        )
+    }
 }
 
 kotlin {
@@ -15,6 +43,9 @@ kotlin {
     }
 
     sourceSets {
+        wasmJsMain {
+            kotlin.srcDir(generateBuildConfig.map { it.outputs.files.singleFile })
+        }
         wasmJsMain.dependencies {
             implementation(compose.runtime)
             implementation(compose.foundation)
@@ -23,12 +54,14 @@ kotlin {
             implementation(compose.materialIconsExtended)
             implementation(compose.components.resources)
 
-            implementation(libs.ktor.client.core)
+            // Ktor WASM engine（wasmJs ターゲットの実行に必要）
             implementation(libs.ktor.client.js.wasm)
-            implementation(libs.ktor.client.content.negotiation)
-            implementation(libs.ktor.serialization.kotlinx.json)
 
-            implementation(project(":shared"))
+            // モジュール依存
+            implementation(project(":core:auth"))
+            implementation(project(":core:ui"))
+            implementation(project(":feature:auth"))
+            implementation(project(":feature:dashboard"))
         }
     }
 }

@@ -2,10 +2,12 @@ FROM gradle:8.12-jdk21 AS build
 RUN apt-get update && apt-get install -y libatomic1 && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY gradle/ gradle/
-COPY build.gradle.kts settings.gradle.kts gradle.properties ./
+COPY build.gradle.kts settings.gradle.kts gradle.properties gradlew ./
 COPY shared/ shared/
 COPY server/ server/
 COPY web-frontend/ web-frontend/
+COPY core/ core/
+COPY feature/ feature/
 RUN gradle :server:buildFatJar --no-daemon
 
 FROM eclipse-temurin:21-jre
