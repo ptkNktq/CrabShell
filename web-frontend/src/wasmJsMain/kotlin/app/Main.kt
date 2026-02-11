@@ -1,10 +1,10 @@
-package ui
+package app
 
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
+import core.auth.AuthRepository
+import feature.auth.AuthenticatedApp
 import kotlinx.browser.document
-import ui.features.auth.AuthRepository
-import ui.features.auth.AuthenticatedApp
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
@@ -12,6 +12,8 @@ fun main() {
     AuthRepository.startListening()
 
     ComposeViewport(document.getElementById("ComposeTarget")!!) {
-        AuthenticatedApp()
+        AuthenticatedApp {
+            App()
+        }
     }
 }

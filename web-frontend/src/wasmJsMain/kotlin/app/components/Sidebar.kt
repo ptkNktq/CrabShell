@@ -1,4 +1,4 @@
-package ui.components
+package app.components
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
@@ -15,14 +15,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
-import ui.features.auth.AuthRepository
 
 @Composable
-fun Sidebar() {
+fun Sidebar(onSignOut: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val sidebarWidth by animateDpAsState(targetValue = if (expanded) 240.dp else 72.dp)
-    val scope = rememberCoroutineScope()
 
     Surface(
         modifier = Modifier.fillMaxHeight().width(sidebarWidth),
@@ -53,7 +50,7 @@ fun Sidebar() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp, vertical = 2.dp)
-                    .clickable { scope.launch { AuthRepository.signOut() } }
+                    .clickable(onClick = onSignOut)
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
