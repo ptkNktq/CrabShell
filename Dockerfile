@@ -1,5 +1,6 @@
 FROM gradle:8.12-jdk21 AS build
 RUN apt-get update && apt-get install -y libatomic1 && rm -rf /var/lib/apt/lists/*
+RUN git config --global --add safe.directory /app
 WORKDIR /app
 COPY gradle/ gradle/
 COPY build.gradle.kts settings.gradle.kts gradle.properties gradlew ./
