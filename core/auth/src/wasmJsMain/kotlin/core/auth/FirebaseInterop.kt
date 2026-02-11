@@ -1,10 +1,7 @@
 @file:OptIn(ExperimentalWasmJsInterop::class)
 
-package frontend.auth
+package core.auth
 
-import kotlin.js.ExperimentalWasmJsInterop
-import kotlin.js.JsAny
-import kotlin.js.JsString
 import kotlin.js.Promise
 
 // Firebase compat SDK のグローバルオブジェクト

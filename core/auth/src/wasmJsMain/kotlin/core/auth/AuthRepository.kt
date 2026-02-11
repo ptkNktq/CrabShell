@@ -1,9 +1,9 @@
-package frontend.auth
+package core.auth
 
-import kotlin.js.JsString
 import kotlinx.coroutines.await
-import shared.model.User
+import model.User
 
+@OptIn(ExperimentalWasmJsInterop::class)
 object AuthRepository {
 
     private val auth by lazy { firebaseAuth(getFirebase()) }

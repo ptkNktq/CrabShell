@@ -27,19 +27,31 @@ The server listens on `0.0.0.0:8080`. Building the server automatically copies t
 ## Architecture
 
 ```
-shared/          → Kotlin Multiplatform library (JVM + WASM/JS targets)
-                   Contains serializable data models (DashboardItem, Status enum)
+shared/              → Kotlin Multiplatform library (JVM + WASM/JS targets)
+                       Contains serializable data models (DashboardItem, User, Status)
 
-server/          → Ktor server (Netty, JVM)
-                   Depends on :shared
-                   Routes: GET /api/items (JSON), GET / (serves static frontend)
-                   CORS enabled for frontend communication
+server/              → Ktor server (Netty, JVM)
+                       Depends on :shared
+                       Routes: GET /api/items (JSON), GET / (serves static frontend)
+                       Firebase Auth verification, CORS enabled
 
-web-frontend/    → Compose Multiplatform (WASM/JS target)
-                   Depends on :shared
-                   Material Design 3, dark theme
-                   Ktor HTTP client fetches from /api/items
+core/auth/           → Firebase interop, AuthRepository, AuthState/AuthStateHolder
+                       Depends on :shared, compose.runtime
+core/network/        → 認証トークン付き HTTP client (authenticatedClient)
+                       Depends on :core:auth, ktor-client
+core/ui/             → テーマ定義 (AppColorScheme)
+                       Depends on compose (runtime, foundation, material3, ui)
+
+feature/auth/        → LoginViewModel + LoginScreen + AuthenticatedApp
+                       Depends on :core:auth, :core:ui
+feature/dashboard/   → DashboardViewModel + DashboardScreen
+                       Depends on :core:network, :core:ui, :shared
+
+web-frontend/        → App シェル: Main.kt, App.kt, Sidebar.kt
+                       Depends on :core:auth, :core:ui, :feature:auth, :feature:dashboard
 ```
+
+MVVM パターンで関心事を分離: ViewModel がビジネスロジック・状態管理を担当し、Screen (Composable) は UI 描画のみ。
 
 The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the frontend build output into the server's static resources during `processResources`, making the final server artifact self-contained.
 
@@ -52,10 +64,14 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 
 ## Key Source Locations
 
-- Shared model: `shared/src/commonMain/kotlin/shared/model/DashboardItem.kt`
+- Shared models: `shared/src/commonMain/kotlin/model/DashboardItem.kt`, `User.kt`
 - Server entry point: `server/src/main/kotlin/server/Application.kt`
-- Frontend composables: `web-frontend/src/wasmJsMain/kotlin/frontend/App.kt`
-- Frontend WASM entry: `web-frontend/src/wasmJsMain/kotlin/frontend/Main.kt`
+- Core auth: `core/auth/src/wasmJsMain/kotlin/core/auth/` (AuthRepository, AuthState, FirebaseInterop)
+- Core network: `core/network/src/wasmJsMain/kotlin/core/network/AuthHttpClient.kt`
+- Core theme: `core/ui/src/wasmJsMain/kotlin/core/ui/theme/Color.kt`
+- Feature auth: `feature/auth/src/wasmJsMain/kotlin/feature/auth/` (LoginViewModel, LoginScreen, AuthenticatedApp)
+- Feature dashboard: `feature/dashboard/src/wasmJsMain/kotlin/feature/dashboard/` (DashboardViewModel, DashboardScreen)
+- App shell: `web-frontend/src/wasmJsMain/kotlin/app/` (Main.kt, App.kt, components/Sidebar.kt)
 
 ## Docker
 

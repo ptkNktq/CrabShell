@@ -1,29 +1,22 @@
-package frontend.auth
+package feature.auth
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import frontend.App
-
-// ローディング画面用カラースキーム（テーマブランチとの衝突回避）
-private val LoadingColorScheme = darkColorScheme(
-    primary = Color(0xFFE8844A),
-    background = Color(0xFF1A1210),
-    surface = Color(0xFF1A1210),
-)
+import core.auth.AuthState
+import core.auth.AuthStateHolder
+import core.ui.theme.AppColorScheme
 
 @Composable
-fun AuthenticatedApp() {
+fun AuthenticatedApp(authenticatedContent: @Composable () -> Unit) {
     when (AuthStateHolder.state) {
         is AuthState.Loading -> {
-            MaterialTheme(colorScheme = LoadingColorScheme) {
+            MaterialTheme(colorScheme = AppColorScheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
@@ -41,7 +34,7 @@ fun AuthenticatedApp() {
             LoginScreen()
         }
         is AuthState.Authenticated -> {
-            App()
+            authenticatedContent()
         }
     }
 }

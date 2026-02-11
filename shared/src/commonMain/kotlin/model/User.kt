@@ -1,4 +1,4 @@
-package shared.model
+package model
 
 import kotlinx.serialization.Serializable
 
