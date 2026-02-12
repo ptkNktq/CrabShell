@@ -1,7 +1,9 @@
 package feature.settings
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
@@ -10,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -18,40 +21,68 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun SettingsScreen() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
+    val scope = rememberCoroutineScope()
+    val vm = remember { SettingsViewModel(scope) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState()),
     ) {
-        PasswordChangeCard()
+        Text(
+            text = "設定",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // アカウントセクション
+        SettingsSection(title = "アカウント") {
+            PasswordChangeCard(vm)
+        }
     }
 }
 
 @Composable
-private fun PasswordChangeCard() {
-    val scope = rememberCoroutineScope()
-    val vm = remember { SettingsViewModel(scope) }
+private fun SettingsSection(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        content()
+    }
+}
+
+@Composable
+private fun PasswordChangeCard(vm: SettingsViewModel) {
     var currentPasswordVisible by remember { mutableStateOf(false) }
     var newPasswordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
 
     Card(
-        modifier = Modifier.width(400.dp).padding(16.dp),
+        modifier = Modifier.widthIn(max = 480.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
         ),
     ) {
         Column(
-            modifier = Modifier.padding(32.dp).fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(24.dp).fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
                 text = "パスワード変更",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedTextField(
                 value = vm.currentPassword,
@@ -138,11 +169,9 @@ private fun PasswordChangeCard() {
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
             Button(
                 onClick = vm::changePassword,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
+                modifier = Modifier.height(48.dp),
                 enabled = !vm.isLoading,
             ) {
                 if (vm.isLoading) {
