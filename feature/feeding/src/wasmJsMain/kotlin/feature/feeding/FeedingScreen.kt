@@ -199,7 +199,7 @@ private fun NoteSection(note: String, onNoteChange: (String) -> Unit, onSave: ()
         value = note,
         onValueChange = onNoteChange,
         modifier = Modifier.fillMaxWidth(),
-        placeholder = { Text("今日のごはんはどうだった？") },
+        placeholder = { Text("今日の様子はどうだった？") },
         minLines = 2,
         maxLines = 4,
     )

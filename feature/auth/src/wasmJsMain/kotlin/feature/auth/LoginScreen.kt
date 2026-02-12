@@ -54,9 +54,9 @@ private fun LoginCard() {
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                text = "アカウントにログイン",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = "Shell",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary,
             )
 
             Spacer(modifier = Modifier.height(8.dp))
