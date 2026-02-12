@@ -19,10 +19,11 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import core.ui.theme.AppColorScheme
+import core.ui.theme.AppTypography
 
 @Composable
 fun LoginScreen() {
-    MaterialTheme(colorScheme = AppColorScheme) {
+    MaterialTheme(colorScheme = AppColorScheme, typography = AppTypography()) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
