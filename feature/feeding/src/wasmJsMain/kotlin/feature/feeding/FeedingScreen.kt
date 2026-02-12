@@ -38,7 +38,7 @@ fun FeedingScreen() {
         modifier = Modifier.fillMaxSize().padding(24.dp),
     ) {
         Text(
-            text = "Feeding Log",
+            text = "ごはん記録",
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.primary,
         )
@@ -77,7 +77,7 @@ fun FeedingScreen() {
                     }
 
                     vm.error != null -> {
-                        Text("Error: ${vm.error}", color = MaterialTheme.colorScheme.error)
+                        Text("エラー: ${vm.error}", color = MaterialTheme.colorScheme.error)
                     }
 
                     else -> {
@@ -115,14 +115,14 @@ private fun DateSelector(date: String, onPrevious: () -> Unit, onNext: () -> Uni
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         IconButton(onClick = onPrevious) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous day")
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "前日")
         }
         Text(
             text = "$date ($dow)",
             style = MaterialTheme.typography.titleLarge,
         )
         IconButton(onClick = onNext) {
-            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next day")
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "翌日")
         }
     }
 }
@@ -175,13 +175,13 @@ private fun MealCard(
             if (feeding.done) {
                 Icon(
                     imageVector = Icons.Default.Check,
-                    contentDescription = "Done",
+                    contentDescription = "済み",
                     tint = FeedingDoneColor,
                     modifier = Modifier.size(28.dp),
                 )
             } else {
                 Button(onClick = onFeed) {
-                    Text("Feed")
+                    Text("あげる")
                 }
             }
         }
@@ -191,7 +191,7 @@ private fun MealCard(
 @Composable
 private fun NoteSection(note: String, onNoteChange: (String) -> Unit, onSave: () -> Unit) {
     Text(
-        text = "Note",
+        text = "メモ",
         style = MaterialTheme.typography.titleMedium,
     )
     Spacer(modifier = Modifier.height(8.dp))
@@ -199,12 +199,12 @@ private fun NoteSection(note: String, onNoteChange: (String) -> Unit, onSave: ()
         value = note,
         onValueChange = onNoteChange,
         modifier = Modifier.fillMaxWidth(),
-        placeholder = { Text("How was the meal today?") },
+        placeholder = { Text("今日の様子はどうだった？") },
         minLines = 2,
         maxLines = 4,
     )
     Spacer(modifier = Modifier.height(8.dp))
     Button(onClick = onSave) {
-        Text("Save Note")
+        Text("保存")
     }
 }

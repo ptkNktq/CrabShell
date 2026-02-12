@@ -21,11 +21,11 @@ import core.ui.util.firstDayOfWeekJs
 import core.ui.util.daysInMonthJs
 
 private val MONTH_NAMES = arrayOf(
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
+    "1月", "2月", "3月", "4月", "5月", "6月",
+    "7月", "8月", "9月", "10月", "11月", "12月",
 )
 
-private val DAY_OF_WEEK_LABELS = arrayOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+private val DAY_OF_WEEK_LABELS = arrayOf("日", "月", "火", "水", "木", "金", "土")
 
 @Composable
 fun CalendarView(
@@ -96,7 +96,7 @@ fun CalendarView(
             },
             modifier = Modifier.align(Alignment.CenterHorizontally),
         ) {
-            Text("Today")
+            Text("今日")
         }
     }
 }
@@ -114,14 +114,14 @@ private fun MonthHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         IconButton(onClick = onPreviousMonth) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous month")
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "前月")
         }
         Text(
-            text = "${MONTH_NAMES[month - 1]} $year",
+            text = "${year}年 ${MONTH_NAMES[month - 1]}",
             style = MaterialTheme.typography.titleMedium,
         )
         IconButton(onClick = onNextMonth) {
-            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next month")
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "翌月")
         }
     }
 }

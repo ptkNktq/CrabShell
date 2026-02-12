@@ -35,9 +35,9 @@ external fun firstDayOfWeekJs(year: Int, month: Int): Int
 }""")
 external fun daysInMonthJs(year: Int, month: Int): Int
 
-/** 日付文字列から短縮曜日名を返す (e.g. "Mon", "Tue") */
+/** 日付文字列から短縮曜日名を返す (e.g. "月", "火") */
 @JsFun("""(dateStr) => {
     const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('en-US', { weekday: 'short' });
+    return d.toLocaleDateString('ja-JP', { weekday: 'short' });
 }""")
 external fun dayOfWeekShortJs(dateStr: JsString): JsString

@@ -36,20 +36,20 @@ fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onSignOut: () -
             ) {
                 Icon(
                     imageVector = Icons.Default.Menu,
-                    contentDescription = "Toggle sidebar",
+                    contentDescription = "サイドバー切替",
                 )
             }
 
             SidebarItem(
                 icon = Icons.Default.Home,
-                label = "Dashboard",
+                label = "ダッシュボード",
                 expanded = expanded,
                 selected = currentScreen == Screen.Dashboard,
                 onClick = { onNavigate(Screen.Dashboard) },
             )
             SidebarItem(
                 icon = Icons.Default.Pets,
-                label = "Feeding",
+                label = "ごはん",
                 expanded = expanded,
                 selected = currentScreen == Screen.Feeding,
                 onClick = { onNavigate(Screen.Feeding) },
@@ -68,12 +68,12 @@ fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onSignOut: () -
             ) {
                 Icon(
                     imageVector = Icons.Default.Logout,
-                    contentDescription = "Sign out",
+                    contentDescription = "ログアウト",
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
                 if (expanded) {
                     Text(
-                        text = "Sign Out",
+                        text = "ログアウト",
                         modifier = Modifier.padding(start = 16.dp),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurface,

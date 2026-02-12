@@ -35,7 +35,7 @@ class LoginViewModel(private val scope: CoroutineScope) {
 
     fun signIn() {
         if (email.isBlank() || password.isBlank()) {
-            errorMessage = "Please enter email and password"
+            errorMessage = "メールアドレスとパスワードを入力してください"
             return
         }
         isLoading = true
@@ -44,7 +44,7 @@ class LoginViewModel(private val scope: CoroutineScope) {
             val result = AuthRepository.signIn(email, password)
             isLoading = false
             if (result.isFailure) {
-                errorMessage = result.exceptionOrNull()?.message ?: "Authentication failed"
+                errorMessage = result.exceptionOrNull()?.message ?: "認証に失敗しました"
             }
         }
     }
