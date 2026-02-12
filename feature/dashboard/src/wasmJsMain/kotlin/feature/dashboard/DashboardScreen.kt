@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import core.ui.theme.FeedingDoneColor
 import core.ui.theme.color
+import core.ui.theme.displayOrder
 import core.ui.theme.icon
 import core.ui.theme.label
 import model.FeedingLog
@@ -56,6 +57,7 @@ fun DashboardScreen() {
                     DailyFeedingCard(
                         modifier = Modifier.weight(1f),
                         feedingLog = vm.feedingLog,
+                        petName = vm.pet?.name,
                         onFeedClick = { vm.feed(it) }
                     )
                 }
@@ -67,6 +69,7 @@ fun DashboardScreen() {
 @Composable
 fun DailyFeedingCard(
     feedingLog: FeedingLog,
+    petName: String?,
     onFeedClick: (MealTime) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -84,7 +87,7 @@ fun DailyFeedingCard(
         ) {
             val doneCount = feedingLog.feedings.values.count { it.done }
 
-            HeaderSection(doneCount = doneCount)
+            HeaderSection(doneCount = doneCount, petName = petName)
 
             HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
 
@@ -92,7 +95,7 @@ fun DailyFeedingCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                for (mealTime in MealTime.entries) {
+                for (mealTime in MealTime.displayOrder) {
                     val feeding = feedingLog.feedings[mealTime]
                     FeedingSection(
                         label = mealTime.label,
@@ -105,6 +108,15 @@ fun DailyFeedingCard(
                     )
                 }
             }
+
+            if (feedingLog.note.isNotBlank()) {
+                HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                Text(
+                    text = feedingLog.note,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
@@ -112,6 +124,7 @@ fun DailyFeedingCard(
 @Composable
 fun HeaderSection(
     doneCount: Int,
+    petName: String?,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -121,7 +134,7 @@ fun HeaderSection(
     ) {
         Column {
             Text(
-                text = "ごはん",
+                text = if (petName != null) "$petName のごはん" else "ごはん",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface

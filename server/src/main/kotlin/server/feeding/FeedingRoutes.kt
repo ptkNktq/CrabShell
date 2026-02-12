@@ -9,21 +9,21 @@ import io.ktor.server.routing.*
 import model.Feeding
 import model.FeedingLog
 import model.MealTime
-import server.auth.FirebaseTokenKey
 import server.auth.authenticated
 import java.time.Instant
 
 private val firestore by lazy { FirestoreClient.getFirestore() }
 
 fun Route.feedingRoutes() {
-    route("/feeding") {
+    route("/pets/{petId}/feeding") {
         authenticated {
             get("/{date}") {
-                val uid = call.attributes[FirebaseTokenKey].uid
+                val petId = call.parameters["petId"]
+                    ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "petId is required"))
                 val date = call.parameters["date"]
                     ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "date is required"))
 
-                val doc = firestore.collection("users").document(uid)
+                val doc = firestore.collection("pets").document(petId)
                     .collection("feeding_logs").document(date).get().get()
 
                 if (!doc.exists()) {
@@ -56,7 +56,8 @@ fun Route.feedingRoutes() {
             }
 
             put("/{date}/{mealTime}") {
-                val uid = call.attributes[FirebaseTokenKey].uid
+                val petId = call.parameters["petId"]
+                    ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("error" to "petId is required"))
                 val date = call.parameters["date"]
                     ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("error" to "date is required"))
                 val mealTimeStr = call.parameters["mealTime"]
@@ -69,7 +70,7 @@ fun Route.feedingRoutes() {
                 }
 
                 val timestamp = Instant.now().toString()
-                val docRef = firestore.collection("users").document(uid)
+                val docRef = firestore.collection("pets").document(petId)
                     .collection("feeding_logs").document(date)
 
                 docRef.set(
@@ -89,14 +90,15 @@ fun Route.feedingRoutes() {
             }
 
             put("/{date}/note") {
-                val uid = call.attributes[FirebaseTokenKey].uid
+                val petId = call.parameters["petId"]
+                    ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("error" to "petId is required"))
                 val date = call.parameters["date"]
                     ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("error" to "date is required"))
 
                 val body = call.receive<Map<String, String>>()
                 val note = body["note"] ?: ""
 
-                val docRef = firestore.collection("users").document(uid)
+                val docRef = firestore.collection("pets").document(petId)
                     .collection("feeding_logs").document(date)
 
                 docRef.set(
