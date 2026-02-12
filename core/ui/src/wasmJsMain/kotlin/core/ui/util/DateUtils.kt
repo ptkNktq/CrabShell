@@ -61,3 +61,16 @@ external fun formattedTodayJs(): JsString
     return new Date().toLocaleDateString('ja-JP', { year: 'numeric', timeZone: 'Asia/Tokyo' });
 }""")
 external fun currentYearJs(): JsString
+
+/** 今日が月内の第何週か返す (1-5)。日曜始まりで計算。 */
+@JsFun("""() => {
+    const d = new Date();
+    return Math.ceil(d.getDate() / 7);
+}""")
+external fun weekOfMonthJs(): Int
+
+/** 今日の曜日を 0(日)〜6(土) で返す */
+@JsFun("""() => {
+    return new Date().getDay();
+}""")
+external fun dayOfWeekIndexJs(): Int

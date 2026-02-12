@@ -15,6 +15,7 @@ import model.Status
 import server.auth.FirebaseAdmin
 import server.auth.authenticated
 import server.feeding.feedingRoutes
+import server.garbage.garbageRoutes
 import server.pet.petRoutes
 import server.pet.seedDefaultPet
 
@@ -47,6 +48,7 @@ fun Application.module() {
             }
             petRoutes()
             feedingRoutes()
+            garbageRoutes()
         }
 
         // Compose Wasm フロントエンドを配信
