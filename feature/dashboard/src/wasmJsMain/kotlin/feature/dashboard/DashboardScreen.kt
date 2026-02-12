@@ -53,12 +53,13 @@ fun DashboardScreen() {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .height(IntrinsicSize.Max)
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    DateTimeCard(modifier = Modifier.weight(1f))
+                    DateTimeCard(modifier = Modifier.weight(1f).fillMaxHeight())
                     DailyFeedingCard(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
                         feedingLog = vm.feedingLog,
                         petName = vm.pet?.name,
                         onFeedClick = { vm.feed(it) }
