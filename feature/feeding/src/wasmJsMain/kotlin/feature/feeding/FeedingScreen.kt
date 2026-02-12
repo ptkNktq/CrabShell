@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import core.ui.components.CalendarView
 import core.ui.theme.FeedingDoneColor
 import core.ui.theme.color
+import core.ui.theme.displayOrder
 import core.ui.theme.icon
 import core.ui.theme.label
 import core.ui.util.dayOfWeekShortJs
@@ -81,9 +82,9 @@ fun FeedingScreen() {
                     }
 
                     else -> {
-                        // 朝・昼・晩のカード
+                        // 昼・晩・朝のカード
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            for (mealTime in MealTime.entries) {
+                            for (mealTime in MealTime.displayOrder) {
                                 MealCard(
                                     mealTime = mealTime,
                                     feeding = vm.log.feedings[mealTime] ?: Feeding(),

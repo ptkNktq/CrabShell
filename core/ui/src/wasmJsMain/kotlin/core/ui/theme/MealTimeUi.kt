@@ -8,6 +8,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import model.MealTime
 
+/** UI 上の表示順（昼→晩→朝） */
+val MealTime.Companion.displayOrder: List<MealTime>
+    get() = listOf(MealTime.LUNCH, MealTime.EVENING, MealTime.MORNING)
+
 val MealTime.label: String
     get() = when (this) {
         MealTime.MORNING -> "朝"
