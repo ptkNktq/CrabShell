@@ -40,6 +40,19 @@ external fun onAuthStateChanged(
     onNull: () -> Unit,
 )
 
+// 再認証してからパスワードを変更 → Promise を返す
+@JsFun("""(auth, currentPassword, newPassword) => {
+    const user = auth.currentUser;
+    if (!user) return Promise.reject(new Error('ログイン中のユーザーが見つかりません'));
+    const credential = globalThis.firebase.auth.EmailAuthProvider.credential(user.email, currentPassword);
+    return user.reauthenticateWithCredential(credential).then(() => user.updatePassword(newPassword));
+}""")
+external fun reauthenticateAndChangePassword(
+    auth: JsAny,
+    currentPassword: JsString,
+    newPassword: JsString,
+): Promise<JsAny?>
+
 // String → JsString 変換ヘルパー
 @JsFun("(str) => str")
 external fun stringToJs(str: String): JsString
