@@ -15,6 +15,8 @@ import model.Status
 import server.auth.FirebaseAdmin
 import server.auth.authenticated
 import server.feeding.feedingRoutes
+import server.pet.petRoutes
+import server.pet.seedDefaultPet
 
 fun main() {
     embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::module)
@@ -23,6 +25,7 @@ fun main() {
 
 fun Application.module() {
     FirebaseAdmin.initialize()
+    seedDefaultPet()
 
     install(ContentNegotiation) { json() }
     install(CORS) {
@@ -42,6 +45,7 @@ fun Application.module() {
                     call.respond(sampleItems())
                 }
             }
+            petRoutes()
             feedingRoutes()
         }
 
