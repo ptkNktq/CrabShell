@@ -38,7 +38,7 @@ fun FeedingScreen() {
         modifier = Modifier.fillMaxSize().padding(24.dp),
     ) {
         Text(
-            text = "ごはん記録",
+            text = vm.pet?.let { "${it.name} のごはん記録" } ?: "ごはん記録",
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.primary,
         )
