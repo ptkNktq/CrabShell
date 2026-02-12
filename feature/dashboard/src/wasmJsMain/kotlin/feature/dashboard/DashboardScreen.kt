@@ -56,6 +56,7 @@ fun DashboardScreen() {
                     DailyFeedingCard(
                         modifier = Modifier.weight(1f),
                         feedingLog = vm.feedingLog,
+                        petName = vm.pet?.name,
                         onFeedClick = { vm.feed(it) }
                     )
                 }
@@ -67,6 +68,7 @@ fun DashboardScreen() {
 @Composable
 fun DailyFeedingCard(
     feedingLog: FeedingLog,
+    petName: String?,
     onFeedClick: (MealTime) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -84,7 +86,7 @@ fun DailyFeedingCard(
         ) {
             val doneCount = feedingLog.feedings.values.count { it.done }
 
-            HeaderSection(doneCount = doneCount)
+            HeaderSection(doneCount = doneCount, petName = petName)
 
             HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
 
@@ -112,6 +114,7 @@ fun DailyFeedingCard(
 @Composable
 fun HeaderSection(
     doneCount: Int,
+    petName: String?,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -121,7 +124,7 @@ fun HeaderSection(
     ) {
         Column {
             Text(
-                text = "ごはん",
+                text = if (petName != null) "$petName のごはん" else "ごはん",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
