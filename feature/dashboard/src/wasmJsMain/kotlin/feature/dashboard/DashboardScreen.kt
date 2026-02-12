@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import core.ui.theme.FeedingDoneColor
 import core.ui.theme.color
+import core.ui.theme.displayExLarge
 import core.ui.theme.displayOrder
 import core.ui.theme.icon
 import core.ui.theme.label
@@ -114,7 +115,7 @@ fun DateTimeCard(modifier: Modifier = Modifier) {
             }
             Text(
                 text = currentTime,
-                style = MaterialTheme.typography.displayLarge,
+                style = MaterialTheme.typography.displayExLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
