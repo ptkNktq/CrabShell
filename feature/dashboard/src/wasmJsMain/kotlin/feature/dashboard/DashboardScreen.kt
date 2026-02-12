@@ -41,7 +41,7 @@ fun DashboardScreen() {
             }
 
             vm.error != null -> {
-                Text("Error: ${vm.error}", color = MaterialTheme.colorScheme.error)
+                Text("エラー: ${vm.error}", color = MaterialTheme.colorScheme.error)
             }
 
             else -> {
@@ -121,13 +121,13 @@ fun HeaderSection(
     ) {
         Column {
             Text(
-                text = "Feeding",
+                text = "ごはん",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = "Today",
+                text = "今日",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -209,7 +209,7 @@ private fun FeedingSection(
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(0.dp)
             ) {
-                Text("Feed", style = MaterialTheme.typography.labelMedium)
+                Text("あげる", style = MaterialTheme.typography.labelMedium)
             }
         }
     }

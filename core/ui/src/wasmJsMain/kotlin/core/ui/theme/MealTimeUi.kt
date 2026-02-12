@@ -10,9 +10,9 @@ import model.MealTime
 
 val MealTime.label: String
     get() = when (this) {
-        MealTime.MORNING -> "Morning"
-        MealTime.LUNCH -> "Lunch"
-        MealTime.EVENING -> "Evening"
+        MealTime.MORNING -> "朝"
+        MealTime.LUNCH -> "昼"
+        MealTime.EVENING -> "晩"
     }
 
 val MealTime.icon: ImageVector
