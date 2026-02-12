@@ -41,11 +41,13 @@ external fun onAuthStateChanged(
 )
 
 // 再認証してからパスワードを変更 → Promise を返す
+// EmailAuthProvider.credential が invalid-credential になるため、
+// signInWithEmailAndPassword で再認証してから updatePassword を呼ぶ
 @JsFun("""(auth, currentPassword, newPassword) => {
     const user = auth.currentUser;
-    if (!user) return Promise.reject(new Error('ログイン中のユーザーが見つかりません'));
-    const credential = globalThis.firebase.auth.EmailAuthProvider.credential(user.email, currentPassword);
-    return user.reauthenticateWithCredential(credential).then(() => user.updatePassword(newPassword));
+    if (!user || !user.email) return Promise.reject(new Error('ログイン中のユーザーが見つかりません'));
+    return auth.signInWithEmailAndPassword(user.email, currentPassword)
+        .then(() => auth.currentUser.updatePassword(newPassword));
 }""")
 external fun reauthenticateAndChangePassword(
     auth: JsAny,
