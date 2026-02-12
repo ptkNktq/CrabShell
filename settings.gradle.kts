@@ -27,3 +27,4 @@ include(":core:ui")
 // feature モジュール
 include(":feature:auth")
 include(":feature:dashboard")
+include(":feature:feeding")

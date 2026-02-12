@@ -17,9 +17,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.BuildConfig
+import app.Screen
 
 @Composable
-fun Sidebar(onSignOut: () -> Unit) {
+fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onSignOut: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val sidebarWidth by animateDpAsState(targetValue = if (expanded) 240.dp else 72.dp)
 
@@ -39,11 +40,20 @@ fun Sidebar(onSignOut: () -> Unit) {
                 )
             }
 
-            SidebarItem(Icons.Default.Home, "Dashboard", expanded)
-            SidebarItem(Icons.Default.Search, "Search", expanded)
-            SidebarItem(Icons.Default.Notifications, "Notifications", expanded)
-            SidebarItem(Icons.Default.Settings, "Settings", expanded)
-            SidebarItem(Icons.Default.Person, "Profile", expanded)
+            SidebarItem(
+                icon = Icons.Default.Home,
+                label = "Dashboard",
+                expanded = expanded,
+                selected = currentScreen == Screen.Dashboard,
+                onClick = { onNavigate(Screen.Dashboard) },
+            )
+            SidebarItem(
+                icon = Icons.Default.Pets,
+                label = "Feeding",
+                expanded = expanded,
+                selected = currentScreen == Screen.Feeding,
+                onClick = { onNavigate(Screen.Feeding) },
+            )
 
             Spacer(modifier = Modifier.weight(1f))
 
@@ -86,31 +96,46 @@ fun Sidebar(onSignOut: () -> Unit) {
 }
 
 @Composable
-private fun SidebarItem(icon: ImageVector, label: String, expanded: Boolean) {
+private fun SidebarItem(
+    icon: ImageVector,
+    label: String,
+    expanded: Boolean,
+    selected: Boolean = false,
+    onClick: () -> Unit = {},
+) {
     val interactionSource = remember { MutableInteractionSource() }
     val isHovered by interactionSource.collectIsHoveredAsState()
-    val backgroundColor = if (isHovered) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent
+    val backgroundColor = when {
+        selected -> MaterialTheme.colorScheme.primaryContainer
+        isHovered -> MaterialTheme.colorScheme.surfaceVariant
+        else -> Color.Transparent
+    }
+    val contentColor = if (selected) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 2.dp)
             .background(backgroundColor, MaterialTheme.shapes.medium)
-            .clickable(interactionSource = interactionSource, indication = null) {}
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = label,
-            tint = MaterialTheme.colorScheme.onSurface,
+            tint = contentColor,
         )
         if (expanded) {
             Text(
                 text = label,
                 modifier = Modifier.padding(start = 16.dp),
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = contentColor,
                 maxLines = 1,
             )
         }
