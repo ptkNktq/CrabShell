@@ -108,6 +108,15 @@ fun DailyFeedingCard(
                     )
                 }
             }
+
+            if (feedingLog.note.isNotBlank()) {
+                HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                Text(
+                    text = feedingLog.note,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
