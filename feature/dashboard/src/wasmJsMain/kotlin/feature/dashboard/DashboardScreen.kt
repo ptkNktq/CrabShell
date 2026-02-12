@@ -27,8 +27,10 @@ import core.ui.theme.label
 import core.ui.util.currentTimeJs
 import core.ui.util.currentYearJs
 import core.ui.util.formattedTodayJs
+import core.ui.util.todayDateJs
 import kotlinx.coroutines.delay
 import model.FeedingLog
+import model.GarbageType
 import model.MealTime
 
 private val CardHeaderMinHeight = 48.dp
@@ -60,7 +62,11 @@ fun DashboardScreen() {
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    DateTimeCard(modifier = Modifier.weight(1f).fillMaxHeight())
+                    DateTimeCard(
+                        garbageTypes = vm.todayGarbageTypes,
+                        onDateChanged = { vm.refreshGarbageForToday() },
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                    )
                     DailyFeedingCard(
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                         feedingLog = vm.feedingLog,
@@ -74,18 +80,29 @@ fun DashboardScreen() {
 }
 
 @Composable
-fun DateTimeCard(modifier: Modifier = Modifier) {
+fun DateTimeCard(
+    garbageTypes: List<GarbageType>,
+    onDateChanged: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     var currentTime by remember { mutableStateOf(currentTimeJs().toString()) }
+    var year by remember { mutableStateOf(currentYearJs().toString()) }
+    var dateWithDay by remember { mutableStateOf(formattedTodayJs().toString()) }
+    var trackedDate by remember { mutableStateOf(todayDateJs().toString()) }
 
     LaunchedEffect(Unit) {
         while (true) {
             delay(10_000)
             currentTime = currentTimeJs().toString()
+            val newDate = todayDateJs().toString()
+            if (newDate != trackedDate) {
+                trackedDate = newDate
+                year = currentYearJs().toString()
+                dateWithDay = formattedTodayJs().toString()
+                onDateChanged()
+            }
         }
     }
-
-    val year = remember { currentYearJs().toString() }
-    val dateWithDay = remember { formattedTodayJs().toString() }
 
     Card(
         modifier = modifier
@@ -103,7 +120,7 @@ fun DateTimeCard(modifier: Modifier = Modifier) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .defaultMinSize(minHeight = CardHeaderMinHeight),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -112,6 +129,38 @@ fun DateTimeCard(modifier: Modifier = Modifier) {
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
+
+                if (garbageTypes.isNotEmpty()) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        for (type in garbageTypes) {
+                            Surface(
+                                color = type.color.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(12.dp),
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(
+                                        imageVector = type.icon,
+                                        contentDescription = null,
+                                        tint = type.color,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                    Text(
+                                        text = type.label,
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = type.color,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)

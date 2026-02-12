@@ -1,9 +1,8 @@
 package feature.settings
 
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
@@ -18,31 +17,99 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import core.ui.theme.color
+import core.ui.theme.icon
+import core.ui.theme.label
+import model.CollectionFrequency
+import model.GarbageType
+import model.GarbageTypeSchedule
+
+private val dayLabels = listOf("日", "月", "火", "水", "木", "金", "土")
 
 @Composable
 fun SettingsScreen() {
     val scope = rememberCoroutineScope()
     val vm = remember { SettingsViewModel(scope) }
+    val scrollState = rememberScrollState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp)
-            .verticalScroll(rememberScrollState()),
-    ) {
-        Text(
-            text = "設定",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp)
+                .verticalScroll(scrollState),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = "設定",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-        // アカウントセクション
-        SettingsSection(title = "アカウント") {
-            PasswordChangeCard(vm)
+            // アカウントセクション
+            SettingsSection(title = "アカウント") {
+                PasswordChangeCard(vm)
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // ゴミ出しセクション
+            SettingsSection(title = "ゴミ出し") {
+                if (vm.garbageLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        for (schedule in vm.garbageSchedules) {
+                            GarbageScheduleCard(
+                                schedule = schedule,
+                                onToggleDay = { day -> vm.toggleDay(schedule.garbageType, day) },
+                                onFrequencyChange = { freq -> vm.changeFrequency(schedule.garbageType, freq) },
+                            )
+                        }
+
+                        if (vm.garbageMessage != null) {
+                            Text(
+                                text = vm.garbageMessage!!,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+
+                        Button(
+                            onClick = vm::saveGarbageSchedule,
+                            modifier = Modifier.height(48.dp),
+                            enabled = !vm.garbageSaving,
+                        ) {
+                            if (vm.garbageSaving) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                )
+                            } else {
+                                Text("保存する")
+                            }
+                        }
+                    }
+                }
+            }
         }
+
+        VerticalScrollbar(
+            adapter = rememberScrollbarAdapter(scrollState),
+            modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+            style = ScrollbarStyle(
+                minimalHeight = 48.dp,
+                thickness = 8.dp,
+                shape = MaterialTheme.shapes.small,
+                hoverDurationMillis = 300,
+                unhoverColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                hoverColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            ),
+        )
     }
 }
 
@@ -59,6 +126,89 @@ private fun SettingsSection(
             color = MaterialTheme.colorScheme.primary,
         )
         content()
+    }
+}
+
+@Composable
+private fun GarbageScheduleCard(
+    schedule: GarbageTypeSchedule,
+    onToggleDay: (Int) -> Unit,
+    onFrequencyChange: (CollectionFrequency) -> Unit,
+) {
+    val garbageType = schedule.garbageType
+
+    Card(
+        modifier = Modifier.widthIn(max = 480.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp).fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(
+                    imageVector = garbageType.icon,
+                    contentDescription = null,
+                    tint = garbageType.color,
+                )
+                Text(
+                    text = garbageType.label,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+
+            // 曜日チップ
+            Text(
+                text = "収集曜日",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                for (dayIndex in 0..6) {
+                    val selected = dayIndex in schedule.daysOfWeek
+                    FilterChip(
+                        selected = selected,
+                        onClick = { onToggleDay(dayIndex) },
+                        label = { Text(dayLabels[dayIndex]) },
+                        border = if (selected) {
+                            BorderStroke(1.dp, garbageType.color)
+                        } else {
+                            FilterChipDefaults.filterChipBorder(enabled = true, selected = false)
+                        },
+                    )
+                }
+            }
+
+            // 頻度セレクタ
+            Text(
+                text = "収集頻度",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            SingleChoiceSegmentedButtonRow {
+                CollectionFrequency.entries.forEachIndexed { index, freq ->
+                    SegmentedButton(
+                        selected = schedule.frequency == freq,
+                        onClick = { onFrequencyChange(freq) },
+                        shape = SegmentedButtonDefaults.itemShape(
+                            index = index,
+                            count = CollectionFrequency.entries.size,
+                        ),
+                    ) {
+                        Text(
+                            text = (freq as CollectionFrequency).label,
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
