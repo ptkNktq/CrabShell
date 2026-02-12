@@ -110,7 +110,7 @@ fun DateTimeCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .defaultMinSize(minHeight = CardHeaderMinHeight),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -119,6 +119,38 @@ fun DateTimeCard(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
+
+                if (garbageTypes.isNotEmpty()) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        for (type in garbageTypes) {
+                            Surface(
+                                color = type.color.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(8.dp),
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(
+                                        imageVector = type.icon,
+                                        contentDescription = null,
+                                        tint = type.color,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                    Text(
+                                        text = type.label,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = type.color,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
@@ -133,39 +165,6 @@ fun DateTimeCard(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-            }
-
-            if (garbageTypes.isNotEmpty()) {
-                HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    for (type in garbageTypes) {
-                        Surface(
-                            color = type.color.copy(alpha = 0.15f),
-                            shape = RoundedCornerShape(8.dp),
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Icon(
-                                    imageVector = type.icon,
-                                    contentDescription = null,
-                                    tint = type.color,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                                Text(
-                                    text = type.label,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = type.color,
-                                )
-                            }
-                        }
-                    }
-                }
             }
         }
     }
