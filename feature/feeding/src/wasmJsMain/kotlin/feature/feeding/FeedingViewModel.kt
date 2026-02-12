@@ -1,11 +1,11 @@
-@file:OptIn(ExperimentalWasmJsInterop::class)
-
 package feature.feeding
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import core.network.authenticatedClient
+import core.ui.util.shiftDateJs
+import core.ui.util.todayDateJs
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
@@ -86,5 +86,9 @@ class FeedingViewModel(private val scope: CoroutineScope) {
 
     fun goToNextDay() {
         loadLog(shiftDateJs(selectedDate.toJsString(), 1).toString())
+    }
+
+    fun goToToday() {
+        loadLog(todayDateJs().toString())
     }
 }

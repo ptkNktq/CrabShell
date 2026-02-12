@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalWasmJsInterop::class)
 
-package feature.feeding
+package core.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,6 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import core.ui.util.firstDayOfWeekJs
+import core.ui.util.daysInMonthJs
 
 private val MONTH_NAMES = arrayOf(
     "January", "February", "March", "April", "May", "June",
@@ -30,6 +32,7 @@ fun CalendarView(
     selectedDate: String,
     today: String,
     onDateSelected: (String) -> Unit,
+    onTodayClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // Parse selectedDate to get initial year/month
@@ -80,6 +83,15 @@ fun CalendarView(
             today = today,
             onDateSelected = onDateSelected,
         )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        TextButton(
+            onClick = onTodayClick,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+        ) {
+            Text("Today")
+        }
     }
 }
 
