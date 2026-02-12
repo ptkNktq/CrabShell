@@ -32,7 +32,6 @@ fun CalendarView(
     selectedDate: String,
     today: String,
     onDateSelected: (String) -> Unit,
-    onTodayClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // Parse selectedDate to get initial year/month
@@ -47,6 +46,9 @@ fun CalendarView(
         displayYear = selectedDate.substring(0, 4).toInt()
         displayMonth = selectedDate.substring(5, 7).toInt()
     }
+
+    val todayYear = today.substring(0, 4).toInt()
+    val todayMonth = today.substring(5, 7).toInt()
 
     Column(modifier = modifier) {
         MonthHeader(
@@ -87,7 +89,11 @@ fun CalendarView(
         Spacer(modifier = Modifier.height(8.dp))
 
         TextButton(
-            onClick = onTodayClick,
+            onClick = {
+                displayYear = todayYear
+                displayMonth = todayMonth
+                onDateSelected(today)
+            },
             modifier = Modifier.align(Alignment.CenterHorizontally),
         ) {
             Text("Today")
