@@ -62,6 +62,7 @@ kotlin {
             implementation(project(":core:ui"))
             implementation(project(":feature:auth"))
             implementation(project(":feature:dashboard"))
+            implementation(project(":feature:feeding"))
         }
     }
 }

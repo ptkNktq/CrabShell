@@ -1,8 +1,13 @@
+@file:OptIn(ExperimentalWasmJsInterop::class)
+
 package feature.dashboard
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -10,9 +15,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import model.DashboardItem
-import model.Status
+import core.ui.theme.FeedingDoneColor
+import core.ui.theme.color
+import core.ui.theme.icon
+import core.ui.theme.label
+import model.FeedingLog
+import model.MealTime
 
 @Composable
 fun DashboardScreen() {
@@ -22,14 +33,6 @@ fun DashboardScreen() {
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
     ) {
-        Text(
-            text = "CrabShell Dashboard",
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.primary,
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
         when {
             vm.loading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -42,10 +45,19 @@ fun DashboardScreen() {
             }
 
             else -> {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    items(vm.items) { item ->
-                        DashboardCard(item)
-                    }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // TODO: 今後もう半分には別のコンテンツを表示したいのでダミーで追加しておく
+                    Box(modifier = Modifier.weight(1f))
+                    DailyFeedingCard(
+                        modifier = Modifier.weight(1f),
+                        feedingLog = vm.feedingLog,
+                        onFeedClick = { vm.feed(it) }
+                    )
                 }
             }
         }
@@ -53,51 +65,152 @@ fun DashboardScreen() {
 }
 
 @Composable
-private fun DashboardCard(item: DashboardItem) {
+fun DailyFeedingCard(
+    feedingLog: FeedingLog,
+    onFeedClick: (MealTime) -> Unit,
+    modifier: Modifier = Modifier
+) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.title,
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = item.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            val doneCount = feedingLog.feedings.values.count { it.done }
+
+            HeaderSection(doneCount = doneCount)
+
+            HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                for (mealTime in MealTime.entries) {
+                    val feeding = feedingLog.feedings[mealTime]
+                    FeedingSection(
+                        label = mealTime.label,
+                        icon = mealTime.icon,
+                        tint = mealTime.color,
+                        isDone = feeding?.done == true,
+                        time = feeding?.timestamp?.let { toJstHHMM(it.toJsString()).toString() },
+                        onClick = { onFeedClick(mealTime) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
-            StatusBadge(item.status)
         }
     }
 }
 
 @Composable
-private fun StatusBadge(status: Status) {
-    val (text, color) = when (status) {
-        Status.ACTIVE -> "Active" to Color(0xFF4CAF50)
-        Status.INACTIVE -> "Inactive" to Color(0xFF9E9E9E)
-        Status.PENDING -> "Pending" to Color(0xFFFFC107)
-    }
-    Surface(
-        shape = MaterialTheme.shapes.small,
-        color = color.copy(alpha = 0.2f),
+fun HeaderSection(
+    doneCount: Int,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        Column {
+            Text(
+                text = "Feeding",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = "Today",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        // 完了数に応じた色のバッジ
+        Surface(
+            color = if (doneCount == 3) MaterialTheme.colorScheme.primaryContainer
+            else MaterialTheme.colorScheme.secondaryContainer,
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text(
+                text = "$doneCount / 3",
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = if (doneCount == 3) MaterialTheme.colorScheme.onPrimaryContainer
+                else MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        }
+    }
+}
+
+@Composable
+private fun FeedingSection(
+    label: String,
+    icon: ImageVector,
+    tint: Color,
+    isDone: Boolean,
+    time: String?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .background(
+                    color = tint.copy(alpha = 0.1f),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(28.dp)
+            )
+        }
+
         Text(
-            text = text,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-            color = color,
+            text = label,
             style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+
+        if (isDone) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = FeedingDoneColor,
+                    modifier = Modifier.size(28.dp)
+                )
+                Text(
+                    text = time ?: "--:--",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            Button(
+                onClick = onClick,
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(0.dp)
+            ) {
+                Text("Feed", style = MaterialTheme.typography.labelMedium)
+            }
+        }
     }
 }

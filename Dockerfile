@@ -4,6 +4,7 @@ RUN git config --global --add safe.directory /app
 WORKDIR /app
 COPY gradle/ gradle/
 COPY build.gradle.kts settings.gradle.kts gradle.properties gradlew ./
+COPY .git/ .git/
 COPY shared/ shared/
 COPY server/ server/
 COPY web-frontend/ web-frontend/
