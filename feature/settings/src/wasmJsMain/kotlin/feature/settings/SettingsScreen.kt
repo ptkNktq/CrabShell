@@ -1,8 +1,10 @@
 package feature.settings
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -32,69 +34,78 @@ private val dayLabels = listOf("日", "月", "火", "水", "木", "金", "土")
 fun SettingsScreen() {
     val scope = rememberCoroutineScope()
     val vm = remember { SettingsViewModel(scope) }
+    val scrollState = rememberScrollState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp)
-            .verticalScroll(rememberScrollState()),
-    ) {
-        Text(
-            text = "設定",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp)
+                .verticalScroll(scrollState),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = "設定",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-        // アカウントセクション
-        SettingsSection(title = "アカウント") {
-            PasswordChangeCard(vm)
-        }
+            // アカウントセクション
+            SettingsSection(title = "アカウント") {
+                PasswordChangeCard(vm)
+            }
 
-        Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-        // ゴミ出しセクション
-        SettingsSection(title = "ゴミ出し") {
-            if (vm.garbageLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp))
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    for (schedule in vm.garbageSchedules) {
-                        GarbageScheduleCard(
-                            schedule = schedule,
-                            onToggleDay = { day -> vm.toggleDay(schedule.garbageType, day) },
-                            onFrequencyChange = { freq -> vm.changeFrequency(schedule.garbageType, freq) },
-                        )
-                    }
-
-                    if (vm.garbageMessage != null) {
-                        Text(
-                            text = vm.garbageMessage!!,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-
-                    Button(
-                        onClick = vm::saveGarbageSchedule,
-                        modifier = Modifier.height(48.dp),
-                        enabled = !vm.garbageSaving,
-                    ) {
-                        if (vm.garbageSaving) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary,
+            // ゴミ出しセクション
+            SettingsSection(title = "ゴミ出し") {
+                if (vm.garbageLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        for (schedule in vm.garbageSchedules) {
+                            GarbageScheduleCard(
+                                schedule = schedule,
+                                onToggleDay = { day -> vm.toggleDay(schedule.garbageType, day) },
+                                onFrequencyChange = { freq -> vm.changeFrequency(schedule.garbageType, freq) },
                             )
-                        } else {
-                            Text("保存する")
+                        }
+
+                        if (vm.garbageMessage != null) {
+                            Text(
+                                text = vm.garbageMessage!!,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+
+                        Button(
+                            onClick = vm::saveGarbageSchedule,
+                            modifier = Modifier.height(48.dp),
+                            enabled = !vm.garbageSaving,
+                        ) {
+                            if (vm.garbageSaving) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                )
+                            } else {
+                                Text("保存する")
+                            }
                         }
                     }
                 }
             }
         }
+
+        VerticalScrollbar(
+            adapter = rememberScrollbarAdapter(scrollState),
+            modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+        )
     }
 }
 
