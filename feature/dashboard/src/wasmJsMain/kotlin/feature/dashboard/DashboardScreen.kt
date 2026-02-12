@@ -29,6 +29,7 @@ import core.ui.util.currentYearJs
 import core.ui.util.formattedTodayJs
 import kotlinx.coroutines.delay
 import model.FeedingLog
+import model.GarbageType
 import model.MealTime
 
 private val CardHeaderMinHeight = 48.dp
@@ -60,7 +61,10 @@ fun DashboardScreen() {
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    DateTimeCard(modifier = Modifier.weight(1f).fillMaxHeight())
+                    DateTimeCard(
+                        garbageTypes = vm.todayGarbageTypes,
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                    )
                     DailyFeedingCard(
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                         feedingLog = vm.feedingLog,
@@ -74,7 +78,10 @@ fun DashboardScreen() {
 }
 
 @Composable
-fun DateTimeCard(modifier: Modifier = Modifier) {
+fun DateTimeCard(
+    garbageTypes: List<GarbageType>,
+    modifier: Modifier = Modifier,
+) {
     var currentTime by remember { mutableStateOf(currentTimeJs().toString()) }
 
     LaunchedEffect(Unit) {
@@ -126,6 +133,39 @@ fun DateTimeCard(modifier: Modifier = Modifier) {
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
+            }
+
+            if (garbageTypes.isNotEmpty()) {
+                HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    for (type in garbageTypes) {
+                        Surface(
+                            color = type.color.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(8.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    imageVector = type.icon,
+                                    contentDescription = null,
+                                    tint = type.color,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                                Text(
+                                    text = type.label,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = type.color,
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
