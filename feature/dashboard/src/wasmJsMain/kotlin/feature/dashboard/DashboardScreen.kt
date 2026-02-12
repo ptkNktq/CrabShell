@@ -9,7 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -23,6 +23,10 @@ import core.ui.theme.color
 import core.ui.theme.displayOrder
 import core.ui.theme.icon
 import core.ui.theme.label
+import core.ui.util.currentTimeJs
+import core.ui.util.currentYearJs
+import core.ui.util.formattedTodayJs
+import kotlinx.coroutines.delay
 import model.FeedingLog
 import model.MealTime
 
@@ -52,8 +56,7 @@ fun DashboardScreen() {
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // TODO: 今後もう半分には別のコンテンツを表示したいのでダミーで追加しておく
-                    Box(modifier = Modifier.weight(1f))
+                    DateTimeCard(modifier = Modifier.weight(1f))
                     DailyFeedingCard(
                         modifier = Modifier.weight(1f),
                         feedingLog = vm.feedingLog,
@@ -61,6 +64,67 @@ fun DashboardScreen() {
                         onFeedClick = { vm.feed(it) }
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun DateTimeCard(modifier: Modifier = Modifier) {
+    var currentTime by remember { mutableStateOf(currentTimeJs().toString()) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(10_000)
+            currentTime = currentTimeJs().toString()
+        }
+    }
+
+    val year = remember { currentYearJs().toString() }
+    val dateWithDay = remember { formattedTodayJs().toString() }
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = "日時",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = currentTime,
+                    style = MaterialTheme.typography.displayLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = year,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = dateWithDay,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
