@@ -57,6 +57,14 @@ fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onSignOut: () -
 
             Spacer(modifier = Modifier.weight(1f))
 
+            SidebarItem(
+                icon = Icons.Default.Settings,
+                label = "設定",
+                expanded = expanded,
+                selected = currentScreen == Screen.Settings,
+                onClick = { onNavigate(Screen.Settings) },
+            )
+
             // ログアウトボタン
             Row(
                 modifier = Modifier
