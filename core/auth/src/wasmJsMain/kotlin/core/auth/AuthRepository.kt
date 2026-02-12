@@ -48,6 +48,19 @@ object AuthRepository {
         }
     }
 
+    suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit> {
+        return try {
+            reauthenticateAndChangePassword(
+                auth,
+                currentPassword.toJsString(),
+                newPassword.toJsString(),
+            ).await<Nothing?>()
+            Result.success(Unit)
+        } catch (e: Throwable) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun refreshToken(): String? {
         return try {
             val tokenJs = getIdToken(auth).await<Nothing?>()

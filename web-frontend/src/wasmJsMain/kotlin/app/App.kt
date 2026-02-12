@@ -12,9 +12,10 @@ import core.auth.AuthRepository
 import core.ui.theme.AppTheme
 import feature.dashboard.DashboardScreen
 import feature.feeding.FeedingScreen
+import feature.settings.SettingsScreen
 import kotlinx.coroutines.launch
 
-enum class Screen { Dashboard, Feeding }
+enum class Screen { Dashboard, Feeding, Settings }
 
 @Composable
 fun App() {
@@ -36,6 +37,7 @@ fun App() {
                     when (currentScreen) {
                         Screen.Dashboard -> DashboardScreen()
                         Screen.Feeding -> FeedingScreen()
+                        Screen.Settings -> SettingsScreen()
                     }
                 }
             }
