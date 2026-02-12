@@ -53,7 +53,6 @@ fun FeedingScreen() {
                 selectedDate = vm.selectedDate,
                 today = today,
                 onDateSelected = { vm.loadLog(it) },
-                onTodayClick = { vm.goToToday() },
                 modifier = Modifier.width(300.dp),
             )
 

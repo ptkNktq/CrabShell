@@ -88,7 +88,4 @@ class FeedingViewModel(private val scope: CoroutineScope) {
         loadLog(shiftDateJs(selectedDate.toJsString(), 1).toString())
     }
 
-    fun goToToday() {
-        loadLog(todayDateJs().toString())
-    }
 }
