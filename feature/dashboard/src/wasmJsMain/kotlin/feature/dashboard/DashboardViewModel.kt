@@ -6,13 +6,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import core.network.authenticatedClient
+import core.ui.util.dayOfWeekIndexJs
 import core.ui.util.todayDateJs
+import core.ui.util.weekOfMonthJs
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import model.CollectionFrequency
 import model.Feeding
 import model.FeedingLog
+import model.GarbageType
+import model.GarbageTypeSchedule
 import model.MealTime
 import model.Pet
 
@@ -30,6 +35,8 @@ class DashboardViewModel(private val scope: CoroutineScope) {
         private set
     var pet by mutableStateOf<Pet?>(null)
         private set
+    var todayGarbageTypes by mutableStateOf<List<GarbageType>>(emptyList())
+        private set
 
     init {
         scope.launch {
@@ -42,6 +49,7 @@ class DashboardViewModel(private val scope: CoroutineScope) {
                 loading = false
             }
         }
+        loadGarbageSchedule()
     }
 
     private suspend fun loadToday() {
@@ -54,6 +62,29 @@ class DashboardViewModel(private val scope: CoroutineScope) {
             loading = false
         }
     }
+
+    private fun loadGarbageSchedule() {
+        scope.launch {
+            try {
+                val schedules: List<GarbageTypeSchedule> =
+                    authenticatedClient.get("/api/garbage/schedule").body()
+                val dayOfWeek = dayOfWeekIndexJs()
+                val weekOfMonth = weekOfMonthJs()
+                todayGarbageTypes = schedules.filter { schedule ->
+                    dayOfWeek in schedule.daysOfWeek && matchesFrequency(schedule.frequency, weekOfMonth)
+                }.map { it.garbageType }
+            } catch (_: Exception) {
+                // ゴミ出し情報取得失敗は無視
+            }
+        }
+    }
+
+    private fun matchesFrequency(frequency: CollectionFrequency, weekOfMonth: Int): Boolean =
+        when (frequency) {
+            CollectionFrequency.WEEKLY -> true
+            CollectionFrequency.WEEK_1_3 -> weekOfMonth == 1 || weekOfMonth == 3
+            CollectionFrequency.WEEK_2_4 -> weekOfMonth == 2 || weekOfMonth == 4
+        }
 
     fun feed(mealTime: MealTime) {
         val petId = pet?.id ?: return
