@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import core.network.authenticatedClient
+import core.ui.util.todayDateJs
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.CoroutineScope
@@ -14,14 +15,11 @@ import model.Feeding
 import model.FeedingLog
 import model.MealTime
 
-@JsFun("() => { const d = new Date(); const mm = String(d.getMonth()+1).padStart(2,'0'); const dd = String(d.getDate()).padStart(2,'0'); return d.getFullYear()+'-'+mm+'-'+dd; }")
-private external fun todayDateJs(): String
-
 @JsFun("(iso) => { const d = new Date(iso); return d.toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'Asia/Tokyo'}); }")
 external fun toJstHHMM(iso: JsString): JsString
 
 class DashboardViewModel(private val scope: CoroutineScope) {
-    private val today: String = todayDateJs()
+    private val today: String = todayDateJs().toString()
 
     var feedingLog by mutableStateOf(FeedingLog(date = today))
         private set

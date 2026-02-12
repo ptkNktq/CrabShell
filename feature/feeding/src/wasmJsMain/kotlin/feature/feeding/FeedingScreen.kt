@@ -14,10 +14,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import core.ui.components.CalendarView
 import core.ui.theme.FeedingDoneColor
 import core.ui.theme.color
 import core.ui.theme.icon
 import core.ui.theme.label
+import core.ui.util.dayOfWeekShortJs
+import core.ui.util.todayDateJs
 import model.Feeding
 import model.MealTime
 
@@ -50,6 +53,7 @@ fun FeedingScreen() {
                 selectedDate = vm.selectedDate,
                 today = today,
                 onDateSelected = { vm.loadLog(it) },
+                onTodayClick = { vm.goToToday() },
                 modifier = Modifier.width(300.dp),
             )
 
@@ -106,6 +110,7 @@ fun FeedingScreen() {
 
 @Composable
 private fun DateSelector(date: String, onPrevious: () -> Unit, onNext: () -> Unit) {
+    val dow = dayOfWeekShortJs(date.toJsString()).toString()
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -114,7 +119,7 @@ private fun DateSelector(date: String, onPrevious: () -> Unit, onNext: () -> Uni
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous day")
         }
         Text(
-            text = date,
+            text = "$date ($dow)",
             style = MaterialTheme.typography.titleLarge,
         )
         IconButton(onClick = onNext) {
@@ -139,7 +144,7 @@ private fun MealCard(
         ),
     ) {
         Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            modifier = Modifier.padding(16.dp).fillMaxWidth().defaultMinSize(minHeight = 48.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
