@@ -1,12 +1,8 @@
 package feature.settings
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.VerticalScrollbar
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
@@ -105,6 +101,14 @@ fun SettingsScreen() {
         VerticalScrollbar(
             adapter = rememberScrollbarAdapter(scrollState),
             modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+            style = ScrollbarStyle(
+                minimalHeight = 48.dp,
+                thickness = 8.dp,
+                shape = MaterialTheme.shapes.small,
+                hoverDurationMillis = 300,
+                unhoverColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                hoverColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            ),
         )
     }
 }
