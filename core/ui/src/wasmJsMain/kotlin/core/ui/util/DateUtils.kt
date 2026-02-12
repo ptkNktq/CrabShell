@@ -41,3 +41,23 @@ external fun daysInMonthJs(year: Int, month: Int): Int
     return d.toLocaleDateString('ja-JP', { weekday: 'short' });
 }""")
 external fun dayOfWeekShortJs(dateStr: JsString): JsString
+
+/** 現在時刻を HH:MM 形式で返す (JST) */
+@JsFun("""() => {
+    return new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Tokyo' });
+}""")
+external fun currentTimeJs(): JsString
+
+/** 今日の日付を "M月D日（曜）" 形式で返す (JST) */
+@JsFun("""() => {
+    const d = new Date();
+    const opts = { month: 'long', day: 'numeric', weekday: 'short', timeZone: 'Asia/Tokyo' };
+    return d.toLocaleDateString('ja-JP', opts);
+}""")
+external fun formattedTodayJs(): JsString
+
+/** 今日の年を返す (JST) */
+@JsFun("""() => {
+    return new Date().toLocaleDateString('ja-JP', { year: 'numeric', timeZone: 'Asia/Tokyo' });
+}""")
+external fun currentYearJs(): JsString
