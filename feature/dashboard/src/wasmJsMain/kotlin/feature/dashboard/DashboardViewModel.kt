@@ -38,6 +38,8 @@ class DashboardViewModel(private val scope: CoroutineScope) {
     var todayGarbageTypes by mutableStateOf<List<GarbageType>>(emptyList())
         private set
 
+    private var cachedSchedules: List<GarbageTypeSchedule> = emptyList()
+
     init {
         scope.launch {
             try {
@@ -66,17 +68,20 @@ class DashboardViewModel(private val scope: CoroutineScope) {
     private fun loadGarbageSchedule() {
         scope.launch {
             try {
-                val schedules: List<GarbageTypeSchedule> =
-                    authenticatedClient.get("/api/garbage/schedule").body()
-                val dayOfWeek = dayOfWeekIndexJs()
-                val weekOfMonth = weekOfMonthJs()
-                todayGarbageTypes = schedules.filter { schedule ->
-                    dayOfWeek in schedule.daysOfWeek && matchesFrequency(schedule.frequency, weekOfMonth)
-                }.map { it.garbageType }
+                cachedSchedules = authenticatedClient.get("/api/garbage/schedule").body()
+                refreshGarbageForToday()
             } catch (_: Exception) {
                 // ゴミ出し情報取得失敗は無視
             }
         }
+    }
+
+    fun refreshGarbageForToday() {
+        val dayOfWeek = dayOfWeekIndexJs()
+        val weekOfMonth = weekOfMonthJs()
+        todayGarbageTypes = cachedSchedules.filter { schedule ->
+            dayOfWeek in schedule.daysOfWeek && matchesFrequency(schedule.frequency, weekOfMonth)
+        }.map { it.garbageType }
     }
 
     private fun matchesFrequency(frequency: CollectionFrequency, weekOfMonth: Int): Boolean =

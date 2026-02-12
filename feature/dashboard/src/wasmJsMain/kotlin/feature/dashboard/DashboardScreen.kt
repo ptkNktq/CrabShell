@@ -27,6 +27,7 @@ import core.ui.theme.label
 import core.ui.util.currentTimeJs
 import core.ui.util.currentYearJs
 import core.ui.util.formattedTodayJs
+import core.ui.util.todayDateJs
 import kotlinx.coroutines.delay
 import model.FeedingLog
 import model.GarbageType
@@ -63,6 +64,7 @@ fun DashboardScreen() {
                 ) {
                     DateTimeCard(
                         garbageTypes = vm.todayGarbageTypes,
+                        onDateChanged = { vm.refreshGarbageForToday() },
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
                     DailyFeedingCard(
@@ -80,19 +82,27 @@ fun DashboardScreen() {
 @Composable
 fun DateTimeCard(
     garbageTypes: List<GarbageType>,
+    onDateChanged: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var currentTime by remember { mutableStateOf(currentTimeJs().toString()) }
+    var year by remember { mutableStateOf(currentYearJs().toString()) }
+    var dateWithDay by remember { mutableStateOf(formattedTodayJs().toString()) }
+    var trackedDate by remember { mutableStateOf(todayDateJs().toString()) }
 
     LaunchedEffect(Unit) {
         while (true) {
             delay(10_000)
             currentTime = currentTimeJs().toString()
+            val newDate = todayDateJs().toString()
+            if (newDate != trackedDate) {
+                trackedDate = newDate
+                year = currentYearJs().toString()
+                dateWithDay = formattedTodayJs().toString()
+                onDateChanged()
+            }
         }
     }
-
-    val year = remember { currentYearJs().toString() }
-    val dateWithDay = remember { formattedTodayJs().toString() }
 
     Card(
         modifier = modifier
