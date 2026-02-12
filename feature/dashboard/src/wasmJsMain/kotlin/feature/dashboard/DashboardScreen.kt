@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import core.ui.theme.FeedingDoneColor
 import core.ui.theme.color
+import core.ui.theme.displayOrder
 import core.ui.theme.icon
 import core.ui.theme.label
 import model.FeedingLog
@@ -94,7 +95,7 @@ fun DailyFeedingCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                for (mealTime in MealTime.entries) {
+                for (mealTime in MealTime.displayOrder) {
                     val feeding = feedingLog.feedings[mealTime]
                     FeedingSection(
                         label = mealTime.label,
