@@ -206,6 +206,6 @@ private fun NoteSection(note: String, onNoteChange: (String) -> Unit, onSave: ()
     )
     Spacer(modifier = Modifier.height(8.dp))
     Button(onClick = onSave) {
-        Text("保存")
+        Text("保存する")
     }
 }
