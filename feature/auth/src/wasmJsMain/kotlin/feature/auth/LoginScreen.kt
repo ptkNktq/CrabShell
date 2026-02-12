@@ -60,7 +60,7 @@ private fun LoginCard() {
             )
 
             Text(
-                text = "Sign in to your account",
+                text = "アカウントにログイン",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -70,7 +70,7 @@ private fun LoginCard() {
             OutlinedTextField(
                 value = vm.email,
                 onValueChange = vm::onEmailChanged,
-                label = { Text("Email") },
+                label = { Text("メールアドレス") },
                 leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
@@ -84,13 +84,13 @@ private fun LoginCard() {
             OutlinedTextField(
                 value = vm.password,
                 onValueChange = vm::onPasswordChanged,
-                label = { Text("Password") },
+                label = { Text("パスワード") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                 trailingIcon = {
                     IconButton(onClick = vm::togglePasswordVisibility) {
                         Icon(
                             if (vm.passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (vm.passwordVisible) "Hide password" else "Show password",
+                            contentDescription = if (vm.passwordVisible) "パスワードを隠す" else "パスワードを表示",
                         )
                     }
                 },
@@ -126,7 +126,7 @@ private fun LoginCard() {
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
                 } else {
-                    Text("Sign In")
+                    Text("ログイン")
                 }
             }
         }
