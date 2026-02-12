@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import model.Feeding
 import model.FeedingLog
 import model.MealTime
+import model.Pet
 
 class FeedingViewModel(private val scope: CoroutineScope) {
     var log by mutableStateOf(FeedingLog(date = todayDateJs().toString()))
@@ -26,18 +27,30 @@ class FeedingViewModel(private val scope: CoroutineScope) {
         private set
     var noteDraft by mutableStateOf("")
         private set
+    var pet by mutableStateOf<Pet?>(null)
+        private set
 
     init {
-        loadLog(selectedDate)
+        scope.launch {
+            try {
+                val pets: List<Pet> = authenticatedClient.get("/api/pets").body()
+                pet = pets.firstOrNull()
+                loadLog(selectedDate)
+            } catch (e: Exception) {
+                error = e.message
+                loading = false
+            }
+        }
     }
 
     fun loadLog(date: String) {
+        val petId = pet?.id ?: return
         selectedDate = date
         loading = true
         error = null
         scope.launch {
             try {
-                log = authenticatedClient.get("/api/feeding/$date").body()
+                log = authenticatedClient.get("/api/pets/$petId/feeding/$date").body()
                 noteDraft = log.note
                 loading = false
             } catch (e: Exception) {
@@ -48,10 +61,11 @@ class FeedingViewModel(private val scope: CoroutineScope) {
     }
 
     fun feed(mealTime: MealTime) {
+        val petId = pet?.id ?: return
         scope.launch {
             try {
                 val feeding: Feeding = authenticatedClient.put(
-                    "/api/feeding/$selectedDate/${mealTime.name.lowercase()}"
+                    "/api/pets/$petId/feeding/$selectedDate/${mealTime.name.lowercase()}"
                 ).body()
                 log = log.copy(
                     feedings = log.feedings.toMutableMap().apply { put(mealTime, feeding) }
@@ -67,9 +81,10 @@ class FeedingViewModel(private val scope: CoroutineScope) {
     }
 
     fun saveNote() {
+        val petId = pet?.id ?: return
         scope.launch {
             try {
-                authenticatedClient.put("/api/feeding/$selectedDate/note") {
+                authenticatedClient.put("/api/pets/$petId/feeding/$selectedDate/note") {
                     contentType(ContentType.Application.Json)
                     setBody(mapOf("note" to noteDraft))
                 }
