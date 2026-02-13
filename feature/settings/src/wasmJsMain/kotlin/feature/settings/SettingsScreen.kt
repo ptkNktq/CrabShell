@@ -61,39 +61,14 @@ fun SettingsScreen() {
                 if (vm.garbageLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp))
                 } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        for (schedule in vm.garbageSchedules) {
-                            GarbageScheduleCard(
-                                schedule = schedule,
-                                onToggleDay = { day -> vm.toggleDay(schedule.garbageType, day) },
-                                onFrequencyChange = { freq -> vm.changeFrequency(schedule.garbageType, freq) },
-                            )
-                        }
-
-                        if (vm.garbageMessage != null) {
-                            Text(
-                                text = vm.garbageMessage!!,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-
-                        Button(
-                            onClick = vm::saveGarbageSchedule,
-                            modifier = Modifier.height(48.dp),
-                            enabled = !vm.garbageSaving,
-                        ) {
-                            if (vm.garbageSaving) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    strokeWidth = 2.dp,
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                )
-                            } else {
-                                Text("保存する")
-                            }
-                        }
-                    }
+                    GarbageScheduleCard(
+                        schedules = vm.garbageSchedules,
+                        garbageMessage = vm.garbageMessage,
+                        garbageSaving = vm.garbageSaving,
+                        onToggleDay = { type, day -> vm.toggleDay(type, day) },
+                        onFrequencyChange = { type, freq -> vm.changeFrequency(type, freq) },
+                        onSaveClick = vm::saveGarbageSchedule
+                    )
                 }
             }
         }
@@ -131,12 +106,13 @@ private fun SettingsSection(
 
 @Composable
 private fun GarbageScheduleCard(
-    schedule: GarbageTypeSchedule,
-    onToggleDay: (Int) -> Unit,
-    onFrequencyChange: (CollectionFrequency) -> Unit,
+    schedules: List<GarbageTypeSchedule>,
+    garbageMessage: String?,
+    garbageSaving: Boolean,
+    onToggleDay: (GarbageType, Int) -> Unit,
+    onFrequencyChange: (GarbageType, CollectionFrequency) -> Unit,
+    onSaveClick: () -> Unit,
 ) {
-    val garbageType = schedule.garbageType
-
     Card(
         modifier = Modifier.widthIn(max = 480.dp),
         colors = CardDefaults.cardColors(
@@ -147,65 +123,101 @@ private fun GarbageScheduleCard(
             modifier = Modifier.padding(24.dp).fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Icon(
-                    imageVector = garbageType.icon,
-                    contentDescription = null,
-                    tint = garbageType.color,
-                )
-                Text(
-                    text = garbageType.label,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
+            for (schedule in schedules) {
+                val garbageType = schedule.garbageType
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(
+                            imageVector = garbageType.icon,
+                            contentDescription = null,
+                            tint = garbageType.color,
+                        )
+                        Text(
+                            text = garbageType.label,
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
 
-            // 曜日チップ
-            Text(
-                text = "収集曜日",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                for (dayIndex in 0..6) {
-                    val selected = dayIndex in schedule.daysOfWeek
-                    FilterChip(
-                        selected = selected,
-                        onClick = { onToggleDay(dayIndex) },
-                        label = { Text(dayLabels[dayIndex]) },
-                        border = if (selected) {
-                            BorderStroke(1.dp, garbageType.color)
-                        } else {
-                            FilterChipDefaults.filterChipBorder(enabled = true, selected = false)
-                        },
+                    // 曜日チップ
+                    Text(
+                        text = "収集曜日",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        for (dayIndex in 0..6) {
+                            val selected = dayIndex in schedule.daysOfWeek
+                            FilterChip(
+                                selected = selected,
+                                onClick = { onToggleDay(garbageType, dayIndex) },
+                                label = { Text(dayLabels[dayIndex]) },
+                                border = if (selected) {
+                                    BorderStroke(1.dp, garbageType.color)
+                                } else {
+                                    FilterChipDefaults.filterChipBorder(enabled = true, selected = false)
+                                },
+                            )
+                        }
+                    }
+
+                    // 頻度セレクタ
+                    Text(
+                        text = "収集頻度",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    SingleChoiceSegmentedButtonRow {
+                        CollectionFrequency.entries.forEachIndexed { index, freq ->
+                            SegmentedButton(
+                                selected = schedule.frequency == freq,
+                                onClick = { onFrequencyChange(garbageType, freq) },
+                                shape = SegmentedButtonDefaults.itemShape(
+                                    index = index,
+                                    count = CollectionFrequency.entries.size,
+                                ),
+                            ) {
+                                Text(
+                                    text = freq.label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (schedule != schedules.lastOrNull()) {
+                    HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
 
-            // 頻度セレクタ
-            Text(
-                text = "収集頻度",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            SingleChoiceSegmentedButtonRow {
-                CollectionFrequency.entries.forEachIndexed { index, freq ->
-                    SegmentedButton(
-                        selected = schedule.frequency == freq,
-                        onClick = { onFrequencyChange(freq) },
-                        shape = SegmentedButtonDefaults.itemShape(
-                            index = index,
-                            count = CollectionFrequency.entries.size,
-                        ),
-                    ) {
-                        Text(
-                            text = (freq as CollectionFrequency).label,
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                    }
+            if (garbageMessage != null) {
+                Text(
+                    text = garbageMessage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+
+            Button(
+                onClick = onSaveClick,
+                modifier = Modifier.height(48.dp),
+                enabled = !garbageSaving,
+            ) {
+                if (garbageSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                } else {
+                    Text("保存する")
                 }
             }
         }
