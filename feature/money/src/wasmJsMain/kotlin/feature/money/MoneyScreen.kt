@@ -41,6 +41,7 @@ fun MoneyScreen() {
         error = vm.error,
         users = vm.users,
         editingItem = vm.editingItem,
+        formKey = vm.formKey,
         onPreviousMonth = { vm.goToPreviousMonth() },
         onNextMonth = { vm.goToNextMonth() },
         onEditItem = { vm.editItem(it) },
@@ -60,6 +61,7 @@ internal fun MoneyContent(
     error: String?,
     users: List<User>,
     editingItem: MoneyItem?,
+    formKey: Int,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onEditItem: (MoneyItem) -> Unit,
@@ -94,6 +96,7 @@ internal fun MoneyContent(
                     Spacer(modifier = Modifier.height(8.dp))
                     MoneyItemForm(
                         item = editingItem,
+                        formKey = formKey,
                         users = users,
                         saving = saving,
                         onSave = onSaveItem,
@@ -192,6 +195,7 @@ internal fun MoneyContent(
 
                     MoneyItemForm(
                         item = editingItem,
+                        formKey = formKey,
                         users = users,
                         saving = saving,
                         onSave = onSaveItem,
@@ -286,17 +290,20 @@ private fun MoneyListContent(
 @Composable
 private fun MoneyItemForm(
     item: MoneyItem?,
+    formKey: Int,
     users: List<User>,
     saving: Boolean,
     onSave: (String, Long, String, List<Payment>, Boolean) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var name by remember(item) { mutableStateOf(item?.name ?: "") }
-    var amountText by remember(item) { mutableStateOf(item?.amount?.toString() ?: "") }
-    var note by remember(item) { mutableStateOf(item?.note ?: "") }
-    var recurring by remember(item) { mutableStateOf(item?.recurring ?: false) }
-    var paymentAmounts by remember(item) {
+    // formKey をキーに含めて、clearForm 時に確実にリセットする
+    val key = item ?: formKey
+    var name by remember(key) { mutableStateOf(item?.name ?: "") }
+    var amountText by remember(key) { mutableStateOf(item?.amount?.toString() ?: "") }
+    var note by remember(key) { mutableStateOf(item?.note ?: "") }
+    var recurring by remember(key) { mutableStateOf(item?.recurring ?: false) }
+    var paymentAmounts by remember(key) {
         mutableStateOf(
             users.associate { user ->
                 user.uid to (item?.payments?.find { it.uid == user.uid }?.amount?.toString() ?: "")
