@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.remember
@@ -29,6 +30,7 @@ import core.ui.theme.label
 import core.ui.util.currentTimeJs
 import core.ui.util.currentYearJs
 import core.ui.util.formattedTodayJs
+import core.ui.util.feedingDateJs
 import core.ui.util.todayDateJs
 import kotlinx.coroutines.delay
 import model.FeedingLog
@@ -51,6 +53,7 @@ fun DashboardScreen() {
         todayGarbageTypes = vm.todayGarbageTypes,
         onFeedClick = { vm.feed(it) },
         onDateChanged = { vm.refreshGarbageForToday() },
+        onRefreshFeeding = { vm.refreshFeeding() },
         windowSizeClass = windowSizeClass,
     )
 }
@@ -64,6 +67,7 @@ internal fun DashboardContent(
     todayGarbageTypes: List<GarbageType>,
     onFeedClick: (MealTime) -> Unit,
     onDateChanged: () -> Unit,
+    onRefreshFeeding: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
     Column(
@@ -94,6 +98,7 @@ internal fun DashboardContent(
                         DateTimeCard(
                             garbageTypes = todayGarbageTypes,
                             onDateChanged = onDateChanged,
+                            onFeedingDateChanged = onRefreshFeeding,
                             modifier = Modifier.weight(1f).fillMaxHeight(),
                         )
                         DailyFeedingCard(
@@ -101,6 +106,7 @@ internal fun DashboardContent(
                             feedingLog = feedingLog,
                             petName = petName,
                             onFeedClick = onFeedClick,
+                            onRefresh = onRefreshFeeding,
                         )
                     }
                 } else {
@@ -113,6 +119,7 @@ internal fun DashboardContent(
                         DateTimeCard(
                             garbageTypes = todayGarbageTypes,
                             onDateChanged = onDateChanged,
+                            onFeedingDateChanged = onRefreshFeeding,
                             modifier = Modifier.fillMaxWidth(),
                         )
                         DailyFeedingCard(
@@ -120,6 +127,7 @@ internal fun DashboardContent(
                             feedingLog = feedingLog,
                             petName = petName,
                             onFeedClick = onFeedClick,
+                            onRefresh = onRefreshFeeding,
                         )
                     }
                 }
@@ -132,12 +140,14 @@ internal fun DashboardContent(
 fun DateTimeCard(
     garbageTypes: List<GarbageType>,
     onDateChanged: () -> Unit,
+    onFeedingDateChanged: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var currentTime by remember { mutableStateOf(currentTimeJs().toString()) }
     var year by remember { mutableStateOf(currentYearJs().toString()) }
     var dateWithDay by remember { mutableStateOf(formattedTodayJs().toString()) }
     var trackedDate by remember { mutableStateOf(todayDateJs().toString()) }
+    var trackedFeedingDate by remember { mutableStateOf(feedingDateJs().toString()) }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -149,6 +159,11 @@ fun DateTimeCard(
                 year = currentYearJs().toString()
                 dateWithDay = formattedTodayJs().toString()
                 onDateChanged()
+            }
+            val newFeedingDate = feedingDateJs().toString()
+            if (newFeedingDate != trackedFeedingDate) {
+                trackedFeedingDate = newFeedingDate
+                onFeedingDateChanged()
             }
         }
     }
@@ -234,6 +249,7 @@ fun DailyFeedingCard(
     feedingLog: FeedingLog,
     petName: String?,
     onFeedClick: (MealTime) -> Unit,
+    onRefresh: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -250,7 +266,23 @@ fun DailyFeedingCard(
         ) {
             val doneCount = feedingLog.feedings.values.count { it.done }
 
-            HeaderSection(doneCount = doneCount, petName = petName)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                HeaderSection(
+                    doneCount = doneCount,
+                    petName = petName,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = onRefresh) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "更新",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
 
             HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
 
