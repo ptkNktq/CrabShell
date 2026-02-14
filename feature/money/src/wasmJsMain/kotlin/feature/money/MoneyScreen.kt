@@ -268,7 +268,8 @@ private fun MoneyListContent(
                     }
                 }
 
-                items(monthlyMoney.items, key = { it.id }) { item ->
+                val sortedItems = monthlyMoney.items.sortedByDescending { it.recurring }
+                items(sortedItems, key = { it.id }) { item ->
                     MoneyItemCard(
                         item = item,
                         users = users,
