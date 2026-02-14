@@ -3,6 +3,7 @@ package app.components
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -17,6 +18,7 @@ data class NavigationItem(
 val primaryNavigationItems = listOf(
     NavigationItem(Screen.Dashboard, Icons.Default.Home, "ダッシュボード"),
     NavigationItem(Screen.Feeding, Icons.Default.Pets, "ごはん"),
+    NavigationItem(Screen.Payment, Icons.Default.Payment, "お支払い"),
 )
 
 val adminNavigationItems = listOf(
