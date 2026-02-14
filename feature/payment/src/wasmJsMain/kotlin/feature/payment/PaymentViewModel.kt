@@ -36,12 +36,8 @@ external fun currentMonthJs(): JsString
 }""")
 external fun shiftMonthJs(monthStr: JsString, offset: Int): JsString
 
-/** 現在の日時を JST の ISO 形式で返す */
-@JsFun("""() => {
-    const now = new Date();
-    const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-    return jst.toISOString().slice(0, -1) + '+09:00';
-}""")
+/** 現在の日時を UTC の ISO 形式で返す（サーバー送信用） */
+@JsFun("() => new Date().toISOString()")
 external fun nowIsoJs(): JsString
 
 class PaymentViewModel(private val scope: CoroutineScope) {
