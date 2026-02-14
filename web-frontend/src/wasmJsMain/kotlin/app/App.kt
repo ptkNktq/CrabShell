@@ -47,35 +47,39 @@ fun App() {
             color = MaterialTheme.colorScheme.background,
         ) {
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                val windowSizeClass = when {
-                    maxWidth < 600.dp -> WindowSizeClass.Compact
-                    maxWidth < 840.dp -> WindowSizeClass.Medium
-                    else -> WindowSizeClass.Expanded
-                }
+                val windowSizeClass =
+                    when {
+                        maxWidth < 600.dp -> WindowSizeClass.Compact
+                        maxWidth < 840.dp -> WindowSizeClass.Medium
+                        else -> WindowSizeClass.Expanded
+                    }
 
                 CompositionLocalProvider(LocalWindowSizeClass provides windowSizeClass) {
                     SelectionContainer {
                         when (windowSizeClass) {
-                            WindowSizeClass.Compact -> CompactLayout(
-                                currentScreen = currentScreen,
-                                onNavigate = { currentScreen = it },
-                                onSignOut = onSignOut,
-                                isAdmin = isAdmin,
-                            )
+                            WindowSizeClass.Compact ->
+                                CompactLayout(
+                                    currentScreen = currentScreen,
+                                    onNavigate = { currentScreen = it },
+                                    onSignOut = onSignOut,
+                                    isAdmin = isAdmin,
+                                )
 
-                            WindowSizeClass.Medium -> MediumLayout(
-                                currentScreen = currentScreen,
-                                onNavigate = { currentScreen = it },
-                                onSignOut = onSignOut,
-                                isAdmin = isAdmin,
-                            )
+                            WindowSizeClass.Medium ->
+                                MediumLayout(
+                                    currentScreen = currentScreen,
+                                    onNavigate = { currentScreen = it },
+                                    onSignOut = onSignOut,
+                                    isAdmin = isAdmin,
+                                )
 
-                            WindowSizeClass.Expanded -> ExpandedLayout(
-                                currentScreen = currentScreen,
-                                onNavigate = { currentScreen = it },
-                                onSignOut = onSignOut,
-                                isAdmin = isAdmin,
-                            )
+                            WindowSizeClass.Expanded ->
+                                ExpandedLayout(
+                                    currentScreen = currentScreen,
+                                    onNavigate = { currentScreen = it },
+                                    onSignOut = onSignOut,
+                                    isAdmin = isAdmin,
+                                )
                         }
                     }
                 }

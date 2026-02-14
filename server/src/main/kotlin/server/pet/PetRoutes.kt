@@ -1,6 +1,5 @@
 package server.pet
 
-import com.google.cloud.firestore.SetOptions
 import com.google.firebase.cloud.FirestoreClient
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -27,9 +26,10 @@ fun Route.petRoutes() {
     authenticated {
         get("/pets") {
             val docs = firestore.collection("pets").get().get().documents
-            val pets = docs.map { doc ->
-                Pet(id = doc.id, name = doc.getString("name") ?: "")
-            }
+            val pets =
+                docs.map { doc ->
+                    Pet(id = doc.id, name = doc.getString("name") ?: "")
+                }
             call.respond(pets)
         }
     }

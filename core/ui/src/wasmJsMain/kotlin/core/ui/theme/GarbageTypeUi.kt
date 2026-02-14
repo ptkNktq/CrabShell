@@ -14,29 +14,33 @@ val NonBurnableColor = Color(0xFF42A5F5)
 val RecyclableColor = Color(0xFF66BB6A)
 
 val GarbageType.label: String
-    get() = when (this) {
-        GarbageType.BURNABLE -> "可燃ゴミ"
-        GarbageType.NON_BURNABLE -> "不燃ゴミ"
-        GarbageType.RECYCLABLE -> "資源ゴミ"
-    }
+    get() =
+        when (this) {
+            GarbageType.BURNABLE -> "可燃ゴミ"
+            GarbageType.NON_BURNABLE -> "不燃ゴミ"
+            GarbageType.RECYCLABLE -> "資源ゴミ"
+        }
 
 val GarbageType.icon: ImageVector
-    get() = when (this) {
-        GarbageType.BURNABLE -> Icons.Default.LocalFireDepartment
-        GarbageType.NON_BURNABLE -> Icons.Default.DeleteOutline
-        GarbageType.RECYCLABLE -> Icons.Default.Recycling
-    }
+    get() =
+        when (this) {
+            GarbageType.BURNABLE -> Icons.Default.LocalFireDepartment
+            GarbageType.NON_BURNABLE -> Icons.Default.DeleteOutline
+            GarbageType.RECYCLABLE -> Icons.Default.Recycling
+        }
 
 val GarbageType.color: Color
-    get() = when (this) {
-        GarbageType.BURNABLE -> BurnableColor
-        GarbageType.NON_BURNABLE -> NonBurnableColor
-        GarbageType.RECYCLABLE -> RecyclableColor
-    }
+    get() =
+        when (this) {
+            GarbageType.BURNABLE -> BurnableColor
+            GarbageType.NON_BURNABLE -> NonBurnableColor
+            GarbageType.RECYCLABLE -> RecyclableColor
+        }
 
 val CollectionFrequency.label: String
-    get() = when (this) {
-        CollectionFrequency.WEEKLY -> "毎週"
-        CollectionFrequency.WEEK_1_3 -> "第1・3週"
-        CollectionFrequency.WEEK_2_4 -> "第2・4週"
-    }
+    get() =
+        when (this) {
+            CollectionFrequency.WEEKLY -> "毎週"
+            CollectionFrequency.WEEK_1_3 -> "第1・3週"
+            CollectionFrequency.WEEK_2_4 -> "第2・4週"
+        }

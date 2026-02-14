@@ -26,7 +26,14 @@ import model.GarbageTypeSchedule
 import model.MealTime
 import model.Pet
 
-@JsFun("(iso) => { const d = new Date(iso); return d.toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'Asia/Tokyo'}); }")
+@JsFun(
+    """(iso) => {
+    const d = new Date(iso);
+    return d.toLocaleTimeString('ja-JP', {
+        hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Tokyo',
+    });
+}""",
+)
 external fun toJstHHMM(iso: JsString): JsString
 
 class DashboardViewModel(private val scope: CoroutineScope) {
@@ -114,12 +121,16 @@ class DashboardViewModel(private val scope: CoroutineScope) {
     private fun refreshGarbageForToday() {
         val dayOfWeek = dayOfWeekIndexJs()
         val weekOfMonth = weekOfMonthJs()
-        todayGarbageTypes = cachedSchedules.filter { schedule ->
-            dayOfWeek in schedule.daysOfWeek && matchesFrequency(schedule.frequency, weekOfMonth)
-        }.map { it.garbageType }
+        todayGarbageTypes =
+            cachedSchedules.filter { schedule ->
+                dayOfWeek in schedule.daysOfWeek && matchesFrequency(schedule.frequency, weekOfMonth)
+            }.map { it.garbageType }
     }
 
-    private fun matchesFrequency(frequency: CollectionFrequency, weekOfMonth: Int): Boolean =
+    private fun matchesFrequency(
+        frequency: CollectionFrequency,
+        weekOfMonth: Int,
+    ): Boolean =
         when (frequency) {
             CollectionFrequency.WEEKLY -> true
             CollectionFrequency.WEEK_1_3 -> weekOfMonth == 1 || weekOfMonth == 3
@@ -141,12 +152,14 @@ class DashboardViewModel(private val scope: CoroutineScope) {
         val petId = pet?.id ?: return
         scope.launch {
             try {
-                val feeding: Feeding = authenticatedClient.put(
-                    "/api/pets/$petId/feeding/$today/${mealTime.name.lowercase()}"
-                ).body()
-                feedingLog = feedingLog.copy(
-                    feedings = feedingLog.feedings + (mealTime to feeding)
-                )
+                val feeding: Feeding =
+                    authenticatedClient.put(
+                        "/api/pets/$petId/feeding/$today/${mealTime.name.lowercase()}",
+                    ).body()
+                feedingLog =
+                    feedingLog.copy(
+                        feedings = feedingLog.feedings + (mealTime to feeding),
+                    )
             } catch (e: Exception) {
                 error = e.message
             }

@@ -8,22 +8,23 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 
-val authenticatedClient = HttpClient {
-    install(ContentNegotiation) {
-        json(Json { ignoreUnknownKeys = true })
-    }
-    defaultRequest {
-        val token = AuthStateHolder.idToken
-        if (token != null) {
-            headers.append("Authorization", "Bearer $token")
+val authenticatedClient =
+    HttpClient {
+        install(ContentNegotiation) {
+            json(Json { ignoreUnknownKeys = true })
         }
-    }
-    HttpResponseValidator {
-        validateResponse { response ->
-            if (response.status == HttpStatusCode.Unauthorized) {
-                AuthStateHolder.setUnauthenticated()
-                throw Exception("認証エラー: 再ログインしてください")
+        defaultRequest {
+            val token = AuthStateHolder.idToken
+            if (token != null) {
+                headers.append("Authorization", "Bearer $token")
+            }
+        }
+        HttpResponseValidator {
+            validateResponse { response ->
+                if (response.status == HttpStatusCode.Unauthorized) {
+                    AuthStateHolder.setUnauthenticated()
+                    throw Exception("認証エラー: 再ログインしてください")
+                }
             }
         }
     }
-}

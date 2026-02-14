@@ -30,7 +30,14 @@ import model.Feeding
 import model.FeedingLog
 import model.MealTime
 
-@JsFun("(iso) => { const d = new Date(iso); return d.toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'Asia/Tokyo'}); }")
+@JsFun(
+    """(iso) => {
+    const d = new Date(iso);
+    return d.toLocaleTimeString('ja-JP', {
+        hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Tokyo',
+    });
+}""",
+)
 private external fun toJstHHMM(iso: JsString): JsString
 
 @Composable
@@ -83,8 +90,12 @@ internal fun FeedingContent(
     ) {
         Text(
             text = petName?.let { "$it のごはん記録" } ?: "ごはん記録",
-            style = if (isCompact) MaterialTheme.typography.headlineSmall
-            else MaterialTheme.typography.headlineLarge,
+            style =
+                if (isCompact) {
+                    MaterialTheme.typography.headlineSmall
+                } else {
+                    MaterialTheme.typography.headlineLarge
+                },
             color = MaterialTheme.colorScheme.primary,
         )
 
@@ -93,10 +104,11 @@ internal fun FeedingContent(
         if (isCompact) {
             // Compact: カレンダーなし、詳細のみ（縦スクロール）
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState()),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState()),
             ) {
                 FeedingDetailSection(
                     selectedDate = selectedDate,
@@ -199,7 +211,11 @@ private fun FeedingDetailSection(
 }
 
 @Composable
-private fun DateSelector(date: String, onPrevious: () -> Unit, onNext: () -> Unit) {
+private fun DateSelector(
+    date: String,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+) {
     val dow = dayOfWeekShortJs(date.toJsString()).toString()
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -226,12 +242,15 @@ private fun MealCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (feeding.done)
-                FeedingDoneColor.copy(alpha = 0.1f)
-            else
-                MaterialTheme.colorScheme.surfaceVariant,
-        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    if (feeding.done) {
+                        FeedingDoneColor.copy(alpha = 0.1f)
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    },
+            ),
     ) {
         Row(
             modifier = Modifier.padding(16.dp).fillMaxWidth().defaultMinSize(minHeight = 48.dp),
@@ -280,7 +299,11 @@ private fun MealCard(
 }
 
 @Composable
-private fun NoteSection(note: String, onNoteChange: (String) -> Unit, onSave: () -> Unit) {
+private fun NoteSection(
+    note: String,
+    onNoteChange: (String) -> Unit,
+    onSave: () -> Unit,
+) {
     Text(
         text = "メモ",
         style = MaterialTheme.typography.titleMedium,

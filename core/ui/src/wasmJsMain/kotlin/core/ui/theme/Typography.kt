@@ -10,17 +10,19 @@ import core.ui.generated.*
 import org.jetbrains.compose.resources.Font
 
 val Typography.displayExLarge: TextStyle
-    get() = displayLarge.copy(
-        fontSize = 64.sp,
-        lineHeight = 72.sp,
-    )
+    get() =
+        displayLarge.copy(
+            fontSize = 64.sp,
+            lineHeight = 72.sp,
+        )
 
 @Composable
 fun AppTypography(): Typography {
-    val notoSansJp = FontFamily(
-        Font(Res.font.notosansjp_regular, FontWeight.Normal),
-        Font(Res.font.notosansjp_bold, FontWeight.Bold),
-    )
+    val notoSansJp =
+        FontFamily(
+            Font(Res.font.notosansjp_regular, FontWeight.Normal),
+            Font(Res.font.notosansjp_bold, FontWeight.Bold),
+        )
     val default = Typography()
     return Typography(
         displayLarge = default.displayLarge.copy(fontFamily = notoSansJp),

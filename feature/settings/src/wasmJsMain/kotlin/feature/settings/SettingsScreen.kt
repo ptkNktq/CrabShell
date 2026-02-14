@@ -98,10 +98,11 @@ internal fun SettingsContent(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(if (isCompact) 16.dp else 24.dp)
-                .verticalScroll(scrollState),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(if (isCompact) 16.dp else 24.dp)
+                    .verticalScroll(scrollState),
             horizontalAlignment = if (isCompact) Alignment.Start else Alignment.CenterHorizontally,
         ) {
             val cardModifier = if (isCompact) Modifier.fillMaxWidth() else Modifier.widthIn(max = 480.dp)
@@ -161,14 +162,15 @@ internal fun SettingsContent(
         VerticalScrollbar(
             adapter = rememberScrollbarAdapter(scrollState),
             modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
-            style = ScrollbarStyle(
-                minimalHeight = 48.dp,
-                thickness = 8.dp,
-                shape = MaterialTheme.shapes.small,
-                hoverDurationMillis = 300,
-                unhoverColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                hoverColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            ),
+            style =
+                ScrollbarStyle(
+                    minimalHeight = 48.dp,
+                    thickness = 8.dp,
+                    shape = MaterialTheme.shapes.small,
+                    hoverDurationMillis = 300,
+                    unhoverColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                    hoverColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                ),
         )
     }
 }
@@ -223,9 +225,10 @@ private fun UserNameManagementCard(
 
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
     ) {
         Column(
             modifier = Modifier.padding(24.dp).fillMaxWidth(),
@@ -238,9 +241,10 @@ private fun UserNameManagementCard(
                     OutlinedTextField(
                         value = editedNames[user.uid] ?: "",
                         onValueChange = { value ->
-                            editedNames = editedNames.toMutableMap().apply {
-                                put(user.uid, value)
-                            }
+                            editedNames =
+                                editedNames.toMutableMap().apply {
+                                    put(user.uid, value)
+                                }
                         },
                         label = { Text(user.uid) },
                         modifier = Modifier.fillMaxWidth(),
@@ -297,9 +301,10 @@ private fun GarbageScheduleCard(
 ) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
     ) {
         Column(
             modifier = Modifier.padding(24.dp).fillMaxWidth(),
@@ -340,11 +345,12 @@ private fun GarbageScheduleCard(
                                 selected = selected,
                                 onClick = { onToggleDay(garbageType, dayIndex) },
                                 label = { Text(dayLabels[dayIndex]) },
-                                border = if (selected) {
-                                    BorderStroke(1.dp, garbageType.color)
-                                } else {
-                                    FilterChipDefaults.filterChipBorder(enabled = true, selected = false)
-                                },
+                                border =
+                                    if (selected) {
+                                        BorderStroke(1.dp, garbageType.color)
+                                    } else {
+                                        FilterChipDefaults.filterChipBorder(enabled = true, selected = false)
+                                    },
                             )
                         }
                     }
@@ -360,10 +366,11 @@ private fun GarbageScheduleCard(
                             SegmentedButton(
                                 selected = schedule.frequency == freq,
                                 onClick = { onFrequencyChange(garbageType, freq) },
-                                shape = SegmentedButtonDefaults.itemShape(
-                                    index = index,
-                                    count = CollectionFrequency.entries.size,
-                                ),
+                                shape =
+                                    SegmentedButtonDefaults.itemShape(
+                                        index = index,
+                                        count = CollectionFrequency.entries.size,
+                                    ),
                             ) {
                                 Text(
                                     text = freq.label,
@@ -426,9 +433,10 @@ private fun PasswordChangeCard(
 
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
     ) {
         Column(
             modifier = Modifier.padding(24.dp).fillMaxWidth(),
@@ -455,10 +463,11 @@ private fun PasswordChangeCard(
                 },
                 singleLine = true,
                 visualTransformation = if (currentPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Next,
-                ),
+                keyboardOptions =
+                    KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Next,
+                    ),
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading,
             )
@@ -478,10 +487,11 @@ private fun PasswordChangeCard(
                 },
                 singleLine = true,
                 visualTransformation = if (newPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Next,
-                ),
+                keyboardOptions =
+                    KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Next,
+                    ),
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading,
             )
@@ -501,10 +511,11 @@ private fun PasswordChangeCard(
                 },
                 singleLine = true,
                 visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Done,
-                ),
+                keyboardOptions =
+                    KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done,
+                    ),
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading,
             )

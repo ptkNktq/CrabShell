@@ -18,23 +18,30 @@ import model.MonthlyMoney
 import model.PaymentRecord
 
 /** 現在の年月を "YYYY-MM" 形式で返す */
-@JsFun("""() => {
+@JsFun(
+    """() => {
     const d = new Date();
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     return y + '-' + m;
-}""")
+}""",
+)
 external fun currentMonthJs(): JsString
 
 /** 月を offset 分ずらす */
-@JsFun("""(monthStr, offset) => {
+@JsFun(
+    """(monthStr, offset) => {
     const [y, m] = monthStr.split('-').map(Number);
     const d = new Date(y, m - 1 + offset, 1);
     const ny = d.getFullYear();
     const nm = String(d.getMonth() + 1).padStart(2, '0');
     return ny + '-' + nm;
-}""")
-external fun shiftMonthJs(monthStr: JsString, offset: Int): JsString
+}""",
+)
+external fun shiftMonthJs(
+    monthStr: JsString,
+    offset: Int,
+): JsString
 
 /** 現在の日時を UTC の ISO 形式で返す（サーバー送信用） */
 @JsFun("() => new Date().toISOString()")
@@ -86,11 +93,13 @@ class PaymentViewModel(private val scope: CoroutineScope) {
         saving = true
         scope.launch {
             try {
-                val record = PaymentRecord(uid = currentUid, amount = amount, paidAt = nowIsoJs().toString())
-                monthlyMoney = authenticatedClient.post("/api/money/$currentMonth/pay") {
-                    contentType(ContentType.Application.Json)
-                    setBody(record)
-                }.body()
+                val record =
+                    PaymentRecord(uid = currentUid, amount = amount, paidAt = nowIsoJs().toString())
+                monthlyMoney =
+                    authenticatedClient.post("/api/money/$currentMonth/pay") {
+                        contentType(ContentType.Application.Json)
+                        setBody(record)
+                    }.body()
             } catch (e: Exception) {
                 error = e.message
             } finally {
