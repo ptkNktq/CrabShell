@@ -108,15 +108,14 @@ internal fun DashboardContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(if (windowSizeClass == WindowSizeClass.Compact) 0.dp else 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(0.dp)
                     ) {
                         DateTimeCard(
                             garbageTypes = todayGarbageTypes,
                             onDateChanged = onDateChanged,
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().weight(1f),
                         )
                         DailyFeedingCard(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().weight(1f),
                             feedingLog = feedingLog,
                             petName = petName,
                             onFeedClick = onFeedClick,
