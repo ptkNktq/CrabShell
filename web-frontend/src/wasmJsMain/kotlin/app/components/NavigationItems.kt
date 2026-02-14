@@ -18,7 +18,7 @@ data class NavigationItem(
 val primaryNavigationItems = listOf(
     NavigationItem(Screen.Dashboard, Icons.Default.Home, "ダッシュボード"),
     NavigationItem(Screen.Feeding, Icons.Default.Pets, "ごはん"),
-    NavigationItem(Screen.Payment, Icons.Default.Payment, "お支払い"),
+    NavigationItem(Screen.Payment, Icons.Default.Payment, "支払い"),
 )
 
 val adminNavigationItems = listOf(
