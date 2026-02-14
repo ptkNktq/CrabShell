@@ -71,7 +71,7 @@ internal fun PaymentContent(
                     .padding(12.dp),
             ) {
                 Text(
-                    text = "お支払い",
+                    text = "支払い",
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -111,7 +111,7 @@ internal fun PaymentContent(
                     .padding(24.dp),
             ) {
                 Text(
-                    text = "お支払い",
+                    text = "支払い",
                     style = MaterialTheme.typography.headlineLarge,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -362,7 +362,7 @@ private fun SummaryCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "今月のお支払い",
+                    text = "今月の支払い",
                     style = MaterialTheme.typography.titleMedium,
                 )
                 if (remaining <= 0 && totalAllocated > 0) {
