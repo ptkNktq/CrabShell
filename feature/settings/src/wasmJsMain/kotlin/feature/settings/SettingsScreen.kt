@@ -35,34 +35,36 @@ private val dayLabels = listOf("日", "月", "火", "水", "木", "金", "土")
 fun SettingsScreen() {
     val scope = rememberCoroutineScope()
     val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
-    val vm = remember { SettingsViewModel(scope, isAdmin) }
+    val passwordVm = remember { PasswordChangeViewModel(scope) }
+    val userNameVm = remember { if (isAdmin) UserNameViewModel(scope) else null }
+    val garbageVm = remember { if (isAdmin) GarbageScheduleViewModel(scope) else null }
     val scrollState = rememberScrollState()
     val windowSizeClass = LocalWindowSizeClass.current
 
     SettingsContent(
         scrollState = scrollState,
         isAdmin = isAdmin,
-        currentPassword = vm.currentPassword,
-        newPassword = vm.newPassword,
-        confirmPassword = vm.confirmPassword,
-        isLoading = vm.isLoading,
-        errorMessage = vm.errorMessage,
-        successMessage = vm.successMessage,
-        onCurrentPasswordChanged = vm::onCurrentPasswordChanged,
-        onNewPasswordChanged = vm::onNewPasswordChanged,
-        onConfirmPasswordChanged = vm::onConfirmPasswordChanged,
-        onChangePassword = vm::changePassword,
-        users = vm.users,
-        usersSaving = vm.usersSaving,
-        usersMessage = vm.usersMessage,
-        onUpdateDisplayName = vm::updateDisplayName,
-        garbageLoading = vm.garbageLoading,
-        garbageSchedules = vm.garbageSchedules,
-        garbageMessage = vm.garbageMessage,
-        garbageSaving = vm.garbageSaving,
-        onToggleDay = vm::toggleDay,
-        onFrequencyChange = vm::changeFrequency,
-        onSaveGarbageSchedule = vm::saveGarbageSchedule,
+        currentPassword = passwordVm.uiState.currentPassword,
+        newPassword = passwordVm.uiState.newPassword,
+        confirmPassword = passwordVm.uiState.confirmPassword,
+        isLoading = passwordVm.uiState.isLoading,
+        errorMessage = passwordVm.uiState.errorMessage,
+        successMessage = passwordVm.uiState.successMessage,
+        onCurrentPasswordChanged = passwordVm::onCurrentPasswordChanged,
+        onNewPasswordChanged = passwordVm::onNewPasswordChanged,
+        onConfirmPasswordChanged = passwordVm::onConfirmPasswordChanged,
+        onChangePassword = passwordVm::onChangePassword,
+        users = userNameVm?.uiState?.users ?: emptyList(),
+        usersSaving = userNameVm?.uiState?.isSaving ?: false,
+        usersMessage = userNameVm?.uiState?.message,
+        onUpdateDisplayName = { uid, name -> userNameVm?.onUpdateDisplayName(uid, name) },
+        garbageLoading = garbageVm?.uiState?.isLoading ?: false,
+        garbageSchedules = garbageVm?.uiState?.schedules ?: emptyList(),
+        garbageMessage = garbageVm?.uiState?.message,
+        garbageSaving = garbageVm?.uiState?.isSaving ?: false,
+        onToggleDay = { type, day -> garbageVm?.onToggleDay(type, day) },
+        onFrequencyChange = { type, freq -> garbageVm?.onChangeFrequency(type, freq) },
+        onSaveGarbageSchedule = { garbageVm?.onSaveSchedule() },
         windowSizeClass = windowSizeClass,
     )
 }

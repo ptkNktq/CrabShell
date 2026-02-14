@@ -23,7 +23,6 @@ import model.FeedingLog
 import model.GarbageType
 import model.GarbageTypeSchedule
 import model.MealTime
-import model.Pet
 
 @JsFun(
     """(iso) => {
@@ -35,38 +34,43 @@ import model.Pet
 )
 external fun toJstHHMM(iso: JsString): JsString
 
+data class DashboardUiState(
+    val feedingLog: FeedingLog = FeedingLog(date = ""),
+    val isLoading: Boolean = true,
+    val error: String? = null,
+    val petName: String? = null,
+    val todayGarbageTypes: List<GarbageType> = emptyList(),
+    val currentTime: String = "",
+    val currentYear: String = "",
+    val dateWithDay: String = "",
+)
+
 class DashboardViewModel(private val scope: CoroutineScope) {
     private var today: String = feedingDateJs().toString()
-
-    var feedingLog by mutableStateOf(FeedingLog(date = today))
-        private set
-    var loading by mutableStateOf(true)
-        private set
-    var error by mutableStateOf<String?>(null)
-        private set
-    var pet by mutableStateOf<Pet?>(null)
-        private set
-    var todayGarbageTypes by mutableStateOf<List<GarbageType>>(emptyList())
-        private set
-    var currentTime by mutableStateOf(currentTimeJs().toString())
-        private set
-    var currentYear by mutableStateOf(currentYearJs().toString())
-        private set
-    var dateWithDay by mutableStateOf(formattedTodayJs().toString())
-        private set
-
+    private var petId: String? = null
     private var cachedSchedules: List<GarbageTypeSchedule> = emptyList()
     private var trackedDate: String = todayDateJs().toString()
     private var trackedFeedingDate: String = today
 
+    var uiState by mutableStateOf(
+        DashboardUiState(
+            feedingLog = FeedingLog(date = today),
+            currentTime = currentTimeJs().toString(),
+            currentYear = currentYearJs().toString(),
+            dateWithDay = formattedTodayJs().toString(),
+        ),
+    )
+        private set
+
     init {
         scope.launch {
             try {
-                pet = PetRepository.getPets().firstOrNull()
+                val pet = PetRepository.getPets().firstOrNull()
+                petId = pet?.id
+                uiState = uiState.copy(petName = pet?.name)
                 loadToday()
             } catch (e: Exception) {
-                error = e.message
-                loading = false
+                uiState = uiState.copy(error = e.message, isLoading = false)
             }
         }
         loadGarbageSchedule()
@@ -77,31 +81,33 @@ class DashboardViewModel(private val scope: CoroutineScope) {
         scope.launch {
             while (true) {
                 delay(10_000)
-                currentTime = currentTimeJs().toString()
+                uiState = uiState.copy(currentTime = currentTimeJs().toString())
                 val newDate = todayDateJs().toString()
                 if (newDate != trackedDate) {
                     trackedDate = newDate
-                    currentYear = currentYearJs().toString()
-                    dateWithDay = formattedTodayJs().toString()
+                    uiState =
+                        uiState.copy(
+                            currentYear = currentYearJs().toString(),
+                            dateWithDay = formattedTodayJs().toString(),
+                        )
                     refreshGarbageForToday()
                 }
                 val newFeedingDate = feedingDateJs().toString()
                 if (newFeedingDate != trackedFeedingDate) {
                     trackedFeedingDate = newFeedingDate
-                    refreshFeeding()
+                    onRefreshFeeding()
                 }
             }
         }
     }
 
     private suspend fun loadToday() {
-        val petId = pet?.id ?: return
+        val id = petId ?: return
         try {
-            feedingLog = FeedingRepository.getFeedingLog(petId, today)
-            loading = false
+            val log = FeedingRepository.getFeedingLog(id, today)
+            uiState = uiState.copy(feedingLog = log, isLoading = false)
         } catch (e: Exception) {
-            error = e.message
-            loading = false
+            uiState = uiState.copy(error = e.message, isLoading = false)
         }
     }
 
@@ -119,10 +125,13 @@ class DashboardViewModel(private val scope: CoroutineScope) {
     private fun refreshGarbageForToday() {
         val dayOfWeek = dayOfWeekIndexJs()
         val weekOfMonth = weekOfMonthJs()
-        todayGarbageTypes =
-            cachedSchedules.filter { schedule ->
-                dayOfWeek in schedule.daysOfWeek && matchesFrequency(schedule.frequency, weekOfMonth)
-            }.map { it.garbageType }
+        uiState =
+            uiState.copy(
+                todayGarbageTypes =
+                    cachedSchedules.filter { schedule ->
+                        dayOfWeek in schedule.daysOfWeek && matchesFrequency(schedule.frequency, weekOfMonth)
+                    }.map { it.garbageType },
+            )
     }
 
     private fun matchesFrequency(
@@ -135,28 +144,29 @@ class DashboardViewModel(private val scope: CoroutineScope) {
             CollectionFrequency.WEEK_2_4 -> weekOfMonth == 2 || weekOfMonth == 4
         }
 
-    fun refreshFeeding() {
+    fun onRefreshFeeding() {
         val newDate = feedingDateJs().toString()
         today = newDate
         scope.launch {
-            loading = true
-            error = null
-            feedingLog = FeedingLog(date = today)
+            uiState = uiState.copy(isLoading = true, error = null, feedingLog = FeedingLog(date = today))
             loadToday()
         }
     }
 
-    fun feed(mealTime: MealTime) {
-        val petId = pet?.id ?: return
+    fun onFeed(mealTime: MealTime) {
+        val id = petId ?: return
         scope.launch {
             try {
-                val feeding = FeedingRepository.feed(petId, today, mealTime)
-                feedingLog =
-                    feedingLog.copy(
-                        feedings = feedingLog.feedings + (mealTime to feeding),
+                val feeding = FeedingRepository.feed(id, today, mealTime)
+                uiState =
+                    uiState.copy(
+                        feedingLog =
+                            uiState.feedingLog.copy(
+                                feedings = uiState.feedingLog.feedings + (mealTime to feeding),
+                            ),
                     )
             } catch (e: Exception) {
-                error = e.message
+                uiState = uiState.copy(error = e.message)
             }
         }
     }

@@ -45,85 +45,80 @@ external fun shiftMonthJs(
 @JsFun("() => crypto.randomUUID()")
 external fun randomUUID(): JsString
 
+data class MoneyUiState(
+    val monthlyMoney: MonthlyMoney = MonthlyMoney(month = ""),
+    val currentMonth: String = "",
+    val isLoading: Boolean = true,
+    val isSaving: Boolean = false,
+    val error: String? = null,
+    val users: List<User> = emptyList(),
+    val editingItem: MoneyItem? = null,
+    val formKey: Int = 0,
+)
+
 class MoneyViewModel(private val scope: CoroutineScope) {
-    var currentMonth by mutableStateOf(currentMonthJs().toString())
-        private set
-    var monthlyMoney by mutableStateOf(MonthlyMoney(month = currentMonth))
-        private set
-    var loading by mutableStateOf(true)
-        private set
-    var error by mutableStateOf<String?>(null)
-        private set
-    var saving by mutableStateOf(false)
-        private set
-
-    // ユーザー一覧
-    var users by mutableStateOf<List<User>>(emptyList())
-        private set
-
-    // 編集中の項目（null = 新規追加モード）
-    var editingItem by mutableStateOf<MoneyItem?>(null)
-        private set
-
-    // フォームリセット用キー（clearForm 時にインクリメント）
-    var formKey by mutableStateOf(0)
+    var uiState by mutableStateOf(
+        MoneyUiState(
+            currentMonth = currentMonthJs().toString(),
+            monthlyMoney = MonthlyMoney(month = currentMonthJs().toString()),
+        ),
+    )
         private set
 
     init {
         loadUsers()
-        loadMonth(currentMonth)
+        onLoadMonth(uiState.currentMonth)
     }
 
     private fun loadUsers() {
         scope.launch {
             try {
-                users = UserRepository.getUsers()
+                uiState = uiState.copy(users = UserRepository.getUsers())
             } catch (_: Exception) {
                 // ユーザー一覧取得失敗は無視
             }
         }
     }
 
-    fun loadMonth(month: String) {
-        currentMonth = month
-        loading = true
-        error = null
+    fun onLoadMonth(month: String) {
+        uiState = uiState.copy(currentMonth = month, isLoading = true, error = null)
         scope.launch {
             try {
-                monthlyMoney = MoneyRepository.getMonthlyMoney(month)
-                loading = false
+                uiState =
+                    uiState.copy(
+                        monthlyMoney = MoneyRepository.getMonthlyMoney(month),
+                        isLoading = false,
+                    )
             } catch (e: Exception) {
-                error = e.message
-                loading = false
+                uiState = uiState.copy(error = e.message, isLoading = false)
             }
         }
     }
 
-    fun goToPreviousMonth() {
-        loadMonth(shiftMonthJs(currentMonth.toJsString(), -1).toString())
+    fun onGoToPreviousMonth() {
+        onLoadMonth(shiftMonthJs(uiState.currentMonth.toJsString(), -1).toString())
     }
 
-    fun goToNextMonth() {
-        loadMonth(shiftMonthJs(currentMonth.toJsString(), 1).toString())
+    fun onGoToNextMonth() {
+        onLoadMonth(shiftMonthJs(uiState.currentMonth.toJsString(), 1).toString())
     }
 
-    fun editItem(item: MoneyItem) {
-        editingItem = item
+    fun onEditItem(item: MoneyItem) {
+        uiState = uiState.copy(editingItem = item)
     }
 
-    fun clearForm() {
-        editingItem = null
-        formKey++
+    fun onClearForm() {
+        uiState = uiState.copy(editingItem = null, formKey = uiState.formKey + 1)
     }
 
-    fun saveItem(
+    fun onSaveItem(
         name: String,
         amount: Long,
         note: String,
         payments: List<Payment>,
         recurring: Boolean,
     ) {
-        val existing = editingItem
+        val existing = uiState.editingItem
 
         val newItem =
             if (existing != null) {
@@ -141,39 +136,37 @@ class MoneyViewModel(private val scope: CoroutineScope) {
 
         val updatedItems =
             if (existing != null) {
-                monthlyMoney.items.map { if (it.id == existing.id) newItem else it }
+                uiState.monthlyMoney.items.map { if (it.id == existing.id) newItem else it }
             } else {
-                monthlyMoney.items + newItem
+                uiState.monthlyMoney.items + newItem
             }
 
         val isNew = existing == null
-        persistAndThen(monthlyMoney.copy(items = updatedItems)) {
-            if (isNew) clearForm()
+        persistAndThen(uiState.monthlyMoney.copy(items = updatedItems)) {
+            if (isNew) onClearForm()
         }
     }
 
-    fun deleteItem(item: MoneyItem) {
-        val updatedItems = monthlyMoney.items.filter { it.id != item.id }
-        // 編集中のアイテムが削除された場合、フォームをクリア
-        if (editingItem?.id == item.id) clearForm()
-        persistAndThen(monthlyMoney.copy(items = updatedItems)) {}
+    fun onDeleteItem(item: MoneyItem) {
+        val updatedItems = uiState.monthlyMoney.items.filter { it.id != item.id }
+        if (uiState.editingItem?.id == item.id) onClearForm()
+        persistAndThen(uiState.monthlyMoney.copy(items = updatedItems)) {}
     }
 
-    /** サーバーに保存し、成功したらデータ更新 + onSuccess を実行する */
     private fun persistAndThen(
         data: MonthlyMoney,
         onSuccess: () -> Unit,
     ) {
-        saving = true
+        uiState = uiState.copy(isSaving = true)
         scope.launch {
             try {
                 MoneyRepository.saveMonthlyMoney(data)
-                monthlyMoney = data
+                uiState = uiState.copy(monthlyMoney = data)
                 onSuccess()
             } catch (e: Exception) {
-                error = e.message
+                uiState = uiState.copy(error = e.message)
             } finally {
-                saving = false
+                uiState = uiState.copy(isSaving = false)
             }
         }
     }

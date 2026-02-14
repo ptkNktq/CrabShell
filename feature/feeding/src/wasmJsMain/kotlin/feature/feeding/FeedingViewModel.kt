@@ -13,85 +13,88 @@ import model.FeedingLog
 import model.MealTime
 import model.Pet
 
+data class FeedingUiState(
+    val log: FeedingLog = FeedingLog(date = ""),
+    val selectedDate: String = "",
+    val isLoading: Boolean = true,
+    val error: String? = null,
+    val noteDraft: String = "",
+    val pet: Pet? = null,
+)
+
 class FeedingViewModel(private val scope: CoroutineScope) {
-    var log by mutableStateOf(FeedingLog(date = todayDateJs().toString()))
-        private set
-    var selectedDate by mutableStateOf(todayDateJs().toString())
-        private set
-    var loading by mutableStateOf(true)
-        private set
-    var error by mutableStateOf<String?>(null)
-        private set
-    var noteDraft by mutableStateOf("")
-        private set
-    var pet by mutableStateOf<Pet?>(null)
+    var uiState by mutableStateOf(
+        FeedingUiState(
+            log = FeedingLog(date = todayDateJs().toString()),
+            selectedDate = todayDateJs().toString(),
+        ),
+    )
         private set
 
     init {
         scope.launch {
             try {
-                pet = PetRepository.getPets().firstOrNull()
-                loadLog(selectedDate)
+                val pet = PetRepository.getPets().firstOrNull()
+                uiState = uiState.copy(pet = pet)
+                onLoadLog(uiState.selectedDate)
             } catch (e: Exception) {
-                error = e.message
-                loading = false
+                uiState = uiState.copy(error = e.message, isLoading = false)
             }
         }
     }
 
-    fun loadLog(date: String) {
-        val petId = pet?.id ?: return
-        selectedDate = date
-        loading = true
-        error = null
+    fun onLoadLog(date: String) {
+        val petId = uiState.pet?.id ?: return
+        uiState = uiState.copy(selectedDate = date, isLoading = true, error = null)
         scope.launch {
             try {
-                log = FeedingRepository.getFeedingLog(petId, date)
-                noteDraft = log.note
-                loading = false
+                val log = FeedingRepository.getFeedingLog(petId, date)
+                uiState = uiState.copy(log = log, noteDraft = log.note, isLoading = false)
             } catch (e: Exception) {
-                error = e.message
-                loading = false
+                uiState = uiState.copy(error = e.message, isLoading = false)
             }
         }
     }
 
-    fun feed(mealTime: MealTime) {
-        val petId = pet?.id ?: return
+    fun onFeed(mealTime: MealTime) {
+        val petId = uiState.pet?.id ?: return
         scope.launch {
             try {
-                val feeding = FeedingRepository.feed(petId, selectedDate, mealTime)
-                log =
-                    log.copy(
-                        feedings = log.feedings.toMutableMap().apply { put(mealTime, feeding) },
+                val feeding = FeedingRepository.feed(petId, uiState.selectedDate, mealTime)
+                uiState =
+                    uiState.copy(
+                        log =
+                            uiState.log.copy(
+                                feedings = uiState.log.feedings.toMutableMap().apply { put(mealTime, feeding) },
+                            ),
                     )
             } catch (e: Exception) {
-                error = e.message
+                uiState = uiState.copy(error = e.message)
             }
         }
     }
 
-    fun updateNoteDraft(text: String) {
-        noteDraft = text
+    fun onUpdateNoteDraft(text: String) {
+        uiState = uiState.copy(noteDraft = text)
     }
 
-    fun saveNote() {
-        val petId = pet?.id ?: return
+    fun onSaveNote() {
+        val petId = uiState.pet?.id ?: return
         scope.launch {
             try {
-                FeedingRepository.updateNote(petId, selectedDate, noteDraft)
-                log = log.copy(note = noteDraft)
+                FeedingRepository.updateNote(petId, uiState.selectedDate, uiState.noteDraft)
+                uiState = uiState.copy(log = uiState.log.copy(note = uiState.noteDraft))
             } catch (e: Exception) {
-                error = e.message
+                uiState = uiState.copy(error = e.message)
             }
         }
     }
 
-    fun goToPreviousDay() {
-        loadLog(shiftDateJs(selectedDate.toJsString(), -1).toString())
+    fun onGoToPreviousDay() {
+        onLoadLog(shiftDateJs(uiState.selectedDate.toJsString(), -1).toString())
     }
 
-    fun goToNextDay() {
-        loadLog(shiftDateJs(selectedDate.toJsString(), 1).toString())
+    fun onGoToNextDay() {
+        onLoadLog(shiftDateJs(uiState.selectedDate.toJsString(), 1).toString())
     }
 }

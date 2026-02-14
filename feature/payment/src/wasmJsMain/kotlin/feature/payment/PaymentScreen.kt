@@ -26,15 +26,15 @@ fun PaymentScreen() {
     val windowSizeClass = LocalWindowSizeClass.current
 
     PaymentContent(
-        monthlyMoney = vm.monthlyMoney,
-        currentMonth = vm.currentMonth,
-        currentUid = vm.currentUid,
-        loading = vm.loading,
-        saving = vm.saving,
-        error = vm.error,
-        onPreviousMonth = { vm.goToPreviousMonth() },
-        onNextMonth = { vm.goToNextMonth() },
-        onConfirmPay = { amount -> vm.recordPayment(amount) },
+        monthlyMoney = vm.uiState.monthlyMoney,
+        currentMonth = vm.uiState.currentMonth,
+        currentUid = vm.uiState.currentUid,
+        loading = vm.uiState.isLoading,
+        saving = vm.uiState.isSaving,
+        error = vm.uiState.error,
+        onPreviousMonth = vm::onGoToPreviousMonth,
+        onNextMonth = vm::onGoToNextMonth,
+        onConfirmPay = vm::onRecordPayment,
         windowSizeClass = windowSizeClass,
     )
 }

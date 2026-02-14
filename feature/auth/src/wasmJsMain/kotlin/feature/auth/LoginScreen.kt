@@ -29,15 +29,15 @@ fun LoginScreen() {
 
     AppTheme {
         LoginContent(
-            email = vm.email,
-            password = vm.password,
-            passwordVisible = vm.passwordVisible,
-            errorMessage = vm.errorMessage,
-            isLoading = vm.isLoading,
+            email = vm.uiState.email,
+            password = vm.uiState.password,
+            passwordVisible = vm.uiState.isPasswordVisible,
+            errorMessage = vm.uiState.errorMessage,
+            isLoading = vm.uiState.isLoading,
             onEmailChanged = vm::onEmailChanged,
             onPasswordChanged = vm::onPasswordChanged,
-            onTogglePasswordVisibility = vm::togglePasswordVisibility,
-            onSignIn = vm::signIn,
+            onTogglePasswordVisibility = vm::onTogglePasswordVisibility,
+            onSignIn = vm::onSignIn,
         )
     }
 }

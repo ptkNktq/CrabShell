@@ -40,16 +40,16 @@ fun DashboardScreen() {
     val windowSizeClass = LocalWindowSizeClass.current
 
     DashboardContent(
-        loading = vm.loading,
-        error = vm.error,
-        feedingLog = vm.feedingLog,
-        petName = vm.pet?.name,
-        todayGarbageTypes = vm.todayGarbageTypes,
-        currentTime = vm.currentTime,
-        currentYear = vm.currentYear,
-        dateWithDay = vm.dateWithDay,
-        onFeedClick = { vm.feed(it) },
-        onRefreshFeeding = { vm.refreshFeeding() },
+        loading = vm.uiState.isLoading,
+        error = vm.uiState.error,
+        feedingLog = vm.uiState.feedingLog,
+        petName = vm.uiState.petName,
+        todayGarbageTypes = vm.uiState.todayGarbageTypes,
+        currentTime = vm.uiState.currentTime,
+        currentYear = vm.uiState.currentYear,
+        dateWithDay = vm.uiState.dateWithDay,
+        onFeedClick = vm::onFeed,
+        onRefreshFeeding = vm::onRefreshFeeding,
         windowSizeClass = windowSizeClass,
     )
 }

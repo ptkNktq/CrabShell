@@ -49,19 +49,19 @@ fun FeedingScreen() {
     val windowSizeClass = LocalWindowSizeClass.current
 
     FeedingContent(
-        petName = vm.pet?.name,
-        selectedDate = vm.selectedDate,
+        petName = vm.uiState.pet?.name,
+        selectedDate = vm.uiState.selectedDate,
         today = today,
-        loading = vm.loading,
-        error = vm.error,
-        log = vm.log,
-        noteDraft = vm.noteDraft,
-        onDateSelected = { vm.loadLog(it) },
-        onPreviousDay = { vm.goToPreviousDay() },
-        onNextDay = { vm.goToNextDay() },
-        onFeed = { vm.feed(it) },
-        onNoteChange = { vm.updateNoteDraft(it) },
-        onSaveNote = { vm.saveNote() },
+        loading = vm.uiState.isLoading,
+        error = vm.uiState.error,
+        log = vm.uiState.log,
+        noteDraft = vm.uiState.noteDraft,
+        onDateSelected = vm::onLoadLog,
+        onPreviousDay = vm::onGoToPreviousDay,
+        onNextDay = vm::onGoToNextDay,
+        onFeed = vm::onFeed,
+        onNoteChange = vm::onUpdateNoteDraft,
+        onSaveNote = vm::onSaveNote,
         windowSizeClass = windowSizeClass,
     )
 }
