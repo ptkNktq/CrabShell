@@ -10,6 +10,8 @@ plugins {
 val generateBuildConfig by tasks.registering {
     val outputDir = layout.buildDirectory.dir("generated/buildconfig")
     outputs.dir(outputDir)
+    // git HEAD が変わるたびに再生成する
+    outputs.upToDateWhen { false }
     doLast {
         val out = ByteArrayOutputStream()
         exec {
@@ -63,6 +65,8 @@ kotlin {
             implementation(project(":feature:auth"))
             implementation(project(":feature:dashboard"))
             implementation(project(":feature:feeding"))
+            implementation(project(":feature:money"))
+            implementation(project(":feature:payment"))
             implementation(project(":feature:settings"))
         }
     }

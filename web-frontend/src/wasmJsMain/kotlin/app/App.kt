@@ -14,17 +14,23 @@ import androidx.compose.ui.unit.dp
 import app.components.DrawerContent
 import app.components.Sidebar
 import core.auth.AuthRepository
+import core.auth.AuthState
+import core.auth.AuthStateHolder
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
 import core.ui.theme.AppTheme
 import feature.dashboard.DashboardScreen
 import feature.feeding.FeedingScreen
+import feature.money.MoneyScreen
+import feature.payment.PaymentScreen
 import feature.settings.SettingsScreen
 import kotlinx.coroutines.launch
 
 enum class Screen(val title: String) {
     Dashboard("ダッシュボード"),
     Feeding("ごはん"),
+    Payment("お支払い"),
+    Money("お金の管理"),
     Settings("設定"),
 }
 
@@ -33,6 +39,7 @@ fun App() {
     val scope = rememberCoroutineScope()
     var currentScreen by remember { mutableStateOf(Screen.Dashboard) }
     val onSignOut: () -> Unit = { scope.launch { AuthRepository.signOut() } }
+    val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
 
     AppTheme {
         Surface(
@@ -53,18 +60,21 @@ fun App() {
                                 currentScreen = currentScreen,
                                 onNavigate = { currentScreen = it },
                                 onSignOut = onSignOut,
+                                isAdmin = isAdmin,
                             )
 
                             WindowSizeClass.Medium -> MediumLayout(
                                 currentScreen = currentScreen,
                                 onNavigate = { currentScreen = it },
                                 onSignOut = onSignOut,
+                                isAdmin = isAdmin,
                             )
 
                             WindowSizeClass.Expanded -> ExpandedLayout(
                                 currentScreen = currentScreen,
                                 onNavigate = { currentScreen = it },
                                 onSignOut = onSignOut,
+                                isAdmin = isAdmin,
                             )
                         }
                     }
@@ -79,6 +89,8 @@ private fun ScreenContent(currentScreen: Screen) {
     when (currentScreen) {
         Screen.Dashboard -> DashboardScreen()
         Screen.Feeding -> FeedingScreen()
+        Screen.Payment -> PaymentScreen()
+        Screen.Money -> MoneyScreen()
         Screen.Settings -> SettingsScreen()
     }
 }
@@ -88,12 +100,14 @@ private fun ExpandedLayout(
     currentScreen: Screen,
     onNavigate: (Screen) -> Unit,
     onSignOut: () -> Unit,
+    isAdmin: Boolean,
 ) {
     Row(modifier = Modifier.fillMaxSize()) {
         Sidebar(
             currentScreen = currentScreen,
             onNavigate = onNavigate,
             onSignOut = onSignOut,
+            isAdmin = isAdmin,
         )
         ScreenContent(currentScreen)
     }
@@ -104,12 +118,14 @@ private fun MediumLayout(
     currentScreen: Screen,
     onNavigate: (Screen) -> Unit,
     onSignOut: () -> Unit,
+    isAdmin: Boolean,
 ) {
     Row(modifier = Modifier.fillMaxSize()) {
         Sidebar(
             currentScreen = currentScreen,
             onNavigate = onNavigate,
             onSignOut = onSignOut,
+            isAdmin = isAdmin,
             expandable = false,
         )
         ScreenContent(currentScreen)
@@ -122,6 +138,7 @@ private fun CompactLayout(
     currentScreen: Screen,
     onNavigate: (Screen) -> Unit,
     onSignOut: () -> Unit,
+    isAdmin: Boolean,
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -136,6 +153,7 @@ private fun CompactLayout(
                     scope.launch { drawerState.close() }
                 },
                 onSignOut = onSignOut,
+                isAdmin = isAdmin,
             )
         },
     ) {

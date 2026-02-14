@@ -25,6 +25,7 @@ fun Sidebar(
     currentScreen: Screen,
     onNavigate: (Screen) -> Unit,
     onSignOut: () -> Unit,
+    isAdmin: Boolean = false,
     expandable: Boolean = true,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -59,6 +60,25 @@ fun Sidebar(
                     selected = currentScreen == item.screen,
                     onClick = { onNavigate(item.screen) },
                 )
+            }
+
+            if (isAdmin && adminNavigationItems.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                for (item in adminNavigationItems) {
+                    SidebarItem(
+                        icon = item.icon,
+                        label = item.label,
+                        expanded = effectiveExpanded,
+                        selected = currentScreen == item.screen,
+                        onClick = { onNavigate(item.screen) },
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.weight(1f))
