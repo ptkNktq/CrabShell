@@ -91,22 +91,13 @@ internal fun FeedingContent(
         Spacer(modifier = Modifier.height(if (isCompact) 8.dp else 16.dp))
 
         if (isCompact) {
-            // Compact: カレンダー上、詳細下（縦スクロール）
+            // Compact: カレンダーなし、詳細のみ（縦スクロール）
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
                     .verticalScroll(rememberScrollState()),
             ) {
-                CalendarView(
-                    selectedDate = selectedDate,
-                    today = today,
-                    onDateSelected = onDateSelected,
-                    modifier = Modifier.widthIn(max = 320.dp).align(Alignment.CenterHorizontally),
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
                 FeedingDetailSection(
                     selectedDate = selectedDate,
                     loading = loading,
