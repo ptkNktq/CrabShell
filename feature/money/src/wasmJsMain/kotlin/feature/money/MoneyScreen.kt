@@ -397,7 +397,7 @@ private fun MoneyItemForm(
                                 put(user.uid, value.filter { c -> c.isDigit() || c == '-' })
                             }
                         },
-                        label = { Text(user.displayName ?: user.email) },
+                        label = { Text(user.email) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -522,7 +522,7 @@ private fun SummaryCard(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 for ((uid, allocated) in userAllocated) {
-                    val userName = users.find { it.uid == uid }?.displayName ?: uid.take(8)
+                    val userName = users.find { it.uid == uid }?.email ?: uid.take(8)
                     val paid = userPaid[uid] ?: 0L
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -633,7 +633,7 @@ private fun MoneyItemCard(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 for (payment in item.payments) {
-                    val userName = users.find { it.uid == payment.uid }?.displayName ?: payment.uid.take(8)
+                    val userName = users.find { it.uid == payment.uid }?.email ?: payment.uid.take(8)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
