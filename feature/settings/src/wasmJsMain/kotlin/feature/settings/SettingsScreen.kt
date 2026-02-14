@@ -242,7 +242,7 @@ private fun UserNameManagementCard(
                                 put(user.uid, value)
                             }
                         },
-                        label = { Text(user.email) },
+                        label = { Text(user.uid) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         enabled = !usersSaving,
