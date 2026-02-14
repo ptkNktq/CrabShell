@@ -5,6 +5,7 @@ package feature.money
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import core.auth.toJsString
 import core.network.authenticatedClient
 import io.ktor.client.call.*
@@ -121,9 +122,6 @@ class MoneyViewModel(private val scope: CoroutineScope) {
 
     fun saveItem(name: String, amount: Long, note: String, payments: List<Payment>, recurring: Boolean) {
         val existing = editingItem
-
-        // ダイアログを先に閉じて、AlertDialog が unmount された後にデータを更新する
-        // （ダイアログが表示中に monthlyMoney を変更すると recomposition が衝突してフリーズする）
         closeDialog()
 
         val newItem = if (existing != null) {
@@ -145,7 +143,9 @@ class MoneyViewModel(private val scope: CoroutineScope) {
             monthlyMoney.items + newItem
         }
 
-        saveMonthlyMoney(monthlyMoney.copy(items = updatedItems))
+        // ダイアログ破棄の recomposition を先に完了させてからデータを更新する
+        // （同一フレームで AlertDialog の DOM 削除とリスト再構築が重なるとフリーズする）
+        deferredSave(monthlyMoney.copy(items = updatedItems))
     }
 
     fun requestDelete(item: MoneyItem) {
@@ -160,21 +160,25 @@ class MoneyViewModel(private val scope: CoroutineScope) {
         val item = deletingItem ?: return
         deletingItem = null
         val updatedItems = monthlyMoney.items.filter { it.id != item.id }
-        saveMonthlyMoney(monthlyMoney.copy(items = updatedItems))
+        deferredSave(monthlyMoney.copy(items = updatedItems))
     }
 
-    private fun saveMonthlyMoney(data: MonthlyMoney) {
-        saving = true
-        monthlyMoney = data
+    /** 次の描画フレームまで待ってから状態更新 + 永続化する */
+    private fun deferredSave(data: MonthlyMoney) {
         scope.launch {
+            // ダイアログ/確認画面の破棄フレームを先に描画させる
+            withFrameNanos { }
+
+            monthlyMoney = data
+            saving = true
             try {
                 authenticatedClient.put("/api/money/${data.month}") {
                     contentType(ContentType.Application.Json)
                     setBody(data)
                 }
-                saving = false
             } catch (e: Exception) {
                 error = e.message
+            } finally {
                 saving = false
             }
         }
