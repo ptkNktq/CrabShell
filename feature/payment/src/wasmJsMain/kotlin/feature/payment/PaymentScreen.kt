@@ -7,7 +7,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,12 +32,9 @@ fun PaymentScreen() {
         loading = vm.loading,
         saving = vm.saving,
         error = vm.error,
-        showPayDialog = vm.showPayDialog,
         onPreviousMonth = { vm.goToPreviousMonth() },
         onNextMonth = { vm.goToNextMonth() },
-        onOpenPayDialog = { vm.openPayDialog() },
         onConfirmPay = { amount -> vm.recordPayment(amount) },
-        onClosePayDialog = { vm.closePayDialog() },
         windowSizeClass = windowSizeClass,
     )
 }
@@ -51,12 +47,9 @@ internal fun PaymentContent(
     loading: Boolean,
     saving: Boolean,
     error: String?,
-    showPayDialog: Boolean,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
-    onOpenPayDialog: () -> Unit,
     onConfirmPay: (Long) -> Unit,
-    onClosePayDialog: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
@@ -70,104 +63,104 @@ internal fun PaymentContent(
     val remaining = totalAllocated - totalPaid
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(if (isCompact) 12.dp else 24.dp),
-        ) {
-            Text(
-                text = "お支払い",
-                style = if (isCompact) MaterialTheme.typography.headlineSmall
-                else MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
-
-            Spacer(modifier = Modifier.height(if (isCompact) 8.dp else 16.dp))
-
-            MonthSelector(
-                month = currentMonth,
-                onPrevious = onPreviousMonth,
-                onNext = onNextMonth,
-            )
-
-            Spacer(modifier = Modifier.height(if (isCompact) 8.dp else 16.dp))
-
-            when {
-                loading -> {
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator()
-                    }
+        if (isCompact) {
+            // Compact: 縦並び
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(12.dp),
+            ) {
+                Text(
+                    text = "お支払い",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                MonthSelector(
+                    month = currentMonth,
+                    onPrevious = onPreviousMonth,
+                    onNext = onNextMonth,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                PaymentListContent(
+                    monthlyMoney = monthlyMoney,
+                    currentUid = currentUid,
+                    totalAllocated = totalAllocated,
+                    totalPaid = totalPaid,
+                    remaining = remaining,
+                    loading = loading,
+                    error = error,
+                    isCompact = true,
+                    modifier = Modifier.weight(1f),
+                )
+                if (!loading && error == null && remaining > 0) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    PaymentInlineForm(
+                        remaining = remaining,
+                        saving = saving,
+                        onConfirmPay = onConfirmPay,
+                    )
                 }
+            }
+        } else {
+            // Medium/Expanded: 左にリスト、右にフォーム
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+            ) {
+                Text(
+                    text = "お支払い",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                MonthSelector(
+                    month = currentMonth,
+                    onPrevious = onPreviousMonth,
+                    onNext = onNextMonth,
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                ) {
+                    PaymentListContent(
+                        monthlyMoney = monthlyMoney,
+                        currentUid = currentUid,
+                        totalAllocated = totalAllocated,
+                        totalPaid = totalPaid,
+                        remaining = remaining,
+                        loading = loading,
+                        error = error,
+                        isCompact = false,
+                        modifier = Modifier.weight(1f),
+                    )
 
-                error != null -> {
-                    Text("エラー: $error", color = MaterialTheme.colorScheme.error)
-                }
+                    Spacer(modifier = Modifier.width(24.dp))
 
-                else -> {
-                    val spacing = if (isCompact) 8.dp else 12.dp
-
-                    LazyColumn(
-                        modifier = Modifier.fillMaxWidth().weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(spacing),
-                        contentPadding = PaddingValues(bottom = 80.dp),
-                    ) {
-                        // サマリーカード
-                        item(key = "summary") {
-                            SummaryCard(
-                                totalAllocated = totalAllocated,
-                                totalPaid = totalPaid,
-                                remaining = remaining,
-                                isCompact = isCompact,
-                            )
-                        }
-
-                        // 支払い履歴
-                        if (monthlyMoney.paymentRecords.isNotEmpty()) {
-                            item(key = "history-header") {
+                    if (!loading && error == null && remaining > 0) {
+                        PaymentInlineForm(
+                            remaining = remaining,
+                            saving = saving,
+                            onConfirmPay = onConfirmPay,
+                            modifier = Modifier.width(360.dp),
+                        )
+                    } else if (!loading && error == null) {
+                        Card(
+                            modifier = Modifier.width(360.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            ),
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center,
+                            ) {
                                 Text(
-                                    text = "支払い履歴",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    modifier = Modifier.padding(top = 8.dp),
+                                    text = "支払い完了",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.primary,
                                 )
-                            }
-                            items(monthlyMoney.paymentRecords.reversed(), key = { "${it.paidAt}-${it.amount}" }) { record ->
-                                PaymentRecordCard(record = record, isCompact = isCompact)
-                            }
-                        }
-
-                        // 項目内訳
-                        if (monthlyMoney.items.isNotEmpty()) {
-                            item(key = "items-header") {
-                                Text(
-                                    text = "内訳",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    modifier = Modifier.padding(top = 8.dp),
-                                )
-                            }
-                            items(monthlyMoney.items, key = { it.id }) { item ->
-                                ItemBreakdownCard(
-                                    item = item,
-                                    currentUid = currentUid,
-                                    isCompact = isCompact,
-                                )
-                            }
-                        }
-
-                        if (monthlyMoney.items.isEmpty()) {
-                            item(key = "empty") {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth().padding(32.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        text = "今月の割当はありません",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
                             }
                         }
                     }
@@ -175,28 +168,161 @@ internal fun PaymentContent(
             }
         }
 
-        // 支払いFAB（残額がある場合のみ）
-        if (!loading && error == null && remaining > 0) {
-            ExtendedFloatingActionButton(
-                onClick = onOpenPayDialog,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(if (isCompact) 16.dp else 24.dp),
+        if (saving) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter))
+        }
+    }
+}
+
+@Composable
+private fun PaymentListContent(
+    monthlyMoney: MonthlyMoney,
+    currentUid: String,
+    totalAllocated: Long,
+    totalPaid: Long,
+    remaining: Long,
+    loading: Boolean,
+    error: String?,
+    isCompact: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    when {
+        loading -> {
+            Box(
+                modifier = modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Default.Payment, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("支払いを記録")
+                CircularProgressIndicator()
+            }
+        }
+
+        error != null -> {
+            Box(modifier = modifier) {
+                Text("エラー: $error", color = MaterialTheme.colorScheme.error)
+            }
+        }
+
+        else -> {
+            val spacing = if (isCompact) 8.dp else 12.dp
+            LazyColumn(
+                modifier = modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(spacing),
+                contentPadding = PaddingValues(bottom = 16.dp),
+            ) {
+                // サマリーカード
+                item(key = "summary") {
+                    SummaryCard(
+                        totalAllocated = totalAllocated,
+                        totalPaid = totalPaid,
+                        remaining = remaining,
+                        isCompact = isCompact,
+                    )
+                }
+
+                // 支払い履歴
+                if (monthlyMoney.paymentRecords.isNotEmpty()) {
+                    item(key = "history-header") {
+                        Text(
+                            text = "支払い履歴",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                    }
+                    items(monthlyMoney.paymentRecords.reversed(), key = { "${it.paidAt}-${it.amount}" }) { record ->
+                        PaymentRecordCard(record = record, isCompact = isCompact)
+                    }
+                }
+
+                // 項目内訳
+                if (monthlyMoney.items.isNotEmpty()) {
+                    item(key = "items-header") {
+                        Text(
+                            text = "内訳",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                    }
+                    items(monthlyMoney.items, key = { it.id }) { item ->
+                        ItemBreakdownCard(
+                            item = item,
+                            currentUid = currentUid,
+                            isCompact = isCompact,
+                        )
+                    }
+                }
+
+                if (monthlyMoney.items.isEmpty()) {
+                    item(key = "empty") {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(32.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "今月の割当はありません",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
             }
         }
     }
+}
 
-    if (showPayDialog) {
-        PayDialog(
-            remaining = remaining.coerceAtLeast(0),
-            saving = saving,
-            onConfirm = onConfirmPay,
-            onDismiss = onClosePayDialog,
-        )
+@Composable
+private fun PaymentInlineForm(
+    remaining: Long,
+    saving: Boolean,
+    onConfirmPay: (Long) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var amountText by remember(remaining) { mutableStateOf(remaining.toString()) }
+    val amount = amountText.toLongOrNull() ?: 0L
+
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = "支払いを記録",
+                style = MaterialTheme.typography.titleLarge,
+            )
+
+            Text(
+                text = "残り ¥${formatAmount(remaining)}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            OutlinedTextField(
+                value = amountText,
+                onValueChange = { amountText = it.filter { c -> c.isDigit() } },
+                label = { Text("支払い額 (円)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                enabled = !saving,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                Button(
+                    onClick = { onConfirmPay(amount) },
+                    enabled = amount > 0 && !saving,
+                ) {
+                    Text("記録")
+                }
+            }
+        }
     }
 }
 
@@ -364,56 +490,6 @@ private fun ItemBreakdownCard(
             )
         }
     }
-}
-
-@Composable
-private fun PayDialog(
-    remaining: Long,
-    saving: Boolean,
-    onConfirm: (Long) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var amountText by remember { mutableStateOf(remaining.toString()) }
-    val amount = amountText.toLongOrNull() ?: 0L
-
-    AlertDialog(
-        onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text("支払いを記録") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (saving) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                }
-                Text(
-                    text = "残り ¥${formatAmount(remaining)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                OutlinedTextField(
-                    value = amountText,
-                    onValueChange = { amountText = it.filter { c -> c.isDigit() } },
-                    label = { Text("支払い額 (円)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    enabled = !saving,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(amount) },
-                enabled = amount > 0 && !saving,
-            ) {
-                Text("記録")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !saving) {
-                Text("キャンセル")
-            }
-        },
-    )
 }
 
 private fun formatAmount(amount: Long): String {
