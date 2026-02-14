@@ -102,7 +102,7 @@ internal fun FeedingContent(
                     selectedDate = selectedDate,
                     today = today,
                     onDateSelected = onDateSelected,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.widthIn(max = 320.dp).align(Alignment.CenterHorizontally),
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
