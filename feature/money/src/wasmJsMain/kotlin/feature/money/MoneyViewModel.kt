@@ -5,7 +5,7 @@ package feature.money
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
+import kotlinx.coroutines.yield
 import core.auth.toJsString
 import core.network.authenticatedClient
 import io.ktor.client.call.*
@@ -166,8 +166,8 @@ class MoneyViewModel(private val scope: CoroutineScope) {
     /** 次の描画フレームまで待ってから状態更新 + 永続化する */
     private fun deferredSave(data: MonthlyMoney) {
         scope.launch {
-            // ダイアログ/確認画面の破棄フレームを先に描画させる
-            withFrameNanos { }
+            // ダイアログ/確認画面の破棄を先に処理させる
+            yield()
 
             monthlyMoney = data
             saving = true
