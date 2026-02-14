@@ -3,10 +3,10 @@ package model
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class PaymentRecord(val amount: Long, val paidAt: String)
+data class Payment(val uid: String, val amount: Long)
 
 @Serializable
-data class Payment(val uid: String, val amount: Long, val records: List<PaymentRecord> = emptyList())
+data class PaymentRecord(val uid: String, val amount: Long, val paidAt: String)
 
 @Serializable
 data class MoneyItem(
@@ -22,4 +22,5 @@ data class MoneyItem(
 data class MonthlyMoney(
     val month: String,
     val items: List<MoneyItem> = emptyList(),
+    val paymentRecords: List<PaymentRecord> = emptyList(),
 )
