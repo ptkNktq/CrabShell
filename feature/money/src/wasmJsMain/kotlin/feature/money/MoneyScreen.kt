@@ -38,6 +38,7 @@ fun MoneyScreen() {
         currentMonth = vm.currentMonth,
         loading = vm.loading,
         saving = vm.saving,
+        saveCompleted = vm.saveCompleted,
         error = vm.error,
         users = vm.users,
         showDialog = vm.showDialog,
@@ -52,6 +53,7 @@ fun MoneyScreen() {
         deletingItem = vm.deletingItem,
         onConfirmDelete = { vm.confirmDelete() },
         onCancelDelete = { vm.cancelDelete() },
+        onDismissDelete = { vm.dismissDelete() },
         windowSizeClass = windowSizeClass,
     )
 }
@@ -62,6 +64,7 @@ internal fun MoneyContent(
     currentMonth: String,
     loading: Boolean,
     saving: Boolean,
+    saveCompleted: Boolean,
     error: String?,
     users: List<User>,
     showDialog: Boolean,
@@ -76,6 +79,7 @@ internal fun MoneyContent(
     deletingItem: MoneyItem?,
     onConfirmDelete: () -> Unit,
     onCancelDelete: () -> Unit,
+    onDismissDelete: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
@@ -187,6 +191,7 @@ internal fun MoneyContent(
             item = editingItem,
             users = users,
             saving = saving,
+            saveCompleted = saveCompleted,
             onSave = onSaveItem,
             onDismiss = onCloseDialog,
         )
@@ -194,25 +199,39 @@ internal fun MoneyContent(
 
     if (deletingItem != null) {
         AlertDialog(
-            onDismissRequest = { if (!saving) onCancelDelete() },
-            title = { Text("削除の確認") },
+            onDismissRequest = { if (!saving) onDismissDelete() },
+            title = {
+                Text(if (saveCompleted) "削除完了" else "削除の確認")
+            },
             text = {
                 Column {
-                    Text("「${deletingItem.name}」を削除しますか？")
-                    if (saving) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    if (saveCompleted) {
+                        Text("「${deletingItem.name}」を削除しました。")
+                    } else {
+                        Text("「${deletingItem.name}」を削除しますか？")
+                        if (saving) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        }
                     }
                 }
             },
             confirmButton = {
-                TextButton(onClick = onConfirmDelete, enabled = !saving) {
-                    Text("削除", color = MaterialTheme.colorScheme.error)
+                if (saveCompleted) {
+                    TextButton(onClick = onDismissDelete) {
+                        Text("閉じる")
+                    }
+                } else {
+                    TextButton(onClick = onConfirmDelete, enabled = !saving) {
+                        Text("削除", color = MaterialTheme.colorScheme.error)
+                    }
                 }
             },
             dismissButton = {
-                TextButton(onClick = onCancelDelete, enabled = !saving) {
-                    Text("キャンセル")
+                if (!saveCompleted) {
+                    TextButton(onClick = onCancelDelete, enabled = !saving) {
+                        Text("キャンセル")
+                    }
                 }
             },
         )
@@ -446,6 +465,7 @@ private fun MoneyItemDialog(
     item: MoneyItem?,
     users: List<User>,
     saving: Boolean,
+    saveCompleted: Boolean,
     onSave: (String, Long, String, List<Payment>, Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -468,10 +488,19 @@ private fun MoneyItemDialog(
     }
     val paymentTotal = payments.sumOf { it.amount }
     val mismatch = payments.isNotEmpty() && paymentTotal != amount
+    val inputDisabled = saving || saveCompleted
 
     AlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text(if (item != null) "項目を編集" else "項目を追加") },
+        title = {
+            Text(
+                when {
+                    saveCompleted -> "保存完了"
+                    item != null -> "項目を編集"
+                    else -> "項目を追加"
+                }
+            )
+        },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -480,13 +509,16 @@ private fun MoneyItemDialog(
                 if (saving) {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
+                if (saveCompleted) {
+                    Text("保存しました。")
+                }
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text("項目名") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    enabled = !saving,
+                    enabled = !inputDisabled,
                 )
 
                 OutlinedTextField(
@@ -566,16 +598,24 @@ private fun MoneyItemDialog(
             }
         },
         confirmButton = {
-            TextButton(
-                onClick = { onSave(name, amount, note, payments, recurring) },
-                enabled = name.isNotBlank() && amount > 0 && !saving,
-            ) {
-                Text("保存")
+            if (saveCompleted) {
+                TextButton(onClick = onDismiss) {
+                    Text("閉じる")
+                }
+            } else {
+                TextButton(
+                    onClick = { onSave(name, amount, note, payments, recurring) },
+                    enabled = name.isNotBlank() && amount > 0 && !saving,
+                ) {
+                    Text("保存")
+                }
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !saving) {
-                Text("キャンセル")
+            if (!saveCompleted) {
+                TextButton(onClick = onDismiss, enabled = !saving) {
+                    Text("キャンセル")
+                }
             }
         },
     )
