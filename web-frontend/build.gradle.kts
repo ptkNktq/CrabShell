@@ -29,7 +29,8 @@ val generateBuildConfig by tasks.registering {
             |object BuildConfig {
             |    const val VERSION: String = "$commitHash"
             |}
-            """.trimMargin()
+            |
+            """.trimMargin(),
         )
     }
 }
