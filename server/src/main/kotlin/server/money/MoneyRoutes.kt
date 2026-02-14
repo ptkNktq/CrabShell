@@ -7,7 +7,10 @@ import io.ktor.server.routing.*
 import model.MoneyItem
 import model.MonthlyMoney
 import model.Payment
+import model.PaymentRecord
+import server.auth.FirebaseTokenKey
 import server.auth.adminOnly
+import server.auth.authenticated
 import java.time.YearMonth
 
 private val firestore by lazy { FirestoreClient.getFirestore() }
@@ -16,6 +19,7 @@ private const val MONEY_COLLECTION = "money"
 
 fun Route.moneyRoutes() {
     route("/money/{month}") {
+        // 管理者: データ取得・全体保存
         adminOnly {
             get {
                 val month = call.parameters["month"]!!
@@ -36,29 +40,97 @@ fun Route.moneyRoutes() {
             put {
                 val month = call.parameters["month"]!!
                 val body = call.receive<MonthlyMoney>()
-
-                val items = body.items.map { item ->
-                    mapOf(
-                        "id" to item.id,
-                        "name" to item.name,
-                        "amount" to item.amount,
-                        "note" to item.note,
-                        "recurring" to item.recurring,
-                        "payments" to item.payments.map { p ->
-                            mapOf("uid" to p.uid, "amount" to p.amount)
-                        },
-                    )
-                }
-
-                firestore.collection(MONEY_COLLECTION)
-                    .document(month)
-                    .set(mapOf("month" to month, "items" to items))
-                    .get()
-
+                saveMonthlyMoney(month, body)
                 call.respond(body)
             }
         }
+
+        // 一般ユーザー: 自分の割当のみ取得
+        authenticated {
+            get("my") {
+                val month = call.parameters["month"]!!
+                val uid = call.attributes[FirebaseTokenKey].uid
+                val doc = firestore.collection(MONEY_COLLECTION)
+                    .document(month).get().get()
+
+                if (!doc.exists()) {
+                    call.respond(MonthlyMoney(month = month))
+                    return@get
+                }
+
+                val items = parseItems(doc.get("items"))
+                // 自分に割当がある項目のみ
+                val myItems = items.filter { item ->
+                    item.payments.any { it.uid == uid }
+                }
+                call.respond(MonthlyMoney(month = month, items = myItems))
+            }
+        }
+
+        // 一般ユーザー: 支払い記録追加
+        authenticated {
+            post("items/{itemId}/pay") {
+                val month = call.parameters["month"]!!
+                val itemId = call.parameters["itemId"]!!
+                val uid = call.attributes[FirebaseTokenKey].uid
+                val record = call.receive<PaymentRecord>()
+
+                val doc = firestore.collection(MONEY_COLLECTION)
+                    .document(month).get().get()
+
+                if (!doc.exists()) {
+                    call.respond(io.ktor.http.HttpStatusCode.NotFound, mapOf("error" to "Month not found"))
+                    return@post
+                }
+
+                val items = parseItems(doc.get("items"))
+                val updatedItems = items.map { item ->
+                    if (item.id == itemId) {
+                        val updatedPayments = item.payments.map { payment ->
+                            if (payment.uid == uid) {
+                                payment.copy(records = payment.records + record)
+                            } else {
+                                payment
+                            }
+                        }
+                        item.copy(payments = updatedPayments)
+                    } else {
+                        item
+                    }
+                }
+
+                val data = MonthlyMoney(month = month, items = updatedItems)
+                saveMonthlyMoney(month, data)
+                call.respond(data)
+            }
+        }
     }
+}
+
+private fun saveMonthlyMoney(month: String, data: MonthlyMoney) {
+    val items = data.items.map { item ->
+        mapOf(
+            "id" to item.id,
+            "name" to item.name,
+            "amount" to item.amount,
+            "note" to item.note,
+            "recurring" to item.recurring,
+            "payments" to item.payments.map { p ->
+                mapOf(
+                    "uid" to p.uid,
+                    "amount" to p.amount,
+                    "records" to p.records.map { r ->
+                        mapOf("amount" to r.amount, "paidAt" to r.paidAt)
+                    },
+                )
+            },
+        )
+    }
+
+    firestore.collection(MONEY_COLLECTION)
+        .document(month)
+        .set(mapOf("month" to month, "items" to items))
+        .get()
 }
 
 @Suppress("UNCHECKED_CAST")
@@ -73,9 +145,16 @@ private fun parseItems(raw: Any?): List<MoneyItem> {
             note = entry["note"] as? String ?: "",
             recurring = entry["recurring"] as? Boolean ?: false,
             payments = paymentsRaw.map { p ->
+                val recordsRaw = p["records"] as? List<Map<String, Any?>> ?: emptyList()
                 Payment(
                     uid = p["uid"] as String,
                     amount = (p["amount"] as Number).toLong(),
+                    records = recordsRaw.map { r ->
+                        PaymentRecord(
+                            amount = (r["amount"] as Number).toLong(),
+                            paidAt = r["paidAt"] as String,
+                        )
+                    },
                 )
             },
         )
@@ -91,5 +170,11 @@ private fun getRecurringItemsFromPreviousMonth(month: String): List<MoneyItem> {
 
     return parseItems(prevDoc.get("items"))
         .filter { it.recurring }
-        .map { it.copy(id = java.util.UUID.randomUUID().toString()) }
+        .map { item ->
+            // recurring コピー時は records をリセット
+            item.copy(
+                id = java.util.UUID.randomUUID().toString(),
+                payments = item.payments.map { it.copy(records = emptyList()) },
+            )
+        }
 }
