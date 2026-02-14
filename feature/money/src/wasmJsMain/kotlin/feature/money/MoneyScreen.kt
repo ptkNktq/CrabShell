@@ -124,6 +124,7 @@ internal fun MoneyContent(
                             .fillMaxWidth()
                             .weight(1f),
                         verticalArrangement = Arrangement.spacedBy(spacing),
+                        contentPadding = PaddingValues(bottom = 80.dp),
                     ) {
                         item(key = "summary") {
                             SummaryCard(
