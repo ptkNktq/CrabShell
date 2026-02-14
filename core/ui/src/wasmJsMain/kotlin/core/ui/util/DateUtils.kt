@@ -12,6 +12,20 @@ package core.ui.util
 }""")
 external fun todayDateJs(): JsString
 
+/** 餌やり日付を YYYY-MM-DD 形式で返す（JST 5時を日付境界とする） */
+@JsFun("""() => {
+    const d = new Date();
+    const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+    if (jst.getUTCHours() < 5) {
+        jst.setUTCDate(jst.getUTCDate() - 1);
+    }
+    const y = jst.getUTCFullYear();
+    const m = String(jst.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(jst.getUTCDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+}""")
+external fun feedingDateJs(): JsString
+
 /** 日付文字列を days 日ずらす */
 @JsFun("""(dateStr, days) => {
     const d = new Date(dateStr + 'T00:00:00');

@@ -6,12 +6,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import core.network.authenticatedClient
+import core.ui.util.currentTimeJs
+import core.ui.util.currentYearJs
 import core.ui.util.dayOfWeekIndexJs
+import core.ui.util.feedingDateJs
+import core.ui.util.formattedTodayJs
 import core.ui.util.todayDateJs
 import core.ui.util.weekOfMonthJs
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import model.CollectionFrequency
 import model.Feeding
@@ -25,7 +30,7 @@ import model.Pet
 external fun toJstHHMM(iso: JsString): JsString
 
 class DashboardViewModel(private val scope: CoroutineScope) {
-    private val today: String = todayDateJs().toString()
+    private var today: String = feedingDateJs().toString()
 
     var feedingLog by mutableStateOf(FeedingLog(date = today))
         private set
@@ -37,8 +42,16 @@ class DashboardViewModel(private val scope: CoroutineScope) {
         private set
     var todayGarbageTypes by mutableStateOf<List<GarbageType>>(emptyList())
         private set
+    var currentTime by mutableStateOf(currentTimeJs().toString())
+        private set
+    var currentYear by mutableStateOf(currentYearJs().toString())
+        private set
+    var dateWithDay by mutableStateOf(formattedTodayJs().toString())
+        private set
 
     private var cachedSchedules: List<GarbageTypeSchedule> = emptyList()
+    private var trackedDate: String = todayDateJs().toString()
+    private var trackedFeedingDate: String = today
 
     init {
         scope.launch {
@@ -52,6 +65,28 @@ class DashboardViewModel(private val scope: CoroutineScope) {
             }
         }
         loadGarbageSchedule()
+        startDateChangePolling()
+    }
+
+    private fun startDateChangePolling() {
+        scope.launch {
+            while (true) {
+                delay(10_000)
+                currentTime = currentTimeJs().toString()
+                val newDate = todayDateJs().toString()
+                if (newDate != trackedDate) {
+                    trackedDate = newDate
+                    currentYear = currentYearJs().toString()
+                    dateWithDay = formattedTodayJs().toString()
+                    refreshGarbageForToday()
+                }
+                val newFeedingDate = feedingDateJs().toString()
+                if (newFeedingDate != trackedFeedingDate) {
+                    trackedFeedingDate = newFeedingDate
+                    refreshFeeding()
+                }
+            }
+        }
     }
 
     private suspend fun loadToday() {
@@ -76,7 +111,7 @@ class DashboardViewModel(private val scope: CoroutineScope) {
         }
     }
 
-    fun refreshGarbageForToday() {
+    private fun refreshGarbageForToday() {
         val dayOfWeek = dayOfWeekIndexJs()
         val weekOfMonth = weekOfMonthJs()
         todayGarbageTypes = cachedSchedules.filter { schedule ->
@@ -90,6 +125,17 @@ class DashboardViewModel(private val scope: CoroutineScope) {
             CollectionFrequency.WEEK_1_3 -> weekOfMonth == 1 || weekOfMonth == 3
             CollectionFrequency.WEEK_2_4 -> weekOfMonth == 2 || weekOfMonth == 4
         }
+
+    fun refreshFeeding() {
+        val newDate = feedingDateJs().toString()
+        today = newDate
+        scope.launch {
+            loading = true
+            error = null
+            feedingLog = FeedingLog(date = today)
+            loadToday()
+        }
+    }
 
     fun feed(mealTime: MealTime) {
         val petId = pet?.id ?: return
