@@ -14,7 +14,6 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import model.MoneyItem
 import model.MonthlyMoney
 import model.PaymentRecord
 
@@ -50,9 +49,11 @@ class PaymentViewModel(private val scope: CoroutineScope) {
         private set
     var error by mutableStateOf<String?>(null)
         private set
+    var saving by mutableStateOf(false)
+        private set
 
     // 支払い記録ダイアログ
-    var payingItem by mutableStateOf<MoneyItem?>(null)
+    var showPayDialog by mutableStateOf(false)
         private set
 
     val currentUid: String
@@ -85,30 +86,28 @@ class PaymentViewModel(private val scope: CoroutineScope) {
         loadMonth(shiftMonthJs(currentMonth.toJsString(), 1).toString())
     }
 
-    fun openPayDialog(item: MoneyItem) {
-        payingItem = item
+    fun openPayDialog() {
+        showPayDialog = true
     }
 
     fun closePayDialog() {
-        payingItem = null
+        showPayDialog = false
     }
 
-    fun recordPayment(item: MoneyItem, amount: Long) {
-        closePayDialog()
+    fun recordPayment(amount: Long) {
+        saving = true
         scope.launch {
             try {
-                val record = PaymentRecord(amount = amount, paidAt = nowIsoJs().toString())
-                val updated: MonthlyMoney = authenticatedClient.post("/api/money/$currentMonth/items/${item.id}/pay") {
+                val record = PaymentRecord(uid = currentUid, amount = amount, paidAt = nowIsoJs().toString())
+                monthlyMoney = authenticatedClient.post("/api/money/$currentMonth/pay") {
                     contentType(ContentType.Application.Json)
                     setBody(record)
                 }.body()
-                // 自分の割当のみフィルタ
-                val uid = currentUid
-                monthlyMoney = updated.copy(
-                    items = updated.items.filter { it.payments.any { p -> p.uid == uid } }
-                )
+                closePayDialog()
             } catch (e: Exception) {
                 error = e.message
+            } finally {
+                saving = false
             }
         }
     }
