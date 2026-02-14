@@ -8,7 +8,6 @@ import model.MoneyItem
 import model.MonthlyMoney
 import model.Payment
 import server.auth.adminOnly
-import server.auth.authenticated
 
 private val firestore by lazy { FirestoreClient.getFirestore() }
 
@@ -16,7 +15,7 @@ private const val MONEY_COLLECTION = "money"
 
 fun Route.moneyRoutes() {
     route("/money/{month}") {
-        authenticated {
+        adminOnly {
             get {
                 val month = call.parameters["month"]!!
                 val doc = firestore.collection(MONEY_COLLECTION)
@@ -47,9 +46,7 @@ fun Route.moneyRoutes() {
                 }
                 call.respond(MonthlyMoney(month = month, items = items))
             }
-        }
 
-        adminOnly {
             put {
                 val month = call.parameters["month"]!!
                 val body = call.receive<MonthlyMoney>()
