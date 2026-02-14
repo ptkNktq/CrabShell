@@ -3,6 +3,8 @@
 package feature.feeding
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -14,6 +16,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import core.ui.LocalWindowSizeClass
+import core.ui.WindowSizeClass
 import core.ui.components.CalendarView
 import core.ui.theme.FeedingDoneColor
 import core.ui.theme.color
@@ -35,6 +39,7 @@ fun FeedingScreen() {
     val vm = remember { FeedingViewModel(scope) }
 
     val today = remember { todayDateJs().toString() }
+    val windowSizeClass = LocalWindowSizeClass.current
 
     FeedingContent(
         petName = vm.pet?.name,
@@ -50,6 +55,7 @@ fun FeedingScreen() {
         onFeed = { vm.feed(it) },
         onNoteChange = { vm.updateNoteDraft(it) },
         onSaveNote = { vm.saveNote() },
+        windowSizeClass = windowSizeClass,
     )
 }
 
@@ -68,76 +74,135 @@ internal fun FeedingContent(
     onFeed: (MealTime) -> Unit,
     onNoteChange: (String) -> Unit,
     onSaveNote: () -> Unit,
+    windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
+    val isCompact = windowSizeClass == WindowSizeClass.Compact
+
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier.fillMaxSize().padding(if (isCompact) 12.dp else 24.dp),
     ) {
         Text(
             text = petName?.let { "$it のごはん記録" } ?: "ごはん記録",
-            style = MaterialTheme.typography.headlineLarge,
+            style = if (isCompact) MaterialTheme.typography.headlineSmall
+            else MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.primary,
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(if (isCompact) 8.dp else 16.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth().weight(1f),
-        ) {
-            // 左側: カレンダー
-            CalendarView(
-                selectedDate = selectedDate,
-                today = today,
-                onDateSelected = onDateSelected,
-                modifier = Modifier.width(300.dp),
-            )
-
-            Spacer(modifier = Modifier.width(24.dp))
-
-            // 右側: 既存コンテンツ
-            Column(modifier = Modifier.weight(1f)) {
-                // 日付セレクター
-                DateSelector(
-                    date = selectedDate,
-                    onPrevious = onPreviousDay,
-                    onNext = onNextDay,
+        if (isCompact) {
+            // Compact: カレンダー上、詳細下（縦スクロール）
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                CalendarView(
+                    selectedDate = selectedDate,
+                    today = today,
+                    onDateSelected = onDateSelected,
+                    modifier = Modifier.fillMaxWidth(),
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                when {
-                    loading -> {
-                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
-                        }
-                    }
+                FeedingDetailSection(
+                    selectedDate = selectedDate,
+                    loading = loading,
+                    error = error,
+                    log = log,
+                    noteDraft = noteDraft,
+                    onPreviousDay = onPreviousDay,
+                    onNextDay = onNextDay,
+                    onFeed = onFeed,
+                    onNoteChange = onNoteChange,
+                    onSaveNote = onSaveNote,
+                )
+            }
+        } else {
+            // Medium/Expanded: カレンダー左、詳細右
+            Row(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+            ) {
+                CalendarView(
+                    selectedDate = selectedDate,
+                    today = today,
+                    onDateSelected = onDateSelected,
+                    modifier = Modifier.width(300.dp),
+                )
 
-                    error != null -> {
-                        Text("エラー: $error", color = MaterialTheme.colorScheme.error)
-                    }
+                Spacer(modifier = Modifier.width(24.dp))
 
-                    else -> {
-                        // 昼・晩・朝のカード
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            for (mealTime in MealTime.displayOrder) {
-                                MealCard(
-                                    mealTime = mealTime,
-                                    feeding = log.feedings[mealTime] ?: Feeding(),
-                                    onFeed = { onFeed(mealTime) },
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        // 備考欄
-                        NoteSection(
-                            note = noteDraft,
-                            onNoteChange = onNoteChange,
-                            onSave = onSaveNote,
-                        )
-                    }
+                Column(modifier = Modifier.weight(1f)) {
+                    FeedingDetailSection(
+                        selectedDate = selectedDate,
+                        loading = loading,
+                        error = error,
+                        log = log,
+                        noteDraft = noteDraft,
+                        onPreviousDay = onPreviousDay,
+                        onNextDay = onNextDay,
+                        onFeed = onFeed,
+                        onNoteChange = onNoteChange,
+                        onSaveNote = onSaveNote,
+                    )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun FeedingDetailSection(
+    selectedDate: String,
+    loading: Boolean,
+    error: String?,
+    log: FeedingLog,
+    noteDraft: String,
+    onPreviousDay: () -> Unit,
+    onNextDay: () -> Unit,
+    onFeed: (MealTime) -> Unit,
+    onNoteChange: (String) -> Unit,
+    onSaveNote: () -> Unit,
+) {
+    DateSelector(
+        date = selectedDate,
+        onPrevious = onPreviousDay,
+        onNext = onNextDay,
+    )
+
+    Spacer(modifier = Modifier.height(24.dp))
+
+    when {
+        loading -> {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+
+        error != null -> {
+            Text("エラー: $error", color = MaterialTheme.colorScheme.error)
+        }
+
+        else -> {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                for (mealTime in MealTime.displayOrder) {
+                    MealCard(
+                        mealTime = mealTime,
+                        feeding = log.feedings[mealTime] ?: Feeding(),
+                        onFeed = { onFeed(mealTime) },
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            NoteSection(
+                note = noteDraft,
+                onNoteChange = onNoteChange,
+                onSave = onSaveNote,
+            )
         }
     }
 }
