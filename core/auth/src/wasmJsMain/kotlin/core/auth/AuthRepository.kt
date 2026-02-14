@@ -12,13 +12,15 @@ object AuthRepository {
         onAuthStateChanged(
             auth = auth,
             onUser = { uid: JsString, email: JsString, displayName: JsString ->
-                // ユーザーがサインイン中 → IDトークンを取得して状態更新
-                getIdToken(auth).then<Nothing?> { tokenJs ->
-                    val token = tokenJs?.toString() ?: ""
+                // ユーザーがサインイン中 → IDトークン + Custom Claims を取得して状態更新
+                getIdTokenResult(auth).then<Nothing?> { resultJs ->
+                    val token = resultJs?.let { getTokenFromResult(it).toString() } ?: ""
+                    val isAdmin = resultJs?.let { getIsAdminFromResult(it).toBoolean() } ?: false
                     val user = User(
                         uid = uid.toString(),
                         email = email.toString(),
                         displayName = displayName.toString().ifEmpty { null },
+                        isAdmin = isAdmin,
                     )
                     AuthStateHolder.setAuthenticated(user, token)
                     null
@@ -63,10 +65,19 @@ object AuthRepository {
 
     suspend fun refreshToken(): String? {
         return try {
-            val tokenJs = getIdToken(auth).await<Nothing?>()
-            val token = tokenJs?.toString()
+            val resultJs = getIdTokenResult(auth).await<JsAny?>()
+            val token = resultJs?.let { getTokenFromResult(it).toString() }
             if (token != null) {
+                val isAdmin = getIsAdminFromResult(resultJs).toBoolean()
                 AuthStateHolder.idToken = token
+                // admin 状態も更新
+                val currentState = AuthStateHolder.state
+                if (currentState is AuthState.Authenticated) {
+                    AuthStateHolder.setAuthenticated(
+                        currentState.user.copy(isAdmin = isAdmin),
+                        token,
+                    )
+                }
             }
             token
         } catch (e: Throwable) {
