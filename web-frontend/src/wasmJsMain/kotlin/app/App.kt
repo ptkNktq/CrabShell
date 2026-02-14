@@ -15,7 +15,11 @@ import feature.feeding.FeedingScreen
 import feature.settings.SettingsScreen
 import kotlinx.coroutines.launch
 
-enum class Screen { Dashboard, Feeding, Settings }
+enum class Screen(val title: String) {
+    Dashboard("ダッシュボード"),
+    Feeding("ごはん"),
+    Settings("設定"),
+}
 
 @Composable
 fun App() {
