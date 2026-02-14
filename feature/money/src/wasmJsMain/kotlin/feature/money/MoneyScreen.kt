@@ -17,8 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import core.auth.AuthState
-import core.auth.AuthStateHolder
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
 import model.MoneyItem
@@ -30,7 +28,6 @@ import model.User
 fun MoneyScreen() {
     val scope = rememberCoroutineScope()
     val vm = remember { MoneyViewModel(scope) }
-    val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
     val windowSizeClass = LocalWindowSizeClass.current
 
     MoneyContent(
@@ -40,7 +37,6 @@ fun MoneyScreen() {
         saving = vm.saving,
         error = vm.error,
         users = vm.users,
-        isAdmin = isAdmin,
         showDialog = vm.showDialog,
         editingItem = vm.editingItem,
         onPreviousMonth = { vm.goToPreviousMonth() },
@@ -65,7 +61,6 @@ internal fun MoneyContent(
     saving: Boolean,
     error: String?,
     users: List<User>,
-    isAdmin: Boolean,
     showDialog: Boolean,
     editingItem: MoneyItem?,
     onPreviousMonth: () -> Unit,
@@ -150,7 +145,6 @@ internal fun MoneyContent(
                             MoneyItemCard(
                                 item = item,
                                 users = users,
-                                isAdmin = isAdmin,
                                 onEdit = { onEditItem(item) },
                                 onDelete = { onDeleteItem(item) },
                                 isCompact = isCompact,
@@ -161,8 +155,7 @@ internal fun MoneyContent(
             }
         }
 
-        // Admin FAB
-        if (isAdmin && !loading && error == null) {
+        if (!loading && error == null) {
             FloatingActionButton(
                 onClick = onAddItem,
                 modifier = Modifier
@@ -297,7 +290,6 @@ private fun SummaryCard(
 private fun MoneyItemCard(
     item: MoneyItem,
     users: List<User>,
-    isAdmin: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     isCompact: Boolean,
@@ -331,22 +323,20 @@ private fun MoneyItemCard(
                     )
                 }
 
-                if (isAdmin) {
-                    Row {
-                        IconButton(onClick = onEdit) {
-                            Icon(
-                                Icons.Default.Edit,
-                                contentDescription = "編集",
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-                        IconButton(onClick = onDelete) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "削除",
-                                tint = MaterialTheme.colorScheme.error,
-                            )
-                        }
+                Row {
+                    IconButton(onClick = onEdit) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "編集",
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "削除",
+                            tint = MaterialTheme.colorScheme.error,
+                        )
                     }
                 }
             }
