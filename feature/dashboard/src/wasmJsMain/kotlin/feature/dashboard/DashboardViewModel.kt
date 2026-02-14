@@ -6,8 +6,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import core.network.authenticatedClient
+import core.ui.util.currentTimeJs
+import core.ui.util.currentYearJs
 import core.ui.util.dayOfWeekIndexJs
 import core.ui.util.feedingDateJs
+import core.ui.util.formattedTodayJs
 import core.ui.util.todayDateJs
 import core.ui.util.weekOfMonthJs
 import io.ktor.client.call.*
@@ -39,6 +42,12 @@ class DashboardViewModel(private val scope: CoroutineScope) {
         private set
     var todayGarbageTypes by mutableStateOf<List<GarbageType>>(emptyList())
         private set
+    var currentTime by mutableStateOf(currentTimeJs().toString())
+        private set
+    var currentYear by mutableStateOf(currentYearJs().toString())
+        private set
+    var dateWithDay by mutableStateOf(formattedTodayJs().toString())
+        private set
 
     private var cachedSchedules: List<GarbageTypeSchedule> = emptyList()
     private var trackedDate: String = todayDateJs().toString()
@@ -63,9 +72,12 @@ class DashboardViewModel(private val scope: CoroutineScope) {
         scope.launch {
             while (true) {
                 delay(10_000)
+                currentTime = currentTimeJs().toString()
                 val newDate = todayDateJs().toString()
                 if (newDate != trackedDate) {
                     trackedDate = newDate
+                    currentYear = currentYearJs().toString()
+                    dateWithDay = formattedTodayJs().toString()
                     refreshGarbageForToday()
                 }
                 val newFeedingDate = feedingDateJs().toString()
