@@ -60,10 +60,6 @@ class MoneyViewModel(private val scope: CoroutineScope) {
     var editingItem by mutableStateOf<MoneyItem?>(null)
         private set
 
-    // 削除確認ダイアログ状態
-    var deletingItem by mutableStateOf<MoneyItem?>(null)
-        private set
-
     init {
         loadUsers()
         loadMonth(currentMonth)
@@ -137,21 +133,11 @@ class MoneyViewModel(private val scope: CoroutineScope) {
         }
     }
 
-    fun requestDelete(item: MoneyItem) {
-        deletingItem = item
-    }
-
-    fun cancelDelete() {
-        deletingItem = null
-    }
-
-    fun confirmDelete() {
-        val item = deletingItem ?: return
+    fun deleteItem(item: MoneyItem) {
         val updatedItems = monthlyMoney.items.filter { it.id != item.id }
-
-        persistAndThen(monthlyMoney.copy(items = updatedItems)) {
-            deletingItem = null
-        }
+        // 編集中のアイテムが削除された場合、フォームをクリア
+        if (editingItem?.id == item.id) clearForm()
+        persistAndThen(monthlyMoney.copy(items = updatedItems)) {}
     }
 
     /** サーバーに保存し、成功したらデータ更新 + onSuccess を実行する */

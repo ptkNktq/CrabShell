@@ -45,11 +45,8 @@ fun MoneyScreen() {
         onNextMonth = { vm.goToNextMonth() },
         onEditItem = { vm.editItem(it) },
         onClearForm = { vm.clearForm() },
-        onDeleteItem = { vm.requestDelete(it) },
+        onDeleteItem = { vm.deleteItem(it) },
         onSaveItem = { name, amount, note, payments, recurring -> vm.saveItem(name, amount, note, payments, recurring) },
-        deletingItem = vm.deletingItem,
-        onConfirmDelete = { vm.confirmDelete() },
-        onCancelDelete = { vm.cancelDelete() },
         windowSizeClass = windowSizeClass,
     )
 }
@@ -69,9 +66,6 @@ internal fun MoneyContent(
     onClearForm: () -> Unit,
     onDeleteItem: (MoneyItem) -> Unit,
     onSaveItem: (String, Long, String, List<Payment>, Boolean) -> Unit,
-    deletingItem: MoneyItem?,
-    onConfirmDelete: () -> Unit,
-    onCancelDelete: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
@@ -214,32 +208,6 @@ internal fun MoneyContent(
         }
     }
 
-    // 削除確認ダイアログ
-    if (deletingItem != null) {
-        AlertDialog(
-            onDismissRequest = { if (!saving) onCancelDelete() },
-            title = { Text("削除の確認") },
-            text = {
-                Column {
-                    Text("「${deletingItem.name}」を削除しますか？")
-                    if (saving) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = onConfirmDelete, enabled = !saving) {
-                    Text("削除", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = onCancelDelete, enabled = !saving) {
-                    Text("キャンセル")
-                }
-            },
-        )
-    }
 }
 
 @Composable
