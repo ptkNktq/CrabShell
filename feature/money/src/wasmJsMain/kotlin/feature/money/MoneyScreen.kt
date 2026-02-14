@@ -40,15 +40,13 @@ fun MoneyScreen() {
         saving = vm.saving,
         error = vm.error,
         users = vm.users,
-        showDialog = vm.showDialog,
         editingItem = vm.editingItem,
         onPreviousMonth = { vm.goToPreviousMonth() },
         onNextMonth = { vm.goToNextMonth() },
-        onAddItem = { vm.openAddDialog() },
-        onEditItem = { vm.openEditDialog(it) },
+        onEditItem = { vm.editItem(it) },
+        onClearForm = { vm.clearForm() },
         onDeleteItem = { vm.requestDelete(it) },
         onSaveItem = { name, amount, note, payments, recurring -> vm.saveItem(name, amount, note, payments, recurring) },
-        onCloseDialog = { vm.closeDialog() },
         deletingItem = vm.deletingItem,
         onConfirmDelete = { vm.confirmDelete() },
         onCancelDelete = { vm.cancelDelete() },
@@ -64,26 +62,31 @@ internal fun MoneyContent(
     saving: Boolean,
     error: String?,
     users: List<User>,
-    showDialog: Boolean,
     editingItem: MoneyItem?,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
-    onAddItem: () -> Unit,
     onEditItem: (MoneyItem) -> Unit,
+    onClearForm: () -> Unit,
     onDeleteItem: (MoneyItem) -> Unit,
     onSaveItem: (String, Long, String, List<Payment>, Boolean) -> Unit,
-    onCloseDialog: () -> Unit,
     deletingItem: MoneyItem?,
     onConfirmDelete: () -> Unit,
     onCancelDelete: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
+    // Compact 用: フォーム表示切替
+    var showFormCompact by remember { mutableStateOf(false) }
+
+    // editingItem がクリアされたらフォームを閉じる（保存成功時）
+    LaunchedEffect(editingItem) {
+        if (editingItem == null) showFormCompact = false
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (isCompact) {
-            // Compact: フォーム表示時はフォームのみ、非表示時はリストのみ
-            if (showDialog) {
+            if (showFormCompact) {
+                // Compact: フォーム表示
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -100,11 +103,15 @@ internal fun MoneyContent(
                         users = users,
                         saving = saving,
                         onSave = onSaveItem,
-                        onCancel = onCloseDialog,
+                        onCancel = {
+                            onClearForm()
+                            showFormCompact = false
+                        },
                         modifier = Modifier.fillMaxWidth().weight(1f),
                     )
                 }
             } else {
+                // Compact: リスト表示
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -122,20 +129,40 @@ internal fun MoneyContent(
                         onNext = onNextMonth,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
+
+                    // 追加ボタン
+                    if (!loading && error == null) {
+                        Button(
+                            onClick = {
+                                onClearForm()
+                                showFormCompact = true
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("項目を追加")
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
                     MoneyListContent(
                         monthlyMoney = monthlyMoney,
                         loading = loading,
                         error = error,
                         users = users,
                         isCompact = true,
-                        onEditItem = onEditItem,
+                        onEditItem = { item ->
+                            onEditItem(item)
+                            showFormCompact = true
+                        },
                         onDeleteItem = onDeleteItem,
                         modifier = Modifier.weight(1f),
                     )
                 }
             }
         } else {
-            // Medium/Expanded: 左にリスト、右にフォーム
+            // Medium/Expanded: 左にリスト、右にフォーム（常時表示）
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -169,47 +196,15 @@ internal fun MoneyContent(
 
                     Spacer(modifier = Modifier.width(24.dp))
 
-                    if (showDialog) {
-                        MoneyItemForm(
-                            item = editingItem,
-                            users = users,
-                            saving = saving,
-                            onSave = onSaveItem,
-                            onCancel = onCloseDialog,
-                            modifier = Modifier.width(400.dp),
-                        )
-                    } else {
-                        // プレースホルダー
-                        Card(
-                            modifier = Modifier.width(400.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            ),
-                        ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    text = "＋ ボタンで項目を追加",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                    }
+                    MoneyItemForm(
+                        item = editingItem,
+                        users = users,
+                        saving = saving,
+                        onSave = onSaveItem,
+                        onCancel = onClearForm,
+                        modifier = Modifier.width(400.dp),
+                    )
                 }
-            }
-        }
-
-        if (!loading && error == null && !(isCompact && showDialog)) {
-            FloatingActionButton(
-                onClick = onAddItem,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(if (isCompact) 16.dp else 24.dp),
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "追加")
             }
         }
 
@@ -279,7 +274,7 @@ private fun MoneyListContent(
             LazyColumn(
                 modifier = modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(spacing),
-                contentPadding = PaddingValues(bottom = 80.dp),
+                contentPadding = PaddingValues(bottom = 16.dp),
             ) {
                 item(key = "summary") {
                     SummaryCard(
@@ -347,6 +342,7 @@ private fun MoneyItemForm(
     }
     val paymentTotal = payments.sumOf { it.amount }
     val mismatch = payments.isNotEmpty() && paymentTotal != amount
+    val isEditing = item != null
 
     Card(
         modifier = modifier,
@@ -362,7 +358,7 @@ private fun MoneyItemForm(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = if (item != null) "項目を編集" else "項目を追加",
+                text = if (isEditing) "項目を編集" else "項目を追加",
                 style = MaterialTheme.typography.titleLarge,
             )
 
@@ -459,15 +455,17 @@ private fun MoneyItemForm(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextButton(onClick = onCancel, enabled = !saving) {
-                    Text("キャンセル")
+                if (isEditing) {
+                    TextButton(onClick = onCancel, enabled = !saving) {
+                        Text("キャンセル")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
-                Spacer(modifier = Modifier.width(8.dp))
                 Button(
                     onClick = { onSave(name, amount, note, payments, recurring) },
                     enabled = name.isNotBlank() && amount > 0 && !saving,
                 ) {
-                    Text("保存")
+                    Text(if (isEditing) "保存" else "追加")
                 }
             }
         }

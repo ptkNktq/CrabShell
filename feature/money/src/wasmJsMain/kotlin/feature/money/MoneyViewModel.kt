@@ -56,10 +56,8 @@ class MoneyViewModel(private val scope: CoroutineScope) {
     var users by mutableStateOf<List<User>>(emptyList())
         private set
 
-    // ダイアログ状態
+    // 編集中の項目（null = 新規追加モード）
     var editingItem by mutableStateOf<MoneyItem?>(null)
-        private set
-    var showDialog by mutableStateOf(false)
         private set
 
     // 削除確認ダイアログ状態
@@ -104,18 +102,11 @@ class MoneyViewModel(private val scope: CoroutineScope) {
         loadMonth(shiftMonthJs(currentMonth.toJsString(), 1).toString())
     }
 
-    fun openAddDialog() {
-        editingItem = null
-        showDialog = true
-    }
-
-    fun openEditDialog(item: MoneyItem) {
+    fun editItem(item: MoneyItem) {
         editingItem = item
-        showDialog = true
     }
 
-    fun closeDialog() {
-        showDialog = false
+    fun clearForm() {
         editingItem = null
     }
 
@@ -142,7 +133,7 @@ class MoneyViewModel(private val scope: CoroutineScope) {
         }
 
         persistAndThen(monthlyMoney.copy(items = updatedItems)) {
-            closeDialog()
+            clearForm()
         }
     }
 
