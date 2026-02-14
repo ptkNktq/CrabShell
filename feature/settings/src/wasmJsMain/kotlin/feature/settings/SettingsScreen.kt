@@ -19,6 +19,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import core.auth.AuthState
 import core.auth.AuthStateHolder
+import core.ui.LocalWindowSizeClass
+import core.ui.WindowSizeClass
 import core.ui.theme.color
 import core.ui.theme.icon
 import core.ui.theme.label
@@ -34,6 +36,7 @@ fun SettingsScreen() {
     val vm = remember { SettingsViewModel(scope) }
     val scrollState = rememberScrollState()
     val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
+    val windowSizeClass = LocalWindowSizeClass.current
 
     SettingsContent(
         scrollState = scrollState,
@@ -55,6 +58,7 @@ fun SettingsScreen() {
         onToggleDay = vm::toggleDay,
         onFrequencyChange = vm::changeFrequency,
         onSaveGarbageSchedule = vm::saveGarbageSchedule,
+        windowSizeClass = windowSizeClass,
     )
 }
 
@@ -79,23 +83,19 @@ internal fun SettingsContent(
     onToggleDay: (GarbageType, Int) -> Unit,
     onFrequencyChange: (GarbageType, CollectionFrequency) -> Unit,
     onSaveGarbageSchedule: () -> Unit,
+    windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
+    val isCompact = windowSizeClass == WindowSizeClass.Compact
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp)
+                .padding(if (isCompact) 16.dp else 24.dp)
                 .verticalScroll(scrollState),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            horizontalAlignment = if (isCompact) Alignment.Start else Alignment.CenterHorizontally,
         ) {
-            Text(
-                text = "設定",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
+            val cardModifier = if (isCompact) Modifier.fillMaxWidth() else Modifier.widthIn(max = 480.dp)
 
             // アカウントセクション
             SettingsSection(title = "アカウント") {
@@ -110,6 +110,7 @@ internal fun SettingsContent(
                     onNewPasswordChanged = onNewPasswordChanged,
                     onConfirmPasswordChanged = onConfirmPasswordChanged,
                     onChangePassword = onChangePassword,
+                    modifier = cardModifier,
                 )
             }
 
@@ -128,6 +129,7 @@ internal fun SettingsContent(
                             onToggleDay = onToggleDay,
                             onFrequencyChange = onFrequencyChange,
                             onSaveClick = onSaveGarbageSchedule,
+                            modifier = cardModifier,
                         )
                     }
                 }
@@ -192,9 +194,10 @@ private fun GarbageScheduleCard(
     onToggleDay: (GarbageType, Int) -> Unit,
     onFrequencyChange: (GarbageType, CollectionFrequency) -> Unit,
     onSaveClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = Modifier.widthIn(max = 480.dp),
+        modifier = modifier,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
         ),
@@ -316,13 +319,14 @@ private fun PasswordChangeCard(
     onNewPasswordChanged: (String) -> Unit,
     onConfirmPasswordChanged: (String) -> Unit,
     onChangePassword: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var currentPasswordVisible by remember { mutableStateOf(false) }
     var newPasswordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
 
     Card(
-        modifier = Modifier.widthIn(max = 480.dp),
+        modifier = modifier,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
         ),

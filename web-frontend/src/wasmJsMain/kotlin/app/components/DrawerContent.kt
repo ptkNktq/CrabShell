@@ -1,6 +1,5 @@
 package app.components
 
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -8,9 +7,10 @@ import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -21,41 +21,23 @@ import app.BuildConfig
 import app.Screen
 
 @Composable
-fun Sidebar(
+fun DrawerContent(
     currentScreen: Screen,
     onNavigate: (Screen) -> Unit,
     onSignOut: () -> Unit,
-    expandable: Boolean = true,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val effectiveExpanded = expandable && expanded
-    val sidebarWidth by animateDpAsState(targetValue = if (effectiveExpanded) 240.dp else 72.dp)
-
     Surface(
-        modifier = Modifier.fillMaxHeight().width(sidebarWidth),
+        modifier = Modifier.fillMaxHeight().width(280.dp),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 2.dp,
     ) {
         Column(modifier = Modifier.fillMaxHeight().padding(vertical = 8.dp)) {
-            if (expandable) {
-                IconButton(
-                    onClick = { expanded = !expanded },
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Menu,
-                        contentDescription = "サイドバー切替",
-                    )
-                }
-            } else {
-                Spacer(modifier = Modifier.height(56.dp))
-            }
+            Spacer(modifier = Modifier.height(8.dp))
 
             for (item in primaryNavigationItems) {
-                SidebarItem(
+                DrawerItem(
                     icon = item.icon,
                     label = item.label,
-                    expanded = effectiveExpanded,
                     selected = currentScreen == item.screen,
                     onClick = { onNavigate(item.screen) },
                 )
@@ -64,42 +46,38 @@ fun Sidebar(
             Spacer(modifier = Modifier.weight(1f))
 
             for (item in bottomNavigationItems) {
-                SidebarItem(
+                DrawerItem(
                     icon = item.icon,
                     label = item.label,
-                    expanded = effectiveExpanded,
                     selected = currentScreen == item.screen,
                     onClick = { onNavigate(item.screen) },
                 )
             }
 
-            SidebarItem(
+            DrawerItem(
                 icon = Icons.AutoMirrored.Filled.Logout,
                 label = "ログアウト",
-                expanded = effectiveExpanded,
+                selected = false,
                 onClick = onSignOut,
             )
 
-            // バージョン表示
             Text(
-                text = if (effectiveExpanded) "v${BuildConfig.VERSION}" else BuildConfig.VERSION,
+                text = "v${BuildConfig.VERSION}",
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center,
-                maxLines = 1,
             )
         }
     }
 }
 
 @Composable
-private fun SidebarItem(
+private fun DrawerItem(
     icon: ImageVector,
     label: String,
-    expanded: Boolean,
-    selected: Boolean = false,
-    onClick: () -> Unit = {},
+    selected: Boolean,
+    onClick: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isHovered by interactionSource.collectIsHoveredAsState()
@@ -128,14 +106,12 @@ private fun SidebarItem(
             contentDescription = label,
             tint = contentColor,
         )
-        if (expanded) {
-            Text(
-                text = label,
-                modifier = Modifier.padding(start = 16.dp),
-                style = MaterialTheme.typography.labelLarge,
-                color = contentColor,
-                maxLines = 1,
-            )
-        }
+        Text(
+            text = label,
+            modifier = Modifier.padding(start = 16.dp),
+            style = MaterialTheme.typography.labelLarge,
+            color = contentColor,
+            maxLines = 1,
+        )
     }
 }
