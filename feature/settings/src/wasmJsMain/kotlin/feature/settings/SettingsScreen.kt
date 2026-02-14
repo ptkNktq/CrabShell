@@ -95,15 +95,6 @@ internal fun SettingsContent(
                 .verticalScroll(scrollState),
             horizontalAlignment = if (isCompact) Alignment.Start else Alignment.CenterHorizontally,
         ) {
-            Text(
-                text = "設定",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
             val cardModifier = if (isCompact) Modifier.fillMaxWidth() else Modifier.widthIn(max = 480.dp)
 
             // アカウントセクション
