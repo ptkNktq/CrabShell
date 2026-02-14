@@ -13,6 +13,7 @@ import core.ui.util.weekOfMonthJs
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import model.CollectionFrequency
 import model.Feeding
@@ -40,6 +41,8 @@ class DashboardViewModel(private val scope: CoroutineScope) {
         private set
 
     private var cachedSchedules: List<GarbageTypeSchedule> = emptyList()
+    private var trackedDate: String = todayDateJs().toString()
+    private var trackedFeedingDate: String = today
 
     init {
         scope.launch {
@@ -53,6 +56,25 @@ class DashboardViewModel(private val scope: CoroutineScope) {
             }
         }
         loadGarbageSchedule()
+        startDateChangePolling()
+    }
+
+    private fun startDateChangePolling() {
+        scope.launch {
+            while (true) {
+                delay(10_000)
+                val newDate = todayDateJs().toString()
+                if (newDate != trackedDate) {
+                    trackedDate = newDate
+                    refreshGarbageForToday()
+                }
+                val newFeedingDate = feedingDateJs().toString()
+                if (newFeedingDate != trackedFeedingDate) {
+                    trackedFeedingDate = newFeedingDate
+                    refreshFeeding()
+                }
+            }
+        }
     }
 
     private suspend fun loadToday() {
@@ -77,7 +99,7 @@ class DashboardViewModel(private val scope: CoroutineScope) {
         }
     }
 
-    fun refreshGarbageForToday() {
+    private fun refreshGarbageForToday() {
         val dayOfWeek = dayOfWeekIndexJs()
         val weekOfMonth = weekOfMonthJs()
         todayGarbageTypes = cachedSchedules.filter { schedule ->
