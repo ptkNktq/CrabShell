@@ -40,3 +40,30 @@ fun Route.authenticated(build: Route.() -> Unit): Route {
     authenticatedRoute.build()
     return authenticatedRoute
 }
+
+// FirebaseToken から admin カスタムクレームを確認
+fun ApplicationCall.isAdmin(): Boolean {
+    val token = attributes.getOrNull(FirebaseTokenKey) ?: return false
+    return token.claims["admin"] == true
+}
+
+// admin 限定ルートビルダー（authenticated + admin チェック）
+val AdminAuthPlugin = createRouteScopedPlugin("AdminAuth") {
+    onCall { call ->
+        if (!call.isAdmin()) {
+            call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Admin access required"))
+        }
+    }
+}
+
+fun Route.adminOnly(build: Route.() -> Unit): Route {
+    val adminRoute = createChild(object : RouteSelector() {
+        override suspend fun evaluate(context: RoutingResolveContext, segmentIndex: Int) =
+            RouteSelectorEvaluation.Transparent
+    })
+
+    adminRoute.install(FirebaseAuthPlugin)
+    adminRoute.install(AdminAuthPlugin)
+    adminRoute.build()
+    return adminRoute
+}

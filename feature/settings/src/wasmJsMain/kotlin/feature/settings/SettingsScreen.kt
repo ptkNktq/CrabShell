@@ -17,6 +17,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import core.auth.AuthState
+import core.auth.AuthStateHolder
 import core.ui.theme.color
 import core.ui.theme.icon
 import core.ui.theme.label
@@ -31,6 +33,7 @@ fun SettingsScreen() {
     val scope = rememberCoroutineScope()
     val vm = remember { SettingsViewModel(scope) }
     val scrollState = rememberScrollState()
+    val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -54,21 +57,23 @@ fun SettingsScreen() {
                 PasswordChangeCard(vm)
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            if (isAdmin) {
+                Spacer(modifier = Modifier.height(32.dp))
 
-            // ゴミ出しセクション
-            SettingsSection(title = "ゴミ出し") {
-                if (vm.garbageLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                } else {
-                    GarbageScheduleCard(
-                        schedules = vm.garbageSchedules,
-                        garbageMessage = vm.garbageMessage,
-                        garbageSaving = vm.garbageSaving,
-                        onToggleDay = { type, day -> vm.toggleDay(type, day) },
-                        onFrequencyChange = { type, freq -> vm.changeFrequency(type, freq) },
-                        onSaveClick = vm::saveGarbageSchedule
-                    )
+                // ゴミ出しセクション（管理者のみ）
+                SettingsSection(title = "ゴミ出し", badge = "管理者") {
+                    if (vm.garbageLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    } else {
+                        GarbageScheduleCard(
+                            schedules = vm.garbageSchedules,
+                            garbageMessage = vm.garbageMessage,
+                            garbageSaving = vm.garbageSaving,
+                            onToggleDay = { type, day -> vm.toggleDay(type, day) },
+                            onFrequencyChange = { type, freq -> vm.changeFrequency(type, freq) },
+                            onSaveClick = vm::saveGarbageSchedule
+                        )
+                    }
                 }
             }
         }
@@ -91,15 +96,34 @@ fun SettingsScreen() {
 @Composable
 private fun SettingsSection(
     title: String,
+    badge: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            if (badge != null) {
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                ) {
+                    Text(
+                        text = badge,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                }
+            }
+        }
         content()
     }
 }
