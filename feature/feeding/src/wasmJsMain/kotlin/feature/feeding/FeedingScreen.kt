@@ -23,6 +23,7 @@ import core.ui.theme.label
 import core.ui.util.dayOfWeekShortJs
 import core.ui.util.todayDateJs
 import model.Feeding
+import model.FeedingLog
 import model.MealTime
 
 @JsFun("(iso) => { const d = new Date(iso); return d.toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'Asia/Tokyo'}); }")
@@ -35,11 +36,44 @@ fun FeedingScreen() {
 
     val today = remember { todayDateJs().toString() }
 
+    FeedingContent(
+        petName = vm.pet?.name,
+        selectedDate = vm.selectedDate,
+        today = today,
+        loading = vm.loading,
+        error = vm.error,
+        log = vm.log,
+        noteDraft = vm.noteDraft,
+        onDateSelected = { vm.loadLog(it) },
+        onPreviousDay = { vm.goToPreviousDay() },
+        onNextDay = { vm.goToNextDay() },
+        onFeed = { vm.feed(it) },
+        onNoteChange = { vm.updateNoteDraft(it) },
+        onSaveNote = { vm.saveNote() },
+    )
+}
+
+@Composable
+internal fun FeedingContent(
+    petName: String?,
+    selectedDate: String,
+    today: String,
+    loading: Boolean,
+    error: String?,
+    log: FeedingLog,
+    noteDraft: String,
+    onDateSelected: (String) -> Unit,
+    onPreviousDay: () -> Unit,
+    onNextDay: () -> Unit,
+    onFeed: (MealTime) -> Unit,
+    onNoteChange: (String) -> Unit,
+    onSaveNote: () -> Unit,
+) {
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
     ) {
         Text(
-            text = vm.pet?.let { "${it.name} のごはん記録" } ?: "ごはん記録",
+            text = petName?.let { "$it のごはん記録" } ?: "ごはん記録",
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.primary,
         )
@@ -51,9 +85,9 @@ fun FeedingScreen() {
         ) {
             // 左側: カレンダー
             CalendarView(
-                selectedDate = vm.selectedDate,
+                selectedDate = selectedDate,
                 today = today,
-                onDateSelected = { vm.loadLog(it) },
+                onDateSelected = onDateSelected,
                 modifier = Modifier.width(300.dp),
             )
 
@@ -63,22 +97,22 @@ fun FeedingScreen() {
             Column(modifier = Modifier.weight(1f)) {
                 // 日付セレクター
                 DateSelector(
-                    date = vm.selectedDate,
-                    onPrevious = { vm.goToPreviousDay() },
-                    onNext = { vm.goToNextDay() },
+                    date = selectedDate,
+                    onPrevious = onPreviousDay,
+                    onNext = onNextDay,
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 when {
-                    vm.loading -> {
+                    loading -> {
                         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator()
                         }
                     }
 
-                    vm.error != null -> {
-                        Text("エラー: ${vm.error}", color = MaterialTheme.colorScheme.error)
+                    error != null -> {
+                        Text("エラー: $error", color = MaterialTheme.colorScheme.error)
                     }
 
                     else -> {
@@ -87,8 +121,8 @@ fun FeedingScreen() {
                             for (mealTime in MealTime.displayOrder) {
                                 MealCard(
                                     mealTime = mealTime,
-                                    feeding = vm.log.feedings[mealTime] ?: Feeding(),
-                                    onFeed = { vm.feed(mealTime) },
+                                    feeding = log.feedings[mealTime] ?: Feeding(),
+                                    onFeed = { onFeed(mealTime) },
                                 )
                             }
                         }
@@ -97,9 +131,9 @@ fun FeedingScreen() {
 
                         // 備考欄
                         NoteSection(
-                            note = vm.noteDraft,
-                            onNoteChange = { vm.updateNoteDraft(it) },
-                            onSave = { vm.saveNote() },
+                            note = noteDraft,
+                            onNoteChange = onNoteChange,
+                            onSave = onSaveNote,
                         )
                     }
                 }
