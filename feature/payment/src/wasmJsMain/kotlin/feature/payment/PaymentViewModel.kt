@@ -52,10 +52,6 @@ class PaymentViewModel(private val scope: CoroutineScope) {
     var saving by mutableStateOf(false)
         private set
 
-    // 支払い記録ダイアログ
-    var showPayDialog by mutableStateOf(false)
-        private set
-
     val currentUid: String
         get() = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.uid ?: ""
 
@@ -86,14 +82,6 @@ class PaymentViewModel(private val scope: CoroutineScope) {
         loadMonth(shiftMonthJs(currentMonth.toJsString(), 1).toString())
     }
 
-    fun openPayDialog() {
-        showPayDialog = true
-    }
-
-    fun closePayDialog() {
-        showPayDialog = false
-    }
-
     fun recordPayment(amount: Long) {
         saving = true
         scope.launch {
@@ -103,7 +91,6 @@ class PaymentViewModel(private val scope: CoroutineScope) {
                     contentType(ContentType.Application.Json)
                     setBody(record)
                 }.body()
-                closePayDialog()
             } catch (e: Exception) {
                 error = e.message
             } finally {
