@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.remember
@@ -26,11 +27,6 @@ import core.ui.theme.displayExLarge
 import core.ui.theme.displayOrder
 import core.ui.theme.icon
 import core.ui.theme.label
-import core.ui.util.currentTimeJs
-import core.ui.util.currentYearJs
-import core.ui.util.formattedTodayJs
-import core.ui.util.todayDateJs
-import kotlinx.coroutines.delay
 import model.FeedingLog
 import model.GarbageType
 import model.MealTime
@@ -49,8 +45,11 @@ fun DashboardScreen() {
         feedingLog = vm.feedingLog,
         petName = vm.pet?.name,
         todayGarbageTypes = vm.todayGarbageTypes,
+        currentTime = vm.currentTime,
+        currentYear = vm.currentYear,
+        dateWithDay = vm.dateWithDay,
         onFeedClick = { vm.feed(it) },
-        onDateChanged = { vm.refreshGarbageForToday() },
+        onRefreshFeeding = { vm.refreshFeeding() },
         windowSizeClass = windowSizeClass,
     )
 }
@@ -62,8 +61,11 @@ internal fun DashboardContent(
     feedingLog: FeedingLog,
     petName: String?,
     todayGarbageTypes: List<GarbageType>,
+    currentTime: String,
+    currentYear: String,
+    dateWithDay: String,
     onFeedClick: (MealTime) -> Unit,
-    onDateChanged: () -> Unit,
+    onRefreshFeeding: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
     Column(
@@ -93,7 +95,9 @@ internal fun DashboardContent(
                     ) {
                         DateTimeCard(
                             garbageTypes = todayGarbageTypes,
-                            onDateChanged = onDateChanged,
+                            currentTime = currentTime,
+                            currentYear = currentYear,
+                            dateWithDay = dateWithDay,
                             modifier = Modifier.weight(1f).fillMaxHeight(),
                         )
                         DailyFeedingCard(
@@ -101,6 +105,7 @@ internal fun DashboardContent(
                             feedingLog = feedingLog,
                             petName = petName,
                             onFeedClick = onFeedClick,
+                            onRefresh = onRefreshFeeding,
                         )
                     }
                 } else {
@@ -112,7 +117,9 @@ internal fun DashboardContent(
                     ) {
                         DateTimeCard(
                             garbageTypes = todayGarbageTypes,
-                            onDateChanged = onDateChanged,
+                            currentTime = currentTime,
+                            currentYear = currentYear,
+                            dateWithDay = dateWithDay,
                             modifier = Modifier.fillMaxWidth(),
                         )
                         DailyFeedingCard(
@@ -120,6 +127,7 @@ internal fun DashboardContent(
                             feedingLog = feedingLog,
                             petName = petName,
                             onFeedClick = onFeedClick,
+                            onRefresh = onRefreshFeeding,
                         )
                     }
                 }
@@ -131,28 +139,11 @@ internal fun DashboardContent(
 @Composable
 fun DateTimeCard(
     garbageTypes: List<GarbageType>,
-    onDateChanged: () -> Unit,
+    currentTime: String,
+    currentYear: String,
+    dateWithDay: String,
     modifier: Modifier = Modifier,
 ) {
-    var currentTime by remember { mutableStateOf(currentTimeJs().toString()) }
-    var year by remember { mutableStateOf(currentYearJs().toString()) }
-    var dateWithDay by remember { mutableStateOf(formattedTodayJs().toString()) }
-    var trackedDate by remember { mutableStateOf(todayDateJs().toString()) }
-
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(10_000)
-            currentTime = currentTimeJs().toString()
-            val newDate = todayDateJs().toString()
-            if (newDate != trackedDate) {
-                trackedDate = newDate
-                year = currentYearJs().toString()
-                dateWithDay = formattedTodayJs().toString()
-                onDateChanged()
-            }
-        }
-    }
-
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -173,7 +164,7 @@ fun DateTimeCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "$year $dateWithDay",
+                    text = "$currentYear $dateWithDay",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -234,6 +225,7 @@ fun DailyFeedingCard(
     feedingLog: FeedingLog,
     petName: String?,
     onFeedClick: (MealTime) -> Unit,
+    onRefresh: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -250,7 +242,23 @@ fun DailyFeedingCard(
         ) {
             val doneCount = feedingLog.feedings.values.count { it.done }
 
-            HeaderSection(doneCount = doneCount, petName = petName)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                HeaderSection(
+                    doneCount = doneCount,
+                    petName = petName,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = onRefresh) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "更新",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
 
             HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
 
