@@ -35,6 +35,51 @@ fun SettingsScreen() {
     val scrollState = rememberScrollState()
     val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
 
+    SettingsContent(
+        scrollState = scrollState,
+        isAdmin = isAdmin,
+        currentPassword = vm.currentPassword,
+        newPassword = vm.newPassword,
+        confirmPassword = vm.confirmPassword,
+        isLoading = vm.isLoading,
+        errorMessage = vm.errorMessage,
+        successMessage = vm.successMessage,
+        onCurrentPasswordChanged = vm::onCurrentPasswordChanged,
+        onNewPasswordChanged = vm::onNewPasswordChanged,
+        onConfirmPasswordChanged = vm::onConfirmPasswordChanged,
+        onChangePassword = vm::changePassword,
+        garbageLoading = vm.garbageLoading,
+        garbageSchedules = vm.garbageSchedules,
+        garbageMessage = vm.garbageMessage,
+        garbageSaving = vm.garbageSaving,
+        onToggleDay = vm::toggleDay,
+        onFrequencyChange = vm::changeFrequency,
+        onSaveGarbageSchedule = vm::saveGarbageSchedule,
+    )
+}
+
+@Composable
+internal fun SettingsContent(
+    scrollState: ScrollState,
+    isAdmin: Boolean,
+    currentPassword: String,
+    newPassword: String,
+    confirmPassword: String,
+    isLoading: Boolean,
+    errorMessage: String?,
+    successMessage: String?,
+    onCurrentPasswordChanged: (String) -> Unit,
+    onNewPasswordChanged: (String) -> Unit,
+    onConfirmPasswordChanged: (String) -> Unit,
+    onChangePassword: () -> Unit,
+    garbageLoading: Boolean,
+    garbageSchedules: List<GarbageTypeSchedule>,
+    garbageMessage: String?,
+    garbageSaving: Boolean,
+    onToggleDay: (GarbageType, Int) -> Unit,
+    onFrequencyChange: (GarbageType, CollectionFrequency) -> Unit,
+    onSaveGarbageSchedule: () -> Unit,
+) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -54,7 +99,18 @@ fun SettingsScreen() {
 
             // アカウントセクション
             SettingsSection(title = "アカウント") {
-                PasswordChangeCard(vm)
+                PasswordChangeCard(
+                    currentPassword = currentPassword,
+                    newPassword = newPassword,
+                    confirmPassword = confirmPassword,
+                    isLoading = isLoading,
+                    errorMessage = errorMessage,
+                    successMessage = successMessage,
+                    onCurrentPasswordChanged = onCurrentPasswordChanged,
+                    onNewPasswordChanged = onNewPasswordChanged,
+                    onConfirmPasswordChanged = onConfirmPasswordChanged,
+                    onChangePassword = onChangePassword,
+                )
             }
 
             if (isAdmin) {
@@ -62,16 +118,16 @@ fun SettingsScreen() {
 
                 // ゴミ出しセクション（管理者のみ）
                 SettingsSection(title = "ゴミ出し", badge = "管理者") {
-                    if (vm.garbageLoading) {
+                    if (garbageLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp))
                     } else {
                         GarbageScheduleCard(
-                            schedules = vm.garbageSchedules,
-                            garbageMessage = vm.garbageMessage,
-                            garbageSaving = vm.garbageSaving,
-                            onToggleDay = { type, day -> vm.toggleDay(type, day) },
-                            onFrequencyChange = { type, freq -> vm.changeFrequency(type, freq) },
-                            onSaveClick = vm::saveGarbageSchedule
+                            schedules = garbageSchedules,
+                            garbageMessage = garbageMessage,
+                            garbageSaving = garbageSaving,
+                            onToggleDay = onToggleDay,
+                            onFrequencyChange = onFrequencyChange,
+                            onSaveClick = onSaveGarbageSchedule,
                         )
                     }
                 }
@@ -249,7 +305,18 @@ private fun GarbageScheduleCard(
 }
 
 @Composable
-private fun PasswordChangeCard(vm: SettingsViewModel) {
+private fun PasswordChangeCard(
+    currentPassword: String,
+    newPassword: String,
+    confirmPassword: String,
+    isLoading: Boolean,
+    errorMessage: String?,
+    successMessage: String?,
+    onCurrentPasswordChanged: (String) -> Unit,
+    onNewPasswordChanged: (String) -> Unit,
+    onConfirmPasswordChanged: (String) -> Unit,
+    onChangePassword: () -> Unit,
+) {
     var currentPasswordVisible by remember { mutableStateOf(false) }
     var newPasswordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
@@ -271,8 +338,8 @@ private fun PasswordChangeCard(vm: SettingsViewModel) {
             )
 
             OutlinedTextField(
-                value = vm.currentPassword,
-                onValueChange = vm::onCurrentPasswordChanged,
+                value = currentPassword,
+                onValueChange = onCurrentPasswordChanged,
                 label = { Text("現在のパスワード") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                 trailingIcon = {
@@ -290,12 +357,12 @@ private fun PasswordChangeCard(vm: SettingsViewModel) {
                     imeAction = ImeAction.Next,
                 ),
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !vm.isLoading,
+                enabled = !isLoading,
             )
 
             OutlinedTextField(
-                value = vm.newPassword,
-                onValueChange = vm::onNewPasswordChanged,
+                value = newPassword,
+                onValueChange = onNewPasswordChanged,
                 label = { Text("新しいパスワード") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                 trailingIcon = {
@@ -313,12 +380,12 @@ private fun PasswordChangeCard(vm: SettingsViewModel) {
                     imeAction = ImeAction.Next,
                 ),
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !vm.isLoading,
+                enabled = !isLoading,
             )
 
             OutlinedTextField(
-                value = vm.confirmPassword,
-                onValueChange = vm::onConfirmPasswordChanged,
+                value = confirmPassword,
+                onValueChange = onConfirmPasswordChanged,
                 label = { Text("新しいパスワード（確認）") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                 trailingIcon = {
@@ -336,31 +403,31 @@ private fun PasswordChangeCard(vm: SettingsViewModel) {
                     imeAction = ImeAction.Done,
                 ),
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !vm.isLoading,
+                enabled = !isLoading,
             )
 
-            if (vm.errorMessage != null) {
+            if (errorMessage != null) {
                 Text(
-                    text = vm.errorMessage!!,
+                    text = errorMessage,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
 
-            if (vm.successMessage != null) {
+            if (successMessage != null) {
                 Text(
-                    text = vm.successMessage!!,
+                    text = successMessage,
                     color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
 
             Button(
-                onClick = vm::changePassword,
+                onClick = onChangePassword,
                 modifier = Modifier.height(48.dp),
-                enabled = !vm.isLoading,
+                enabled = !isLoading,
             ) {
-                if (vm.isLoading) {
+                if (isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
                         strokeWidth = 2.dp,
