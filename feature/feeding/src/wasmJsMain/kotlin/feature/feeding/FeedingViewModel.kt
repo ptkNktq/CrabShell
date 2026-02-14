@@ -64,12 +64,14 @@ class FeedingViewModel(private val scope: CoroutineScope) {
         val petId = pet?.id ?: return
         scope.launch {
             try {
-                val feeding: Feeding = authenticatedClient.put(
-                    "/api/pets/$petId/feeding/$selectedDate/${mealTime.name.lowercase()}"
-                ).body()
-                log = log.copy(
-                    feedings = log.feedings.toMutableMap().apply { put(mealTime, feeding) }
-                )
+                val feeding: Feeding =
+                    authenticatedClient.put(
+                        "/api/pets/$petId/feeding/$selectedDate/${mealTime.name.lowercase()}",
+                    ).body()
+                log =
+                    log.copy(
+                        feedings = log.feedings.toMutableMap().apply { put(mealTime, feeding) },
+                    )
             } catch (e: Exception) {
                 error = e.message
             }
@@ -102,5 +104,4 @@ class FeedingViewModel(private val scope: CoroutineScope) {
     fun goToNextDay() {
         loadLog(shiftDateJs(selectedDate.toJsString(), 1).toString())
     }
-
 }

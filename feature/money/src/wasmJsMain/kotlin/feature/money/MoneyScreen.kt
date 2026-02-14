@@ -84,9 +84,10 @@ internal fun MoneyContent(
             if (showFormCompact) {
                 // Compact: フォーム表示
                 Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(12.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(12.dp),
                 ) {
                     Text(
                         text = if (editingItem != null) "項目を編集" else "項目を追加",
@@ -110,9 +111,10 @@ internal fun MoneyContent(
             } else {
                 // Compact: リスト表示
                 Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(12.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(12.dp),
                 ) {
                     Text(
                         text = "お金の管理",
@@ -161,9 +163,10 @@ internal fun MoneyContent(
         } else {
             // Medium/Expanded: 左にリスト、右にフォーム（常時表示）
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
             ) {
                 Text(
                     text = "お金の管理",
@@ -211,7 +214,6 @@ internal fun MoneyContent(
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter))
         }
     }
-
 }
 
 @Composable
@@ -307,30 +309,33 @@ private fun MoneyItemForm(
         mutableStateOf(
             users.associate { user ->
                 user.uid to (item?.payments?.find { it.uid == user.uid }?.amount?.toString() ?: "")
-            }
+            },
         )
     }
 
     val amount = amountText.toLongOrNull() ?: 0L
-    val payments = paymentAmounts.mapNotNull { (uid, text) ->
-        val a = text.toLongOrNull()
-        if (a != null && a > 0) Payment(uid, a) else null
-    }
+    val payments =
+        paymentAmounts.mapNotNull { (uid, text) ->
+            val a = text.toLongOrNull()
+            if (a != null && a > 0) Payment(uid, a) else null
+        }
     val paymentTotal = payments.sumOf { it.amount }
     val mismatch = payments.isNotEmpty() && paymentTotal != amount
     val isEditing = item != null
 
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
@@ -393,9 +398,10 @@ private fun MoneyItemForm(
                     OutlinedTextField(
                         value = paymentAmounts[user.uid] ?: "",
                         onValueChange = { value ->
-                            paymentAmounts = paymentAmounts.toMutableMap().apply {
-                                put(user.uid, value.filter { c -> c.isDigit() || c == '-' })
-                            }
+                            paymentAmounts =
+                                paymentAmounts.toMutableMap().apply {
+                                    put(user.uid, value.filter { c -> c.isDigit() || c == '-' })
+                                }
                         },
                         label = { Text(user.displayName ?: user.uid) },
                         modifier = Modifier.fillMaxWidth(),
@@ -498,17 +504,21 @@ private fun SummaryCard(
     }
 
     // 全ユーザーが割当を満たしているかチェック
-    val allPaid = userAllocated.isNotEmpty() && userAllocated.all { (uid, allocated) ->
-        (userPaid[uid] ?: 0L) >= allocated
-    }
+    val allPaid =
+        userAllocated.isNotEmpty() &&
+            userAllocated.all { (uid, allocated) ->
+                (userPaid[uid] ?: 0L) >= allocated
+            }
 
     Card(
-        modifier = Modifier.fillMaxWidth().let {
-            if (!isCompact) it.widthIn(max = 600.dp) else it
-        },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
+        modifier =
+            Modifier.fillMaxWidth().let {
+                if (!isCompact) it.widthIn(max = 600.dp) else it
+            },
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(
@@ -561,8 +571,12 @@ private fun SummaryCard(
                         Text(
                             text = "¥${formatAmount(paid)} / ¥${formatAmount(allocated)}",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = if (paid >= allocated) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            color =
+                                if (paid >= allocated) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                         )
                     }
                 }
@@ -583,12 +597,14 @@ private fun MoneyItemCard(
     val mismatch = paymentTotal != item.amount && item.payments.isNotEmpty()
 
     Card(
-        modifier = Modifier.fillMaxWidth().let {
-            if (!isCompact) it.widthIn(max = 600.dp) else it
-        },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
+        modifier =
+            Modifier.fillMaxWidth().let {
+                if (!isCompact) it.widthIn(max = 600.dp) else it
+            },
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(

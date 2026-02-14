@@ -62,8 +62,9 @@ fun Application.module() {
     }
 }
 
-private fun sampleItems(): List<DashboardItem> = listOf(
-    DashboardItem(1, "Server Setup", "Ktor server is running", Status.ACTIVE),
-    DashboardItem(2, "Frontend", "Compose Web (Wasm)", Status.ACTIVE),
-    DashboardItem(3, "Database", "Not yet configured", Status.PENDING),
-)
+private fun sampleItems(): List<DashboardItem> =
+    listOf(
+        DashboardItem(1, "Server Setup", "Ktor server is running", Status.ACTIVE),
+        DashboardItem(2, "Frontend", "Compose Web (Wasm)", Status.ACTIVE),
+        DashboardItem(3, "Database", "Not yet configured", Status.PENDING),
+    )

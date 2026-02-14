@@ -24,7 +24,7 @@ fun Route.userRoutes() {
                             email = record.email ?: "",
                             displayName = record.displayName,
                             isAdmin = isAdmin,
-                        )
+                        ),
                     )
                 }
                 page = page.nextPage
@@ -39,7 +39,7 @@ fun Route.userRoutes() {
             val request = call.receive<UpdateDisplayNameRequest>()
 
             FirebaseAuth.getInstance().updateUser(
-                UpdateRequest(uid).setDisplayName(request.displayName)
+                UpdateRequest(uid).setDisplayName(request.displayName),
             )
 
             val record = FirebaseAuth.getInstance().getUser(uid)
@@ -50,7 +50,7 @@ fun Route.userRoutes() {
                     email = record.email ?: "",
                     displayName = record.displayName,
                     isAdmin = isAdmin,
-                )
+                ),
             )
         }
     }

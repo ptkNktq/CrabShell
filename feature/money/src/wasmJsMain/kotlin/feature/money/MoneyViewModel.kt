@@ -18,23 +18,30 @@ import model.Payment
 import model.User
 
 /** 現在の年月を "YYYY-MM" 形式で返す */
-@JsFun("""() => {
+@JsFun(
+    """() => {
     const d = new Date();
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     return y + '-' + m;
-}""")
+}""",
+)
 external fun currentMonthJs(): JsString
 
 /** 月を offset 分ずらす (例: "2026-02", 1 → "2026-03") */
-@JsFun("""(monthStr, offset) => {
+@JsFun(
+    """(monthStr, offset) => {
     const [y, m] = monthStr.split('-').map(Number);
     const d = new Date(y, m - 1 + offset, 1);
     const ny = d.getFullYear();
     const nm = String(d.getMonth() + 1).padStart(2, '0');
     return ny + '-' + nm;
-}""")
-external fun shiftMonthJs(monthStr: JsString, offset: Int): JsString
+}""",
+)
+external fun shiftMonthJs(
+    monthStr: JsString,
+    offset: Int,
+): JsString
 
 /** crypto.randomUUID() で UUID を生成 */
 @JsFun("() => crypto.randomUUID()")
@@ -111,27 +118,35 @@ class MoneyViewModel(private val scope: CoroutineScope) {
         formKey++
     }
 
-    fun saveItem(name: String, amount: Long, note: String, payments: List<Payment>, recurring: Boolean) {
+    fun saveItem(
+        name: String,
+        amount: Long,
+        note: String,
+        payments: List<Payment>,
+        recurring: Boolean,
+    ) {
         val existing = editingItem
 
-        val newItem = if (existing != null) {
-            existing.copy(name = name, amount = amount, note = note, payments = payments, recurring = recurring)
-        } else {
-            MoneyItem(
-                id = randomUUID().toString(),
-                name = name,
-                amount = amount,
-                note = note,
-                payments = payments,
-                recurring = recurring,
-            )
-        }
+        val newItem =
+            if (existing != null) {
+                existing.copy(name = name, amount = amount, note = note, payments = payments, recurring = recurring)
+            } else {
+                MoneyItem(
+                    id = randomUUID().toString(),
+                    name = name,
+                    amount = amount,
+                    note = note,
+                    payments = payments,
+                    recurring = recurring,
+                )
+            }
 
-        val updatedItems = if (existing != null) {
-            monthlyMoney.items.map { if (it.id == existing.id) newItem else it }
-        } else {
-            monthlyMoney.items + newItem
-        }
+        val updatedItems =
+            if (existing != null) {
+                monthlyMoney.items.map { if (it.id == existing.id) newItem else it }
+            } else {
+                monthlyMoney.items + newItem
+            }
 
         val isNew = existing == null
         persistAndThen(monthlyMoney.copy(items = updatedItems)) {
@@ -147,7 +162,10 @@ class MoneyViewModel(private val scope: CoroutineScope) {
     }
 
     /** サーバーに保存し、成功したらデータ更新 + onSuccess を実行する */
-    private fun persistAndThen(data: MonthlyMoney, onSuccess: () -> Unit) {
+    private fun persistAndThen(
+        data: MonthlyMoney,
+        onSuccess: () -> Unit,
+    ) {
         saving = true
         scope.launch {
             try {

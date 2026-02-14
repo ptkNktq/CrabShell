@@ -23,8 +23,9 @@ fun Route.moneyRoutes() {
         adminOnly {
             get {
                 val month = call.parameters["month"]!!
-                val doc = firestore.collection(MONEY_COLLECTION)
-                    .document(month).get().get()
+                val doc =
+                    firestore.collection(MONEY_COLLECTION)
+                        .document(month).get().get()
 
                 if (!doc.exists()) {
                     val recurringItems = getRecurringItemsFromPreviousMonth(month)
@@ -48,8 +49,9 @@ fun Route.moneyRoutes() {
             get("my") {
                 val month = call.parameters["month"]!!
                 val uid = call.attributes[FirebaseTokenKey].uid
-                val doc = firestore.collection(MONEY_COLLECTION)
-                    .document(month).get().get()
+                val doc =
+                    firestore.collection(MONEY_COLLECTION)
+                        .document(month).get().get()
 
                 if (!doc.exists()) {
                     call.respond(MonthlyMoney(month = month))
@@ -58,9 +60,10 @@ fun Route.moneyRoutes() {
 
                 val data = parseMonthlyMoney(month, doc)
                 // 自分に割当がある項目のみ + 自分の支払い記録のみ
-                val myItems = data.items.filter { item ->
-                    item.payments.any { it.uid == uid }
-                }
+                val myItems =
+                    data.items.filter { item ->
+                        item.payments.any { it.uid == uid }
+                    }
                 val myRecords = data.paymentRecords.filter { it.uid == uid }
                 call.respond(MonthlyMoney(month = month, items = myItems, paymentRecords = myRecords))
             }
@@ -75,8 +78,9 @@ fun Route.moneyRoutes() {
                 // uid をサーバー側で上書き（改ざん防止）
                 val safeRecord = record.copy(uid = uid)
 
-                val doc = firestore.collection(MONEY_COLLECTION)
-                    .document(month).get().get()
+                val doc =
+                    firestore.collection(MONEY_COLLECTION)
+                        .document(month).get().get()
 
                 if (!doc.exists()) {
                     call.respond(io.ktor.http.HttpStatusCode.NotFound, mapOf("error" to "Month not found"))
@@ -88,9 +92,10 @@ fun Route.moneyRoutes() {
                 saveMonthlyMoney(month, updated)
 
                 // 呼び出し元に自分のデータのみ返す
-                val myItems = updated.items.filter { item ->
-                    item.payments.any { it.uid == uid }
-                }
+                val myItems =
+                    updated.items.filter { item ->
+                        item.payments.any { it.uid == uid }
+                    }
                 val myRecords = updated.paymentRecords.filter { it.uid == uid }
                 call.respond(MonthlyMoney(month = month, items = myItems, paymentRecords = myRecords))
             }
@@ -108,23 +113,29 @@ private fun parseMonthlyMoney(
     return MonthlyMoney(month = month, items = items, paymentRecords = records)
 }
 
-private fun saveMonthlyMoney(month: String, data: MonthlyMoney) {
-    val items = data.items.map { item ->
-        mapOf(
-            "id" to item.id,
-            "name" to item.name,
-            "amount" to item.amount,
-            "note" to item.note,
-            "recurring" to item.recurring,
-            "payments" to item.payments.map { p ->
-                mapOf("uid" to p.uid, "amount" to p.amount)
-            },
-        )
-    }
+private fun saveMonthlyMoney(
+    month: String,
+    data: MonthlyMoney,
+) {
+    val items =
+        data.items.map { item ->
+            mapOf(
+                "id" to item.id,
+                "name" to item.name,
+                "amount" to item.amount,
+                "note" to item.note,
+                "recurring" to item.recurring,
+                "payments" to
+                    item.payments.map { p ->
+                        mapOf("uid" to p.uid, "amount" to p.amount)
+                    },
+            )
+        }
 
-    val records = data.paymentRecords.map { r ->
-        mapOf("uid" to r.uid, "amount" to r.amount, "paidAt" to r.paidAt)
-    }
+    val records =
+        data.paymentRecords.map { r ->
+            mapOf("uid" to r.uid, "amount" to r.amount, "paidAt" to r.paidAt)
+        }
 
     firestore.collection(MONEY_COLLECTION)
         .document(month)
@@ -143,12 +154,13 @@ private fun parseItems(raw: Any?): List<MoneyItem> {
             amount = (entry["amount"] as Number).toLong(),
             note = entry["note"] as? String ?: "",
             recurring = entry["recurring"] as? Boolean ?: false,
-            payments = paymentsRaw.map { p ->
-                Payment(
-                    uid = p["uid"] as String,
-                    amount = (p["amount"] as Number).toLong(),
-                )
-            },
+            payments =
+                paymentsRaw.map { p ->
+                    Payment(
+                        uid = p["uid"] as String,
+                        amount = (p["amount"] as Number).toLong(),
+                    )
+                },
         )
     }
 }
@@ -167,8 +179,9 @@ private fun parsePaymentRecords(raw: Any?): List<PaymentRecord> {
 
 private fun getRecurringItemsFromPreviousMonth(month: String): List<MoneyItem> {
     val previousMonth = YearMonth.parse(month).minusMonths(1).toString()
-    val prevDoc = firestore.collection(MONEY_COLLECTION)
-        .document(previousMonth).get().get()
+    val prevDoc =
+        firestore.collection(MONEY_COLLECTION)
+            .document(previousMonth).get().get()
 
     if (!prevDoc.exists()) return emptyList()
 

@@ -69,9 +69,10 @@ internal fun DashboardContent(
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(
-            if (windowSizeClass == WindowSizeClass.Compact) 12.dp else 24.dp
-        ),
+        modifier =
+            Modifier.fillMaxSize().padding(
+                if (windowSizeClass == WindowSizeClass.Compact) 12.dp else 24.dp,
+            ),
     ) {
         when {
             loading -> {
@@ -87,11 +88,12 @@ internal fun DashboardContent(
             else -> {
                 if (windowSizeClass == WindowSizeClass.Expanded) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(IntrinsicSize.Max)
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .height(IntrinsicSize.Max)
+                                .padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         DateTimeCard(
                             garbageTypes = todayGarbageTypes,
@@ -110,10 +112,11 @@ internal fun DashboardContent(
                     }
                 } else {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(if (windowSizeClass == WindowSizeClass.Compact) 0.dp else 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(0.dp)
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(if (windowSizeClass == WindowSizeClass.Compact) 0.dp else 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(0.dp),
                     ) {
                         DateTimeCard(
                             garbageTypes = todayGarbageTypes,
@@ -145,29 +148,32 @@ fun DateTimeCard(
     modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .defaultMinSize(minHeight = CardHeaderMinHeight),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = CardHeaderMinHeight),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     text = "$currentYear $dateWithDay",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
 
                 if (garbageTypes.isNotEmpty()) {
@@ -207,13 +213,13 @@ fun DateTimeCard(
 
             Box(
                 modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = currentTime,
                     style = MaterialTheme.typography.displayExLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
             }
         }
@@ -226,19 +232,21 @@ fun DailyFeedingCard(
     petName: String?,
     onFeedClick: (MealTime) -> Unit,
     onRefresh: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             val doneCount = feedingLog.feedings.values.count { it.done }
 
@@ -264,7 +272,7 @@ fun DailyFeedingCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 for (mealTime in MealTime.displayOrder) {
                     val feeding = feedingLog.feedings[mealTime]
@@ -275,7 +283,7 @@ fun DailyFeedingCard(
                         isDone = feeding?.done == true,
                         time = feeding?.timestamp?.let { toJstHHMM(it.toJsString()).toString() },
                         onClick = { onFeedClick(mealTime) },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     )
                 }
             }
@@ -296,42 +304,51 @@ fun DailyFeedingCard(
 fun HeaderSection(
     doneCount: Int,
     petName: String?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .defaultMinSize(minHeight = CardHeaderMinHeight),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = CardHeaderMinHeight),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Column {
             Text(
                 text = if (petName != null) "$petName のごはん" else "ごはん",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
                 text = "今日",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
         // 完了数に応じた色のバッジ
         Surface(
-            color = if (doneCount == 3) MaterialTheme.colorScheme.primaryContainer
-            else MaterialTheme.colorScheme.secondaryContainer,
-            shape = RoundedCornerShape(12.dp)
+            color =
+                if (doneCount == 3) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.secondaryContainer
+                },
+            shape = RoundedCornerShape(12.dp),
         ) {
             Text(
                 text = "$doneCount / 3",
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.ExtraBold,
-                color = if (doneCount == 3) MaterialTheme.colorScheme.onPrimaryContainer
-                else MaterialTheme.colorScheme.onSecondaryContainer
+                color =
+                    if (doneCount == 3) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    },
             )
         }
     }
@@ -345,34 +362,35 @@ private fun FeedingSection(
     isDone: Boolean,
     time: String?,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Box(
-            modifier = Modifier
-                .size(48.dp)
-                .background(
-                    color = tint.copy(alpha = 0.1f),
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier
+                    .size(48.dp)
+                    .background(
+                        color = tint.copy(alpha = 0.1f),
+                        shape = CircleShape,
+                    ),
+            contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = tint,
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(28.dp),
             )
         }
 
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         if (isDone) {
@@ -381,19 +399,19 @@ private fun FeedingSection(
                     imageVector = Icons.Default.Check,
                     contentDescription = null,
                     tint = FeedingDoneColor,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(28.dp),
                 )
                 Text(
                     text = time ?: "--:--",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         } else {
             Button(
                 onClick = onClick,
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(0.dp)
+                contentPadding = PaddingValues(0.dp),
             ) {
                 Text("あげる", style = MaterialTheme.typography.labelMedium)
             }

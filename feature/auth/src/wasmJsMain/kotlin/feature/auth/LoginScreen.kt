@@ -64,9 +64,10 @@ internal fun LoginContent(
         ) {
             Card(
                 modifier = Modifier.width(400.dp).padding(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                ),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    ),
             ) {
                 Column(
                     modifier = Modifier.padding(32.dp).fillMaxWidth(),
@@ -87,10 +88,11 @@ internal fun LoginContent(
                         label = { Text("メールアドレス") },
                         leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                         singleLine = true,
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Email,
-                            imeAction = ImeAction.Next,
-                        ),
+                        keyboardOptions =
+                            KeyboardOptions(
+                                keyboardType = KeyboardType.Email,
+                                imeAction = ImeAction.Next,
+                            ),
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isLoading,
                     )
@@ -110,19 +112,21 @@ internal fun LoginContent(
                         },
                         singleLine = true,
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password,
-                            imeAction = ImeAction.Done,
-                        ),
+                        keyboardOptions =
+                            KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done,
+                            ),
                         keyboardActions = KeyboardActions(onDone = { onSignIn() }),
-                        modifier = Modifier.fillMaxWidth().onPreviewKeyEvent { event ->
-                            if (event.key == Key.Enter && event.type == KeyEventType.KeyUp) {
-                                onSignIn()
-                                true
-                            } else {
-                                false
-                            }
-                        },
+                        modifier =
+                            Modifier.fillMaxWidth().onPreviewKeyEvent { event ->
+                                if (event.key == Key.Enter && event.type == KeyEventType.KeyUp) {
+                                    onSignIn()
+                                    true
+                                } else {
+                                    false
+                                }
+                            },
                         enabled = !isLoading,
                     )
 

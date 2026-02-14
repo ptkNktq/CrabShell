@@ -41,7 +41,7 @@ class SettingsViewModel(private val scope: CoroutineScope, isAdmin: Boolean = fa
 
     // ゴミ出しスケジュール
     var garbageSchedules by mutableStateOf(
-        GarbageType.entries.map { GarbageTypeSchedule(garbageType = it, daysOfWeek = emptyList()) }
+        GarbageType.entries.map { GarbageTypeSchedule(garbageType = it, daysOfWeek = emptyList()) },
     )
         private set
     var garbageLoading by mutableStateOf(true)
@@ -114,10 +114,11 @@ class SettingsViewModel(private val scope: CoroutineScope, isAdmin: Boolean = fa
             try {
                 val loaded: List<GarbageTypeSchedule> =
                     authenticatedClient.get("/api/garbage/schedule").body()
-                garbageSchedules = GarbageType.entries.map { type ->
-                    loaded.find { it.garbageType == type }
-                        ?: GarbageTypeSchedule(garbageType = type, daysOfWeek = emptyList())
-                }
+                garbageSchedules =
+                    GarbageType.entries.map { type ->
+                        loaded.find { it.garbageType == type }
+                            ?: GarbageTypeSchedule(garbageType = type, daysOfWeek = emptyList())
+                    }
             } catch (_: Exception) {
                 // 初回は空でOK
             } finally {
@@ -126,31 +127,40 @@ class SettingsViewModel(private val scope: CoroutineScope, isAdmin: Boolean = fa
         }
     }
 
-    fun toggleDay(garbageType: GarbageType, dayIndex: Int) {
+    fun toggleDay(
+        garbageType: GarbageType,
+        dayIndex: Int,
+    ) {
         garbageMessage = null
-        garbageSchedules = garbageSchedules.map { schedule ->
-            if (schedule.garbageType == garbageType) {
-                val newDays = if (dayIndex in schedule.daysOfWeek) {
-                    schedule.daysOfWeek - dayIndex
+        garbageSchedules =
+            garbageSchedules.map { schedule ->
+                if (schedule.garbageType == garbageType) {
+                    val newDays =
+                        if (dayIndex in schedule.daysOfWeek) {
+                            schedule.daysOfWeek - dayIndex
+                        } else {
+                            schedule.daysOfWeek + dayIndex
+                        }
+                    schedule.copy(daysOfWeek = newDays.sorted())
                 } else {
-                    schedule.daysOfWeek + dayIndex
+                    schedule
                 }
-                schedule.copy(daysOfWeek = newDays.sorted())
-            } else {
-                schedule
             }
-        }
     }
 
-    fun changeFrequency(garbageType: GarbageType, frequency: CollectionFrequency) {
+    fun changeFrequency(
+        garbageType: GarbageType,
+        frequency: CollectionFrequency,
+    ) {
         garbageMessage = null
-        garbageSchedules = garbageSchedules.map { schedule ->
-            if (schedule.garbageType == garbageType) {
-                schedule.copy(frequency = frequency)
-            } else {
-                schedule
+        garbageSchedules =
+            garbageSchedules.map { schedule ->
+                if (schedule.garbageType == garbageType) {
+                    schedule.copy(frequency = frequency)
+                } else {
+                    schedule
+                }
             }
-        }
     }
 
     fun saveGarbageSchedule() {
@@ -183,15 +193,19 @@ class SettingsViewModel(private val scope: CoroutineScope, isAdmin: Boolean = fa
         }
     }
 
-    fun updateDisplayName(uid: String, displayName: String) {
+    fun updateDisplayName(
+        uid: String,
+        displayName: String,
+    ) {
         usersSaving = true
         usersMessage = null
         scope.launch {
             try {
-                val updated: User = authenticatedClient.put("/api/users/$uid/name") {
-                    contentType(ContentType.Application.Json)
-                    setBody(UpdateDisplayNameRequest(displayName))
-                }.body()
+                val updated: User =
+                    authenticatedClient.put("/api/users/$uid/name") {
+                        contentType(ContentType.Application.Json)
+                        setBody(UpdateDisplayNameRequest(displayName))
+                    }.body()
                 users = users.map { if (it.uid == uid) updated else it }
                 usersMessage = "保存しました"
             } catch (e: Exception) {

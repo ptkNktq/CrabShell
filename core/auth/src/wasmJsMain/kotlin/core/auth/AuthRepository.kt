@@ -5,7 +5,6 @@ import model.User
 
 @OptIn(ExperimentalWasmJsInterop::class)
 object AuthRepository {
-
     private val auth by lazy { firebaseAuth(getFirebase()) }
 
     fun startListening() {
@@ -16,12 +15,13 @@ object AuthRepository {
                 getIdTokenResult(auth).then<Nothing?> { resultJs ->
                     val token = resultJs?.let { getTokenFromResult(it).toString() } ?: ""
                     val isAdmin = resultJs?.let { getIsAdminFromResult(it).toBoolean() } ?: false
-                    val user = User(
-                        uid = uid.toString(),
-                        email = email.toString(),
-                        displayName = displayName.toString().ifEmpty { null },
-                        isAdmin = isAdmin,
-                    )
+                    val user =
+                        User(
+                            uid = uid.toString(),
+                            email = email.toString(),
+                            displayName = displayName.toString().ifEmpty { null },
+                            isAdmin = isAdmin,
+                        )
                     AuthStateHolder.setAuthenticated(user, token)
                     null
                 }
@@ -32,7 +32,10 @@ object AuthRepository {
         )
     }
 
-    suspend fun signIn(email: String, password: String): Result<Unit> {
+    suspend fun signIn(
+        email: String,
+        password: String,
+    ): Result<Unit> {
         return try {
             signInWithEmailAndPassword(auth, email.toJsString(), password.toJsString()).await<Nothing?>()
             Result.success(Unit)
@@ -50,7 +53,10 @@ object AuthRepository {
         }
     }
 
-    suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit> {
+    suspend fun changePassword(
+        currentPassword: String,
+        newPassword: String,
+    ): Result<Unit> {
         return try {
             reauthenticateAndChangePassword(
                 auth,

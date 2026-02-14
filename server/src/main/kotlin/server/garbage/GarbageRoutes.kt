@@ -20,8 +20,9 @@ fun Route.garbageRoutes() {
     route("/garbage/schedule") {
         authenticated {
             get {
-                val doc = firestore.collection(SETTINGS_COLLECTION)
-                    .document(GARBAGE_DOC).get().get()
+                val doc =
+                    firestore.collection(SETTINGS_COLLECTION)
+                        .document(GARBAGE_DOC).get().get()
 
                 if (!doc.exists()) {
                     call.respond(emptyList<GarbageTypeSchedule>())
@@ -30,15 +31,17 @@ fun Route.garbageRoutes() {
 
                 @Suppress("UNCHECKED_CAST")
                 val entriesRaw = doc.get(ENTRIES_FIELD) as? List<Map<String, Any?>> ?: emptyList()
-                val schedules = entriesRaw.map { entry ->
-                    GarbageTypeSchedule(
-                        garbageType = GarbageType.valueOf(entry["garbageType"] as String),
-                        daysOfWeek = (entry["daysOfWeek"] as List<*>).map { (it as Long).toInt() },
-                        frequency = CollectionFrequency.valueOf(
-                            entry["frequency"] as? String ?: "WEEKLY"
-                        ),
-                    )
-                }
+                val schedules =
+                    entriesRaw.map { entry ->
+                        GarbageTypeSchedule(
+                            garbageType = GarbageType.valueOf(entry["garbageType"] as String),
+                            daysOfWeek = (entry["daysOfWeek"] as List<*>).map { (it as Long).toInt() },
+                            frequency =
+                                CollectionFrequency.valueOf(
+                                    entry["frequency"] as? String ?: "WEEKLY",
+                                ),
+                        )
+                    }
                 call.respond(schedules)
             }
         }
@@ -47,13 +50,14 @@ fun Route.garbageRoutes() {
             put {
                 val schedules = call.receive<List<GarbageTypeSchedule>>()
 
-                val entries = schedules.map { schedule ->
-                    mapOf(
-                        "garbageType" to schedule.garbageType.name,
-                        "daysOfWeek" to schedule.daysOfWeek,
-                        "frequency" to schedule.frequency.name,
-                    )
-                }
+                val entries =
+                    schedules.map { schedule ->
+                        mapOf(
+                            "garbageType" to schedule.garbageType.name,
+                            "daysOfWeek" to schedule.daysOfWeek,
+                            "frequency" to schedule.frequency.name,
+                        )
+                    }
 
                 firestore.collection(SETTINGS_COLLECTION)
                     .document(GARBAGE_DOC)
