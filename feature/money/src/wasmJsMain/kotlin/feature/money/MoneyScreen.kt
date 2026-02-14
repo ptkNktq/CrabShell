@@ -497,6 +497,11 @@ private fun SummaryCard(
         userPaid[record.uid] = (userPaid[record.uid] ?: 0L) + record.amount
     }
 
+    // 全ユーザーが割当を満たしているかチェック
+    val allPaid = userAllocated.isNotEmpty() && userAllocated.all { (uid, allocated) ->
+        (userPaid[uid] ?: 0L) >= allocated
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth().let {
             if (!isCompact) it.widthIn(max = 600.dp) else it
@@ -506,15 +511,36 @@ private fun SummaryCard(
         ),
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Text(
-                text = "合計",
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                text = "¥${formatAmount(totalAmount)}",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text(
+                        text = "合計",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = "¥${formatAmount(totalAmount)}",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                if (allPaid) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = MaterialTheme.shapes.small,
+                    ) {
+                        Text(
+                            text = "支払い完了",
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    }
+                }
+            }
 
             if (userAllocated.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))

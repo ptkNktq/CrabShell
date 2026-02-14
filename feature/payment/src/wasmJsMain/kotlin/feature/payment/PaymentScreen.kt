@@ -367,14 +367,14 @@ private fun SummaryCard(
                 )
                 if (remaining <= 0 && totalAllocated > 0) {
                     Surface(
-                        color = MaterialTheme.colorScheme.primaryContainer,
+                        color = MaterialTheme.colorScheme.primary,
                         shape = MaterialTheme.shapes.small,
                     ) {
                         Text(
-                            text = "完了",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            text = "支払い完了",
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onPrimary,
                         )
                     }
                 }
