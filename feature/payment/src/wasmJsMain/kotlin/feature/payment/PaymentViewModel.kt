@@ -44,59 +44,70 @@ external fun shiftMonthJs(
 @JsFun("() => new Date().toISOString()")
 external fun nowIsoJs(): JsString
 
-class PaymentViewModel(private val scope: CoroutineScope) {
-    var currentMonth by mutableStateOf(currentMonthJs().toString())
-        private set
-    var monthlyMoney by mutableStateOf(MonthlyMoney(month = currentMonth))
-        private set
-    var loading by mutableStateOf(true)
-        private set
-    var error by mutableStateOf<String?>(null)
-        private set
-    var saving by mutableStateOf(false)
-        private set
+data class PaymentUiState(
+    val monthlyMoney: MonthlyMoney = MonthlyMoney(month = ""),
+    val currentMonth: String = "",
+    val currentUid: String = "",
+    val isLoading: Boolean = true,
+    val isSaving: Boolean = false,
+    val error: String? = null,
+)
 
-    val currentUid: String
-        get() = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.uid ?: ""
+class PaymentViewModel(private val scope: CoroutineScope) {
+    var uiState by mutableStateOf(
+        PaymentUiState(
+            currentMonth = currentMonthJs().toString(),
+            monthlyMoney = MonthlyMoney(month = currentMonthJs().toString()),
+            currentUid = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.uid ?: "",
+        ),
+    )
+        private set
 
     init {
-        loadMonth(currentMonth)
+        onLoadMonth(uiState.currentMonth)
     }
 
-    fun loadMonth(month: String) {
-        currentMonth = month
-        loading = true
-        error = null
+    fun onLoadMonth(month: String) {
+        uiState = uiState.copy(currentMonth = month, isLoading = true, error = null)
         scope.launch {
             try {
-                monthlyMoney = MoneyRepository.getMyMonthlyMoney(month)
-                loading = false
+                uiState =
+                    uiState.copy(
+                        monthlyMoney = MoneyRepository.getMyMonthlyMoney(month),
+                        isLoading = false,
+                    )
             } catch (e: Exception) {
-                error = e.message
-                loading = false
+                uiState = uiState.copy(error = e.message, isLoading = false)
             }
         }
     }
 
-    fun goToPreviousMonth() {
-        loadMonth(shiftMonthJs(currentMonth.toJsString(), -1).toString())
+    fun onGoToPreviousMonth() {
+        onLoadMonth(shiftMonthJs(uiState.currentMonth.toJsString(), -1).toString())
     }
 
-    fun goToNextMonth() {
-        loadMonth(shiftMonthJs(currentMonth.toJsString(), 1).toString())
+    fun onGoToNextMonth() {
+        onLoadMonth(shiftMonthJs(uiState.currentMonth.toJsString(), 1).toString())
     }
 
-    fun recordPayment(amount: Long) {
-        saving = true
+    fun onRecordPayment(amount: Long) {
+        uiState = uiState.copy(isSaving = true)
         scope.launch {
             try {
                 val record =
-                    PaymentRecord(uid = currentUid, amount = amount, paidAt = nowIsoJs().toString())
-                monthlyMoney = MoneyRepository.recordPayment(currentMonth, record)
+                    PaymentRecord(
+                        uid = uiState.currentUid,
+                        amount = amount,
+                        paidAt = nowIsoJs().toString(),
+                    )
+                uiState =
+                    uiState.copy(
+                        monthlyMoney = MoneyRepository.recordPayment(uiState.currentMonth, record),
+                    )
             } catch (e: Exception) {
-                error = e.message
+                uiState = uiState.copy(error = e.message)
             } finally {
-                saving = false
+                uiState = uiState.copy(isSaving = false)
             }
         }
     }

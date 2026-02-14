@@ -7,44 +7,41 @@ import core.auth.AuthRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
+data class LoginUiState(
+    val email: String = "",
+    val password: String = "",
+    val isPasswordVisible: Boolean = false,
+    val isLoading: Boolean = false,
+    val errorMessage: String? = null,
+)
+
 class LoginViewModel(private val scope: CoroutineScope) {
-    var email by mutableStateOf("")
-        private set
-    var password by mutableStateOf("")
-        private set
-    var passwordVisible by mutableStateOf(false)
-        private set
-    var errorMessage by mutableStateOf<String?>(null)
-        private set
-    var isLoading by mutableStateOf(false)
+    var uiState by mutableStateOf(LoginUiState())
         private set
 
     fun onEmailChanged(value: String) {
-        email = value
-        errorMessage = null
+        uiState = uiState.copy(email = value, errorMessage = null)
     }
 
     fun onPasswordChanged(value: String) {
-        password = value
-        errorMessage = null
+        uiState = uiState.copy(password = value, errorMessage = null)
     }
 
-    fun togglePasswordVisibility() {
-        passwordVisible = !passwordVisible
+    fun onTogglePasswordVisibility() {
+        uiState = uiState.copy(isPasswordVisible = !uiState.isPasswordVisible)
     }
 
-    fun signIn() {
-        if (email.isBlank() || password.isBlank()) {
-            errorMessage = "メールアドレスとパスワードを入力してください"
+    fun onSignIn() {
+        if (uiState.email.isBlank() || uiState.password.isBlank()) {
+            uiState = uiState.copy(errorMessage = "メールアドレスとパスワードを入力してください")
             return
         }
-        isLoading = true
-        errorMessage = null
+        uiState = uiState.copy(isLoading = true, errorMessage = null)
         scope.launch {
-            val result = AuthRepository.signIn(email, password)
-            isLoading = false
+            val result = AuthRepository.signIn(uiState.email, uiState.password)
+            uiState = uiState.copy(isLoading = false)
             if (result.isFailure) {
-                errorMessage = result.exceptionOrNull()?.message ?: "認証に失敗しました"
+                uiState = uiState.copy(errorMessage = result.exceptionOrNull()?.message ?: "認証に失敗しました")
             }
         }
     }
