@@ -16,8 +16,10 @@ import server.auth.FirebaseAdmin
 import server.auth.authenticated
 import server.feeding.feedingRoutes
 import server.garbage.garbageRoutes
+import server.money.moneyRoutes
 import server.pet.petRoutes
 import server.pet.seedDefaultPet
+import server.user.userRoutes
 
 fun main() {
     embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::module)
@@ -46,9 +48,11 @@ fun Application.module() {
                     call.respond(sampleItems())
                 }
             }
+            userRoutes()
             petRoutes()
             feedingRoutes()
             garbageRoutes()
+            moneyRoutes()
         }
 
         // Compose Wasm フロントエンドを配信
