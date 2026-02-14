@@ -117,6 +117,11 @@ class MoneyViewModel(private val scope: CoroutineScope) {
 
     fun saveItem(name: String, amount: Long, note: String, payments: List<Payment>) {
         val existing = editingItem
+
+        // ダイアログを先に閉じて、AlertDialog が unmount された後にデータを更新する
+        // （ダイアログが表示中に monthlyMoney を変更すると recomposition が衝突してフリーズする）
+        closeDialog()
+
         val newItem = if (existing != null) {
             existing.copy(name = name, amount = amount, note = note, payments = payments)
         } else {
@@ -136,7 +141,6 @@ class MoneyViewModel(private val scope: CoroutineScope) {
         }
 
         saveMonthlyMoney(monthlyMoney.copy(items = updatedItems))
-        closeDialog()
     }
 
     fun deleteItem(item: MoneyItem) {
