@@ -5,7 +5,9 @@ package feature.dashboard
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import core.network.authenticatedClient
+import core.network.FeedingRepository
+import core.network.GarbageScheduleRepository
+import core.network.PetRepository
 import core.ui.util.currentTimeJs
 import core.ui.util.currentYearJs
 import core.ui.util.dayOfWeekIndexJs
@@ -13,13 +15,10 @@ import core.ui.util.feedingDateJs
 import core.ui.util.formattedTodayJs
 import core.ui.util.todayDateJs
 import core.ui.util.weekOfMonthJs
-import io.ktor.client.call.*
-import io.ktor.client.request.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import model.CollectionFrequency
-import model.Feeding
 import model.FeedingLog
 import model.GarbageType
 import model.GarbageTypeSchedule
@@ -63,8 +62,7 @@ class DashboardViewModel(private val scope: CoroutineScope) {
     init {
         scope.launch {
             try {
-                val pets: List<Pet> = authenticatedClient.get("/api/pets").body()
-                pet = pets.firstOrNull()
+                pet = PetRepository.getPets().firstOrNull()
                 loadToday()
             } catch (e: Exception) {
                 error = e.message
@@ -99,7 +97,7 @@ class DashboardViewModel(private val scope: CoroutineScope) {
     private suspend fun loadToday() {
         val petId = pet?.id ?: return
         try {
-            feedingLog = authenticatedClient.get("/api/pets/$petId/feeding/$today").body()
+            feedingLog = FeedingRepository.getFeedingLog(petId, today)
             loading = false
         } catch (e: Exception) {
             error = e.message
@@ -110,7 +108,7 @@ class DashboardViewModel(private val scope: CoroutineScope) {
     private fun loadGarbageSchedule() {
         scope.launch {
             try {
-                cachedSchedules = authenticatedClient.get("/api/garbage/schedule").body()
+                cachedSchedules = GarbageScheduleRepository.getSchedules()
                 refreshGarbageForToday()
             } catch (_: Exception) {
                 // ゴミ出し情報取得失敗は無視
@@ -152,10 +150,7 @@ class DashboardViewModel(private val scope: CoroutineScope) {
         val petId = pet?.id ?: return
         scope.launch {
             try {
-                val feeding: Feeding =
-                    authenticatedClient.put(
-                        "/api/pets/$petId/feeding/$today/${mealTime.name.lowercase()}",
-                    ).body()
+                val feeding = FeedingRepository.feed(petId, today, mealTime)
                 feedingLog =
                     feedingLog.copy(
                         feedings = feedingLog.feedings + (mealTime to feeding),

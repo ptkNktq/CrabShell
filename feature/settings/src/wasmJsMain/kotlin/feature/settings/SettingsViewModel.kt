@@ -4,19 +4,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import core.auth.AuthRepository
-import core.network.authenticatedClient
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import io.ktor.http.*
+import core.network.GarbageScheduleRepository
+import core.network.UserRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import model.CollectionFrequency
 import model.GarbageType
 import model.GarbageTypeSchedule
-import model.UpdateDisplayNameRequest
 import model.User
 
-class SettingsViewModel(private val scope: CoroutineScope, isAdmin: Boolean = false) {
+class SettingsViewModel(
+    private val scope: CoroutineScope,
+    isAdmin: Boolean = false,
+) {
     // ユーザー名管理
     var users by mutableStateOf<List<User>>(emptyList())
         private set
@@ -112,8 +112,7 @@ class SettingsViewModel(private val scope: CoroutineScope, isAdmin: Boolean = fa
     private fun loadGarbageSchedule() {
         scope.launch {
             try {
-                val loaded: List<GarbageTypeSchedule> =
-                    authenticatedClient.get("/api/garbage/schedule").body()
+                val loaded = GarbageScheduleRepository.getSchedules()
                 garbageSchedules =
                     GarbageType.entries.map { type ->
                         loaded.find { it.garbageType == type }
@@ -168,10 +167,7 @@ class SettingsViewModel(private val scope: CoroutineScope, isAdmin: Boolean = fa
         garbageMessage = null
         scope.launch {
             try {
-                authenticatedClient.put("/api/garbage/schedule") {
-                    contentType(ContentType.Application.Json)
-                    setBody(garbageSchedules)
-                }
+                GarbageScheduleRepository.saveSchedules(garbageSchedules)
                 garbageMessage = "保存しました"
             } catch (e: Exception) {
                 garbageMessage = "保存に失敗しました: ${e.message}"
@@ -186,7 +182,7 @@ class SettingsViewModel(private val scope: CoroutineScope, isAdmin: Boolean = fa
     private fun loadUsers() {
         scope.launch {
             try {
-                users = authenticatedClient.get("/api/users").body()
+                users = UserRepository.getUsers()
             } catch (_: Exception) {
                 // 読み込み失敗は空リストのまま
             }
@@ -201,11 +197,7 @@ class SettingsViewModel(private val scope: CoroutineScope, isAdmin: Boolean = fa
         usersMessage = null
         scope.launch {
             try {
-                val updated: User =
-                    authenticatedClient.put("/api/users/$uid/name") {
-                        contentType(ContentType.Application.Json)
-                        setBody(UpdateDisplayNameRequest(displayName))
-                    }.body()
+                val updated = UserRepository.updateDisplayName(uid, displayName)
                 users = users.map { if (it.uid == uid) updated else it }
                 usersMessage = "保存しました"
             } catch (e: Exception) {

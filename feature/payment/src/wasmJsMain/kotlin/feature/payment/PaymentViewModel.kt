@@ -8,10 +8,7 @@ import androidx.compose.runtime.setValue
 import core.auth.AuthState
 import core.auth.AuthStateHolder
 import core.auth.toJsString
-import core.network.authenticatedClient
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import io.ktor.http.*
+import core.network.MoneyRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import model.MonthlyMoney
@@ -72,7 +69,7 @@ class PaymentViewModel(private val scope: CoroutineScope) {
         error = null
         scope.launch {
             try {
-                monthlyMoney = authenticatedClient.get("/api/money/$month/my").body()
+                monthlyMoney = MoneyRepository.getMyMonthlyMoney(month)
                 loading = false
             } catch (e: Exception) {
                 error = e.message
@@ -95,11 +92,7 @@ class PaymentViewModel(private val scope: CoroutineScope) {
             try {
                 val record =
                     PaymentRecord(uid = currentUid, amount = amount, paidAt = nowIsoJs().toString())
-                monthlyMoney =
-                    authenticatedClient.post("/api/money/$currentMonth/pay") {
-                        contentType(ContentType.Application.Json)
-                        setBody(record)
-                    }.body()
+                monthlyMoney = MoneyRepository.recordPayment(currentMonth, record)
             } catch (e: Exception) {
                 error = e.message
             } finally {
