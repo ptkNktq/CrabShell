@@ -24,113 +24,133 @@ import core.ui.theme.AppTheme
 
 @Composable
 fun LoginScreen() {
+    val scope = rememberCoroutineScope()
+    val vm = remember { LoginViewModel(scope) }
+
     AppTheme {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background,
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                LoginCard()
-            }
-        }
+        LoginContent(
+            email = vm.email,
+            password = vm.password,
+            passwordVisible = vm.passwordVisible,
+            errorMessage = vm.errorMessage,
+            isLoading = vm.isLoading,
+            onEmailChanged = vm::onEmailChanged,
+            onPasswordChanged = vm::onPasswordChanged,
+            onTogglePasswordVisibility = vm::togglePasswordVisibility,
+            onSignIn = vm::signIn,
+        )
     }
 }
 
 @Composable
-private fun LoginCard() {
-    val scope = rememberCoroutineScope()
-    val vm = remember { LoginViewModel(scope) }
-
-    Card(
-        modifier = Modifier.width(400.dp).padding(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
+internal fun LoginContent(
+    email: String,
+    password: String,
+    passwordVisible: Boolean,
+    errorMessage: String?,
+    isLoading: Boolean,
+    onEmailChanged: (String) -> Unit,
+    onPasswordChanged: (String) -> Unit,
+    onTogglePasswordVisibility: () -> Unit,
+    onSignIn: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
     ) {
-        Column(
-            modifier = Modifier.padding(32.dp).fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = "Shell",
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedTextField(
-                value = vm.email,
-                onValueChange = vm::onEmailChanged,
-                label = { Text("メールアドレス") },
-                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Email,
-                    imeAction = ImeAction.Next,
+            Card(
+                modifier = Modifier.width(400.dp).padding(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
                 ),
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !vm.isLoading,
-            )
+            ) {
+                Column(
+                    modifier = Modifier.padding(32.dp).fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Text(
+                        text = "Shell",
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
 
-            OutlinedTextField(
-                value = vm.password,
-                onValueChange = vm::onPasswordChanged,
-                label = { Text("パスワード") },
-                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                trailingIcon = {
-                    IconButton(onClick = vm::togglePasswordVisibility) {
-                        Icon(
-                            if (vm.passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (vm.passwordVisible) "パスワードを隠す" else "パスワードを表示",
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = onEmailChanged,
+                        label = { Text("メールアドレス") },
+                        leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Next,
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !isLoading,
+                    )
+
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = onPasswordChanged,
+                        label = { Text("パスワード") },
+                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                        trailingIcon = {
+                            IconButton(onClick = onTogglePasswordVisibility) {
+                                Icon(
+                                    if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = if (passwordVisible) "パスワードを隠す" else "パスワードを表示",
+                                )
+                            }
+                        },
+                        singleLine = true,
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Done,
+                        ),
+                        keyboardActions = KeyboardActions(onDone = { onSignIn() }),
+                        modifier = Modifier.fillMaxWidth().onPreviewKeyEvent { event ->
+                            if (event.key == Key.Enter && event.type == KeyEventType.KeyUp) {
+                                onSignIn()
+                                true
+                            } else {
+                                false
+                            }
+                        },
+                        enabled = !isLoading,
+                    )
+
+                    if (errorMessage != null) {
+                        Text(
+                            text = errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
                         )
                     }
-                },
-                singleLine = true,
-                visualTransformation = if (vm.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Done,
-                ),
-                keyboardActions = KeyboardActions(onDone = { vm.signIn() }),
-                modifier = Modifier.fillMaxWidth().onPreviewKeyEvent { event ->
-                    if (event.key == Key.Enter && event.type == KeyEventType.KeyUp) {
-                        vm.signIn()
-                        true
-                    } else {
-                        false
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Button(
+                        onClick = onSignIn,
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        enabled = !isLoading,
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                            )
+                        } else {
+                            Text("ログイン")
+                        }
                     }
-                },
-                enabled = !vm.isLoading,
-            )
-
-            if (vm.errorMessage != null) {
-                Text(
-                    text = vm.errorMessage!!,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Button(
-                onClick = vm::signIn,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                enabled = !vm.isLoading,
-            ) {
-                if (vm.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    )
-                } else {
-                    Text("ログイン")
                 }
             }
         }
