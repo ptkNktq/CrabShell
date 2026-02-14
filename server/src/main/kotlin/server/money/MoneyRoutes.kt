@@ -27,14 +27,12 @@ fun Route.moneyRoutes() {
                     .document(month).get().get()
 
                 if (!doc.exists()) {
-                    // ドキュメントが存在しない場合、前月の recurring アイテムをコピー
                     val recurringItems = getRecurringItemsFromPreviousMonth(month)
                     call.respond(MonthlyMoney(month = month, items = recurringItems))
                     return@get
                 }
 
-                val items = parseItems(doc.get("items"))
-                call.respond(MonthlyMoney(month = month, items = items))
+                call.respond(parseMonthlyMoney(month, doc))
             }
 
             put {
@@ -58,22 +56,24 @@ fun Route.moneyRoutes() {
                     return@get
                 }
 
-                val items = parseItems(doc.get("items"))
-                // 自分に割当がある項目のみ
-                val myItems = items.filter { item ->
+                val data = parseMonthlyMoney(month, doc)
+                // 自分に割当がある項目のみ + 自分の支払い記録のみ
+                val myItems = data.items.filter { item ->
                     item.payments.any { it.uid == uid }
                 }
-                call.respond(MonthlyMoney(month = month, items = myItems))
+                val myRecords = data.paymentRecords.filter { it.uid == uid }
+                call.respond(MonthlyMoney(month = month, items = myItems, paymentRecords = myRecords))
             }
         }
 
         // 一般ユーザー: 支払い記録追加
         authenticated {
-            post("items/{itemId}/pay") {
+            post("pay") {
                 val month = call.parameters["month"]!!
-                val itemId = call.parameters["itemId"]!!
                 val uid = call.attributes[FirebaseTokenKey].uid
                 val record = call.receive<PaymentRecord>()
+                // uid をサーバー側で上書き（改ざん防止）
+                val safeRecord = record.copy(uid = uid)
 
                 val doc = firestore.collection(MONEY_COLLECTION)
                     .document(month).get().get()
@@ -83,28 +83,29 @@ fun Route.moneyRoutes() {
                     return@post
                 }
 
-                val items = parseItems(doc.get("items"))
-                val updatedItems = items.map { item ->
-                    if (item.id == itemId) {
-                        val updatedPayments = item.payments.map { payment ->
-                            if (payment.uid == uid) {
-                                payment.copy(records = payment.records + record)
-                            } else {
-                                payment
-                            }
-                        }
-                        item.copy(payments = updatedPayments)
-                    } else {
-                        item
-                    }
-                }
+                val data = parseMonthlyMoney(month, doc)
+                val updated = data.copy(paymentRecords = data.paymentRecords + safeRecord)
+                saveMonthlyMoney(month, updated)
 
-                val data = MonthlyMoney(month = month, items = updatedItems)
-                saveMonthlyMoney(month, data)
-                call.respond(data)
+                // 呼び出し元に自分のデータのみ返す
+                val myItems = updated.items.filter { item ->
+                    item.payments.any { it.uid == uid }
+                }
+                val myRecords = updated.paymentRecords.filter { it.uid == uid }
+                call.respond(MonthlyMoney(month = month, items = myItems, paymentRecords = myRecords))
             }
         }
     }
+}
+
+@Suppress("UNCHECKED_CAST")
+private fun parseMonthlyMoney(
+    month: String,
+    doc: com.google.cloud.firestore.DocumentSnapshot,
+): MonthlyMoney {
+    val items = parseItems(doc.get("items"))
+    val records = parsePaymentRecords(doc.get("paymentRecords"))
+    return MonthlyMoney(month = month, items = items, paymentRecords = records)
 }
 
 private fun saveMonthlyMoney(month: String, data: MonthlyMoney) {
@@ -116,20 +117,18 @@ private fun saveMonthlyMoney(month: String, data: MonthlyMoney) {
             "note" to item.note,
             "recurring" to item.recurring,
             "payments" to item.payments.map { p ->
-                mapOf(
-                    "uid" to p.uid,
-                    "amount" to p.amount,
-                    "records" to p.records.map { r ->
-                        mapOf("amount" to r.amount, "paidAt" to r.paidAt)
-                    },
-                )
+                mapOf("uid" to p.uid, "amount" to p.amount)
             },
         )
     }
 
+    val records = data.paymentRecords.map { r ->
+        mapOf("uid" to r.uid, "amount" to r.amount, "paidAt" to r.paidAt)
+    }
+
     firestore.collection(MONEY_COLLECTION)
         .document(month)
-        .set(mapOf("month" to month, "items" to items))
+        .set(mapOf("month" to month, "items" to items, "paymentRecords" to records))
         .get()
 }
 
@@ -145,18 +144,23 @@ private fun parseItems(raw: Any?): List<MoneyItem> {
             note = entry["note"] as? String ?: "",
             recurring = entry["recurring"] as? Boolean ?: false,
             payments = paymentsRaw.map { p ->
-                val recordsRaw = p["records"] as? List<Map<String, Any?>> ?: emptyList()
                 Payment(
                     uid = p["uid"] as String,
                     amount = (p["amount"] as Number).toLong(),
-                    records = recordsRaw.map { r ->
-                        PaymentRecord(
-                            amount = (r["amount"] as Number).toLong(),
-                            paidAt = r["paidAt"] as String,
-                        )
-                    },
                 )
             },
+        )
+    }
+}
+
+@Suppress("UNCHECKED_CAST")
+private fun parsePaymentRecords(raw: Any?): List<PaymentRecord> {
+    val recordsRaw = raw as? List<Map<String, Any?>> ?: return emptyList()
+    return recordsRaw.map { r ->
+        PaymentRecord(
+            uid = r["uid"] as String,
+            amount = (r["amount"] as Number).toLong(),
+            paidAt = r["paidAt"] as String,
         )
     }
 }
@@ -171,10 +175,6 @@ private fun getRecurringItemsFromPreviousMonth(month: String): List<MoneyItem> {
     return parseItems(prevDoc.get("items"))
         .filter { it.recurring }
         .map { item ->
-            // recurring コピー時は records をリセット
-            item.copy(
-                id = java.util.UUID.randomUUID().toString(),
-                payments = item.payments.map { it.copy(records = emptyList()) },
-            )
+            item.copy(id = java.util.UUID.randomUUID().toString())
         }
 }
