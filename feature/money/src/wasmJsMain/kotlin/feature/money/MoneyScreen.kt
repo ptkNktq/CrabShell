@@ -341,7 +341,7 @@ private fun MoneyItemForm(
 
             OutlinedTextField(
                 value = amountText,
-                onValueChange = { amountText = it.filter { c -> c.isDigit() } },
+                onValueChange = { amountText = it.filter { c -> c.isDigit() || c == '-' } },
                 label = { Text("金額 (円)") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -386,7 +386,7 @@ private fun MoneyItemForm(
                         value = paymentAmounts[user.uid] ?: "",
                         onValueChange = { value ->
                             paymentAmounts = paymentAmounts.toMutableMap().apply {
-                                put(user.uid, value.filter { c -> c.isDigit() })
+                                put(user.uid, value.filter { c -> c.isDigit() || c == '-' })
                             }
                         },
                         label = { Text(user.displayName ?: user.email) },
@@ -431,7 +431,7 @@ private fun MoneyItemForm(
                 }
                 Button(
                     onClick = { onSave(name, amount, note, payments, recurring) },
-                    enabled = name.isNotBlank() && amount > 0 && !saving,
+                    enabled = name.isNotBlank() && amount != 0L && !saving,
                 ) {
                     Text(if (isEditing) "保存" else "追加")
                 }
