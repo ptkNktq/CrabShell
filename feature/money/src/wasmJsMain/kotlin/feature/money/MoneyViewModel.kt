@@ -5,7 +5,6 @@ package feature.money
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.yield
 import core.auth.toJsString
 import core.network.authenticatedClient
 import io.ktor.client.call.*
@@ -122,7 +121,6 @@ class MoneyViewModel(private val scope: CoroutineScope) {
 
     fun saveItem(name: String, amount: Long, note: String, payments: List<Payment>, recurring: Boolean) {
         val existing = editingItem
-        closeDialog()
 
         val newItem = if (existing != null) {
             existing.copy(name = name, amount = amount, note = note, payments = payments, recurring = recurring)
@@ -143,9 +141,10 @@ class MoneyViewModel(private val scope: CoroutineScope) {
             monthlyMoney.items + newItem
         }
 
-        // ダイアログ破棄の recomposition を先に完了させてからデータを更新する
-        // （同一フレームで AlertDialog の DOM 削除とリスト再構築が重なるとフリーズする）
-        deferredSave(monthlyMoney.copy(items = updatedItems))
+        // ダイアログを開いたまま保存し、成功後に閉じる
+        persistAndThen(monthlyMoney.copy(items = updatedItems)) {
+            closeDialog()
+        }
     }
 
     fun requestDelete(item: MoneyItem) {
@@ -158,24 +157,25 @@ class MoneyViewModel(private val scope: CoroutineScope) {
 
     fun confirmDelete() {
         val item = deletingItem ?: return
-        deletingItem = null
         val updatedItems = monthlyMoney.items.filter { it.id != item.id }
-        deferredSave(monthlyMoney.copy(items = updatedItems))
+
+        // 確認ダイアログを開いたまま保存し、成功後に閉じる
+        persistAndThen(monthlyMoney.copy(items = updatedItems)) {
+            deletingItem = null
+        }
     }
 
-    /** 次の描画フレームまで待ってから状態更新 + 永続化する */
-    private fun deferredSave(data: MonthlyMoney) {
+    /** サーバーに保存し、成功したらデータ更新 + onSuccess を実行する */
+    private fun persistAndThen(data: MonthlyMoney, onSuccess: () -> Unit) {
+        saving = true
         scope.launch {
-            // ダイアログ/確認画面の破棄を先に処理させる
-            yield()
-
-            monthlyMoney = data
-            saving = true
             try {
                 authenticatedClient.put("/api/money/${data.month}") {
                     contentType(ContentType.Application.Json)
                     setBody(data)
                 }
+                monthlyMoney = data
+                onSuccess()
             } catch (e: Exception) {
                 error = e.message
             } finally {

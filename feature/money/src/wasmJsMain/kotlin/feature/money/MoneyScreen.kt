@@ -184,6 +184,7 @@ internal fun MoneyContent(
         MoneyItemDialog(
             item = editingItem,
             users = users,
+            saving = saving,
             onSave = onSaveItem,
             onDismiss = onCloseDialog,
         )
@@ -191,16 +192,24 @@ internal fun MoneyContent(
 
     if (deletingItem != null) {
         AlertDialog(
-            onDismissRequest = onCancelDelete,
+            onDismissRequest = { if (!saving) onCancelDelete() },
             title = { Text("削除の確認") },
-            text = { Text("「${deletingItem.name}」を削除しますか？") },
+            text = {
+                Column {
+                    Text("「${deletingItem.name}」を削除しますか？")
+                    if (saving) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
+                }
+            },
             confirmButton = {
-                TextButton(onClick = onConfirmDelete) {
+                TextButton(onClick = onConfirmDelete, enabled = !saving) {
                     Text("削除", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = onCancelDelete) {
+                TextButton(onClick = onCancelDelete, enabled = !saving) {
                     Text("キャンセル")
                 }
             },
@@ -423,6 +432,7 @@ private fun MoneyItemCard(
 private fun MoneyItemDialog(
     item: MoneyItem?,
     users: List<User>,
+    saving: Boolean,
     onSave: (String, Long, String, List<Payment>, Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -447,19 +457,23 @@ private fun MoneyItemDialog(
     val mismatch = payments.isNotEmpty() && paymentTotal != amount
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!saving) onDismiss() },
         title = { Text(if (item != null) "項目を編集" else "項目を追加") },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                if (saving) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text("項目名") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    enabled = !saving,
                 )
 
                 OutlinedTextField(
@@ -541,13 +555,13 @@ private fun MoneyItemDialog(
         confirmButton = {
             TextButton(
                 onClick = { onSave(name, amount, note, payments, recurring) },
-                enabled = name.isNotBlank() && amount > 0,
+                enabled = name.isNotBlank() && amount > 0 && !saving,
             ) {
                 Text("保存")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, enabled = !saving) {
                 Text("キャンセル")
             }
         },
