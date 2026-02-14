@@ -18,6 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import core.ui.LocalWindowSizeClass
+import core.ui.WindowSizeClass
 import core.ui.theme.FeedingDoneColor
 import core.ui.theme.color
 import core.ui.theme.displayExLarge
@@ -39,6 +41,7 @@ private val CardHeaderMinHeight = 48.dp
 fun DashboardScreen() {
     val scope = rememberCoroutineScope()
     val vm = remember { DashboardViewModel(scope) }
+    val windowSizeClass = LocalWindowSizeClass.current
 
     DashboardContent(
         loading = vm.loading,
@@ -48,6 +51,7 @@ fun DashboardScreen() {
         todayGarbageTypes = vm.todayGarbageTypes,
         onFeedClick = { vm.feed(it) },
         onDateChanged = { vm.refreshGarbageForToday() },
+        windowSizeClass = windowSizeClass,
     )
 }
 
@@ -60,9 +64,12 @@ internal fun DashboardContent(
     todayGarbageTypes: List<GarbageType>,
     onFeedClick: (MealTime) -> Unit,
     onDateChanged: () -> Unit,
+    windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier.fillMaxSize().padding(
+            if (windowSizeClass == WindowSizeClass.Compact) 12.dp else 24.dp
+        ),
     ) {
         when {
             loading -> {
@@ -76,24 +83,45 @@ internal fun DashboardContent(
             }
 
             else -> {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(IntrinsicSize.Max)
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    DateTimeCard(
-                        garbageTypes = todayGarbageTypes,
-                        onDateChanged = onDateChanged,
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
-                    )
-                    DailyFeedingCard(
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
-                        feedingLog = feedingLog,
-                        petName = petName,
-                        onFeedClick = onFeedClick,
-                    )
+                if (windowSizeClass == WindowSizeClass.Expanded) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Max)
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        DateTimeCard(
+                            garbageTypes = todayGarbageTypes,
+                            onDateChanged = onDateChanged,
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                        )
+                        DailyFeedingCard(
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            feedingLog = feedingLog,
+                            petName = petName,
+                            onFeedClick = onFeedClick,
+                        )
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(if (windowSizeClass == WindowSizeClass.Compact) 0.dp else 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(0.dp)
+                    ) {
+                        DateTimeCard(
+                            garbageTypes = todayGarbageTypes,
+                            onDateChanged = onDateChanged,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        DailyFeedingCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            feedingLog = feedingLog,
+                            petName = petName,
+                            onFeedClick = onFeedClick,
+                        )
+                    }
                 }
             }
         }
