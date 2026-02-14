@@ -62,6 +62,10 @@ class MoneyViewModel(private val scope: CoroutineScope) {
     var showDialog by mutableStateOf(false)
         private set
 
+    // 削除確認ダイアログ状態
+    var deletingItem by mutableStateOf<MoneyItem?>(null)
+        private set
+
     init {
         loadUsers()
         loadMonth(currentMonth)
@@ -143,7 +147,17 @@ class MoneyViewModel(private val scope: CoroutineScope) {
         saveMonthlyMoney(monthlyMoney.copy(items = updatedItems))
     }
 
-    fun deleteItem(item: MoneyItem) {
+    fun requestDelete(item: MoneyItem) {
+        deletingItem = item
+    }
+
+    fun cancelDelete() {
+        deletingItem = null
+    }
+
+    fun confirmDelete() {
+        val item = deletingItem ?: return
+        deletingItem = null
         val updatedItems = monthlyMoney.items.filter { it.id != item.id }
         saveMonthlyMoney(monthlyMoney.copy(items = updatedItems))
     }
