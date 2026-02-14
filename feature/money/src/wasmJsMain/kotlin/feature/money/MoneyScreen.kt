@@ -44,7 +44,7 @@ fun MoneyScreen() {
         onAddItem = { vm.openAddDialog() },
         onEditItem = { vm.openEditDialog(it) },
         onDeleteItem = { vm.requestDelete(it) },
-        onSaveItem = { name, amount, note, payments -> vm.saveItem(name, amount, note, payments) },
+        onSaveItem = { name, amount, note, payments, recurring -> vm.saveItem(name, amount, note, payments, recurring) },
         onCloseDialog = { vm.closeDialog() },
         deletingItem = vm.deletingItem,
         onConfirmDelete = { vm.confirmDelete() },
@@ -68,7 +68,7 @@ internal fun MoneyContent(
     onAddItem: () -> Unit,
     onEditItem: (MoneyItem) -> Unit,
     onDeleteItem: (MoneyItem) -> Unit,
-    onSaveItem: (String, Long, String, List<Payment>) -> Unit,
+    onSaveItem: (String, Long, String, List<Payment>, Boolean) -> Unit,
     onCloseDialog: () -> Unit,
     deletingItem: MoneyItem?,
     onConfirmDelete: () -> Unit,
@@ -312,10 +312,28 @@ private fun MoneyItemCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = item.name,
-                        style = MaterialTheme.typography.titleMedium,
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            text = item.name,
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        if (item.recurring) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                shape = MaterialTheme.shapes.small,
+                            ) {
+                                Text(
+                                    text = "毎月",
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                )
+                            }
+                        }
+                    }
                     Text(
                         text = "¥${formatAmount(item.amount)}",
                         style = MaterialTheme.typography.headlineSmall,
@@ -397,12 +415,13 @@ private fun MoneyItemCard(
 private fun MoneyItemDialog(
     item: MoneyItem?,
     users: List<User>,
-    onSave: (String, Long, String, List<Payment>) -> Unit,
+    onSave: (String, Long, String, List<Payment>, Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var name by remember(item) { mutableStateOf(item?.name ?: "") }
     var amountText by remember(item) { mutableStateOf(item?.amount?.toString() ?: "") }
     var note by remember(item) { mutableStateOf(item?.note ?: "") }
+    var recurring by remember(item) { mutableStateOf(item?.recurring ?: false) }
     var paymentAmounts by remember(item) {
         mutableStateOf(
             users.associate { user ->
@@ -453,6 +472,21 @@ private fun MoneyItemDialog(
                     maxLines = 3,
                 )
 
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = "毎月繰り返し",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Switch(
+                        checked = recurring,
+                        onCheckedChange = { recurring = it },
+                    )
+                }
+
                 if (users.isNotEmpty()) {
                     Text(
                         text = "支払い分担",
@@ -498,7 +532,7 @@ private fun MoneyItemDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { onSave(name, amount, note, payments) },
+                onClick = { onSave(name, amount, note, payments, recurring) },
                 enabled = name.isNotBlank() && amount > 0,
             ) {
                 Text("保存")
