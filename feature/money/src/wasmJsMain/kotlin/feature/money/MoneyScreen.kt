@@ -38,7 +38,6 @@ fun MoneyScreen() {
         currentMonth = vm.currentMonth,
         loading = vm.loading,
         saving = vm.saving,
-        saveCompleted = vm.saveCompleted,
         error = vm.error,
         users = vm.users,
         showDialog = vm.showDialog,
@@ -53,7 +52,6 @@ fun MoneyScreen() {
         deletingItem = vm.deletingItem,
         onConfirmDelete = { vm.confirmDelete() },
         onCancelDelete = { vm.cancelDelete() },
-        onDismissDelete = { vm.dismissDelete() },
         windowSizeClass = windowSizeClass,
     )
 }
@@ -64,7 +62,6 @@ internal fun MoneyContent(
     currentMonth: String,
     loading: Boolean,
     saving: Boolean,
-    saveCompleted: Boolean,
     error: String?,
     users: List<User>,
     showDialog: Boolean,
@@ -79,97 +76,133 @@ internal fun MoneyContent(
     deletingItem: MoneyItem?,
     onConfirmDelete: () -> Unit,
     onCancelDelete: () -> Unit,
-    onDismissDelete: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(if (isCompact) 12.dp else 24.dp),
-        ) {
-            Text(
-                text = "お金の管理",
-                style = if (isCompact) MaterialTheme.typography.headlineSmall
-                else MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
-
-            Spacer(modifier = Modifier.height(if (isCompact) 8.dp else 16.dp))
-
-            MonthSelector(
-                month = currentMonth,
-                onPrevious = onPreviousMonth,
-                onNext = onNextMonth,
-            )
-
-            Spacer(modifier = Modifier.height(if (isCompact) 8.dp else 16.dp))
-
-            when {
-                loading -> {
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator()
-                    }
+        if (isCompact) {
+            // Compact: フォーム表示時はフォームのみ、非表示時はリストのみ
+            if (showDialog) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(12.dp),
+                ) {
+                    Text(
+                        text = if (editingItem != null) "項目を編集" else "項目を追加",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    MoneyItemForm(
+                        item = editingItem,
+                        users = users,
+                        saving = saving,
+                        onSave = onSaveItem,
+                        onCancel = onCloseDialog,
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                    )
                 }
-
-                error != null -> {
-                    Text("エラー: $error", color = MaterialTheme.colorScheme.error)
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(12.dp),
+                ) {
+                    Text(
+                        text = "お金の管理",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    MonthSelector(
+                        month = currentMonth,
+                        onPrevious = onPreviousMonth,
+                        onNext = onNextMonth,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    MoneyListContent(
+                        monthlyMoney = monthlyMoney,
+                        loading = loading,
+                        error = error,
+                        users = users,
+                        isCompact = true,
+                        onEditItem = onEditItem,
+                        onDeleteItem = onDeleteItem,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
+            }
+        } else {
+            // Medium/Expanded: 左にリスト、右にフォーム
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+            ) {
+                Text(
+                    text = "お金の管理",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                MonthSelector(
+                    month = currentMonth,
+                    onPrevious = onPreviousMonth,
+                    onNext = onNextMonth,
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                ) {
+                    MoneyListContent(
+                        monthlyMoney = monthlyMoney,
+                        loading = loading,
+                        error = error,
+                        users = users,
+                        isCompact = false,
+                        onEditItem = onEditItem,
+                        onDeleteItem = onDeleteItem,
+                        modifier = Modifier.weight(1f),
+                    )
 
-                else -> {
-                    val spacing = if (isCompact) 8.dp else 12.dp
+                    Spacer(modifier = Modifier.width(24.dp))
 
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(spacing),
-                        contentPadding = PaddingValues(bottom = 80.dp),
-                    ) {
-                        item(key = "summary") {
-                            SummaryCard(
-                                items = monthlyMoney.items,
-                                users = users,
-                                paymentRecords = monthlyMoney.paymentRecords,
-                                isCompact = isCompact,
-                            )
-                        }
-
-                        if (monthlyMoney.items.isEmpty()) {
-                            item(key = "empty") {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth().padding(32.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        text = "この月のデータはありません",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
+                    if (showDialog) {
+                        MoneyItemForm(
+                            item = editingItem,
+                            users = users,
+                            saving = saving,
+                            onSave = onSaveItem,
+                            onCancel = onCloseDialog,
+                            modifier = Modifier.width(400.dp),
+                        )
+                    } else {
+                        // プレースホルダー
+                        Card(
+                            modifier = Modifier.width(400.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            ),
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = "＋ ボタンで項目を追加",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                             }
-                        }
-
-                        items(monthlyMoney.items, key = { it.id }) { item ->
-                            MoneyItemCard(
-                                item = item,
-                                users = users,
-                                onEdit = { onEditItem(item) },
-                                onDelete = { onDeleteItem(item) },
-                                isCompact = isCompact,
-                            )
                         }
                     }
                 }
             }
         }
 
-        if (!loading && error == null) {
+        if (!loading && error == null && !(isCompact && showDialog)) {
             FloatingActionButton(
                 onClick = onAddItem,
                 modifier = Modifier
@@ -186,55 +219,258 @@ internal fun MoneyContent(
         }
     }
 
-    if (showDialog) {
-        MoneyItemDialog(
-            item = editingItem,
-            users = users,
-            saving = saving,
-            saveCompleted = saveCompleted,
-            onSave = onSaveItem,
-            onDismiss = onCloseDialog,
-        )
-    }
-
+    // 削除確認ダイアログ
     if (deletingItem != null) {
         AlertDialog(
-            onDismissRequest = { if (!saving) onDismissDelete() },
-            title = {
-                Text(if (saveCompleted) "削除完了" else "削除の確認")
-            },
+            onDismissRequest = { if (!saving) onCancelDelete() },
+            title = { Text("削除の確認") },
             text = {
                 Column {
-                    if (saveCompleted) {
-                        Text("「${deletingItem.name}」を削除しました。")
-                    } else {
-                        Text("「${deletingItem.name}」を削除しますか？")
-                        if (saving) {
-                            Spacer(modifier = Modifier.height(12.dp))
-                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                        }
+                    Text("「${deletingItem.name}」を削除しますか？")
+                    if (saving) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     }
                 }
             },
             confirmButton = {
-                if (saveCompleted) {
-                    TextButton(onClick = onDismissDelete) {
-                        Text("閉じる")
-                    }
-                } else {
-                    TextButton(onClick = onConfirmDelete, enabled = !saving) {
-                        Text("削除", color = MaterialTheme.colorScheme.error)
-                    }
+                TextButton(onClick = onConfirmDelete, enabled = !saving) {
+                    Text("削除", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                if (!saveCompleted) {
-                    TextButton(onClick = onCancelDelete, enabled = !saving) {
-                        Text("キャンセル")
-                    }
+                TextButton(onClick = onCancelDelete, enabled = !saving) {
+                    Text("キャンセル")
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun MoneyListContent(
+    monthlyMoney: MonthlyMoney,
+    loading: Boolean,
+    error: String?,
+    users: List<User>,
+    isCompact: Boolean,
+    onEditItem: (MoneyItem) -> Unit,
+    onDeleteItem: (MoneyItem) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    when {
+        loading -> {
+            Box(
+                modifier = modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+
+        error != null -> {
+            Box(modifier = modifier) {
+                Text("エラー: $error", color = MaterialTheme.colorScheme.error)
+            }
+        }
+
+        else -> {
+            val spacing = if (isCompact) 8.dp else 12.dp
+            LazyColumn(
+                modifier = modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(spacing),
+                contentPadding = PaddingValues(bottom = 80.dp),
+            ) {
+                item(key = "summary") {
+                    SummaryCard(
+                        items = monthlyMoney.items,
+                        users = users,
+                        paymentRecords = monthlyMoney.paymentRecords,
+                        isCompact = isCompact,
+                    )
+                }
+
+                if (monthlyMoney.items.isEmpty()) {
+                    item(key = "empty") {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(32.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "この月のデータはありません",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+
+                items(monthlyMoney.items, key = { it.id }) { item ->
+                    MoneyItemCard(
+                        item = item,
+                        users = users,
+                        onEdit = { onEditItem(item) },
+                        onDelete = { onDeleteItem(item) },
+                        isCompact = isCompact,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MoneyItemForm(
+    item: MoneyItem?,
+    users: List<User>,
+    saving: Boolean,
+    onSave: (String, Long, String, List<Payment>, Boolean) -> Unit,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var name by remember(item) { mutableStateOf(item?.name ?: "") }
+    var amountText by remember(item) { mutableStateOf(item?.amount?.toString() ?: "") }
+    var note by remember(item) { mutableStateOf(item?.note ?: "") }
+    var recurring by remember(item) { mutableStateOf(item?.recurring ?: false) }
+    var paymentAmounts by remember(item) {
+        mutableStateOf(
+            users.associate { user ->
+                user.uid to (item?.payments?.find { it.uid == user.uid }?.amount?.toString() ?: "")
+            }
+        )
+    }
+
+    val amount = amountText.toLongOrNull() ?: 0L
+    val payments = paymentAmounts.mapNotNull { (uid, text) ->
+        val a = text.toLongOrNull()
+        if (a != null && a > 0) Payment(uid, a) else null
+    }
+    val paymentTotal = payments.sumOf { it.amount }
+    val mismatch = payments.isNotEmpty() && paymentTotal != amount
+
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = if (item != null) "項目を編集" else "項目を追加",
+                style = MaterialTheme.typography.titleLarge,
+            )
+
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("項目名") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                enabled = !saving,
+            )
+
+            OutlinedTextField(
+                value = amountText,
+                onValueChange = { amountText = it.filter { c -> c.isDigit() } },
+                label = { Text("金額 (円)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                enabled = !saving,
+            )
+
+            OutlinedTextField(
+                value = note,
+                onValueChange = { note = it },
+                label = { Text("備考") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 1,
+                maxLines = 3,
+                enabled = !saving,
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = "毎月繰り返し",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Switch(
+                    checked = recurring,
+                    onCheckedChange = { recurring = it },
+                    enabled = !saving,
+                )
+            }
+
+            if (users.isNotEmpty()) {
+                Text(
+                    text = "支払い分担",
+                    style = MaterialTheme.typography.titleSmall,
+                )
+
+                for (user in users) {
+                    OutlinedTextField(
+                        value = paymentAmounts[user.uid] ?: "",
+                        onValueChange = { value ->
+                            paymentAmounts = paymentAmounts.toMutableMap().apply {
+                                put(user.uid, value.filter { c -> c.isDigit() })
+                            }
+                        },
+                        label = { Text(user.displayName ?: user.email) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        suffix = { Text("円") },
+                        enabled = !saving,
+                    )
+                }
+
+                if (mismatch) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Text(
+                            text = "支払い合計 ¥${formatAmount(paymentTotal)} / 金額 ¥${formatAmount(amount)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = onCancel, enabled = !saving) {
+                    Text("キャンセル")
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(
+                    onClick = { onSave(name, amount, note, payments, recurring) },
+                    enabled = name.isNotBlank() && amount > 0 && !saving,
+                ) {
+                    Text("保存")
+                }
+            }
+        }
     }
 }
 
@@ -458,167 +694,6 @@ private fun MoneyItemCard(
             }
         }
     }
-}
-
-@Composable
-private fun MoneyItemDialog(
-    item: MoneyItem?,
-    users: List<User>,
-    saving: Boolean,
-    saveCompleted: Boolean,
-    onSave: (String, Long, String, List<Payment>, Boolean) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var name by remember(item) { mutableStateOf(item?.name ?: "") }
-    var amountText by remember(item) { mutableStateOf(item?.amount?.toString() ?: "") }
-    var note by remember(item) { mutableStateOf(item?.note ?: "") }
-    var recurring by remember(item) { mutableStateOf(item?.recurring ?: false) }
-    var paymentAmounts by remember(item) {
-        mutableStateOf(
-            users.associate { user ->
-                user.uid to (item?.payments?.find { it.uid == user.uid }?.amount?.toString() ?: "")
-            }
-        )
-    }
-
-    val amount = amountText.toLongOrNull() ?: 0L
-    val payments = paymentAmounts.mapNotNull { (uid, text) ->
-        val a = text.toLongOrNull()
-        if (a != null && a > 0) Payment(uid, a) else null
-    }
-    val paymentTotal = payments.sumOf { it.amount }
-    val mismatch = payments.isNotEmpty() && paymentTotal != amount
-    val inputDisabled = saving || saveCompleted
-
-    AlertDialog(
-        onDismissRequest = { if (!saving) onDismiss() },
-        title = {
-            Text(
-                when {
-                    saveCompleted -> "保存完了"
-                    item != null -> "項目を編集"
-                    else -> "項目を追加"
-                }
-            )
-        },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                if (saving) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                }
-                if (saveCompleted) {
-                    Text("保存しました。")
-                }
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("項目名") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    enabled = !inputDisabled,
-                )
-
-                OutlinedTextField(
-                    value = amountText,
-                    onValueChange = { amountText = it.filter { c -> c.isDigit() } },
-                    label = { Text("金額 (円)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                )
-
-                OutlinedTextField(
-                    value = note,
-                    onValueChange = { note = it },
-                    label = { Text("備考") },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 1,
-                    maxLines = 3,
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        text = "毎月繰り返し",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Switch(
-                        checked = recurring,
-                        onCheckedChange = { recurring = it },
-                    )
-                }
-
-                if (users.isNotEmpty()) {
-                    Text(
-                        text = "支払い分担",
-                        style = MaterialTheme.typography.titleSmall,
-                    )
-
-                    for (user in users) {
-                        OutlinedTextField(
-                            value = paymentAmounts[user.uid] ?: "",
-                            onValueChange = { value ->
-                                paymentAmounts = paymentAmounts.toMutableMap().apply {
-                                    put(user.uid, value.filter { c -> c.isDigit() })
-                                }
-                            },
-                            label = { Text(user.displayName ?: user.email) },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            suffix = { Text("円") },
-                        )
-                    }
-
-                    if (mismatch) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            Icon(
-                                Icons.Default.Warning,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(16.dp),
-                            )
-                            Text(
-                                text = "支払い合計 ¥${formatAmount(paymentTotal)} / 金額 ¥${formatAmount(amount)}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            if (saveCompleted) {
-                TextButton(onClick = onDismiss) {
-                    Text("閉じる")
-                }
-            } else {
-                TextButton(
-                    onClick = { onSave(name, amount, note, payments, recurring) },
-                    enabled = name.isNotBlank() && amount > 0 && !saving,
-                ) {
-                    Text("保存")
-                }
-            }
-        },
-        dismissButton = {
-            if (!saveCompleted) {
-                TextButton(onClick = onDismiss, enabled = !saving) {
-                    Text("キャンセル")
-                }
-            }
-        },
-    )
 }
 
 private fun formatAmount(amount: Long): String {
