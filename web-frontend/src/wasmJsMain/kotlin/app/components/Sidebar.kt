@@ -72,30 +72,12 @@ fun Sidebar(
                 )
             }
 
-            // ログアウトボタン
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 2.dp)
-                    .clickable(onClick = onSignOut)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Logout,
-                    contentDescription = "ログアウト",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-                if (effectiveExpanded) {
-                    Text(
-                        text = "ログアウト",
-                        modifier = Modifier.padding(start = 16.dp),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                    )
-                }
-            }
+            SidebarItem(
+                icon = Icons.Default.Logout,
+                label = "ログアウト",
+                expanded = effectiveExpanded,
+                onClick = onSignOut,
+            )
 
             // バージョン表示
             Text(
