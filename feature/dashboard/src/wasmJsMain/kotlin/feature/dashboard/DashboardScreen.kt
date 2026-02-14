@@ -27,11 +27,6 @@ import core.ui.theme.displayExLarge
 import core.ui.theme.displayOrder
 import core.ui.theme.icon
 import core.ui.theme.label
-import core.ui.util.currentTimeJs
-import core.ui.util.currentYearJs
-import core.ui.util.formattedTodayJs
-import core.ui.util.todayDateJs
-import kotlinx.coroutines.delay
 import model.FeedingLog
 import model.GarbageType
 import model.MealTime
@@ -50,6 +45,9 @@ fun DashboardScreen() {
         feedingLog = vm.feedingLog,
         petName = vm.pet?.name,
         todayGarbageTypes = vm.todayGarbageTypes,
+        currentTime = vm.currentTime,
+        currentYear = vm.currentYear,
+        dateWithDay = vm.dateWithDay,
         onFeedClick = { vm.feed(it) },
         onRefreshFeeding = { vm.refreshFeeding() },
         windowSizeClass = windowSizeClass,
@@ -63,6 +61,9 @@ internal fun DashboardContent(
     feedingLog: FeedingLog,
     petName: String?,
     todayGarbageTypes: List<GarbageType>,
+    currentTime: String,
+    currentYear: String,
+    dateWithDay: String,
     onFeedClick: (MealTime) -> Unit,
     onRefreshFeeding: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
@@ -94,6 +95,9 @@ internal fun DashboardContent(
                     ) {
                         DateTimeCard(
                             garbageTypes = todayGarbageTypes,
+                            currentTime = currentTime,
+                            currentYear = currentYear,
+                            dateWithDay = dateWithDay,
                             modifier = Modifier.weight(1f).fillMaxHeight(),
                         )
                         DailyFeedingCard(
@@ -113,6 +117,9 @@ internal fun DashboardContent(
                     ) {
                         DateTimeCard(
                             garbageTypes = todayGarbageTypes,
+                            currentTime = currentTime,
+                            currentYear = currentYear,
+                            dateWithDay = dateWithDay,
                             modifier = Modifier.fillMaxWidth(),
                         )
                         DailyFeedingCard(
@@ -132,26 +139,11 @@ internal fun DashboardContent(
 @Composable
 fun DateTimeCard(
     garbageTypes: List<GarbageType>,
+    currentTime: String,
+    currentYear: String,
+    dateWithDay: String,
     modifier: Modifier = Modifier,
 ) {
-    var currentTime by remember { mutableStateOf(currentTimeJs().toString()) }
-    var year by remember { mutableStateOf(currentYearJs().toString()) }
-    var dateWithDay by remember { mutableStateOf(formattedTodayJs().toString()) }
-    var trackedDate by remember { mutableStateOf(todayDateJs().toString()) }
-
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(10_000)
-            currentTime = currentTimeJs().toString()
-            val newDate = todayDateJs().toString()
-            if (newDate != trackedDate) {
-                trackedDate = newDate
-                year = currentYearJs().toString()
-                dateWithDay = formattedTodayJs().toString()
-            }
-        }
-    }
-
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -172,7 +164,7 @@ fun DateTimeCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "$year $dateWithDay",
+                    text = "$currentYear $dateWithDay",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
