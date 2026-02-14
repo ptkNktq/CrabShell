@@ -62,10 +62,6 @@ class MoneyViewModel(private val scope: CoroutineScope) {
     var showDialog by mutableStateOf(false)
         private set
 
-    // 保存完了フラグ（ダイアログ内で表示用）
-    var saveCompleted by mutableStateOf(false)
-        private set
-
     // 削除確認ダイアログ状態
     var deletingItem by mutableStateOf<MoneyItem?>(null)
         private set
@@ -110,20 +106,17 @@ class MoneyViewModel(private val scope: CoroutineScope) {
 
     fun openAddDialog() {
         editingItem = null
-        saveCompleted = false
         showDialog = true
     }
 
     fun openEditDialog(item: MoneyItem) {
         editingItem = item
-        saveCompleted = false
         showDialog = true
     }
 
     fun closeDialog() {
         showDialog = false
         editingItem = null
-        saveCompleted = false
     }
 
     fun saveItem(name: String, amount: Long, note: String, payments: List<Payment>, recurring: Boolean) {
@@ -148,35 +141,26 @@ class MoneyViewModel(private val scope: CoroutineScope) {
             monthlyMoney.items + newItem
         }
 
-        // ダイアログを開いたまま保存し、完了表示する（ユーザーが手動で閉じる）
         persistAndThen(monthlyMoney.copy(items = updatedItems)) {
-            saveCompleted = true
+            closeDialog()
         }
     }
 
     fun requestDelete(item: MoneyItem) {
         deletingItem = item
-        saveCompleted = false
     }
 
     fun cancelDelete() {
         deletingItem = null
-        saveCompleted = false
     }
 
     fun confirmDelete() {
         val item = deletingItem ?: return
         val updatedItems = monthlyMoney.items.filter { it.id != item.id }
 
-        // 確認ダイアログを開いたまま保存し、完了表示する
         persistAndThen(monthlyMoney.copy(items = updatedItems)) {
-            saveCompleted = true
+            deletingItem = null
         }
-    }
-
-    fun dismissDelete() {
-        deletingItem = null
-        saveCompleted = false
     }
 
     /** サーバーに保存し、成功したらデータ更新 + onSuccess を実行する */
