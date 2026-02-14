@@ -13,8 +13,18 @@ import kotlinx.coroutines.launch
 import model.CollectionFrequency
 import model.GarbageType
 import model.GarbageTypeSchedule
+import model.UpdateDisplayNameRequest
+import model.User
 
-class SettingsViewModel(private val scope: CoroutineScope) {
+class SettingsViewModel(private val scope: CoroutineScope, isAdmin: Boolean = false) {
+    // ユーザー名管理
+    var users by mutableStateOf<List<User>>(emptyList())
+        private set
+    var usersSaving by mutableStateOf(false)
+        private set
+    var usersMessage by mutableStateOf<String?>(null)
+        private set
+
     // パスワード変更
     var currentPassword by mutableStateOf("")
         private set
@@ -42,6 +52,7 @@ class SettingsViewModel(private val scope: CoroutineScope) {
         private set
 
     init {
+        if (isAdmin) loadUsers()
         loadGarbageSchedule()
     }
 
@@ -156,6 +167,37 @@ class SettingsViewModel(private val scope: CoroutineScope) {
                 garbageMessage = "保存に失敗しました: ${e.message}"
             } finally {
                 garbageSaving = false
+            }
+        }
+    }
+
+    // --- ユーザー名管理 ---
+
+    private fun loadUsers() {
+        scope.launch {
+            try {
+                users = authenticatedClient.get("/api/users").body()
+            } catch (_: Exception) {
+                // 読み込み失敗は空リストのまま
+            }
+        }
+    }
+
+    fun updateDisplayName(uid: String, displayName: String) {
+        usersSaving = true
+        usersMessage = null
+        scope.launch {
+            try {
+                val updated: User = authenticatedClient.put("/api/users/$uid/name") {
+                    contentType(ContentType.Application.Json)
+                    setBody(UpdateDisplayNameRequest(displayName))
+                }.body()
+                users = users.map { if (it.uid == uid) updated else it }
+                usersMessage = "保存しました"
+            } catch (e: Exception) {
+                usersMessage = "保存に失敗しました: ${e.message}"
+            } finally {
+                usersSaving = false
             }
         }
     }
