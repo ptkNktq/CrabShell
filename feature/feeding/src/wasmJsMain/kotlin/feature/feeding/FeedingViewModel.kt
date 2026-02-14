@@ -3,15 +3,12 @@ package feature.feeding
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import core.network.authenticatedClient
+import core.network.FeedingRepository
+import core.network.PetRepository
 import core.ui.util.shiftDateJs
 import core.ui.util.todayDateJs
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import io.ktor.http.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import model.Feeding
 import model.FeedingLog
 import model.MealTime
 import model.Pet
@@ -33,8 +30,7 @@ class FeedingViewModel(private val scope: CoroutineScope) {
     init {
         scope.launch {
             try {
-                val pets: List<Pet> = authenticatedClient.get("/api/pets").body()
-                pet = pets.firstOrNull()
+                pet = PetRepository.getPets().firstOrNull()
                 loadLog(selectedDate)
             } catch (e: Exception) {
                 error = e.message
@@ -50,7 +46,7 @@ class FeedingViewModel(private val scope: CoroutineScope) {
         error = null
         scope.launch {
             try {
-                log = authenticatedClient.get("/api/pets/$petId/feeding/$date").body()
+                log = FeedingRepository.getFeedingLog(petId, date)
                 noteDraft = log.note
                 loading = false
             } catch (e: Exception) {
@@ -64,10 +60,7 @@ class FeedingViewModel(private val scope: CoroutineScope) {
         val petId = pet?.id ?: return
         scope.launch {
             try {
-                val feeding: Feeding =
-                    authenticatedClient.put(
-                        "/api/pets/$petId/feeding/$selectedDate/${mealTime.name.lowercase()}",
-                    ).body()
+                val feeding = FeedingRepository.feed(petId, selectedDate, mealTime)
                 log =
                     log.copy(
                         feedings = log.feedings.toMutableMap().apply { put(mealTime, feeding) },
@@ -86,10 +79,7 @@ class FeedingViewModel(private val scope: CoroutineScope) {
         val petId = pet?.id ?: return
         scope.launch {
             try {
-                authenticatedClient.put("/api/pets/$petId/feeding/$selectedDate/note") {
-                    contentType(ContentType.Application.Json)
-                    setBody(mapOf("note" to noteDraft))
-                }
+                FeedingRepository.updateNote(petId, selectedDate, noteDraft)
                 log = log.copy(note = noteDraft)
             } catch (e: Exception) {
                 error = e.message

@@ -6,10 +6,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import core.auth.toJsString
-import core.network.authenticatedClient
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import io.ktor.http.*
+import core.network.MoneyRepository
+import core.network.UserRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import model.MoneyItem
@@ -79,7 +77,7 @@ class MoneyViewModel(private val scope: CoroutineScope) {
     private fun loadUsers() {
         scope.launch {
             try {
-                users = authenticatedClient.get("/api/users").body()
+                users = UserRepository.getUsers()
             } catch (_: Exception) {
                 // ユーザー一覧取得失敗は無視
             }
@@ -92,7 +90,7 @@ class MoneyViewModel(private val scope: CoroutineScope) {
         error = null
         scope.launch {
             try {
-                monthlyMoney = authenticatedClient.get("/api/money/$month").body()
+                monthlyMoney = MoneyRepository.getMonthlyMoney(month)
                 loading = false
             } catch (e: Exception) {
                 error = e.message
@@ -169,10 +167,7 @@ class MoneyViewModel(private val scope: CoroutineScope) {
         saving = true
         scope.launch {
             try {
-                authenticatedClient.put("/api/money/${data.month}") {
-                    contentType(ContentType.Application.Json)
-                    setBody(data)
-                }
+                MoneyRepository.saveMonthlyMoney(data)
                 monthlyMoney = data
                 onSuccess()
             } catch (e: Exception) {

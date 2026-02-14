@@ -12,6 +12,7 @@ kotlin {
     sourceSets {
         wasmJsMain.dependencies {
             implementation(project(":core:auth"))
+            implementation(project(":shared"))
 
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)
