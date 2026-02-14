@@ -63,6 +63,7 @@ kotlin {
             implementation(project(":feature:auth"))
             implementation(project(":feature:dashboard"))
             implementation(project(":feature:feeding"))
+            implementation(project(":feature:money"))
             implementation(project(":feature:settings"))
         }
     }
