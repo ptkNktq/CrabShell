@@ -128,8 +128,9 @@ class MoneyViewModel(private val scope: CoroutineScope) {
             monthlyMoney.items + newItem
         }
 
+        val isNew = existing == null
         persistAndThen(monthlyMoney.copy(items = updatedItems)) {
-            clearForm()
+            if (isNew) clearForm()
         }
     }
 
