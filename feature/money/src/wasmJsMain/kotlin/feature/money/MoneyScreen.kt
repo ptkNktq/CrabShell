@@ -1,6 +1,8 @@
 package feature.money
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -115,33 +117,38 @@ internal fun MoneyContent(
                 }
 
                 else -> {
-                    Column(
+                    val spacing = if (isCompact) 8.dp else 12.dp
+
+                    LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f)
-                            .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(if (isCompact) 8.dp else 12.dp),
+                            .weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(spacing),
                     ) {
-                        SummaryCard(
-                            items = monthlyMoney.items,
-                            users = users,
-                            isCompact = isCompact,
-                        )
+                        item(key = "summary") {
+                            SummaryCard(
+                                items = monthlyMoney.items,
+                                users = users,
+                                isCompact = isCompact,
+                            )
+                        }
 
                         if (monthlyMoney.items.isEmpty()) {
-                            Box(
-                                modifier = Modifier.fillMaxWidth().padding(32.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    text = "この月のデータはありません",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
+                            item(key = "empty") {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(32.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        text = "この月のデータはありません",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
                             }
                         }
 
-                        for (item in monthlyMoney.items) {
+                        items(monthlyMoney.items, key = { it.id }) { item ->
                             MoneyItemCard(
                                 item = item,
                                 users = users,
