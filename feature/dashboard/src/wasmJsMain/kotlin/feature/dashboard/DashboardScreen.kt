@@ -40,18 +40,39 @@ fun DashboardScreen() {
     val scope = rememberCoroutineScope()
     val vm = remember { DashboardViewModel(scope) }
 
+    DashboardContent(
+        loading = vm.loading,
+        error = vm.error,
+        feedingLog = vm.feedingLog,
+        petName = vm.pet?.name,
+        todayGarbageTypes = vm.todayGarbageTypes,
+        onFeedClick = { vm.feed(it) },
+        onDateChanged = { vm.refreshGarbageForToday() },
+    )
+}
+
+@Composable
+internal fun DashboardContent(
+    loading: Boolean,
+    error: String?,
+    feedingLog: FeedingLog,
+    petName: String?,
+    todayGarbageTypes: List<GarbageType>,
+    onFeedClick: (MealTime) -> Unit,
+    onDateChanged: () -> Unit,
+) {
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
     ) {
         when {
-            vm.loading -> {
+            loading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             }
 
-            vm.error != null -> {
-                Text("エラー: ${vm.error}", color = MaterialTheme.colorScheme.error)
+            error != null -> {
+                Text("エラー: $error", color = MaterialTheme.colorScheme.error)
             }
 
             else -> {
@@ -63,15 +84,15 @@ fun DashboardScreen() {
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     DateTimeCard(
-                        garbageTypes = vm.todayGarbageTypes,
-                        onDateChanged = { vm.refreshGarbageForToday() },
+                        garbageTypes = todayGarbageTypes,
+                        onDateChanged = onDateChanged,
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
                     DailyFeedingCard(
                         modifier = Modifier.weight(1f).fillMaxHeight(),
-                        feedingLog = vm.feedingLog,
-                        petName = vm.pet?.name,
-                        onFeedClick = { vm.feed(it) }
+                        feedingLog = feedingLog,
+                        petName = petName,
+                        onFeedClick = onFeedClick,
                     )
                 }
             }
