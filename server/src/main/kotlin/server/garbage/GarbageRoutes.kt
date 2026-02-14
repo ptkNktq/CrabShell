@@ -7,6 +7,7 @@ import io.ktor.server.routing.*
 import model.CollectionFrequency
 import model.GarbageType
 import model.GarbageTypeSchedule
+import server.auth.adminOnly
 import server.auth.authenticated
 
 private val firestore by lazy { FirestoreClient.getFirestore() }
@@ -40,7 +41,9 @@ fun Route.garbageRoutes() {
                 }
                 call.respond(schedules)
             }
+        }
 
+        adminOnly {
             put {
                 val schedules = call.receive<List<GarbageTypeSchedule>>()
 

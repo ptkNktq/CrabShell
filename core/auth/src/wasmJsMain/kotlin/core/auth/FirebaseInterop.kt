@@ -24,6 +24,24 @@ external fun firebaseSignOut(auth: JsAny): Promise<JsAny?>
 @JsFun("(auth) => auth.currentUser ? auth.currentUser.getIdToken() : Promise.resolve(null)")
 external fun getIdToken(auth: JsAny): Promise<JsAny?>
 
+// IDトークン結果（token + custom claims）を取得 → Promise<{ token, isAdmin }> を返す
+@JsFun("""(auth) => {
+    if (!auth.currentUser) return Promise.resolve(null);
+    return auth.currentUser.getIdTokenResult().then((result) => ({
+        token: result.token,
+        isAdmin: result.claims.admin === true
+    }));
+}""")
+external fun getIdTokenResult(auth: JsAny): Promise<JsAny?>
+
+// IDトークン結果からトークン文字列を取得
+@JsFun("(obj) => obj.token")
+external fun getTokenFromResult(obj: JsAny): JsString
+
+// IDトークン結果から isAdmin フラグを取得
+@JsFun("(obj) => obj.isAdmin")
+external fun getIsAdminFromResult(obj: JsAny): JsBoolean
+
 // 認証状態の変更を監視するコールバック登録
 @JsFun("""(auth, onUser, onNull) => {
     auth.onAuthStateChanged((user) => {
