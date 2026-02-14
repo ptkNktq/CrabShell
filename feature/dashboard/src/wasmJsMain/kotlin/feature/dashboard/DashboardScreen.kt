@@ -30,7 +30,6 @@ import core.ui.theme.label
 import core.ui.util.currentTimeJs
 import core.ui.util.currentYearJs
 import core.ui.util.formattedTodayJs
-import core.ui.util.feedingDateJs
 import core.ui.util.todayDateJs
 import kotlinx.coroutines.delay
 import model.FeedingLog
@@ -52,7 +51,6 @@ fun DashboardScreen() {
         petName = vm.pet?.name,
         todayGarbageTypes = vm.todayGarbageTypes,
         onFeedClick = { vm.feed(it) },
-        onDateChanged = { vm.refreshGarbageForToday() },
         onRefreshFeeding = { vm.refreshFeeding() },
         windowSizeClass = windowSizeClass,
     )
@@ -66,7 +64,6 @@ internal fun DashboardContent(
     petName: String?,
     todayGarbageTypes: List<GarbageType>,
     onFeedClick: (MealTime) -> Unit,
-    onDateChanged: () -> Unit,
     onRefreshFeeding: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
@@ -97,8 +94,6 @@ internal fun DashboardContent(
                     ) {
                         DateTimeCard(
                             garbageTypes = todayGarbageTypes,
-                            onDateChanged = onDateChanged,
-                            onFeedingDateChanged = onRefreshFeeding,
                             modifier = Modifier.weight(1f).fillMaxHeight(),
                         )
                         DailyFeedingCard(
@@ -118,8 +113,6 @@ internal fun DashboardContent(
                     ) {
                         DateTimeCard(
                             garbageTypes = todayGarbageTypes,
-                            onDateChanged = onDateChanged,
-                            onFeedingDateChanged = onRefreshFeeding,
                             modifier = Modifier.fillMaxWidth(),
                         )
                         DailyFeedingCard(
@@ -139,15 +132,12 @@ internal fun DashboardContent(
 @Composable
 fun DateTimeCard(
     garbageTypes: List<GarbageType>,
-    onDateChanged: () -> Unit,
-    onFeedingDateChanged: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var currentTime by remember { mutableStateOf(currentTimeJs().toString()) }
     var year by remember { mutableStateOf(currentYearJs().toString()) }
     var dateWithDay by remember { mutableStateOf(formattedTodayJs().toString()) }
     var trackedDate by remember { mutableStateOf(todayDateJs().toString()) }
-    var trackedFeedingDate by remember { mutableStateOf(feedingDateJs().toString()) }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -158,12 +148,6 @@ fun DateTimeCard(
                 trackedDate = newDate
                 year = currentYearJs().toString()
                 dateWithDay = formattedTodayJs().toString()
-                onDateChanged()
-            }
-            val newFeedingDate = feedingDateJs().toString()
-            if (newFeedingDate != trackedFeedingDate) {
-                trackedFeedingDate = newFeedingDate
-                onFeedingDateChanged()
             }
         }
     }
