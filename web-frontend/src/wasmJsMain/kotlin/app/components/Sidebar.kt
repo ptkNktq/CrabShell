@@ -68,16 +68,7 @@ fun Sidebar(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                 )
-                if (effectiveExpanded) {
-                    Text(
-                        text = "管理者",
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    )
-                } else {
-                    Spacer(modifier = Modifier.height(4.dp))
-                }
+                Spacer(modifier = Modifier.height(8.dp))
 
                 for (item in adminNavigationItems) {
                     SidebarItem(
