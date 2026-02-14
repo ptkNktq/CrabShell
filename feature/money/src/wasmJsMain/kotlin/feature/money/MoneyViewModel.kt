@@ -119,7 +119,7 @@ class MoneyViewModel(private val scope: CoroutineScope) {
         editingItem = null
     }
 
-    fun saveItem(name: String, amount: Long, note: String, payments: List<Payment>) {
+    fun saveItem(name: String, amount: Long, note: String, payments: List<Payment>, recurring: Boolean) {
         val existing = editingItem
 
         // ダイアログを先に閉じて、AlertDialog が unmount された後にデータを更新する
@@ -127,7 +127,7 @@ class MoneyViewModel(private val scope: CoroutineScope) {
         closeDialog()
 
         val newItem = if (existing != null) {
-            existing.copy(name = name, amount = amount, note = note, payments = payments)
+            existing.copy(name = name, amount = amount, note = note, payments = payments, recurring = recurring)
         } else {
             MoneyItem(
                 id = randomUUID().toString(),
@@ -135,6 +135,7 @@ class MoneyViewModel(private val scope: CoroutineScope) {
                 amount = amount,
                 note = note,
                 payments = payments,
+                recurring = recurring,
             )
         }
 
