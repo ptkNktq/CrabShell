@@ -123,6 +123,10 @@ docker compose -f docker-compose.dev.yml logs -f           # ログ確認
 - 例: 「依存追加」「UI実装」「バグ修正」は別々のコミットにする。「UIコンポーネント追加 + それを使う画面の更新」は1コミットでよい。
 - コミットメッセージは英語、1行目は簡潔に（50文字以内目安）。
 
+## UI Rules
+
+- **モーダル（AlertDialog 等）は使用禁止。** Compose for WASM の描画システム上、ダイアログの DOM teardown とリスト recomposition が同時に走ると高確率で UI フリーズが発生するため。入力フォームはインライン（Card ベース）で実装すること。
+
 ## Notes
 
 - No tests, linting, or formatting tools are currently configured.
