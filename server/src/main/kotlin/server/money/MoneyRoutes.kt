@@ -8,6 +8,7 @@ import model.MoneyItem
 import model.MonthlyMoney
 import model.Payment
 import server.auth.adminOnly
+import java.time.YearMonth
 
 private val firestore by lazy { FirestoreClient.getFirestore() }
 
@@ -22,28 +23,13 @@ fun Route.moneyRoutes() {
                     .document(month).get().get()
 
                 if (!doc.exists()) {
-                    call.respond(MonthlyMoney(month = month))
+                    // ドキュメントが存在しない場合、前月の recurring アイテムをコピー
+                    val recurringItems = getRecurringItemsFromPreviousMonth(month)
+                    call.respond(MonthlyMoney(month = month, items = recurringItems))
                     return@get
                 }
 
-                @Suppress("UNCHECKED_CAST")
-                val itemsRaw = doc.get("items") as? List<Map<String, Any?>> ?: emptyList()
-                val items = itemsRaw.map { entry ->
-                    @Suppress("UNCHECKED_CAST")
-                    val paymentsRaw = entry["payments"] as? List<Map<String, Any?>> ?: emptyList()
-                    MoneyItem(
-                        id = entry["id"] as String,
-                        name = entry["name"] as String,
-                        amount = (entry["amount"] as Number).toLong(),
-                        note = entry["note"] as? String ?: "",
-                        payments = paymentsRaw.map { p ->
-                            Payment(
-                                uid = p["uid"] as String,
-                                amount = (p["amount"] as Number).toLong(),
-                            )
-                        },
-                    )
-                }
+                val items = parseItems(doc.get("items"))
                 call.respond(MonthlyMoney(month = month, items = items))
             }
 
@@ -57,6 +43,7 @@ fun Route.moneyRoutes() {
                         "name" to item.name,
                         "amount" to item.amount,
                         "note" to item.note,
+                        "recurring" to item.recurring,
                         "payments" to item.payments.map { p ->
                             mapOf("uid" to p.uid, "amount" to p.amount)
                         },
@@ -72,4 +59,37 @@ fun Route.moneyRoutes() {
             }
         }
     }
+}
+
+@Suppress("UNCHECKED_CAST")
+private fun parseItems(raw: Any?): List<MoneyItem> {
+    val itemsRaw = raw as? List<Map<String, Any?>> ?: return emptyList()
+    return itemsRaw.map { entry ->
+        val paymentsRaw = entry["payments"] as? List<Map<String, Any?>> ?: emptyList()
+        MoneyItem(
+            id = entry["id"] as String,
+            name = entry["name"] as String,
+            amount = (entry["amount"] as Number).toLong(),
+            note = entry["note"] as? String ?: "",
+            recurring = entry["recurring"] as? Boolean ?: false,
+            payments = paymentsRaw.map { p ->
+                Payment(
+                    uid = p["uid"] as String,
+                    amount = (p["amount"] as Number).toLong(),
+                )
+            },
+        )
+    }
+}
+
+private fun getRecurringItemsFromPreviousMonth(month: String): List<MoneyItem> {
+    val previousMonth = YearMonth.parse(month).minusMonths(1).toString()
+    val prevDoc = firestore.collection(MONEY_COLLECTION)
+        .document(previousMonth).get().get()
+
+    if (!prevDoc.exists()) return emptyList()
+
+    return parseItems(prevDoc.get("items"))
+        .filter { it.recurring }
+        .map { it.copy(id = java.util.UUID.randomUUID().toString()) }
 }
