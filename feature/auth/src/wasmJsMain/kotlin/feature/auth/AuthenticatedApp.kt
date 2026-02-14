@@ -14,7 +14,18 @@ import core.ui.theme.AppColorScheme
 
 @Composable
 fun AuthenticatedApp(authenticatedContent: @Composable () -> Unit) {
-    when (AuthStateHolder.state) {
+    AuthenticatedAppContent(
+        authState = AuthStateHolder.state,
+        authenticatedContent = authenticatedContent,
+    )
+}
+
+@Composable
+internal fun AuthenticatedAppContent(
+    authState: AuthState,
+    authenticatedContent: @Composable () -> Unit,
+) {
+    when (authState) {
         is AuthState.Loading -> {
             MaterialTheme(colorScheme = AppColorScheme) {
                 Surface(
