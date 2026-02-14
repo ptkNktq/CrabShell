@@ -27,15 +27,16 @@ import core.ui.theme.label
 import model.CollectionFrequency
 import model.GarbageType
 import model.GarbageTypeSchedule
+import model.User
 
 private val dayLabels = listOf("日", "月", "火", "水", "木", "金", "土")
 
 @Composable
 fun SettingsScreen() {
     val scope = rememberCoroutineScope()
-    val vm = remember { SettingsViewModel(scope) }
-    val scrollState = rememberScrollState()
     val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
+    val vm = remember { SettingsViewModel(scope, isAdmin) }
+    val scrollState = rememberScrollState()
     val windowSizeClass = LocalWindowSizeClass.current
 
     SettingsContent(
@@ -51,6 +52,10 @@ fun SettingsScreen() {
         onNewPasswordChanged = vm::onNewPasswordChanged,
         onConfirmPasswordChanged = vm::onConfirmPasswordChanged,
         onChangePassword = vm::changePassword,
+        users = vm.users,
+        usersSaving = vm.usersSaving,
+        usersMessage = vm.usersMessage,
+        onUpdateDisplayName = vm::updateDisplayName,
         garbageLoading = vm.garbageLoading,
         garbageSchedules = vm.garbageSchedules,
         garbageMessage = vm.garbageMessage,
@@ -76,6 +81,10 @@ internal fun SettingsContent(
     onNewPasswordChanged: (String) -> Unit,
     onConfirmPasswordChanged: (String) -> Unit,
     onChangePassword: () -> Unit,
+    users: List<User>,
+    usersSaving: Boolean,
+    usersMessage: String?,
+    onUpdateDisplayName: (String, String) -> Unit,
     garbageLoading: Boolean,
     garbageSchedules: List<GarbageTypeSchedule>,
     garbageMessage: String?,
@@ -115,6 +124,19 @@ internal fun SettingsContent(
             }
 
             if (isAdmin) {
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // ユーザー名管理セクション（管理者のみ）
+                SettingsSection(title = "ユーザー名管理", badge = "管理者") {
+                    UserNameManagementCard(
+                        users = users,
+                        usersSaving = usersSaving,
+                        usersMessage = usersMessage,
+                        onUpdateDisplayName = onUpdateDisplayName,
+                        modifier = cardModifier,
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(32.dp))
 
                 // ゴミ出しセクション（管理者のみ）
@@ -183,6 +205,83 @@ private fun SettingsSection(
             }
         }
         content()
+    }
+}
+
+@Composable
+private fun UserNameManagementCard(
+    users: List<User>,
+    usersSaving: Boolean,
+    usersMessage: String?,
+    onUpdateDisplayName: (String, String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // ローカル編集状態: uid -> 入力中の displayName
+    var editedNames by remember(users) {
+        mutableStateOf(users.associate { it.uid to (it.displayName ?: "") })
+    }
+
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp).fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            if (users.isEmpty()) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+            } else {
+                for (user in users) {
+                    OutlinedTextField(
+                        value = editedNames[user.uid] ?: "",
+                        onValueChange = { value ->
+                            editedNames = editedNames.toMutableMap().apply {
+                                put(user.uid, value)
+                            }
+                        },
+                        label = { Text(user.email) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        enabled = !usersSaving,
+                    )
+                }
+
+                if (usersMessage != null) {
+                    Text(
+                        text = usersMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+
+                Button(
+                    onClick = {
+                        for (user in users) {
+                            val newName = editedNames[user.uid] ?: ""
+                            val oldName = user.displayName ?: ""
+                            if (newName != oldName) {
+                                onUpdateDisplayName(user.uid, newName)
+                            }
+                        }
+                    },
+                    modifier = Modifier.height(48.dp),
+                    enabled = !usersSaving,
+                ) {
+                    if (usersSaving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    } else {
+                        Text("保存する")
+                    }
+                }
+            }
+        }
     }
 }
 
