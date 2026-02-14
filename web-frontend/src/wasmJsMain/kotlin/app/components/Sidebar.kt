@@ -20,9 +20,15 @@ import app.BuildConfig
 import app.Screen
 
 @Composable
-fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onSignOut: () -> Unit) {
+fun Sidebar(
+    currentScreen: Screen,
+    onNavigate: (Screen) -> Unit,
+    onSignOut: () -> Unit,
+    expandable: Boolean = true,
+) {
     var expanded by remember { mutableStateOf(false) }
-    val sidebarWidth by animateDpAsState(targetValue = if (expanded) 240.dp else 72.dp)
+    val effectiveExpanded = expandable && expanded
+    val sidebarWidth by animateDpAsState(targetValue = if (effectiveExpanded) 240.dp else 72.dp)
 
     Surface(
         modifier = Modifier.fillMaxHeight().width(sidebarWidth),
@@ -30,40 +36,41 @@ fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onSignOut: () -
         tonalElevation = 2.dp,
     ) {
         Column(modifier = Modifier.fillMaxHeight().padding(vertical = 8.dp)) {
-            IconButton(
-                onClick = { expanded = !expanded },
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Menu,
-                    contentDescription = "サイドバー切替",
+            if (expandable) {
+                IconButton(
+                    onClick = { expanded = !expanded },
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = "サイドバー切替",
+                    )
+                }
+            } else {
+                Spacer(modifier = Modifier.height(56.dp))
+            }
+
+            for (item in primaryNavigationItems) {
+                SidebarItem(
+                    icon = item.icon,
+                    label = item.label,
+                    expanded = effectiveExpanded,
+                    selected = currentScreen == item.screen,
+                    onClick = { onNavigate(item.screen) },
                 )
             }
 
-            SidebarItem(
-                icon = Icons.Default.Home,
-                label = "ダッシュボード",
-                expanded = expanded,
-                selected = currentScreen == Screen.Dashboard,
-                onClick = { onNavigate(Screen.Dashboard) },
-            )
-            SidebarItem(
-                icon = Icons.Default.Pets,
-                label = "ごはん",
-                expanded = expanded,
-                selected = currentScreen == Screen.Feeding,
-                onClick = { onNavigate(Screen.Feeding) },
-            )
-
             Spacer(modifier = Modifier.weight(1f))
 
-            SidebarItem(
-                icon = Icons.Default.Settings,
-                label = "設定",
-                expanded = expanded,
-                selected = currentScreen == Screen.Settings,
-                onClick = { onNavigate(Screen.Settings) },
-            )
+            for (item in bottomNavigationItems) {
+                SidebarItem(
+                    icon = item.icon,
+                    label = item.label,
+                    expanded = effectiveExpanded,
+                    selected = currentScreen == item.screen,
+                    onClick = { onNavigate(item.screen) },
+                )
+            }
 
             // ログアウトボタン
             Row(
@@ -79,7 +86,7 @@ fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onSignOut: () -
                     contentDescription = "ログアウト",
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
-                if (expanded) {
+                if (effectiveExpanded) {
                     Text(
                         text = "ログアウト",
                         modifier = Modifier.padding(start = 16.dp),
@@ -92,7 +99,7 @@ fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onSignOut: () -
 
             // バージョン表示
             Text(
-                text = if (expanded) "v${BuildConfig.VERSION}" else BuildConfig.VERSION,
+                text = if (effectiveExpanded) "v${BuildConfig.VERSION}" else BuildConfig.VERSION,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
