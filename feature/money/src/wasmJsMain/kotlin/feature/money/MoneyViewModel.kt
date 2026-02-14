@@ -60,6 +60,10 @@ class MoneyViewModel(private val scope: CoroutineScope) {
     var editingItem by mutableStateOf<MoneyItem?>(null)
         private set
 
+    // フォームリセット用キー（clearForm 時にインクリメント）
+    var formKey by mutableStateOf(0)
+        private set
+
     init {
         loadUsers()
         loadMonth(currentMonth)
@@ -104,6 +108,7 @@ class MoneyViewModel(private val scope: CoroutineScope) {
 
     fun clearForm() {
         editingItem = null
+        formKey++
     }
 
     fun saveItem(name: String, amount: Long, note: String, payments: List<Payment>, recurring: Boolean) {
