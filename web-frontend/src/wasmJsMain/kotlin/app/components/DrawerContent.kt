@@ -50,12 +50,7 @@ fun DrawerContent(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                 )
-                Text(
-                    text = "管理者",
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                )
+                Spacer(modifier = Modifier.height(8.dp))
 
                 for (item in adminNavigationItems) {
                     DrawerItem(
