@@ -22,12 +22,14 @@ import core.ui.theme.AppTheme
 import feature.dashboard.DashboardScreen
 import feature.feeding.FeedingScreen
 import feature.money.MoneyScreen
+import feature.payment.PaymentScreen
 import feature.settings.SettingsScreen
 import kotlinx.coroutines.launch
 
 enum class Screen(val title: String) {
     Dashboard("ダッシュボード"),
     Feeding("ごはん"),
+    Payment("お支払い"),
     Money("お金の管理"),
     Settings("設定"),
 }
@@ -87,6 +89,7 @@ private fun ScreenContent(currentScreen: Screen) {
     when (currentScreen) {
         Screen.Dashboard -> DashboardScreen()
         Screen.Feeding -> FeedingScreen()
+        Screen.Payment -> PaymentScreen()
         Screen.Money -> MoneyScreen()
         Screen.Settings -> SettingsScreen()
     }
