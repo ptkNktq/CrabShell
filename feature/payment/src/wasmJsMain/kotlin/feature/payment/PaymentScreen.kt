@@ -93,11 +93,12 @@ internal fun PaymentContent(
                     isCompact = true,
                     modifier = Modifier.weight(1f),
                 )
-                if (!loading && error == null && remaining > 0) {
+                if (!loading && error == null) {
                     Spacer(modifier = Modifier.height(8.dp))
                     PaymentInlineForm(
                         remaining = remaining,
                         saving = saving,
+                        enabled = remaining > 0,
                         onConfirmPay = onConfirmPay,
                     )
                 }
@@ -138,31 +139,14 @@ internal fun PaymentContent(
 
                     Spacer(modifier = Modifier.width(24.dp))
 
-                    if (!loading && error == null && remaining > 0) {
+                    if (!loading && error == null) {
                         PaymentInlineForm(
                             remaining = remaining,
                             saving = saving,
+                            enabled = remaining > 0,
                             onConfirmPay = onConfirmPay,
                             modifier = Modifier.width(360.dp),
                         )
-                    } else if (!loading && error == null) {
-                        Card(
-                            modifier = Modifier.width(360.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            ),
-                        ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    text = "支払い完了",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.primary,
-                                )
-                            }
-                        }
                     }
                 }
             }
@@ -274,11 +258,13 @@ private fun PaymentListContent(
 private fun PaymentInlineForm(
     remaining: Long,
     saving: Boolean,
+    enabled: Boolean,
     onConfirmPay: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var amountText by remember(remaining) { mutableStateOf(remaining.toString()) }
+    var amountText by remember(remaining) { mutableStateOf(if (remaining > 0) remaining.toString() else "") }
     val amount = amountText.toLongOrNull() ?: 0L
+    val inputEnabled = enabled && !saving
 
     Card(
         modifier = modifier,
@@ -295,11 +281,13 @@ private fun PaymentInlineForm(
                 style = MaterialTheme.typography.titleLarge,
             )
 
-            Text(
-                text = "残り ¥${formatAmount(remaining)}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            if (enabled) {
+                Text(
+                    text = "残り ¥${formatAmount(remaining)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
 
             OutlinedTextField(
                 value = amountText,
@@ -307,7 +295,7 @@ private fun PaymentInlineForm(
                 label = { Text("支払い額 (円)") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                enabled = !saving,
+                enabled = inputEnabled,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             )
 
@@ -317,7 +305,7 @@ private fun PaymentInlineForm(
             ) {
                 Button(
                     onClick = { onConfirmPay(amount) },
-                    enabled = amount > 0 && !saving,
+                    enabled = amount > 0 && inputEnabled,
                 ) {
                     Text("記録")
                 }
@@ -368,10 +356,29 @@ private fun SummaryCard(
         ),
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Text(
-                text = "今月のお支払い",
-                style = MaterialTheme.typography.titleMedium,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "今月のお支払い",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                if (remaining <= 0 && totalAllocated > 0) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = MaterialTheme.shapes.small,
+                    ) {
+                        Text(
+                            text = "完了",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        )
+                    }
+                }
+            }
             Spacer(modifier = Modifier.height(12.dp))
 
             Row(
