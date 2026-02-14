@@ -24,6 +24,7 @@ import core.ui.WindowSizeClass
 import model.MoneyItem
 import model.MonthlyMoney
 import model.Payment
+import model.PaymentRecord
 import model.User
 
 @Composable
@@ -130,6 +131,7 @@ internal fun MoneyContent(
                             SummaryCard(
                                 items = monthlyMoney.items,
                                 users = users,
+                                paymentRecords = monthlyMoney.paymentRecords,
                                 isCompact = isCompact,
                             )
                         }
@@ -247,14 +249,23 @@ private fun MonthSelector(
 private fun SummaryCard(
     items: List<MoneyItem>,
     users: List<User>,
+    paymentRecords: List<PaymentRecord>,
     isCompact: Boolean,
 ) {
     val totalAmount = items.sumOf { it.amount }
-    val userTotals = mutableMapOf<String, Long>()
+
+    // ユーザーごとの割当合計
+    val userAllocated = mutableMapOf<String, Long>()
     for (item in items) {
         for (payment in item.payments) {
-            userTotals[payment.uid] = (userTotals[payment.uid] ?: 0L) + payment.amount
+            userAllocated[payment.uid] = (userAllocated[payment.uid] ?: 0L) + payment.amount
         }
+    }
+
+    // ユーザーごとの支払い済み合計
+    val userPaid = mutableMapOf<String, Long>()
+    for (record in paymentRecords) {
+        userPaid[record.uid] = (userPaid[record.uid] ?: 0L) + record.amount
     }
 
     Card(
@@ -276,13 +287,14 @@ private fun SummaryCard(
                 color = MaterialTheme.colorScheme.primary,
             )
 
-            if (userTotals.isNotEmpty()) {
+            if (userAllocated.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Spacer(modifier = Modifier.height(8.dp))
 
-                for ((uid, total) in userTotals) {
+                for ((uid, allocated) in userAllocated) {
                     val userName = users.find { it.uid == uid }?.displayName ?: uid.take(8)
+                    val paid = userPaid[uid] ?: 0L
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -292,9 +304,10 @@ private fun SummaryCard(
                             style = MaterialTheme.typography.bodyMedium,
                         )
                         Text(
-                            text = "¥${formatAmount(total)}",
+                            text = "¥${formatAmount(paid)} / ¥${formatAmount(allocated)}",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (paid >= allocated) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
