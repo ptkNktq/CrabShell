@@ -40,8 +40,8 @@ fun SettingsScreen() {
     val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
     val passwordVm = koinInject<PasswordChangeViewModel> { parametersOf(scope) }
     val koin = getKoin()
-    val userNameVm = remember { if (isAdmin) koin.get<UserNameViewModel> { parametersOf(scope) } else null }
-    val garbageVm = remember { if (isAdmin) koin.get<GarbageScheduleViewModel> { parametersOf(scope) } else null }
+    val userNameVm = remember(isAdmin) { if (isAdmin) koin.get<UserNameViewModel> { parametersOf(scope) } else null }
+    val garbageVm = remember(isAdmin) { if (isAdmin) koin.get<GarbageScheduleViewModel> { parametersOf(scope) } else null }
     val scrollState = rememberScrollState()
     val windowSizeClass = LocalWindowSizeClass.current
 
