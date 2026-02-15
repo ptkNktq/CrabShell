@@ -3,8 +3,9 @@ package feature.settings
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import core.network.GarbageScheduleRepository
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import model.CollectionFrequency
 import model.GarbageType
@@ -19,9 +20,8 @@ data class GarbageScheduleUiState(
 )
 
 class GarbageScheduleViewModel(
-    private val scope: CoroutineScope,
     private val garbageScheduleRepository: GarbageScheduleRepository,
-) {
+) : ViewModel() {
     var uiState by mutableStateOf(GarbageScheduleUiState())
         private set
 
@@ -30,7 +30,7 @@ class GarbageScheduleViewModel(
     }
 
     private fun loadSchedules() {
-        scope.launch {
+        viewModelScope.launch {
             try {
                 val loaded = garbageScheduleRepository.getSchedules()
                 uiState =
@@ -92,7 +92,7 @@ class GarbageScheduleViewModel(
 
     fun onSaveSchedule() {
         uiState = uiState.copy(isSaving = true, message = null)
-        scope.launch {
+        viewModelScope.launch {
             try {
                 garbageScheduleRepository.saveSchedules(uiState.schedules)
                 uiState = uiState.copy(isSaving = false, message = "保存しました")

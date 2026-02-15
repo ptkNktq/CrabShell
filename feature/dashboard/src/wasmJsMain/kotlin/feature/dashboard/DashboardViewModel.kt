@@ -5,6 +5,8 @@ package feature.dashboard
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import core.network.FeedingRepository
 import core.network.GarbageScheduleRepository
 import core.network.PetRepository
@@ -15,7 +17,6 @@ import core.ui.util.feedingDateJs
 import core.ui.util.formattedTodayJs
 import core.ui.util.todayDateJs
 import core.ui.util.weekOfMonthJs
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import model.CollectionFrequency
@@ -46,11 +47,10 @@ data class DashboardUiState(
 )
 
 class DashboardViewModel(
-    private val scope: CoroutineScope,
     private val petRepository: PetRepository,
     private val feedingRepository: FeedingRepository,
     private val garbageScheduleRepository: GarbageScheduleRepository,
-) {
+) : ViewModel() {
     private var today: String = feedingDateJs().toString()
     private var petId: String? = null
     private var cachedSchedules: List<GarbageTypeSchedule> = emptyList()
@@ -68,7 +68,7 @@ class DashboardViewModel(
         private set
 
     init {
-        scope.launch {
+        viewModelScope.launch {
             try {
                 val pet = petRepository.getPets().firstOrNull()
                 petId = pet?.id
@@ -83,7 +83,7 @@ class DashboardViewModel(
     }
 
     private fun startDateChangePolling() {
-        scope.launch {
+        viewModelScope.launch {
             while (true) {
                 delay(10_000)
                 uiState = uiState.copy(currentTime = currentTimeJs().toString())
@@ -117,7 +117,7 @@ class DashboardViewModel(
     }
 
     private fun loadGarbageSchedule() {
-        scope.launch {
+        viewModelScope.launch {
             try {
                 cachedSchedules = garbageScheduleRepository.getSchedules()
                 refreshGarbageForToday()
@@ -152,7 +152,7 @@ class DashboardViewModel(
     fun onRefreshFeeding() {
         val newDate = feedingDateJs().toString()
         today = newDate
-        scope.launch {
+        viewModelScope.launch {
             uiState = uiState.copy(isLoading = true, error = null, feedingLog = FeedingLog(date = today))
             loadToday()
         }
@@ -160,7 +160,7 @@ class DashboardViewModel(
 
     fun onFeed(mealTime: MealTime) {
         val id = petId ?: return
-        scope.launch {
+        viewModelScope.launch {
             try {
                 val feeding = feedingRepository.feed(id, today, mealTime)
                 uiState =

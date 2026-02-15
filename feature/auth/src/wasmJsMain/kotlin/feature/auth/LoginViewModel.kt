@@ -3,8 +3,9 @@ package feature.auth
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import core.auth.AuthRepository
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 data class LoginUiState(
@@ -16,9 +17,8 @@ data class LoginUiState(
 )
 
 class LoginViewModel(
-    private val scope: CoroutineScope,
     private val authRepository: AuthRepository,
-) {
+) : ViewModel() {
     var uiState by mutableStateOf(LoginUiState())
         private set
 
@@ -40,7 +40,7 @@ class LoginViewModel(
             return
         }
         uiState = uiState.copy(isLoading = true, errorMessage = null)
-        scope.launch {
+        viewModelScope.launch {
             val result = authRepository.signIn(uiState.email, uiState.password)
             uiState = uiState.copy(isLoading = false)
             if (result.isFailure) {

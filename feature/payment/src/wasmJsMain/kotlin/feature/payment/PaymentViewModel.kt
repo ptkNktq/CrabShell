@@ -5,11 +5,12 @@ package feature.payment
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import core.auth.AuthState
 import core.auth.AuthStateHolder
 import core.auth.toJsString
 import core.network.MoneyRepository
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import model.MonthlyMoney
 import model.PaymentRecord
@@ -54,9 +55,8 @@ data class PaymentUiState(
 )
 
 class PaymentViewModel(
-    private val scope: CoroutineScope,
     private val moneyRepository: MoneyRepository,
-) {
+) : ViewModel() {
     var uiState by mutableStateOf(
         PaymentUiState(
             currentMonth = currentMonthJs().toString(),
@@ -72,7 +72,7 @@ class PaymentViewModel(
 
     fun onLoadMonth(month: String) {
         uiState = uiState.copy(currentMonth = month, isLoading = true, error = null)
-        scope.launch {
+        viewModelScope.launch {
             try {
                 uiState =
                     uiState.copy(
@@ -95,7 +95,7 @@ class PaymentViewModel(
 
     fun onRecordPayment(amount: Long) {
         uiState = uiState.copy(isSaving = true)
-        scope.launch {
+        viewModelScope.launch {
             try {
                 val record =
                     PaymentRecord(

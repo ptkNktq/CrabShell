@@ -3,11 +3,12 @@ package feature.feeding
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import core.network.FeedingRepository
 import core.network.PetRepository
 import core.ui.util.shiftDateJs
 import core.ui.util.todayDateJs
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import model.FeedingLog
 import model.MealTime
@@ -23,10 +24,9 @@ data class FeedingUiState(
 )
 
 class FeedingViewModel(
-    private val scope: CoroutineScope,
     private val petRepository: PetRepository,
     private val feedingRepository: FeedingRepository,
-) {
+) : ViewModel() {
     var uiState by mutableStateOf(
         FeedingUiState(
             log = FeedingLog(date = todayDateJs().toString()),
@@ -36,7 +36,7 @@ class FeedingViewModel(
         private set
 
     init {
-        scope.launch {
+        viewModelScope.launch {
             try {
                 val pet = petRepository.getPets().firstOrNull()
                 uiState = uiState.copy(pet = pet)
@@ -50,7 +50,7 @@ class FeedingViewModel(
     fun onLoadLog(date: String) {
         val petId = uiState.pet?.id ?: return
         uiState = uiState.copy(selectedDate = date, isLoading = true, error = null)
-        scope.launch {
+        viewModelScope.launch {
             try {
                 val log = feedingRepository.getFeedingLog(petId, date)
                 uiState = uiState.copy(log = log, noteDraft = log.note, isLoading = false)
@@ -62,7 +62,7 @@ class FeedingViewModel(
 
     fun onFeed(mealTime: MealTime) {
         val petId = uiState.pet?.id ?: return
-        scope.launch {
+        viewModelScope.launch {
             try {
                 val feeding = feedingRepository.feed(petId, uiState.selectedDate, mealTime)
                 uiState =
@@ -84,7 +84,7 @@ class FeedingViewModel(
 
     fun onSaveNote() {
         val petId = uiState.pet?.id ?: return
-        scope.launch {
+        viewModelScope.launch {
             try {
                 feedingRepository.updateNote(petId, uiState.selectedDate, uiState.noteDraft)
                 uiState = uiState.copy(log = uiState.log.copy(note = uiState.noteDraft))
