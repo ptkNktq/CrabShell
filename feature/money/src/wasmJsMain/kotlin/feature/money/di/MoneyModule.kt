@@ -1,9 +1,10 @@
 package feature.money.di
 
 import feature.money.MoneyViewModel
+import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val moneyModule =
     module {
-        factory { MoneyViewModel(get(), get()) }
+        viewModel { MoneyViewModel(get(), get()) }
     }

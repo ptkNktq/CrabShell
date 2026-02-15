@@ -18,14 +18,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import core.ui.theme.AppTheme
-import org.koin.compose.getKoin
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun LoginScreen() {
-    val koin = getKoin()
-    val vm: LoginViewModel = viewModel { koin.get() }
+fun LoginScreen(vm: LoginViewModel = koinViewModel()) {
     AppTheme {
         LoginContent(
             email = vm.uiState.email,
