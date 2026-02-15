@@ -23,6 +23,9 @@ kotlin {
             implementation(compose.materialIconsExtended)
 
             implementation(libs.ktor.client.core)
+
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose)
         }
     }
 }
