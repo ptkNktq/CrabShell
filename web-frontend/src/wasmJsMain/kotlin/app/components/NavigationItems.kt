@@ -15,16 +15,19 @@ data class NavigationItem(
     val label: String,
 )
 
-val primaryNavigationItems = listOf(
-    NavigationItem(Screen.Dashboard, Icons.Default.Home, "ダッシュボード"),
-    NavigationItem(Screen.Feeding, Icons.Default.Pets, "ごはん"),
-    NavigationItem(Screen.Payment, Icons.Default.Payment, "支払い"),
-)
+val primaryNavigationItems =
+    listOf(
+        NavigationItem(Screen.Dashboard, Icons.Default.Home, "ダッシュボード"),
+        NavigationItem(Screen.Feeding, Icons.Default.Pets, "ごはん"),
+        NavigationItem(Screen.Payment, Icons.Default.Payment, "支払い"),
+    )
 
-val adminNavigationItems = listOf(
-    NavigationItem(Screen.Money, Icons.Default.AccountBalance, "お金の管理"),
-)
+val adminNavigationItems =
+    listOf(
+        NavigationItem(Screen.Money, Icons.Default.AccountBalance, "お金の管理"),
+    )
 
-val bottomNavigationItems = listOf(
-    NavigationItem(Screen.Settings, Icons.Default.Settings, "設定"),
-)
+val bottomNavigationItems =
+    listOf(
+        NavigationItem(Screen.Settings, Icons.Default.Settings, "設定"),
+    )

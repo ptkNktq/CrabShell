@@ -13,22 +13,25 @@ val MealTime.Companion.displayOrder: List<MealTime>
     get() = listOf(MealTime.LUNCH, MealTime.EVENING, MealTime.MORNING)
 
 val MealTime.label: String
-    get() = when (this) {
-        MealTime.MORNING -> "朝"
-        MealTime.LUNCH -> "昼"
-        MealTime.EVENING -> "晩"
-    }
+    get() =
+        when (this) {
+            MealTime.MORNING -> "朝"
+            MealTime.LUNCH -> "昼"
+            MealTime.EVENING -> "晩"
+        }
 
 val MealTime.icon: ImageVector
-    get() = when (this) {
-        MealTime.MORNING -> Icons.Default.WbTwilight
-        MealTime.LUNCH -> Icons.Default.WbSunny
-        MealTime.EVENING -> Icons.Default.Bedtime
-    }
+    get() =
+        when (this) {
+            MealTime.MORNING -> Icons.Default.WbTwilight
+            MealTime.LUNCH -> Icons.Default.WbSunny
+            MealTime.EVENING -> Icons.Default.Bedtime
+        }
 
 val MealTime.color: Color
-    get() = when (this) {
-        MealTime.MORNING -> MorningColor
-        MealTime.LUNCH -> LunchColor
-        MealTime.EVENING -> EveningColor
-    }
+    get() =
+        when (this) {
+            MealTime.MORNING -> MorningColor
+            MealTime.LUNCH -> LunchColor
+            MealTime.EVENING -> EveningColor
+        }

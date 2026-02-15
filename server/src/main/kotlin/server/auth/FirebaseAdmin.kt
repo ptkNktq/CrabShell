@@ -9,7 +9,6 @@ import java.io.File
 import java.io.FileInputStream
 
 object FirebaseAdmin {
-
     private var initialized = false
 
     fun initialize() {
@@ -18,8 +17,9 @@ object FirebaseAdmin {
             return
         }
 
-        val serviceAccountPath = System.getenv("FIREBASE_SERVICE_ACCOUNT_PATH")
-            ?: "firebase-service-account.json"
+        val serviceAccountPath =
+            System.getenv("FIREBASE_SERVICE_ACCOUNT_PATH")
+                ?: "firebase-service-account.json"
 
         val file = File(serviceAccountPath)
         if (!file.exists() || !file.isFile) {
@@ -27,9 +27,10 @@ object FirebaseAdmin {
             return
         }
 
-        val options = FirebaseOptions.builder()
-            .setCredentials(GoogleCredentials.fromStream(FileInputStream(file)))
-            .build()
+        val options =
+            FirebaseOptions.builder()
+                .setCredentials(GoogleCredentials.fromStream(FileInputStream(file)))
+                .build()
 
         FirebaseApp.initializeApp(options)
         initialized = true

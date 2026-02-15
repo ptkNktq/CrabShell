@@ -5,8 +5,20 @@ ktor = "3.4.0"
 kotlinx-serialization-json = "1.8.1"
 logback = "1.5.12"
 firebase-admin = "9.4.3"
+ktlint-gradle = "12.1.2"
+# RC だが Kotlin 2.3.0 wasmJs の KClass.simpleName→FQN 変更に対応した唯一のバージョン (koin#2312)
+koin = "4.2.0-RC1"
+lifecycle = "2.9.6"
 
 [libraries]
+# Koin DI
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
+koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
+koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
+
+# Lifecycle ViewModel (Compose Multiplatform)
+lifecycle-viewmodel-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+
 # Shared
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization-json" }
 
@@ -33,3 +45,4 @@ kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", versi
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint-gradle" }

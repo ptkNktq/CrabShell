@@ -58,6 +58,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 ## Tech Stack
 
 - **Kotlin** 2.3.0, **Compose Multiplatform** 1.10.0, **Ktor** 3.4.0
+- **DI**: Koin 4.2.0-RC1（Kotlin 2.3.0 wasmJs 互換の唯一のバージョン）
 - **Serialization**: kotlinx-serialization-json 1.8.1
 - **Dependency versions**: managed in `gradle/libs.versions.toml`
 - **Kotlin code style**: official (set in `gradle.properties`)
@@ -127,7 +128,12 @@ docker compose -f docker-compose.dev.yml logs -f           # ログ確認
 
 - **モーダル（AlertDialog 等）は使用禁止。** Compose for WASM の描画システム上、ダイアログの DOM teardown とリスト recomposition が同時に走ると高確率で UI フリーズが発生するため。入力フォームはインライン（Card ベース）で実装すること。
 
+## Linting
+
+- **ktlint** (`org.jlleitschuh.gradle.ktlint`) を全サブプロジェクトに適用済み。
+- コミット前に必ず `./gradlew ktlintFormat` を実行してからステージング・コミットすること。
+- チェックのみ: `./gradlew ktlintCheck`
+
 ## Notes
 
-- No tests, linting, or formatting tools are currently configured.
 - Comments in build files are in Japanese.
