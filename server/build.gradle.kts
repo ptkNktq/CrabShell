@@ -9,6 +9,11 @@ application {
     mainClass.set("server.ApplicationKt")
 }
 
+// run タスクの作業ディレクトリをルートプロジェクトに設定（firebase-service-account.json の解決用）
+tasks.named<JavaExec>("run") {
+    workingDir = rootProject.projectDir
+}
+
 dependencies {
     implementation(project(":shared"))
 
