@@ -29,6 +29,8 @@ import core.ui.util.todayDateJs
 import model.Feeding
 import model.FeedingLog
 import model.MealTime
+import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 
 @JsFun(
     """(iso) => {
@@ -43,7 +45,7 @@ private external fun toJstHHMM(iso: JsString): JsString
 @Composable
 fun FeedingScreen() {
     val scope = rememberCoroutineScope()
-    val vm = remember { FeedingViewModel(scope) }
+    val vm = koinInject<FeedingViewModel> { parametersOf(scope) }
 
     val today = remember { todayDateJs().toString() }
     val windowSizeClass = LocalWindowSizeClass.current

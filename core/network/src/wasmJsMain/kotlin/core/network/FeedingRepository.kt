@@ -9,11 +9,22 @@ import model.FeedingLog
 import model.MealTime
 
 interface FeedingRepository {
-    suspend fun getFeedingLog(petId: String, date: String): FeedingLog
+    suspend fun getFeedingLog(
+        petId: String,
+        date: String,
+    ): FeedingLog
 
-    suspend fun feed(petId: String, date: String, mealTime: MealTime): Feeding
+    suspend fun feed(
+        petId: String,
+        date: String,
+        mealTime: MealTime,
+    ): Feeding
 
-    suspend fun updateNote(petId: String, date: String, note: String)
+    suspend fun updateNote(
+        petId: String,
+        date: String,
+        note: String,
+    )
 }
 
 class FeedingRepositoryImpl(private val client: HttpClient) : FeedingRepository {

@@ -26,11 +26,13 @@ import model.MonthlyMoney
 import model.Payment
 import model.PaymentRecord
 import model.User
+import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 
 @Composable
 fun MoneyScreen() {
     val scope = rememberCoroutineScope()
-    val vm = remember { MoneyViewModel(scope) }
+    val vm = koinInject<MoneyViewModel> { parametersOf(scope) }
     val windowSizeClass = LocalWindowSizeClass.current
 
     MoneyContent(

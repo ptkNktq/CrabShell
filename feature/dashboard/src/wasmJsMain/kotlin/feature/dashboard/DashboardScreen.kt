@@ -11,7 +11,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,13 +29,15 @@ import core.ui.theme.label
 import model.FeedingLog
 import model.GarbageType
 import model.MealTime
+import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 
 private val CardHeaderMinHeight = 48.dp
 
 @Composable
 fun DashboardScreen() {
     val scope = rememberCoroutineScope()
-    val vm = remember { DashboardViewModel(scope) }
+    val vm = koinInject<DashboardViewModel> { parametersOf(scope) }
     val windowSizeClass = LocalWindowSizeClass.current
 
     DashboardContent(

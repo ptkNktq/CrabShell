@@ -25,6 +25,7 @@ import feature.money.MoneyScreen
 import feature.payment.PaymentScreen
 import feature.settings.SettingsScreen
 import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 
 enum class Screen(val title: String) {
     Dashboard("ダッシュボード"),
@@ -38,7 +39,8 @@ enum class Screen(val title: String) {
 fun App() {
     val scope = rememberCoroutineScope()
     var currentScreen by remember { mutableStateOf(Screen.Dashboard) }
-    val onSignOut: () -> Unit = { scope.launch { AuthRepository.signOut() } }
+    val authRepository = koinInject<AuthRepository>()
+    val onSignOut: () -> Unit = { scope.launch { authRepository.signOut() } }
     val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
 
     AppTheme {

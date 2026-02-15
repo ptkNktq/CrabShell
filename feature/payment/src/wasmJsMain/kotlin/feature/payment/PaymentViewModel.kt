@@ -53,7 +53,10 @@ data class PaymentUiState(
     val error: String? = null,
 )
 
-class PaymentViewModel(private val scope: CoroutineScope) {
+class PaymentViewModel(
+    private val scope: CoroutineScope,
+    private val moneyRepository: MoneyRepository,
+) {
     var uiState by mutableStateOf(
         PaymentUiState(
             currentMonth = currentMonthJs().toString(),
@@ -73,7 +76,7 @@ class PaymentViewModel(private val scope: CoroutineScope) {
             try {
                 uiState =
                     uiState.copy(
-                        monthlyMoney = MoneyRepository.getMyMonthlyMoney(month),
+                        monthlyMoney = moneyRepository.getMyMonthlyMoney(month),
                         isLoading = false,
                     )
             } catch (e: Exception) {
@@ -102,7 +105,7 @@ class PaymentViewModel(private val scope: CoroutineScope) {
                     )
                 uiState =
                     uiState.copy(
-                        monthlyMoney = MoneyRepository.recordPayment(uiState.currentMonth, record),
+                        monthlyMoney = moneyRepository.recordPayment(uiState.currentMonth, record),
                     )
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)

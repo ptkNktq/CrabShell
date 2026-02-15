@@ -15,7 +15,10 @@ data class LoginUiState(
     val errorMessage: String? = null,
 )
 
-class LoginViewModel(private val scope: CoroutineScope) {
+class LoginViewModel(
+    private val scope: CoroutineScope,
+    private val authRepository: AuthRepository,
+) {
     var uiState by mutableStateOf(LoginUiState())
         private set
 
@@ -38,7 +41,7 @@ class LoginViewModel(private val scope: CoroutineScope) {
         }
         uiState = uiState.copy(isLoading = true, errorMessage = null)
         scope.launch {
-            val result = AuthRepository.signIn(uiState.email, uiState.password)
+            val result = authRepository.signIn(uiState.email, uiState.password)
             uiState = uiState.copy(isLoading = false)
             if (result.isFailure) {
                 uiState = uiState.copy(errorMessage = result.exceptionOrNull()?.message ?: "認証に失敗しました")

@@ -28,6 +28,9 @@ import model.CollectionFrequency
 import model.GarbageType
 import model.GarbageTypeSchedule
 import model.User
+import org.koin.compose.getKoin
+import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 
 private val dayLabels = listOf("日", "月", "火", "水", "木", "金", "土")
 
@@ -35,9 +38,10 @@ private val dayLabels = listOf("日", "月", "火", "水", "木", "金", "土")
 fun SettingsScreen() {
     val scope = rememberCoroutineScope()
     val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
-    val passwordVm = remember { PasswordChangeViewModel(scope) }
-    val userNameVm = remember { if (isAdmin) UserNameViewModel(scope) else null }
-    val garbageVm = remember { if (isAdmin) GarbageScheduleViewModel(scope) else null }
+    val passwordVm = koinInject<PasswordChangeViewModel> { parametersOf(scope) }
+    val koin = getKoin()
+    val userNameVm = remember { if (isAdmin) koin.get<UserNameViewModel> { parametersOf(scope) } else null }
+    val garbageVm = remember { if (isAdmin) koin.get<GarbageScheduleViewModel> { parametersOf(scope) } else null }
     val scrollState = rememberScrollState()
     val windowSizeClass = LocalWindowSizeClass.current
 
