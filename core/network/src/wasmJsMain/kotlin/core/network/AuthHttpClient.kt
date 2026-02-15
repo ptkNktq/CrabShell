@@ -8,7 +8,7 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 
-val authenticatedClient =
+fun createAuthenticatedClient(): HttpClient =
     HttpClient {
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })
