@@ -29,7 +29,7 @@ import core.ui.theme.label
 import model.FeedingLog
 import model.GarbageType
 import model.MealTime
-import org.koin.compose.koinInject
+import org.koin.compose.getKoin
 import org.koin.core.parameter.parametersOf
 
 private val CardHeaderMinHeight = 48.dp
@@ -37,7 +37,8 @@ private val CardHeaderMinHeight = 48.dp
 @Composable
 fun DashboardScreen() {
     val scope = rememberCoroutineScope()
-    val vm = koinInject<DashboardViewModel> { parametersOf(scope) }
+    val koin = getKoin()
+    val vm = remember { koin.get<DashboardViewModel> { parametersOf(scope) } }
     val windowSizeClass = LocalWindowSizeClass.current
 
     DashboardContent(

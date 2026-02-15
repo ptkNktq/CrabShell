@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,13 +21,14 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import core.ui.theme.AppTheme
-import org.koin.compose.koinInject
+import org.koin.compose.getKoin
 import org.koin.core.parameter.parametersOf
 
 @Composable
 fun LoginScreen() {
     val scope = rememberCoroutineScope()
-    val vm = koinInject<LoginViewModel> { parametersOf(scope) }
+    val koin = getKoin()
+    val vm = remember { koin.get<LoginViewModel> { parametersOf(scope) } }
 
     AppTheme {
         LoginContent(
