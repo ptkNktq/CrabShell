@@ -14,6 +14,13 @@ tasks.named<JavaExec>("run") {
     workingDir = rootProject.projectDir
 }
 
+// fat JAR で gRPC の META-INF/services が正しくマージされるようにする
+// Shadow 9.x はデフォルト DuplicatesStrategy.EXCLUDE のため明示的に INCLUDE が必要
+tasks.withType<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>().configureEach {
+    mergeServiceFiles()
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
 dependencies {
     implementation(project(":shared"))
 
