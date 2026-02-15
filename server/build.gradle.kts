@@ -29,6 +29,9 @@ val copyWasmFrontend by tasks.registering(Copy::class) {
     into(layout.buildDirectory.dir("resources/main/static"))
 }
 
-tasks.named("processResources") {
-    dependsOn(copyWasmFrontend)
+// -PskipFrontend を指定すると WASM フロントエンドのビルド・コピーをスキップ
+if (!project.hasProperty("skipFrontend")) {
+    tasks.named("processResources") {
+        dependsOn(copyWasmFrontend)
+    }
 }
