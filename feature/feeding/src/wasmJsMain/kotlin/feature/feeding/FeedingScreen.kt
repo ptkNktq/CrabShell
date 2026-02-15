@@ -12,7 +12,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -29,32 +28,37 @@ import core.ui.util.todayDateJs
 import model.Feeding
 import model.FeedingLog
 import model.MealTime
+import org.koin.compose.viewmodel.koinViewModel
 
-@JsFun("(iso) => { const d = new Date(iso); return d.toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'Asia/Tokyo'}); }")
+@JsFun(
+    """(iso) => {
+    const d = new Date(iso);
+    return d.toLocaleTimeString('ja-JP', {
+        hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Tokyo',
+    });
+}""",
+)
 private external fun toJstHHMM(iso: JsString): JsString
 
 @Composable
-fun FeedingScreen() {
-    val scope = rememberCoroutineScope()
-    val vm = remember { FeedingViewModel(scope) }
-
+fun FeedingScreen(vm: FeedingViewModel = koinViewModel()) {
     val today = remember { todayDateJs().toString() }
     val windowSizeClass = LocalWindowSizeClass.current
 
     FeedingContent(
-        petName = vm.pet?.name,
-        selectedDate = vm.selectedDate,
+        petName = vm.uiState.pet?.name,
+        selectedDate = vm.uiState.selectedDate,
         today = today,
-        loading = vm.loading,
-        error = vm.error,
-        log = vm.log,
-        noteDraft = vm.noteDraft,
-        onDateSelected = { vm.loadLog(it) },
-        onPreviousDay = { vm.goToPreviousDay() },
-        onNextDay = { vm.goToNextDay() },
-        onFeed = { vm.feed(it) },
-        onNoteChange = { vm.updateNoteDraft(it) },
-        onSaveNote = { vm.saveNote() },
+        loading = vm.uiState.isLoading,
+        error = vm.uiState.error,
+        log = vm.uiState.log,
+        noteDraft = vm.uiState.noteDraft,
+        onDateSelected = vm::onLoadLog,
+        onPreviousDay = vm::onGoToPreviousDay,
+        onNextDay = vm::onGoToNextDay,
+        onFeed = vm::onFeed,
+        onNoteChange = vm::onUpdateNoteDraft,
+        onSaveNote = vm::onSaveNote,
         windowSizeClass = windowSizeClass,
     )
 }
@@ -83,8 +87,12 @@ internal fun FeedingContent(
     ) {
         Text(
             text = petName?.let { "$it のごはん記録" } ?: "ごはん記録",
-            style = if (isCompact) MaterialTheme.typography.headlineSmall
-            else MaterialTheme.typography.headlineLarge,
+            style =
+                if (isCompact) {
+                    MaterialTheme.typography.headlineSmall
+                } else {
+                    MaterialTheme.typography.headlineLarge
+                },
             color = MaterialTheme.colorScheme.primary,
         )
 
@@ -93,10 +101,11 @@ internal fun FeedingContent(
         if (isCompact) {
             // Compact: カレンダーなし、詳細のみ（縦スクロール）
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState()),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState()),
             ) {
                 FeedingDetailSection(
                     selectedDate = selectedDate,
@@ -199,7 +208,11 @@ private fun FeedingDetailSection(
 }
 
 @Composable
-private fun DateSelector(date: String, onPrevious: () -> Unit, onNext: () -> Unit) {
+private fun DateSelector(
+    date: String,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+) {
     val dow = dayOfWeekShortJs(date.toJsString()).toString()
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -226,12 +239,15 @@ private fun MealCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (feeding.done)
-                FeedingDoneColor.copy(alpha = 0.1f)
-            else
-                MaterialTheme.colorScheme.surfaceVariant,
-        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    if (feeding.done) {
+                        FeedingDoneColor.copy(alpha = 0.1f)
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    },
+            ),
     ) {
         Row(
             modifier = Modifier.padding(16.dp).fillMaxWidth().defaultMinSize(minHeight = 48.dp),
@@ -280,7 +296,11 @@ private fun MealCard(
 }
 
 @Composable
-private fun NoteSection(note: String, onNoteChange: (String) -> Unit, onSave: () -> Unit) {
+private fun NoteSection(
+    note: String,
+    onNoteChange: (String) -> Unit,
+    onSave: () -> Unit,
+) {
     Text(
         text = "メモ",
         style = MaterialTheme.typography.titleMedium,

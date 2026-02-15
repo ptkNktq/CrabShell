@@ -3,12 +3,29 @@ package core.auth
 import kotlinx.coroutines.await
 import model.User
 
-@OptIn(ExperimentalWasmJsInterop::class)
-object AuthRepository {
+interface AuthRepository {
+    fun startListening()
 
+    suspend fun signIn(
+        email: String,
+        password: String,
+    ): Result<Unit>
+
+    suspend fun signOut(): Result<Unit>
+
+    suspend fun changePassword(
+        currentPassword: String,
+        newPassword: String,
+    ): Result<Unit>
+
+    suspend fun refreshToken(): String?
+}
+
+@OptIn(ExperimentalWasmJsInterop::class)
+class AuthRepositoryImpl : AuthRepository {
     private val auth by lazy { firebaseAuth(getFirebase()) }
 
-    fun startListening() {
+    override fun startListening() {
         onAuthStateChanged(
             auth = auth,
             onUser = { uid: JsString, email: JsString, displayName: JsString ->
@@ -16,12 +33,13 @@ object AuthRepository {
                 getIdTokenResult(auth).then<Nothing?> { resultJs ->
                     val token = resultJs?.let { getTokenFromResult(it).toString() } ?: ""
                     val isAdmin = resultJs?.let { getIsAdminFromResult(it).toBoolean() } ?: false
-                    val user = User(
-                        uid = uid.toString(),
-                        email = email.toString(),
-                        displayName = displayName.toString().ifEmpty { null },
-                        isAdmin = isAdmin,
-                    )
+                    val user =
+                        User(
+                            uid = uid.toString(),
+                            email = email.toString(),
+                            displayName = displayName.toString().ifEmpty { null },
+                            isAdmin = isAdmin,
+                        )
                     AuthStateHolder.setAuthenticated(user, token)
                     null
                 }
@@ -32,7 +50,10 @@ object AuthRepository {
         )
     }
 
-    suspend fun signIn(email: String, password: String): Result<Unit> {
+    override suspend fun signIn(
+        email: String,
+        password: String,
+    ): Result<Unit> {
         return try {
             signInWithEmailAndPassword(auth, email.toJsString(), password.toJsString()).await<Nothing?>()
             Result.success(Unit)
@@ -41,7 +62,7 @@ object AuthRepository {
         }
     }
 
-    suspend fun signOut(): Result<Unit> {
+    override suspend fun signOut(): Result<Unit> {
         return try {
             firebaseSignOut(auth).await<Nothing?>()
             Result.success(Unit)
@@ -50,7 +71,10 @@ object AuthRepository {
         }
     }
 
-    suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit> {
+    override suspend fun changePassword(
+        currentPassword: String,
+        newPassword: String,
+    ): Result<Unit> {
         return try {
             reauthenticateAndChangePassword(
                 auth,
@@ -63,7 +87,7 @@ object AuthRepository {
         }
     }
 
-    suspend fun refreshToken(): String? {
+    override suspend fun refreshToken(): String? {
         return try {
             val resultJs = getIdTokenResult(auth).await<JsAny?>()
             val token = resultJs?.let { getTokenFromResult(it).toString() }

@@ -7,7 +7,9 @@ import model.User
 
 sealed class AuthState {
     data object Loading : AuthState()
+
     data object Unauthenticated : AuthState()
+
     data class Authenticated(val user: User) : AuthState()
 }
 
@@ -18,7 +20,10 @@ object AuthStateHolder {
     var idToken by mutableStateOf<String?>(null)
         internal set
 
-    fun setAuthenticated(user: User, token: String) {
+    fun setAuthenticated(
+        user: User,
+        token: String,
+    ) {
         idToken = token
         state = AuthState.Authenticated(user)
     }

@@ -3,104 +3,102 @@ package feature.feeding
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import core.network.authenticatedClient
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import core.network.FeedingRepository
+import core.network.PetRepository
 import core.ui.util.shiftDateJs
 import core.ui.util.todayDateJs
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import io.ktor.http.*
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import model.Feeding
 import model.FeedingLog
 import model.MealTime
 import model.Pet
 
-class FeedingViewModel(private val scope: CoroutineScope) {
-    var log by mutableStateOf(FeedingLog(date = todayDateJs().toString()))
-        private set
-    var selectedDate by mutableStateOf(todayDateJs().toString())
-        private set
-    var loading by mutableStateOf(true)
-        private set
-    var error by mutableStateOf<String?>(null)
-        private set
-    var noteDraft by mutableStateOf("")
-        private set
-    var pet by mutableStateOf<Pet?>(null)
+data class FeedingUiState(
+    val log: FeedingLog = FeedingLog(date = ""),
+    val selectedDate: String = "",
+    val isLoading: Boolean = true,
+    val error: String? = null,
+    val noteDraft: String = "",
+    val pet: Pet? = null,
+)
+
+class FeedingViewModel(
+    private val petRepository: PetRepository,
+    private val feedingRepository: FeedingRepository,
+) : ViewModel() {
+    var uiState by mutableStateOf(
+        FeedingUiState(
+            log = FeedingLog(date = todayDateJs().toString()),
+            selectedDate = todayDateJs().toString(),
+        ),
+    )
         private set
 
     init {
-        scope.launch {
+        viewModelScope.launch {
             try {
-                val pets: List<Pet> = authenticatedClient.get("/api/pets").body()
-                pet = pets.firstOrNull()
-                loadLog(selectedDate)
+                val pet = petRepository.getPets().firstOrNull()
+                uiState = uiState.copy(pet = pet)
+                onLoadLog(uiState.selectedDate)
             } catch (e: Exception) {
-                error = e.message
-                loading = false
+                uiState = uiState.copy(error = e.message, isLoading = false)
             }
         }
     }
 
-    fun loadLog(date: String) {
-        val petId = pet?.id ?: return
-        selectedDate = date
-        loading = true
-        error = null
-        scope.launch {
+    fun onLoadLog(date: String) {
+        val petId = uiState.pet?.id ?: return
+        uiState = uiState.copy(selectedDate = date, isLoading = true, error = null)
+        viewModelScope.launch {
             try {
-                log = authenticatedClient.get("/api/pets/$petId/feeding/$date").body()
-                noteDraft = log.note
-                loading = false
+                val log = feedingRepository.getFeedingLog(petId, date)
+                uiState = uiState.copy(log = log, noteDraft = log.note, isLoading = false)
             } catch (e: Exception) {
-                error = e.message
-                loading = false
+                uiState = uiState.copy(error = e.message, isLoading = false)
             }
         }
     }
 
-    fun feed(mealTime: MealTime) {
-        val petId = pet?.id ?: return
-        scope.launch {
+    fun onFeed(mealTime: MealTime) {
+        val petId = uiState.pet?.id ?: return
+        viewModelScope.launch {
             try {
-                val feeding: Feeding = authenticatedClient.put(
-                    "/api/pets/$petId/feeding/$selectedDate/${mealTime.name.lowercase()}"
-                ).body()
-                log = log.copy(
-                    feedings = log.feedings.toMutableMap().apply { put(mealTime, feeding) }
-                )
+                val feeding = feedingRepository.feed(petId, uiState.selectedDate, mealTime)
+                uiState =
+                    uiState.copy(
+                        log =
+                            uiState.log.copy(
+                                feedings = uiState.log.feedings.toMutableMap().apply { put(mealTime, feeding) },
+                            ),
+                    )
             } catch (e: Exception) {
-                error = e.message
+                uiState = uiState.copy(error = e.message)
             }
         }
     }
 
-    fun updateNoteDraft(text: String) {
-        noteDraft = text
+    fun onUpdateNoteDraft(text: String) {
+        uiState = uiState.copy(noteDraft = text)
     }
 
-    fun saveNote() {
-        val petId = pet?.id ?: return
-        scope.launch {
+    fun onSaveNote() {
+        val petId = uiState.pet?.id ?: return
+        viewModelScope.launch {
             try {
-                authenticatedClient.put("/api/pets/$petId/feeding/$selectedDate/note") {
-                    contentType(ContentType.Application.Json)
-                    setBody(mapOf("note" to noteDraft))
-                }
-                log = log.copy(note = noteDraft)
+                feedingRepository.updateNote(petId, uiState.selectedDate, uiState.noteDraft)
+                uiState = uiState.copy(log = uiState.log.copy(note = uiState.noteDraft))
             } catch (e: Exception) {
-                error = e.message
+                uiState = uiState.copy(error = e.message)
             }
         }
     }
 
-    fun goToPreviousDay() {
-        loadLog(shiftDateJs(selectedDate.toJsString(), -1).toString())
+    fun onGoToPreviousDay() {
+        onLoadLog(shiftDateJs(uiState.selectedDate.toJsString(), -1).toString())
     }
 
-    fun goToNextDay() {
-        loadLog(shiftDateJs(selectedDate.toJsString(), 1).toString())
+    fun onGoToNextDay() {
+        onLoadLog(shiftDateJs(uiState.selectedDate.toJsString(), 1).toString())
     }
-
 }

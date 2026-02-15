@@ -10,8 +10,6 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.*
@@ -21,23 +19,21 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import core.ui.theme.AppTheme
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun LoginScreen() {
-    val scope = rememberCoroutineScope()
-    val vm = remember { LoginViewModel(scope) }
-
+fun LoginScreen(vm: LoginViewModel = koinViewModel()) {
     AppTheme {
         LoginContent(
-            email = vm.email,
-            password = vm.password,
-            passwordVisible = vm.passwordVisible,
-            errorMessage = vm.errorMessage,
-            isLoading = vm.isLoading,
+            email = vm.uiState.email,
+            password = vm.uiState.password,
+            passwordVisible = vm.uiState.isPasswordVisible,
+            errorMessage = vm.uiState.errorMessage,
+            isLoading = vm.uiState.isLoading,
             onEmailChanged = vm::onEmailChanged,
             onPasswordChanged = vm::onPasswordChanged,
-            onTogglePasswordVisibility = vm::togglePasswordVisibility,
-            onSignIn = vm::signIn,
+            onTogglePasswordVisibility = vm::onTogglePasswordVisibility,
+            onSignIn = vm::onSignIn,
         )
     }
 }
@@ -64,9 +60,10 @@ internal fun LoginContent(
         ) {
             Card(
                 modifier = Modifier.width(400.dp).padding(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                ),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    ),
             ) {
                 Column(
                     modifier = Modifier.padding(32.dp).fillMaxWidth(),
@@ -87,10 +84,11 @@ internal fun LoginContent(
                         label = { Text("メールアドレス") },
                         leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                         singleLine = true,
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Email,
-                            imeAction = ImeAction.Next,
-                        ),
+                        keyboardOptions =
+                            KeyboardOptions(
+                                keyboardType = KeyboardType.Email,
+                                imeAction = ImeAction.Next,
+                            ),
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isLoading,
                     )
@@ -110,19 +108,21 @@ internal fun LoginContent(
                         },
                         singleLine = true,
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password,
-                            imeAction = ImeAction.Done,
-                        ),
+                        keyboardOptions =
+                            KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done,
+                            ),
                         keyboardActions = KeyboardActions(onDone = { onSignIn() }),
-                        modifier = Modifier.fillMaxWidth().onPreviewKeyEvent { event ->
-                            if (event.key == Key.Enter && event.type == KeyEventType.KeyUp) {
-                                onSignIn()
-                                true
-                            } else {
-                                false
-                            }
-                        },
+                        modifier =
+                            Modifier.fillMaxWidth().onPreviewKeyEvent { event ->
+                                if (event.key == Key.Enter && event.type == KeyEventType.KeyUp) {
+                                    onSignIn()
+                                    true
+                                } else {
+                                    false
+                                }
+                            },
                         enabled = !isLoading,
                     )
 

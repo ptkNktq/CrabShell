@@ -18,23 +18,22 @@ import core.ui.WindowSizeClass
 import model.MoneyItem
 import model.MonthlyMoney
 import model.PaymentRecord
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun PaymentScreen() {
-    val scope = rememberCoroutineScope()
-    val vm = remember { PaymentViewModel(scope) }
+fun PaymentScreen(vm: PaymentViewModel = koinViewModel()) {
     val windowSizeClass = LocalWindowSizeClass.current
 
     PaymentContent(
-        monthlyMoney = vm.monthlyMoney,
-        currentMonth = vm.currentMonth,
-        currentUid = vm.currentUid,
-        loading = vm.loading,
-        saving = vm.saving,
-        error = vm.error,
-        onPreviousMonth = { vm.goToPreviousMonth() },
-        onNextMonth = { vm.goToNextMonth() },
-        onConfirmPay = { amount -> vm.recordPayment(amount) },
+        monthlyMoney = vm.uiState.monthlyMoney,
+        currentMonth = vm.uiState.currentMonth,
+        currentUid = vm.uiState.currentUid,
+        loading = vm.uiState.isLoading,
+        saving = vm.uiState.isSaving,
+        error = vm.uiState.error,
+        onPreviousMonth = vm::onGoToPreviousMonth,
+        onNextMonth = vm::onGoToNextMonth,
+        onConfirmPay = vm::onRecordPayment,
         windowSizeClass = windowSizeClass,
     )
 }
@@ -55,9 +54,10 @@ internal fun PaymentContent(
     val isCompact = windowSizeClass == WindowSizeClass.Compact
 
     // 自分の割当合計
-    val totalAllocated = monthlyMoney.items.sumOf { item ->
-        item.payments.filter { it.uid == currentUid }.sumOf { it.amount }
-    }
+    val totalAllocated =
+        monthlyMoney.items.sumOf { item ->
+            item.payments.filter { it.uid == currentUid }.sumOf { it.amount }
+        }
     // 支払い済み合計
     val totalPaid = monthlyMoney.paymentRecords.sumOf { it.amount }
     val remaining = totalAllocated - totalPaid
@@ -66,9 +66,10 @@ internal fun PaymentContent(
         if (isCompact) {
             // Compact: 縦並び
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(12.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(12.dp),
             ) {
                 Text(
                     text = "支払い",
@@ -106,9 +107,10 @@ internal fun PaymentContent(
         } else {
             // Medium/Expanded: 左にリスト、右にフォーム
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
             ) {
                 Text(
                     text = "支払い",
@@ -268,9 +270,10 @@ private fun PaymentInlineForm(
 
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -348,12 +351,14 @@ private fun SummaryCard(
     isCompact: Boolean,
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().let {
-            if (!isCompact) it.widthIn(max = 600.dp) else it
-        },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
+        modifier =
+            Modifier.fillMaxWidth().let {
+                if (!isCompact) it.widthIn(max = 600.dp) else it
+            },
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(
@@ -416,8 +421,12 @@ private fun SummaryCard(
                 Text(
                     "¥${formatAmount(remaining)}",
                     style = MaterialTheme.typography.headlineMedium,
-                    color = if (remaining <= 0) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.error,
+                    color =
+                        if (remaining <= 0) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.error
+                        },
                 )
             }
         }
@@ -430,12 +439,14 @@ private fun PaymentRecordCard(
     isCompact: Boolean,
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().let {
-            if (!isCompact) it.widthIn(max = 600.dp) else it
-        },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
+        modifier =
+            Modifier.fillMaxWidth().let {
+                if (!isCompact) it.widthIn(max = 600.dp) else it
+            },
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -466,12 +477,14 @@ private fun ItemBreakdownCard(
     if (myAllocation <= 0) return
 
     Card(
-        modifier = Modifier.fillMaxWidth().let {
-            if (!isCompact) it.widthIn(max = 600.dp) else it
-        },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
+        modifier =
+            Modifier.fillMaxWidth().let {
+                if (!isCompact) it.widthIn(max = 600.dp) else it
+            },
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -527,12 +540,13 @@ private fun formatDate(isoString: String): String {
         if (hour >= 24) {
             hour -= 24
             day++
-            val daysInMonth = when (month) {
-                1, 3, 5, 7, 8, 10, 12 -> 31
-                4, 6, 9, 11 -> 30
-                2 -> if (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)) 29 else 28
-                else -> 31
-            }
+            val daysInMonth =
+                when (month) {
+                    1, 3, 5, 7, 8, 10, 12 -> 31
+                    4, 6, 9, 11 -> 30
+                    2 -> if (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)) 29 else 28
+                    else -> 31
+                }
             if (day > daysInMonth) {
                 day = 1
                 month++
