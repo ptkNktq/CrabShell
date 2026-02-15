@@ -60,6 +60,10 @@ kotlin {
             // Ktor WASM engine（wasmJs ターゲットの実行に必要）
             implementation(libs.ktor.client.js.wasm)
 
+            // Koin DI
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose)
+
             // モジュール依存
             implementation(project(":core:auth"))
             implementation(project(":core:ui"))

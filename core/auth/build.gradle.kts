@@ -14,6 +14,8 @@ kotlin {
             // compose.runtime が coroutines を推移的に提供
             api(compose.runtime)
             api(project(":shared"))
+
+            implementation(libs.koin.core)
         }
     }
 }
