@@ -17,7 +17,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import core.auth.AuthState
 import core.auth.AuthStateHolder
 import core.ui.LocalWindowSizeClass
@@ -30,14 +29,14 @@ import model.GarbageType
 import model.GarbageTypeSchedule
 import model.User
 import org.koin.compose.getKoin
+import org.koin.compose.viewmodel.koinViewModel
 
 private val dayLabels = listOf("日", "月", "火", "水", "木", "金", "土")
 
 @Composable
-fun SettingsScreen() {
-    val koin = getKoin()
-    val passwordVm: PasswordChangeViewModel = viewModel { koin.get() }
+fun SettingsScreen(passwordVm: PasswordChangeViewModel = koinViewModel()) {
     val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
+    val koin = getKoin()
     val userNameVm = remember(isAdmin) { if (isAdmin) koin.get<UserNameViewModel>() else null }
     val garbageVm = remember(isAdmin) { if (isAdmin) koin.get<GarbageScheduleViewModel>() else null }
     val scrollState = rememberScrollState()

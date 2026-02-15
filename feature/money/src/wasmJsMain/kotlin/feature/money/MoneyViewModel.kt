@@ -70,16 +70,28 @@ class MoneyViewModel(
         private set
 
     init {
-        loadUsers()
-        onLoadMonth(uiState.currentMonth)
+        loadInitialData()
     }
 
-    private fun loadUsers() {
+    /** 初回読み込み: ユーザー一覧と月次データを1つの coroutine で取得し、state を一度に更新 */
+    private fun loadInitialData() {
         viewModelScope.launch {
+            val users =
+                try {
+                    userRepository.getUsers()
+                } catch (_: Exception) {
+                    emptyList()
+                }
             try {
-                uiState = uiState.copy(users = userRepository.getUsers())
-            } catch (_: Exception) {
-                // ユーザー一覧取得失敗は無視
+                val monthly = moneyRepository.getMonthlyMoney(uiState.currentMonth)
+                uiState =
+                    uiState.copy(
+                        users = users,
+                        monthlyMoney = monthly,
+                        isLoading = false,
+                    )
+            } catch (e: Exception) {
+                uiState = uiState.copy(users = users, error = e.message, isLoading = false)
             }
         }
     }
