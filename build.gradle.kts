@@ -8,8 +8,8 @@ plugins {
     alias(libs.plugins.ktlint) apply false
 }
 
-// 全サブプロジェクトに ktlint を適用
 subprojects {
+    // --- ktlint ---
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
 
     configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
@@ -20,7 +20,11 @@ subprojects {
         }
     }
 
-    // Koin が依存する kotlin-stdlib-wasm-js のバージョンをコンパイラと一致させる
+    // --- Kotlin stdlib バージョン統一 ---
+    // Koin 4.2.0-RC1 は Kotlin 2.3.20-Beta1 でビルドされており、
+    // kotlin-stdlib-wasm-js 2.3.20-Beta1 を推移的に要求する。
+    // wasmJs ターゲットでは stdlib とコンパイラのバージョンが一致しないとビルドが失敗するため、
+    // stdlib をプロジェクトの Kotlin バージョンに強制する。
     configurations.all {
         resolutionStrategy.eachDependency {
             if (requested.group == "org.jetbrains.kotlin" && requested.name.startsWith("kotlin-stdlib")) {
