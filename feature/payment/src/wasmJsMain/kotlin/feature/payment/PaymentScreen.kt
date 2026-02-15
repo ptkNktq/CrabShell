@@ -13,15 +13,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
 import model.MoneyItem
 import model.MonthlyMoney
 import model.PaymentRecord
-import org.koin.compose.viewmodel.koinViewModel
+import org.koin.compose.getKoin
 
 @Composable
-fun PaymentScreen(vm: PaymentViewModel = koinViewModel()) {
+fun PaymentScreen() {
+    val koin = getKoin()
+    val vm: PaymentViewModel = viewModel { koin.get() }
     val windowSizeClass = LocalWindowSizeClass.current
 
     PaymentContent(

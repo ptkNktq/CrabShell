@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
 import core.ui.components.CalendarView
@@ -28,7 +29,7 @@ import core.ui.util.todayDateJs
 import model.Feeding
 import model.FeedingLog
 import model.MealTime
-import org.koin.compose.viewmodel.koinViewModel
+import org.koin.compose.getKoin
 
 @JsFun(
     """(iso) => {
@@ -41,7 +42,9 @@ import org.koin.compose.viewmodel.koinViewModel
 private external fun toJstHHMM(iso: JsString): JsString
 
 @Composable
-fun FeedingScreen(vm: FeedingViewModel = koinViewModel()) {
+fun FeedingScreen() {
+    val koin = getKoin()
+    val vm: FeedingViewModel = viewModel { koin.get() }
     val today = remember { todayDateJs().toString() }
     val windowSizeClass = LocalWindowSizeClass.current
 

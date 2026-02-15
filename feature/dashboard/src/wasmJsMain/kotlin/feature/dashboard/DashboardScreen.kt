@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
 import core.ui.theme.FeedingDoneColor
@@ -28,12 +29,14 @@ import core.ui.theme.label
 import model.FeedingLog
 import model.GarbageType
 import model.MealTime
-import org.koin.compose.viewmodel.koinViewModel
+import org.koin.compose.getKoin
 
 private val CardHeaderMinHeight = 48.dp
 
 @Composable
-fun DashboardScreen(vm: DashboardViewModel = koinViewModel()) {
+fun DashboardScreen() {
+    val koin = getKoin()
+    val vm: DashboardViewModel = viewModel { koin.get() }
     val windowSizeClass = LocalWindowSizeClass.current
 
     DashboardContent(
