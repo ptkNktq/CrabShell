@@ -29,8 +29,7 @@ import model.User
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun MoneyScreen() {
-    val vm: MoneyViewModel = koinViewModel()
+fun MoneyScreen(vm: MoneyViewModel = koinViewModel()) {
     val windowSizeClass = LocalWindowSizeClass.current
 
     MoneyContent(

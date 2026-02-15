@@ -41,9 +41,7 @@ import org.koin.compose.viewmodel.koinViewModel
 private external fun toJstHHMM(iso: JsString): JsString
 
 @Composable
-fun FeedingScreen() {
-    val vm: FeedingViewModel = koinViewModel()
-
+fun FeedingScreen(vm: FeedingViewModel = koinViewModel()) {
     val today = remember { todayDateJs().toString() }
     val windowSizeClass = LocalWindowSizeClass.current
 

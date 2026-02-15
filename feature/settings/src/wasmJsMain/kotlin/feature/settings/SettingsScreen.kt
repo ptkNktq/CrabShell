@@ -34,9 +34,8 @@ import org.koin.compose.viewmodel.koinViewModel
 private val dayLabels = listOf("日", "月", "火", "水", "木", "金", "土")
 
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(passwordVm: PasswordChangeViewModel = koinViewModel()) {
     val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
-    val passwordVm: PasswordChangeViewModel = koinViewModel()
     val koin = getKoin()
     val userNameVm = remember(isAdmin) { if (isAdmin) koin.get<UserNameViewModel>() else null }
     val garbageVm = remember(isAdmin) { if (isAdmin) koin.get<GarbageScheduleViewModel>() else null }

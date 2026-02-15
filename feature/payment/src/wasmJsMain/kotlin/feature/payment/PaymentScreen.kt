@@ -21,8 +21,7 @@ import model.PaymentRecord
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun PaymentScreen() {
-    val vm: PaymentViewModel = koinViewModel()
+fun PaymentScreen(vm: PaymentViewModel = koinViewModel()) {
     val windowSizeClass = LocalWindowSizeClass.current
 
     PaymentContent(

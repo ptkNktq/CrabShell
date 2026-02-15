@@ -33,8 +33,7 @@ import org.koin.compose.viewmodel.koinViewModel
 private val CardHeaderMinHeight = 48.dp
 
 @Composable
-fun DashboardScreen() {
-    val vm: DashboardViewModel = koinViewModel()
+fun DashboardScreen(vm: DashboardViewModel = koinViewModel()) {
     val windowSizeClass = LocalWindowSizeClass.current
 
     DashboardContent(

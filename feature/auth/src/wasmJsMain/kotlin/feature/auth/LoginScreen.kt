@@ -22,9 +22,7 @@ import core.ui.theme.AppTheme
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun LoginScreen() {
-    val vm: LoginViewModel = koinViewModel()
-
+fun LoginScreen(vm: LoginViewModel = koinViewModel()) {
     AppTheme {
         LoginContent(
             email = vm.uiState.email,
