@@ -56,7 +56,11 @@ data class MoneyUiState(
     val formKey: Int = 0,
 )
 
-class MoneyViewModel(private val scope: CoroutineScope) {
+class MoneyViewModel(
+    private val scope: CoroutineScope,
+    private val moneyRepository: MoneyRepository,
+    private val userRepository: UserRepository,
+) {
     var uiState by mutableStateOf(
         MoneyUiState(
             currentMonth = currentMonthJs().toString(),
@@ -73,7 +77,7 @@ class MoneyViewModel(private val scope: CoroutineScope) {
     private fun loadUsers() {
         scope.launch {
             try {
-                uiState = uiState.copy(users = UserRepository.getUsers())
+                uiState = uiState.copy(users = userRepository.getUsers())
             } catch (_: Exception) {
                 // ユーザー一覧取得失敗は無視
             }
@@ -86,7 +90,7 @@ class MoneyViewModel(private val scope: CoroutineScope) {
             try {
                 uiState =
                     uiState.copy(
-                        monthlyMoney = MoneyRepository.getMonthlyMoney(month),
+                        monthlyMoney = moneyRepository.getMonthlyMoney(month),
                         isLoading = false,
                     )
             } catch (e: Exception) {
@@ -160,7 +164,7 @@ class MoneyViewModel(private val scope: CoroutineScope) {
         uiState = uiState.copy(isSaving = true)
         scope.launch {
             try {
-                MoneyRepository.saveMonthlyMoney(data)
+                moneyRepository.saveMonthlyMoney(data)
                 uiState = uiState.copy(monthlyMoney = data)
                 onSuccess()
             } catch (e: Exception) {

@@ -45,7 +45,12 @@ data class DashboardUiState(
     val dateWithDay: String = "",
 )
 
-class DashboardViewModel(private val scope: CoroutineScope) {
+class DashboardViewModel(
+    private val scope: CoroutineScope,
+    private val petRepository: PetRepository,
+    private val feedingRepository: FeedingRepository,
+    private val garbageScheduleRepository: GarbageScheduleRepository,
+) {
     private var today: String = feedingDateJs().toString()
     private var petId: String? = null
     private var cachedSchedules: List<GarbageTypeSchedule> = emptyList()
@@ -65,7 +70,7 @@ class DashboardViewModel(private val scope: CoroutineScope) {
     init {
         scope.launch {
             try {
-                val pet = PetRepository.getPets().firstOrNull()
+                val pet = petRepository.getPets().firstOrNull()
                 petId = pet?.id
                 uiState = uiState.copy(petName = pet?.name)
                 loadToday()
@@ -104,7 +109,7 @@ class DashboardViewModel(private val scope: CoroutineScope) {
     private suspend fun loadToday() {
         val id = petId ?: return
         try {
-            val log = FeedingRepository.getFeedingLog(id, today)
+            val log = feedingRepository.getFeedingLog(id, today)
             uiState = uiState.copy(feedingLog = log, isLoading = false)
         } catch (e: Exception) {
             uiState = uiState.copy(error = e.message, isLoading = false)
@@ -114,7 +119,7 @@ class DashboardViewModel(private val scope: CoroutineScope) {
     private fun loadGarbageSchedule() {
         scope.launch {
             try {
-                cachedSchedules = GarbageScheduleRepository.getSchedules()
+                cachedSchedules = garbageScheduleRepository.getSchedules()
                 refreshGarbageForToday()
             } catch (_: Exception) {
                 // ゴミ出し情報取得失敗は無視
@@ -157,7 +162,7 @@ class DashboardViewModel(private val scope: CoroutineScope) {
         val id = petId ?: return
         scope.launch {
             try {
-                val feeding = FeedingRepository.feed(id, today, mealTime)
+                val feeding = feedingRepository.feed(id, today, mealTime)
                 uiState =
                     uiState.copy(
                         feedingLog =

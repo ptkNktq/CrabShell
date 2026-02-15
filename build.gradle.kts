@@ -19,4 +19,13 @@ subprojects {
             exclude { it.file.path.contains("generated") }
         }
     }
+
+    // Koin が依存する kotlin-stdlib-wasm-js のバージョンをコンパイラと一致させる
+    configurations.all {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "org.jetbrains.kotlin" && requested.name.startsWith("kotlin-stdlib")) {
+                useVersion(libs.versions.kotlin.get())
+            }
+        }
+    }
 }

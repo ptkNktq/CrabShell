@@ -18,7 +18,10 @@ data class GarbageScheduleUiState(
     val message: String? = null,
 )
 
-class GarbageScheduleViewModel(private val scope: CoroutineScope) {
+class GarbageScheduleViewModel(
+    private val scope: CoroutineScope,
+    private val garbageScheduleRepository: GarbageScheduleRepository,
+) {
     var uiState by mutableStateOf(GarbageScheduleUiState())
         private set
 
@@ -29,7 +32,7 @@ class GarbageScheduleViewModel(private val scope: CoroutineScope) {
     private fun loadSchedules() {
         scope.launch {
             try {
-                val loaded = GarbageScheduleRepository.getSchedules()
+                val loaded = garbageScheduleRepository.getSchedules()
                 uiState =
                     uiState.copy(
                         schedules =
@@ -91,7 +94,7 @@ class GarbageScheduleViewModel(private val scope: CoroutineScope) {
         uiState = uiState.copy(isSaving = true, message = null)
         scope.launch {
             try {
-                GarbageScheduleRepository.saveSchedules(uiState.schedules)
+                garbageScheduleRepository.saveSchedules(uiState.schedules)
                 uiState = uiState.copy(isSaving = false, message = "保存しました")
             } catch (e: Exception) {
                 uiState = uiState.copy(isSaving = false, message = "保存に失敗しました: ${e.message}")

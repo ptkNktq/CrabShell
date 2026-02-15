@@ -22,7 +22,11 @@ data class FeedingUiState(
     val pet: Pet? = null,
 )
 
-class FeedingViewModel(private val scope: CoroutineScope) {
+class FeedingViewModel(
+    private val scope: CoroutineScope,
+    private val petRepository: PetRepository,
+    private val feedingRepository: FeedingRepository,
+) {
     var uiState by mutableStateOf(
         FeedingUiState(
             log = FeedingLog(date = todayDateJs().toString()),
@@ -34,7 +38,7 @@ class FeedingViewModel(private val scope: CoroutineScope) {
     init {
         scope.launch {
             try {
-                val pet = PetRepository.getPets().firstOrNull()
+                val pet = petRepository.getPets().firstOrNull()
                 uiState = uiState.copy(pet = pet)
                 onLoadLog(uiState.selectedDate)
             } catch (e: Exception) {
@@ -48,7 +52,7 @@ class FeedingViewModel(private val scope: CoroutineScope) {
         uiState = uiState.copy(selectedDate = date, isLoading = true, error = null)
         scope.launch {
             try {
-                val log = FeedingRepository.getFeedingLog(petId, date)
+                val log = feedingRepository.getFeedingLog(petId, date)
                 uiState = uiState.copy(log = log, noteDraft = log.note, isLoading = false)
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message, isLoading = false)
@@ -60,7 +64,7 @@ class FeedingViewModel(private val scope: CoroutineScope) {
         val petId = uiState.pet?.id ?: return
         scope.launch {
             try {
-                val feeding = FeedingRepository.feed(petId, uiState.selectedDate, mealTime)
+                val feeding = feedingRepository.feed(petId, uiState.selectedDate, mealTime)
                 uiState =
                     uiState.copy(
                         log =
@@ -82,7 +86,7 @@ class FeedingViewModel(private val scope: CoroutineScope) {
         val petId = uiState.pet?.id ?: return
         scope.launch {
             try {
-                FeedingRepository.updateNote(petId, uiState.selectedDate, uiState.noteDraft)
+                feedingRepository.updateNote(petId, uiState.selectedDate, uiState.noteDraft)
                 uiState = uiState.copy(log = uiState.log.copy(note = uiState.noteDraft))
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)

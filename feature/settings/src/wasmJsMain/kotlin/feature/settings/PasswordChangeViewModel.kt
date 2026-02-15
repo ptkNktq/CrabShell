@@ -16,7 +16,10 @@ data class PasswordChangeUiState(
     val successMessage: String? = null,
 )
 
-class PasswordChangeViewModel(private val scope: CoroutineScope) {
+class PasswordChangeViewModel(
+    private val scope: CoroutineScope,
+    private val authRepository: AuthRepository,
+) {
     var uiState by mutableStateOf(PasswordChangeUiState())
         private set
 
@@ -49,7 +52,7 @@ class PasswordChangeViewModel(private val scope: CoroutineScope) {
 
         uiState = uiState.copy(isLoading = true, errorMessage = null, successMessage = null)
         scope.launch {
-            val result = AuthRepository.changePassword(state.currentPassword, state.newPassword)
+            val result = authRepository.changePassword(state.currentPassword, state.newPassword)
             if (result.isSuccess) {
                 uiState =
                     uiState.copy(

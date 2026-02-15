@@ -14,7 +14,10 @@ data class UserNameUiState(
     val message: String? = null,
 )
 
-class UserNameViewModel(private val scope: CoroutineScope) {
+class UserNameViewModel(
+    private val scope: CoroutineScope,
+    private val userRepository: UserRepository,
+) {
     var uiState by mutableStateOf(UserNameUiState())
         private set
 
@@ -25,7 +28,7 @@ class UserNameViewModel(private val scope: CoroutineScope) {
     private fun loadUsers() {
         scope.launch {
             try {
-                uiState = uiState.copy(users = UserRepository.getUsers())
+                uiState = uiState.copy(users = userRepository.getUsers())
             } catch (_: Exception) {
                 // 読み込み失敗は空リストのまま
             }
@@ -39,7 +42,7 @@ class UserNameViewModel(private val scope: CoroutineScope) {
         uiState = uiState.copy(isSaving = true, message = null)
         scope.launch {
             try {
-                val updated = UserRepository.updateDisplayName(uid, displayName)
+                val updated = userRepository.updateDisplayName(uid, displayName)
                 uiState =
                     uiState.copy(
                         users = uiState.users.map { if (it.uid == uid) updated else it },

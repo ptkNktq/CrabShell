@@ -66,6 +66,7 @@ kotlin {
 
             // モジュール依存
             implementation(project(":core:auth"))
+            implementation(project(":core:network"))
             implementation(project(":core:ui"))
             implementation(project(":feature:auth"))
             implementation(project(":feature:dashboard"))

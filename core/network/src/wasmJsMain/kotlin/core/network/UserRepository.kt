@@ -10,7 +10,10 @@ import model.User
 interface UserRepository {
     suspend fun getUsers(): List<User>
 
-    suspend fun updateDisplayName(uid: String, displayName: String): User
+    suspend fun updateDisplayName(
+        uid: String,
+        displayName: String,
+    ): User
 }
 
 class UserRepositoryImpl(private val client: HttpClient) : UserRepository {

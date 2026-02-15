@@ -14,7 +14,10 @@ interface MoneyRepository {
 
     suspend fun saveMonthlyMoney(data: MonthlyMoney)
 
-    suspend fun recordPayment(month: String, record: PaymentRecord): MonthlyMoney
+    suspend fun recordPayment(
+        month: String,
+        record: PaymentRecord,
+    ): MonthlyMoney
 }
 
 class MoneyRepositoryImpl(private val client: HttpClient) : MoneyRepository {
