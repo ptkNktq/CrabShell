@@ -29,8 +29,8 @@ The server listens on `0.0.0.0:8080`. Building the server automatically copies t
 フロントエンドとサーバーを分離起動し、UI 変更の反映を高速化する開発モード。
 
 ```bash
-# Terminal 1: API サーバー（WASM ビルドをスキップして高速起動）
-./gradlew :server:run -PskipFrontend
+# Terminal 1: API サーバー（fat JAR をビルドして直接起動）
+./gradlew :server:buildFatJar -PskipFrontend && java -jar server/build/libs/server-all.jar
 
 # Terminal 2: webpack dev server（自動リビルド＆リロード）
 ./gradlew :web-frontend:wasmJsBrowserDevelopmentRun -t
@@ -38,9 +38,10 @@ The server listens on `0.0.0.0:8080`. Building the server automatically copies t
 # ブラウザ: http://localhost:3000
 ```
 
+- `./gradlew :server:run` ではなく fat JAR を使う（Gradle のプロジェクトロックを解放し、Terminal 2 と共存させるため）
 - webpack dev server (port 3000) が `/api/*` を Ktor サーバー (port 8080) にプロキシ
 - feature/ や core/ の Kotlin 変更は `-t`（continuous build）が検知して自動リビルド（数十秒）
-- server/ の変更は Terminal 1 を再起動、shared/ の変更は両方再起動
+- server/ の変更は Terminal 1 を再ビルド＆再起動、shared/ の変更は両方再起動
 
 ## Architecture
 
