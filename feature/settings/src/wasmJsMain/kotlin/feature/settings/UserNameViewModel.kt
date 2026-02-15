@@ -3,8 +3,9 @@ package feature.settings
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import core.network.UserRepository
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import model.User
 
@@ -15,9 +16,8 @@ data class UserNameUiState(
 )
 
 class UserNameViewModel(
-    private val scope: CoroutineScope,
     private val userRepository: UserRepository,
-) {
+) : ViewModel() {
     var uiState by mutableStateOf(UserNameUiState())
         private set
 
@@ -26,7 +26,7 @@ class UserNameViewModel(
     }
 
     private fun loadUsers() {
-        scope.launch {
+        viewModelScope.launch {
             try {
                 uiState = uiState.copy(users = userRepository.getUsers())
             } catch (_: Exception) {
@@ -40,7 +40,7 @@ class UserNameViewModel(
         displayName: String,
     ) {
         uiState = uiState.copy(isSaving = true, message = null)
-        scope.launch {
+        viewModelScope.launch {
             try {
                 val updated = userRepository.updateDisplayName(uid, displayName)
                 uiState =

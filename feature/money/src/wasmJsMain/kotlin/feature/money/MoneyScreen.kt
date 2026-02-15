@@ -26,14 +26,11 @@ import model.MonthlyMoney
 import model.Payment
 import model.PaymentRecord
 import model.User
-import org.koin.compose.getKoin
-import org.koin.core.parameter.parametersOf
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun MoneyScreen() {
-    val scope = rememberCoroutineScope()
-    val koin = getKoin()
-    val vm = remember { koin.get<MoneyViewModel> { parametersOf(scope) } }
+    val vm: MoneyViewModel = koinViewModel()
     val windowSizeClass = LocalWindowSizeClass.current
 
     MoneyContent(

@@ -18,14 +18,11 @@ import core.ui.WindowSizeClass
 import model.MoneyItem
 import model.MonthlyMoney
 import model.PaymentRecord
-import org.koin.compose.getKoin
-import org.koin.core.parameter.parametersOf
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun PaymentScreen() {
-    val scope = rememberCoroutineScope()
-    val koin = getKoin()
-    val vm = remember { koin.get<PaymentViewModel> { parametersOf(scope) } }
+    val vm: PaymentViewModel = koinViewModel()
     val windowSizeClass = LocalWindowSizeClass.current
 
     PaymentContent(

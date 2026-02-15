@@ -3,8 +3,9 @@ package feature.settings
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import core.auth.AuthRepository
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 data class PasswordChangeUiState(
@@ -17,9 +18,8 @@ data class PasswordChangeUiState(
 )
 
 class PasswordChangeViewModel(
-    private val scope: CoroutineScope,
     private val authRepository: AuthRepository,
-) {
+) : ViewModel() {
     var uiState by mutableStateOf(PasswordChangeUiState())
         private set
 
@@ -51,7 +51,7 @@ class PasswordChangeViewModel(
         }
 
         uiState = uiState.copy(isLoading = true, errorMessage = null, successMessage = null)
-        scope.launch {
+        viewModelScope.launch {
             val result = authRepository.changePassword(state.currentPassword, state.newPassword)
             if (result.isSuccess) {
                 uiState =

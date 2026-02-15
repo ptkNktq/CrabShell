@@ -29,18 +29,17 @@ import model.GarbageType
 import model.GarbageTypeSchedule
 import model.User
 import org.koin.compose.getKoin
-import org.koin.core.parameter.parametersOf
+import org.koin.compose.viewmodel.koinViewModel
 
 private val dayLabels = listOf("日", "月", "火", "水", "木", "金", "土")
 
 @Composable
 fun SettingsScreen() {
-    val scope = rememberCoroutineScope()
     val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
+    val passwordVm: PasswordChangeViewModel = koinViewModel()
     val koin = getKoin()
-    val passwordVm = remember { koin.get<PasswordChangeViewModel> { parametersOf(scope) } }
-    val userNameVm = remember(isAdmin) { if (isAdmin) koin.get<UserNameViewModel> { parametersOf(scope) } else null }
-    val garbageVm = remember(isAdmin) { if (isAdmin) koin.get<GarbageScheduleViewModel> { parametersOf(scope) } else null }
+    val userNameVm = remember(isAdmin) { if (isAdmin) koin.get<UserNameViewModel>() else null }
+    val garbageVm = remember(isAdmin) { if (isAdmin) koin.get<GarbageScheduleViewModel>() else null }
     val scrollState = rememberScrollState()
     val windowSizeClass = LocalWindowSizeClass.current
 
