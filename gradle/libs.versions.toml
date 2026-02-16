@@ -38,7 +38,6 @@ webauthn4j-core = { module = "com.webauthn4j:webauthn4j-core", version.ref = "we
 exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed" }
 exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposed" }
 sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite-jdbc" }
-ktor-server-test-host = { module = "io.ktor:ktor-server-test-host-jvm", version.ref = "ktor" }
 
 # Ktor Client (for Compose frontend)
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
