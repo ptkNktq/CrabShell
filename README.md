@@ -200,6 +200,12 @@ networks:
     external: true
 ```
 
+リバースプロキシと共有する外部ネットワークを事前に作成しておく:
+
+```bash
+docker network create web
+```
+
 ```bash
 # GHCR にログイン
 echo $GITHUB_TOKEN | docker login ghcr.io -u <GitHubユーザー名> --password-stdin
