@@ -181,6 +181,20 @@ docker compose logs -f           # ログ確認
 
 Dockerfile はマルチステージビルド（Gradle でビルド → JRE で実行）。ビルドステージで WASM フロントエンド + fat JAR を生成し、実行ステージは `eclipse-temurin:21-jre` 上で起動する。
 
+## テスト
+
+```bash
+# shared モデルテスト（JVM）
+./gradlew :shared:jvmTest
+
+# server ユニットテスト
+./gradlew :server:test -PskipFrontend
+```
+
+- テスト対象は純粋ロジックに絞る（Firebase/Firestore 依存のコードは対象外）
+- shared: `@Serializable` モデルのシリアライズ往復テスト
+- server: `ChallengeStore`、money パース関数等のユニットテスト
+
 ## Lint
 
 ktlint を全サブプロジェクトに適用済み。
