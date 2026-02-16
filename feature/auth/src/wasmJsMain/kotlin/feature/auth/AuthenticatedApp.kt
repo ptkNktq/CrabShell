@@ -49,7 +49,7 @@ internal fun AuthenticatedAppContent(
             LoginScreen()
         }
         is AuthState.Authenticated -> {
-            var passkeySetupDone by remember { mutableStateOf(false) }
+            var passkeySetupDone by remember { mutableStateOf(AuthStateHolder.signedInViaPasskey) }
             if (passkeySetupDone) {
                 authenticatedContent()
             } else {
