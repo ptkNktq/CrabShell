@@ -199,6 +199,13 @@ WEBAUTHN_RP_ID=example.com
 WEBAUTHN_ORIGIN=https://example.com
 ```
 
+サブドメインの場合、`WEBAUTHN_RP_ID` には親ドメインを指定する:
+
+```
+WEBAUTHN_RP_ID=example.com
+WEBAUTHN_ORIGIN=https://app.example.com
+```
+
 `docker-compose.yml`:
 
 ```yaml
