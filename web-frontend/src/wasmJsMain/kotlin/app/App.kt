@@ -24,24 +24,48 @@ import feature.feeding.FeedingScreen
 import feature.money.MoneyScreen
 import feature.payment.PaymentScreen
 import feature.settings.SettingsScreen
+import kotlinx.browser.window
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import org.w3c.dom.events.Event
 
-enum class Screen(val title: String) {
-    Dashboard("ダッシュボード"),
-    Feeding("ごはん"),
-    Payment("お支払い"),
-    Money("お金の管理"),
-    Settings("設定"),
+enum class Screen(val title: String, val path: String) {
+    Dashboard("ダッシュボード", "/dashboard"),
+    Feeding("ごはん", "/feeding"),
+    Payment("お支払い", "/payment"),
+    Money("お金の管理", "/money"),
+    Settings("設定", "/settings"),
+    ;
+
+    companion object {
+        fun fromPath(path: String): Screen = entries.find { it.path == path } ?: Dashboard
+    }
 }
 
 @Composable
 fun App() {
     val scope = rememberCoroutineScope()
-    var currentScreen by remember { mutableStateOf(Screen.Dashboard) }
+    var currentScreen by remember {
+        mutableStateOf(Screen.fromPath(window.location.pathname))
+    }
     val authRepository = koinInject<AuthRepository>()
     val onSignOut: () -> Unit = { scope.launch { authRepository.signOut() } }
     val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
+
+    DisposableEffect(Unit) {
+        val listener: (Event) -> Unit = {
+            currentScreen = Screen.fromPath(window.location.pathname)
+        }
+        window.addEventListener("popstate", listener)
+        onDispose { window.removeEventListener("popstate", listener) }
+    }
+
+    val onNavigate: (Screen) -> Unit = { screen ->
+        if (screen != currentScreen) {
+            window.history.pushState(null, "", screen.path)
+            currentScreen = screen
+        }
+    }
 
     AppTheme {
         Surface(
@@ -62,7 +86,7 @@ fun App() {
                             WindowSizeClass.Compact ->
                                 CompactLayout(
                                     currentScreen = currentScreen,
-                                    onNavigate = { currentScreen = it },
+                                    onNavigate = onNavigate,
                                     onSignOut = onSignOut,
                                     isAdmin = isAdmin,
                                 )
@@ -70,7 +94,7 @@ fun App() {
                             WindowSizeClass.Medium ->
                                 MediumLayout(
                                     currentScreen = currentScreen,
-                                    onNavigate = { currentScreen = it },
+                                    onNavigate = onNavigate,
                                     onSignOut = onSignOut,
                                     isAdmin = isAdmin,
                                 )
@@ -78,7 +102,7 @@ fun App() {
                             WindowSizeClass.Expanded ->
                                 ExpandedLayout(
                                     currentScreen = currentScreen,
-                                    onNavigate = { currentScreen = it },
+                                    onNavigate = onNavigate,
                                     onSignOut = onSignOut,
                                     isAdmin = isAdmin,
                                 )
