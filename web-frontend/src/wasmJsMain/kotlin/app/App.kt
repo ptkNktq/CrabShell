@@ -8,7 +8,9 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.components.DrawerContent
@@ -27,21 +29,15 @@ import feature.settings.SettingsScreen
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
-enum class Screen(val title: String) {
-    Dashboard("ダッシュボード"),
-    Feeding("ごはん"),
-    Payment("お支払い"),
-    Money("お金の管理"),
-    Settings("設定"),
-}
-
 @Composable
 fun App() {
     val scope = rememberCoroutineScope()
-    var currentScreen by remember { mutableStateOf(Screen.Dashboard) }
+    val currentScreen = Navigator.currentScreen
     val authRepository = koinInject<AuthRepository>()
     val onSignOut: () -> Unit = { scope.launch { authRepository.signOut() } }
     val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
+
+    val onNavigate: (Screen) -> Unit = { Navigator.navigateTo(it) }
 
     AppTheme {
         Surface(
@@ -62,7 +58,7 @@ fun App() {
                             WindowSizeClass.Compact ->
                                 CompactLayout(
                                     currentScreen = currentScreen,
-                                    onNavigate = { currentScreen = it },
+                                    onNavigate = onNavigate,
                                     onSignOut = onSignOut,
                                     isAdmin = isAdmin,
                                 )
@@ -70,7 +66,7 @@ fun App() {
                             WindowSizeClass.Medium ->
                                 MediumLayout(
                                     currentScreen = currentScreen,
-                                    onNavigate = { currentScreen = it },
+                                    onNavigate = onNavigate,
                                     onSignOut = onSignOut,
                                     isAdmin = isAdmin,
                                 )
@@ -78,7 +74,7 @@ fun App() {
                             WindowSizeClass.Expanded ->
                                 ExpandedLayout(
                                     currentScreen = currentScreen,
-                                    onNavigate = { currentScreen = it },
+                                    onNavigate = onNavigate,
                                     onSignOut = onSignOut,
                                     isAdmin = isAdmin,
                                 )

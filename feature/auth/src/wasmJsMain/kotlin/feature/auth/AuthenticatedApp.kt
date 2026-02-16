@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import core.auth.AuthState
 import core.auth.AuthStateHolder
 import core.ui.theme.AppColorScheme
+import kotlinx.browser.window
 
 @Composable
 fun AuthenticatedApp(authenticatedContent: @Composable () -> Unit) {
@@ -49,7 +50,12 @@ internal fun AuthenticatedAppContent(
             LoginScreen()
         }
         is AuthState.Authenticated -> {
-            var passkeySetupDone by remember { mutableStateOf(false) }
+            var passkeySetupDone by remember {
+                mutableStateOf(
+                    AuthStateHolder.signedInViaPasskey ||
+                        window.localStorage.getItem("passkey_registered") == "true",
+                )
+            }
             if (passkeySetupDone) {
                 authenticatedContent()
             } else {
