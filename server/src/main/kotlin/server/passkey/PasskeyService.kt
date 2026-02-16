@@ -10,6 +10,9 @@ import com.webauthn4j.data.RegistrationRequest
 import com.webauthn4j.data.client.Origin
 import com.webauthn4j.data.client.challenge.DefaultChallenge
 import com.webauthn4j.server.ServerProperty
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
@@ -27,8 +30,26 @@ object PasskeyService {
         System.getenv("WEBAUTHN_RP_ID") ?: "localhost"
     }
 
-    val origin: String by lazy {
-        System.getenv("WEBAUTHN_ORIGIN") ?: "http://localhost:8080"
+    val allowedOrigins: Set<String> by lazy {
+        (System.getenv("WEBAUTHN_ORIGIN") ?: "http://localhost:8080,http://localhost:3000")
+            .split(",")
+            .map { it.trim() }
+            .toSet()
+    }
+
+    /** clientDataJSON からオリジンを抽出し、許可リストと照合して返す */
+    private fun resolveOrigin(clientDataJSON: ByteArray): Origin {
+        val json = String(clientDataJSON, Charsets.UTF_8)
+        val parsed = Json.parseToJsonElement(json).jsonObject
+        val originStr =
+            parsed["origin"]?.jsonPrimitive?.content
+                ?: throw IllegalArgumentException("clientDataJSON に origin がありません")
+        if (originStr !in allowedOrigins) {
+            throw IllegalArgumentException(
+                "origin '$originStr' は許可されていません (許可: $allowedOrigins)",
+            )
+        }
+        return Origin.create(originStr)
     }
 
     fun isRegistered(firebaseUid: String): Boolean =
@@ -54,7 +75,7 @@ object PasskeyService {
     ) {
         val serverProperty =
             ServerProperty(
-                Origin.create(origin),
+                resolveOrigin(clientDataJSON),
                 rpId,
                 DefaultChallenge(challenge),
                 null,
@@ -138,7 +159,7 @@ object PasskeyService {
     ): Long {
         val serverProperty =
             ServerProperty(
-                Origin.create(origin),
+                resolveOrigin(clientDataJSON),
                 rpId,
                 DefaultChallenge(challenge),
                 null,
