@@ -17,6 +17,8 @@ import server.auth.authenticated
 import server.feeding.feedingRoutes
 import server.garbage.garbageRoutes
 import server.money.moneyRoutes
+import server.passkey.PasskeyDatabase
+import server.passkey.passkeyRoutes
 import server.pet.petRoutes
 import server.pet.seedDefaultPet
 import server.user.userRoutes
@@ -28,6 +30,7 @@ fun main() {
 
 fun Application.module() {
     FirebaseAdmin.initialize()
+    PasskeyDatabase.initialize()
     seedDefaultPet()
 
     install(ContentNegotiation) { json() }
@@ -53,6 +56,7 @@ fun Application.module() {
             feedingRoutes()
             garbageRoutes()
             moneyRoutes()
+            passkeyRoutes()
         }
 
         // Compose Wasm フロントエンドを配信
