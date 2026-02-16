@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import core.auth.AuthRepository
+import core.auth.AuthStateHolder
 import core.network.PasskeyRepository
 import kotlinx.coroutines.launch
 
@@ -87,6 +88,7 @@ class LoginViewModel(
         viewModelScope.launch {
             passkeyRepository.authenticateWithPasskey(uiState.email)
                 .onSuccess { customToken ->
+                    AuthStateHolder.signedInViaPasskey = true
                     val result = authRepository.signInWithCustomToken(customToken)
                     uiState = uiState.copy(isLoading = false)
                     if (result.isFailure) {
