@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalWasmJsInterop::class)
-
 package app
 
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -29,26 +27,7 @@ import feature.settings.SettingsScreen
 import kotlinx.browser.window
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
-
-// popstate リスナーの登録（JS 側で関数参照を保持し removeEventListener を確実にする）
-@JsFun(
-    """(callback) => {
-    window.__popStateHandler = () => callback();
-    window.addEventListener('popstate', window.__popStateHandler);
-}""",
-)
-external fun startPopStateListener(callback: () -> Unit)
-
-// popstate リスナーの解除
-@JsFun(
-    """() => {
-    if (window.__popStateHandler) {
-        window.removeEventListener('popstate', window.__popStateHandler);
-        window.__popStateHandler = null;
-    }
-}""",
-)
-external fun stopPopStateListener()
+import org.w3c.dom.events.Event
 
 enum class Screen(val title: String, val path: String) {
     Dashboard("ダッシュボード", "/dashboard"),
@@ -84,12 +63,19 @@ fun App() {
     }
 
     // popstate（戻る/進む）を監視
-    // @JsFun で JS 側に関数参照を保持し、removeEventListener の確実な動作を保証
+    // active フラグで、composition 離脱後に残存するリスナーを無効化する
     DisposableEffect(Unit) {
-        startPopStateListener {
-            currentScreen = Screen.fromPath(window.location.pathname)
+        var active = true
+        val listener: (Event) -> Unit = {
+            if (active) {
+                currentScreen = Screen.fromPath(window.location.pathname)
+            }
         }
-        onDispose { stopPopStateListener() }
+        window.addEventListener("popstate", listener)
+        onDispose {
+            active = false
+            window.removeEventListener("popstate", listener)
+        }
     }
 
     val onNavigate: (Screen) -> Unit = { screen ->
