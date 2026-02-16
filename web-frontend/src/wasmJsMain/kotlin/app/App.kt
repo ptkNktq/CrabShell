@@ -49,18 +49,8 @@ fun App() {
         mutableStateOf(Screen.fromPath(window.location.pathname))
     }
     val authRepository = koinInject<AuthRepository>()
-    val onSignOut: () -> Unit = {
-        window.history.replaceState(null, "", Screen.Dashboard.path)
-        scope.launch { authRepository.signOut() }
-    }
+    val onSignOut: () -> Unit = { scope.launch { authRepository.signOut() } }
     val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
-
-    // 初回表示時に URL をスクリーンのパスに正規化（"/" → "/dashboard" 等）
-    LaunchedEffect(Unit) {
-        if (window.location.pathname != currentScreen.path) {
-            window.history.replaceState(null, "", currentScreen.path)
-        }
-    }
 
     // popstate（戻る/進む）を監視
     // active フラグで、composition 離脱後に残存するリスナーを無効化する
