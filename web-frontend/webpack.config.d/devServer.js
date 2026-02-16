@@ -2,6 +2,7 @@
 // API リクエストを Ktor サーバー (port 8080) にプロキシする
 if (config.devServer) {
     config.devServer.port = 3000;
+    config.devServer.historyApiFallback = true;
 
     // webpack 5 では proxy は配列形式が必須
     config.devServer.proxy = [

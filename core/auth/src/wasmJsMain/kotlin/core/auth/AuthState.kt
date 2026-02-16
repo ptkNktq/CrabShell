@@ -20,6 +20,9 @@ object AuthStateHolder {
     var idToken by mutableStateOf<String?>(null)
         internal set
 
+    /** パスキーでログインした場合 true。パスキーセットアップ画面のスキップに使用。 */
+    var signedInViaPasskey by mutableStateOf(false)
+
     fun setAuthenticated(
         user: User,
         token: String,
@@ -30,6 +33,7 @@ object AuthStateHolder {
 
     fun setUnauthenticated() {
         idToken = null
+        signedInViaPasskey = false
         state = AuthState.Unauthenticated
     }
 
