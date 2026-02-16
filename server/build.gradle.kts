@@ -36,6 +36,9 @@ dependencies {
     implementation(libs.exposed.core)
     implementation(libs.exposed.jdbc)
     implementation(libs.sqlite.jdbc)
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.ktor.server.test.host)
 }
 
 // Compose Wasm フロントエンドのビルド出力をサーバーの静的リソースにコピー
