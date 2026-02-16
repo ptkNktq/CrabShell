@@ -42,38 +42,36 @@ enum class Screen(val title: String, val path: String) {
     }
 }
 
-@Composable
-fun App() {
-    val scope = rememberCoroutineScope()
-    var currentScreen by remember {
-        mutableStateOf(Screen.fromPath(window.location.pathname))
-    }
-    val authRepository = koinInject<AuthRepository>()
-    val onSignOut: () -> Unit = { scope.launch { authRepository.signOut() } }
-    val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
+/** AuthStateHolder と同パターンのグローバルナビゲーション状態。Compose の外から安全に更新できる。 */
+object Navigator {
+    var currentScreen by mutableStateOf(Screen.Dashboard)
+        private set
 
-    // popstate（戻る/進む）を監視
-    // active フラグで、composition 離脱後に残存するリスナーを無効化する
-    DisposableEffect(Unit) {
-        var active = true
-        val listener: (Event) -> Unit = {
-            if (active) {
-                currentScreen = Screen.fromPath(window.location.pathname)
-            }
-        }
-        window.addEventListener("popstate", listener)
-        onDispose {
-            active = false
-            window.removeEventListener("popstate", listener)
-        }
+    /** Main.kt から一度だけ呼ぶ。popstate リスナーを永続的に登録する。 */
+    fun init() {
+        currentScreen = Screen.fromPath(window.location.pathname)
+        window.addEventListener("popstate", { _: Event ->
+            currentScreen = Screen.fromPath(window.location.pathname)
+        })
     }
 
-    val onNavigate: (Screen) -> Unit = { screen ->
+    fun navigateTo(screen: Screen) {
         if (screen != currentScreen) {
             window.history.pushState(null, "", screen.path)
             currentScreen = screen
         }
     }
+}
+
+@Composable
+fun App() {
+    val scope = rememberCoroutineScope()
+    val currentScreen = Navigator.currentScreen
+    val authRepository = koinInject<AuthRepository>()
+    val onSignOut: () -> Unit = { scope.launch { authRepository.signOut() } }
+    val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
+
+    val onNavigate: (Screen) -> Unit = { Navigator.navigateTo(it) }
 
     AppTheme {
         Surface(

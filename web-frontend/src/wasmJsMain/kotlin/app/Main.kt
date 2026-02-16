@@ -17,6 +17,9 @@ fun main() {
     // Firebase 認証状態の監視を開始
     koinApp.koin.get<AuthRepository>().startListening()
 
+    // ブラウザ履歴ナビゲーションの初期化（popstate リスナー登録）
+    Navigator.init()
+
     ComposeViewport(document.getElementById("ComposeTarget")!!) {
         KoinContext {
             AuthenticatedApp {
