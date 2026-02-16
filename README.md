@@ -114,19 +114,7 @@ feature/settings/    → 設定画面
 web-frontend/        → アプリシェル（ルーティング・レイアウト）
 ```
 
-## セットアップ
-
-```bash
-# サーバー起動（フロントエンドも自動ビルド）
-./gradlew :server:run
-
-# フロントエンドのみビルド
-./gradlew :web-frontend:wasmJsBrowserDistribution
-```
-
-サーバーは `http://localhost:8080` で起動。
-
-### 開発モード（Split Mode）
+## セットアップ（開発モード）
 
 フロントエンドとサーバーを分離起動し、UI 変更の反映を高速化する。フルビルド（約5分）→ インクリメンタルビルド（数十秒）。
 
