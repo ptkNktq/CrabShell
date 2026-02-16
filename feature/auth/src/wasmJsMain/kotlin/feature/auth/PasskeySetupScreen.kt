@@ -1,6 +1,7 @@
 package feature.auth
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material3.*
@@ -88,11 +89,13 @@ internal fun PasskeySetupContent(
                             )
 
                             if (errorMessage != null) {
-                                Text(
-                                    text = errorMessage,
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
+                                SelectionContainer {
+                                    Text(
+                                        text = errorMessage,
+                                        color = MaterialTheme.colorScheme.error,
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
+                                }
                             }
 
                             Spacer(modifier = Modifier.height(8.dp))
