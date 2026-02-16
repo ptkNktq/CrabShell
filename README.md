@@ -173,19 +173,9 @@ Firebase Auth + Passkey (WebAuthn) のハイブリッド認証。
 
 ## Docker
 
-### ローカルビルド
-
-```bash
-docker compose up -d --build    # ビルド＆バックグラウンド起動
-docker compose down              # 停止
-docker compose logs -f           # ログ確認
-```
-
 Dockerfile はマルチステージビルド（Gradle でビルド → JRE で実行）。ビルドステージで WASM フロントエンド + fat JAR を生成し、実行ステージは `eclipse-temurin:21-jre` 上で起動する。
 
-### GHCR からデプロイ（本番環境）
-
-ビルド済みイメージを GHCR から pull して実行する。リバースプロキシ（Traefik 等）が外部ネットワーク上で TLS 終端・ポート公開を担当する前提。
+ビルド済みイメージを GHCR から pull して本番環境で実行する。リバースプロキシ（Traefik 等）が外部ネットワーク上で TLS 終端・ポート公開を担当する前提。
 
 #### イメージの push（開発マシン）
 

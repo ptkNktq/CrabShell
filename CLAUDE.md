@@ -106,19 +106,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 
 ## Docker
 
-### ローカルビルド
-
-```bash
-docker compose up -d --build    # ビルド＆バックグラウンド起動
-docker compose down              # 停止
-docker compose logs -f           # ログ確認
-```
-
-Dockerfile はマルチステージビルド（Gradle でビルド → JRE で実行）。ビルドステージで WASM フロントエンド + fat JAR を生成し、実行ステージは `eclipse-temurin:21-jre` 上で `app.jar` を起動する。ポート 8080 を公開。
-
-### GHCR からデプロイ（本番環境）
-
-リバースプロキシ環境向け。詳細は README.md の「GHCR からデプロイ」セクションを参照。
+Dockerfile はマルチステージビルド（Gradle でビルド → JRE で実行）。ビルドステージで WASM フロントエンド + fat JAR を生成し、実行ステージは `eclipse-temurin:21-jre` 上で `app.jar` を起動する。ポート 8080 を公開。GHCR 経由で本番デプロイする（リバースプロキシ前提）。詳細は README.md の「Docker」セクションを参照。
 
 ```bash
 # 開発マシン: ビルド & push
