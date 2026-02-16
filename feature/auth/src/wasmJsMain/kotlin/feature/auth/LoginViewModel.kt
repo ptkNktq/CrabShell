@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import core.auth.AuthRepository
+import core.network.PasskeyRepository
 import kotlinx.coroutines.launch
 
 data class LoginUiState(
@@ -18,6 +19,7 @@ data class LoginUiState(
 
 class LoginViewModel(
     private val authRepository: AuthRepository,
+    private val passkeyRepository: PasskeyRepository,
 ) : ViewModel() {
     var uiState by mutableStateOf(LoginUiState())
         private set
