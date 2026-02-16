@@ -144,7 +144,7 @@ private fun saveMonthlyMoney(
 }
 
 @Suppress("UNCHECKED_CAST")
-private fun parseItems(raw: Any?): List<MoneyItem> {
+internal fun parseItems(raw: Any?): List<MoneyItem> {
     val itemsRaw = raw as? List<Map<String, Any?>> ?: return emptyList()
     return itemsRaw.map { entry ->
         val paymentsRaw = entry["payments"] as? List<Map<String, Any?>> ?: emptyList()
@@ -166,7 +166,7 @@ private fun parseItems(raw: Any?): List<MoneyItem> {
 }
 
 @Suppress("UNCHECKED_CAST")
-private fun parsePaymentRecords(raw: Any?): List<PaymentRecord> {
+internal fun parsePaymentRecords(raw: Any?): List<PaymentRecord> {
     val recordsRaw = raw as? List<Map<String, Any?>> ?: return emptyList()
     return recordsRaw.map { r ->
         PaymentRecord(
