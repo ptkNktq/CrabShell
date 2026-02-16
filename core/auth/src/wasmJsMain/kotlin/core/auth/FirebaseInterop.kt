@@ -66,6 +66,13 @@ external fun onAuthStateChanged(
     onNull: () -> Unit,
 )
 
+// Custom Token でサインイン → Promise を返す
+@JsFun("(auth, token) => auth.signInWithCustomToken(token)")
+external fun signInWithCustomToken(
+    auth: JsAny,
+    token: JsString,
+): Promise<JsAny?>
+
 // 再認証してからパスワードを変更 → Promise を返す
 // EmailAuthProvider.credential が invalid-credential になるため、
 // signInWithEmailAndPassword で再認証してから updatePassword を呼ぶ
