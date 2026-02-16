@@ -173,6 +173,8 @@ Firebase Auth + Passkey (WebAuthn) のハイブリッド認証。
 
 ## Docker
 
+### ローカルビルド
+
 ```bash
 docker compose up -d --build    # ビルド＆バックグラウンド起動
 docker compose down              # 停止
@@ -180,6 +182,69 @@ docker compose logs -f           # ログ確認
 ```
 
 Dockerfile はマルチステージビルド（Gradle でビルド → JRE で実行）。ビルドステージで WASM フロントエンド + fat JAR を生成し、実行ステージは `eclipse-temurin:21-jre` 上で起動する。
+
+### GHCR からデプロイ（本番環境）
+
+ビルド済みイメージを GHCR から pull して実行する。リバースプロキシ（Traefik 等）が外部ネットワーク上で TLS 終端・ポート公開を担当する前提。
+
+#### イメージの push（開発マシン）
+
+```bash
+# GHCR にログイン（Personal Access Token に write:packages 権限が必要）
+echo $GITHUB_TOKEN | docker login ghcr.io -u <GitHubユーザー名> --password-stdin
+
+# ビルド & push
+docker build -t ghcr.io/ptknktq/crabshell:latest .
+docker push ghcr.io/ptknktq/crabshell:latest
+```
+
+#### 本番サーバーでの起動
+
+以下のファイルを同じディレクトリに配置する。
+
+`.env`:
+
+```
+WEBAUTHN_RP_ID=example.com
+WEBAUTHN_ORIGIN=https://example.com
+```
+
+`docker-compose.yml`:
+
+```yaml
+services:
+  crabshell:
+    image: ghcr.io/ptknktq/crabshell:latest
+    container_name: crabshell
+    environment:
+      - FIREBASE_SERVICE_ACCOUNT_PATH=/app/firebase-service-account.json
+      - WEBAUTHN_RP_ID=${WEBAUTHN_RP_ID}
+      - WEBAUTHN_ORIGIN=${WEBAUTHN_ORIGIN}
+    volumes:
+      - ./firebase-service-account.json:/app/firebase-service-account.json:ro
+      - app-data:/app/data
+    restart: unless-stopped
+    networks:
+      - web
+
+volumes:
+  app-data:
+
+networks:
+  web:
+    external: true
+```
+
+```bash
+# GHCR にログイン
+echo $GITHUB_TOKEN | docker login ghcr.io -u <GitHubユーザー名> --password-stdin
+
+# 起動
+docker compose up -d
+
+# 更新
+docker compose pull && docker compose up -d
+```
 
 ## テスト
 
