@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalWasmJsInterop::class)
+
 package app
 
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -27,7 +29,26 @@ import feature.settings.SettingsScreen
 import kotlinx.browser.window
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
-import org.w3c.dom.events.Event
+
+// popstate リスナーの登録（JS 側で関数参照を保持し removeEventListener を確実にする）
+@JsFun(
+    """(callback) => {
+    window.__popStateHandler = () => callback();
+    window.addEventListener('popstate', window.__popStateHandler);
+}""",
+)
+external fun startPopStateListener(callback: () -> Unit)
+
+// popstate リスナーの解除
+@JsFun(
+    """() => {
+    if (window.__popStateHandler) {
+        window.removeEventListener('popstate', window.__popStateHandler);
+        window.__popStateHandler = null;
+    }
+}""",
+)
+external fun stopPopStateListener()
 
 enum class Screen(val title: String, val path: String) {
     Dashboard("ダッシュボード", "/dashboard"),
@@ -49,15 +70,26 @@ fun App() {
         mutableStateOf(Screen.fromPath(window.location.pathname))
     }
     val authRepository = koinInject<AuthRepository>()
-    val onSignOut: () -> Unit = { scope.launch { authRepository.signOut() } }
+    val onSignOut: () -> Unit = {
+        window.history.replaceState(null, "", Screen.Dashboard.path)
+        scope.launch { authRepository.signOut() }
+    }
     val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
 
+    // 初回表示時に URL をスクリーンのパスに正規化（"/" → "/dashboard" 等）
+    LaunchedEffect(Unit) {
+        if (window.location.pathname != currentScreen.path) {
+            window.history.replaceState(null, "", currentScreen.path)
+        }
+    }
+
+    // popstate（戻る/進む）を監視
+    // @JsFun で JS 側に関数参照を保持し、removeEventListener の確実な動作を保証
     DisposableEffect(Unit) {
-        val listener: (Event) -> Unit = {
+        startPopStateListener {
             currentScreen = Screen.fromPath(window.location.pathname)
         }
-        window.addEventListener("popstate", listener)
-        onDispose { window.removeEventListener("popstate", listener) }
+        onDispose { stopPopStateListener() }
     }
 
     val onNavigate: (Screen) -> Unit = { screen ->
