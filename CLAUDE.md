@@ -24,6 +24,34 @@ CrabShell is a Kotlin Multiplatform dashboard application with a Ktor server bac
 
 The server listens on `0.0.0.0:8080`. Building the server automatically copies the compiled WASM frontend into `server/build/resources/main/static/` so the server serves both API and UI.
 
+## Development (Split Mode)
+
+フロントエンドとサーバーを分離起動し、UI 変更の反映を高速化する開発モード。フルビルド（約5分）に対し、インクリメンタルビルド（数十秒）で変更を確認できる。
+
+```bash
+# Terminal 1: API サーバー（fat JAR をビルドして直接起動）
+./gradlew :server:buildFatJar -PskipFrontend && java -jar server/build/libs/server-all.jar
+
+# Terminal 2: webpack dev server（フロントエンド開発用）
+./gradlew :web-frontend:wasmJsBrowserDevelopmentRun
+
+# ブラウザ: http://localhost:3000
+```
+
+- `./gradlew :server:run` は Gradle のプロジェクトロックを保持し続けるため使用不可。fat JAR で起動すること。
+- webpack dev server (port 3000) が `/api/*` を Ktor サーバー (port 8080) にプロキシ
+- `-PskipFrontend` を付けるとサーバービルド時に WASM フロントエンドのビルドをスキップ
+
+### コード変更時の操作
+
+| 変更箇所 | 操作 |
+|----------|------|
+| feature/ や core/ の Kotlin (UI) | Terminal 2 を **Ctrl+D → 再実行**（インクリメンタルビルド、数十秒） |
+| server/ の Kotlin (API) | Terminal 1 を再ビルド＆再起動 |
+| shared/ のモデル変更 | 両方再起動 |
+
+> **Note:** ネイティブ Linux / macOS 環境では `./gradlew :web-frontend:wasmJsBrowserDevelopmentRun -t` の `-t`（continuous build）でファイル変更を自動検知し、リビルド＆リロードが自動化される。WSL2 の `/mnt/`（Windows ファイルシステム）では inotify が機能しないため `-t` は使えない。
+
 ## Architecture
 
 ```
