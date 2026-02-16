@@ -31,7 +31,7 @@ object PasskeyService {
     }
 
     val allowedOrigins: Set<String> by lazy {
-        (System.getenv("WEBAUTHN_ORIGIN") ?: "http://localhost:8080,http://localhost:3000")
+        (System.getenv("WEBAUTHN_ORIGIN") ?: "http://localhost:8080")
             .split(",")
             .map { it.trim() }
             .toSet()
