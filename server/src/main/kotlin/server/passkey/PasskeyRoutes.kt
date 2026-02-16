@@ -26,6 +26,10 @@ fun Route.passkeyRoutes() {
         authenticated {
             // パスキー登録状態の確認
             get("/status") {
+                if (!PasskeyService.enabled) {
+                    call.respond(PasskeyStatusResponse(registered = true, credentialCount = 0))
+                    return@get
+                }
                 val uid = call.attributes[FirebaseTokenKey].uid
                 val registered = PasskeyService.isRegistered(uid)
                 val count = if (registered) PasskeyService.credentialCount(uid) else 0
@@ -34,6 +38,12 @@ fun Route.passkeyRoutes() {
 
             // 登録オプション生成
             post("/register/options") {
+                if (!PasskeyService.enabled) {
+                    return@post call.respond(
+                        HttpStatusCode.ServiceUnavailable,
+                        mapOf("error" to "パスキー機能が無効です（WEBAUTHN_RP_ID / WEBAUTHN_ORIGIN を設定してください）"),
+                    )
+                }
                 val uid = call.attributes[FirebaseTokenKey].uid
                 val email = call.attributes[FirebaseTokenKey].email ?: ""
                 val displayName =
@@ -72,6 +82,12 @@ fun Route.passkeyRoutes() {
 
             // 登録完了
             post("/register/complete") {
+                if (!PasskeyService.enabled) {
+                    return@post call.respond(
+                        HttpStatusCode.ServiceUnavailable,
+                        mapOf("error" to "パスキー機能が無効です"),
+                    )
+                }
                 val uid = call.attributes[FirebaseTokenKey].uid
                 val request = call.receive<PasskeyRegisterCompleteRequest>()
 
@@ -121,6 +137,12 @@ fun Route.passkeyRoutes() {
         // 認証なしエンドポイント
         // 認証オプション生成
         post("/authenticate/options") {
+            if (!PasskeyService.enabled) {
+                return@post call.respond(
+                    HttpStatusCode.ServiceUnavailable,
+                    mapOf("error" to "パスキー機能が無効です"),
+                )
+            }
             val request = call.receive<PasskeyAuthenticateOptionsRequest>()
 
             val user =
@@ -164,6 +186,12 @@ fun Route.passkeyRoutes() {
 
         // 認証完了
         post("/authenticate/complete") {
+            if (!PasskeyService.enabled) {
+                return@post call.respond(
+                    HttpStatusCode.ServiceUnavailable,
+                    mapOf("error" to "パスキー機能が無効です"),
+                )
+            }
             val request = call.receive<PasskeyAuthenticateCompleteRequest>()
 
             val challenge =

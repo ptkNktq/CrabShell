@@ -30,7 +30,9 @@ The server listens on `0.0.0.0:8080`. Building the server automatically copies t
 
 ```bash
 # Terminal 1: API サーバー（fat JAR をビルドして直接起動）
-./gradlew :server:buildFatJar -PskipFrontend && WEBAUTHN_ORIGIN=http://localhost:8080,http://localhost:3000 java -jar server/build/libs/server-all.jar
+./gradlew :server:buildFatJar -PskipFrontend && \
+  WEBAUTHN_RP_ID=localhost WEBAUTHN_ORIGIN=http://localhost:8080,http://localhost:3000 \
+  java -jar server/build/libs/server-all.jar
 
 # Terminal 2: webpack dev server（フロントエンド開発用）
 ./gradlew :web-frontend:wasmJsBrowserDevelopmentRun
