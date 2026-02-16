@@ -19,6 +19,10 @@ interface AuthRepository {
     ): Result<Unit>
 
     suspend fun refreshToken(): String?
+
+    suspend fun signInWithCustomToken(token: String): Result<Unit>
+
+    fun isWebAuthnSupported(): Boolean
 }
 
 @OptIn(ExperimentalWasmJsInterop::class)
@@ -86,6 +90,17 @@ class AuthRepositoryImpl : AuthRepository {
             Result.failure(e)
         }
     }
+
+    override suspend fun signInWithCustomToken(token: String): Result<Unit> {
+        return try {
+            signInWithCustomToken(auth, token.toJsString()).await<Nothing?>()
+            Result.success(Unit)
+        } catch (e: Throwable) {
+            Result.failure(e)
+        }
+    }
+
+    override fun isWebAuthnSupported(): Boolean = isWebAuthnAvailable()
 
     override suspend fun refreshToken(): String? {
         return try {

@@ -32,6 +32,10 @@ dependencies {
     implementation(libs.ktor.serialization.kotlinx.json.jvm)
     implementation(libs.logback.classic)
     implementation(libs.firebase.admin)
+    implementation(libs.webauthn4j.core)
+    implementation(libs.exposed.core)
+    implementation(libs.exposed.jdbc)
+    implementation(libs.sqlite.jdbc)
 }
 
 // Compose Wasm フロントエンドのビルド出力をサーバーの静的リソースにコピー

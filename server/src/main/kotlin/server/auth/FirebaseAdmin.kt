@@ -44,4 +44,22 @@ object FirebaseAdmin {
             null
         }
     }
+
+    fun createCustomToken(uid: String): String? {
+        if (!initialized) return null
+        return try {
+            FirebaseAuth.getInstance().createCustomToken(uid)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun getUserByEmail(email: String): com.google.firebase.auth.UserRecord? {
+        if (!initialized) return null
+        return try {
+            FirebaseAuth.getInstance().getUserByEmail(email)
+        } catch (e: Exception) {
+            null
+        }
+    }
 }
