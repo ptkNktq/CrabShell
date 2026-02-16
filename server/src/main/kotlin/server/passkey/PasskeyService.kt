@@ -26,14 +26,24 @@ object PasskeyService {
     private val objectConverter = ObjectConverter()
     private val attestedCredentialDataConverter = AttestedCredentialDataConverter(objectConverter)
 
+    val enabled: Boolean by lazy {
+        val hasRpId = System.getenv("WEBAUTHN_RP_ID") != null
+        val hasOrigin = System.getenv("WEBAUTHN_ORIGIN") != null
+        if (!hasRpId || !hasOrigin) {
+            println("WARNING: WEBAUTHN_RP_ID / WEBAUTHN_ORIGIN が未設定のためパスキー機能は無効です")
+        }
+        hasRpId && hasOrigin
+    }
+
     val rpId: String by lazy {
-        System.getenv("WEBAUTHN_RP_ID") ?: "localhost"
+        System.getenv("WEBAUTHN_RP_ID") ?: ""
     }
 
     val allowedOrigins: Set<String> by lazy {
-        (System.getenv("WEBAUTHN_ORIGIN") ?: "http://localhost:8080")
+        (System.getenv("WEBAUTHN_ORIGIN") ?: "")
             .split(",")
             .map { it.trim() }
+            .filter { it.isNotEmpty() }
             .toSet()
     }
 

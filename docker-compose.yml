@@ -5,5 +5,8 @@ services:
       - "2722:8080"
     environment:
       - FIREBASE_SERVICE_ACCOUNT_PATH=/app/firebase-service-account.json
+      - WEBAUTHN_RP_ID=${WEBAUTHN_RP_ID:?WEBAUTHN_RP_ID is required}
+      - WEBAUTHN_ORIGIN=${WEBAUTHN_ORIGIN:?WEBAUTHN_ORIGIN is required}
+      # - PASSKEY_DB_PATH=/app/data/passkey.db
     volumes:
       - ./firebase-service-account.json:/app/firebase-service-account.json:ro
