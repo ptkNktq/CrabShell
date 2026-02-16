@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import core.network.PasskeyRepository
+import kotlinx.browser.window
 import kotlinx.coroutines.launch
 
 data class PasskeySetupUiState(
@@ -29,6 +30,7 @@ class PasskeySetupViewModel(
             passkeyRepository.getPasskeyStatus()
                 .onSuccess { status ->
                     if (status.registered) {
+                        window.localStorage.setItem("passkey_registered", "true")
                         setupComplete = true
                     }
                     uiState = uiState.copy(isLoading = false)
@@ -46,6 +48,7 @@ class PasskeySetupViewModel(
         viewModelScope.launch {
             passkeyRepository.registerPasskey()
                 .onSuccess {
+                    window.localStorage.setItem("passkey_registered", "true")
                     uiState = uiState.copy(isRegistering = false)
                     setupComplete = true
                 }
