@@ -11,9 +11,11 @@ import core.auth.AuthState
 import core.auth.AuthStateHolder
 import core.auth.toJsString
 import core.network.MoneyRepository
+import core.network.UserRepository
 import kotlinx.coroutines.launch
 import model.MonthlyMoney
 import model.PaymentRecord
+import model.User
 
 /** 現在の年月を "YYYY-MM" 形式で返す */
 @JsFun(
@@ -49,39 +51,79 @@ data class PaymentUiState(
     val monthlyMoney: MonthlyMoney = MonthlyMoney(month = ""),
     val currentMonth: String = "",
     val currentUid: String = "",
+    val viewingUid: String = "",
+    val isAdmin: Boolean = false,
+    val users: List<User> = emptyList(),
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
     val error: String? = null,
-)
+) {
+    val isViewingOther: Boolean get() = viewingUid != currentUid
+}
 
 class PaymentViewModel(
     private val moneyRepository: MoneyRepository,
+    private val userRepository: UserRepository,
 ) : ViewModel() {
+    private val authUser = (AuthStateHolder.state as? AuthState.Authenticated)?.user
+
     var uiState by mutableStateOf(
         PaymentUiState(
             currentMonth = currentMonthJs().toString(),
             monthlyMoney = MonthlyMoney(month = currentMonthJs().toString()),
-            currentUid = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.uid ?: "",
+            currentUid = authUser?.uid ?: "",
+            viewingUid = authUser?.uid ?: "",
+            isAdmin = authUser?.isAdmin ?: false,
         ),
     )
         private set
 
     init {
-        onLoadMonth(uiState.currentMonth)
+        loadInitialData()
+    }
+
+    private fun loadInitialData() {
+        viewModelScope.launch {
+            val users =
+                if (uiState.isAdmin) {
+                    try {
+                        userRepository.getUsers()
+                    } catch (_: Exception) {
+                        emptyList()
+                    }
+                } else {
+                    emptyList()
+                }
+            uiState = uiState.copy(users = users)
+            loadMonth(uiState.currentMonth)
+        }
     }
 
     fun onLoadMonth(month: String) {
         uiState = uiState.copy(currentMonth = month, isLoading = true, error = null)
-        viewModelScope.launch {
-            try {
-                uiState =
-                    uiState.copy(
-                        monthlyMoney = moneyRepository.getMyMonthlyMoney(month),
-                        isLoading = false,
-                    )
-            } catch (e: Exception) {
-                uiState = uiState.copy(error = e.message, isLoading = false)
-            }
+        viewModelScope.launch { loadMonth(month) }
+    }
+
+    fun onSwitchUser(uid: String) {
+        uiState = uiState.copy(viewingUid = uid, isLoading = true, error = null)
+        viewModelScope.launch { loadMonth(uiState.currentMonth) }
+    }
+
+    private suspend fun loadMonth(month: String) {
+        try {
+            val monthly =
+                if (uiState.isViewingOther) {
+                    val full = moneyRepository.getMonthlyMoney(month)
+                    val uid = uiState.viewingUid
+                    val myItems = full.items.filter { item -> item.payments.any { it.uid == uid } }
+                    val myRecords = full.paymentRecords.filter { it.uid == uid }
+                    full.copy(items = myItems, paymentRecords = myRecords)
+                } else {
+                    moneyRepository.getMyMonthlyMoney(month)
+                }
+            uiState = uiState.copy(monthlyMoney = monthly, isLoading = false)
+        } catch (e: Exception) {
+            uiState = uiState.copy(error = e.message, isLoading = false)
         }
     }
 

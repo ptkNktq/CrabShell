@@ -41,6 +41,7 @@ fun Application.module() {
         allowMethod(HttpMethod.Post)
         allowMethod(HttpMethod.Put)
         allowMethod(HttpMethod.Delete)
+        allowMethod(HttpMethod.Patch)
         anyHost()
     }
 

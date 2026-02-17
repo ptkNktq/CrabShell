@@ -148,7 +148,7 @@ docker compose pull && docker compose up -d
 
 ## UI Rules
 
-- **モーダル（AlertDialog 等）は使用禁止。** Compose for WASM の描画システム上、ダイアログの DOM teardown とリスト recomposition が同時に走ると高確率で UI フリーズが発生するため。入力フォームはインライン（Card ベース）で実装すること。
+- **Popup 系コンポーネント（AlertDialog, DropdownMenu 等）は使用禁止。** Compose for WASM の描画システム上、Popup の DOM teardown とリスト recomposition が同時に走ると高確率で UI フリーズが発生するため。入力フォームはインライン（Card ベース）、選択 UI はインライン（FilterChip 等）で実装すること。
 
 ## Testing
 
