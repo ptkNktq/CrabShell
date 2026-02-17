@@ -440,21 +440,50 @@ private fun MoneyItemForm(
                 )
 
                 for (user in users) {
-                    OutlinedTextField(
-                        value = paymentAmounts[user.uid] ?: "",
-                        onValueChange = { value ->
-                            paymentAmounts =
-                                paymentAmounts.toMutableMap().apply {
-                                    put(user.uid, value.filter { c -> c.isDigit() || c == '-' })
-                                }
-                        },
-                        label = { Text(user.displayName ?: user.uid) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        suffix = { Text("円") },
-                        enabled = !saving,
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        OutlinedTextField(
+                            value = paymentAmounts[user.uid] ?: "",
+                            onValueChange = { value ->
+                                paymentAmounts =
+                                    paymentAmounts.toMutableMap().apply {
+                                        put(user.uid, value.filter { c -> c.isDigit() || c == '-' })
+                                    }
+                            },
+                            label = { Text(user.displayName ?: user.uid) },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            suffix = { Text("円") },
+                            enabled = !saving,
+                        )
+                        OutlinedButton(
+                            onClick = {
+                                paymentAmounts =
+                                    paymentAmounts.toMutableMap().apply {
+                                        put(user.uid, (amount / 2).toString())
+                                    }
+                            },
+                            enabled = !saving && amount > 0,
+                            contentPadding = PaddingValues(horizontal = 8.dp),
+                        ) {
+                            Text("半額", style = MaterialTheme.typography.labelSmall)
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                paymentAmounts =
+                                    paymentAmounts.toMutableMap().apply {
+                                        put(user.uid, amount.toString())
+                                    }
+                            },
+                            enabled = !saving && amount > 0,
+                            contentPadding = PaddingValues(horizontal = 8.dp),
+                        ) {
+                            Text("全額", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
                 }
 
                 if (mismatch) {
