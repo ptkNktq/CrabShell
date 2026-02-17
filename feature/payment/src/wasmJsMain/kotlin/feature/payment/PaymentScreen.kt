@@ -564,12 +564,22 @@ private fun PaymentRecordCard(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
             ),
     ) {
-        Text(
-            text = formatDate(record.paidAt),
+        Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = formatDate(record.paidAt),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = "¥${formatAmount(record.amount)}",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
     }
 }
 
@@ -663,7 +673,7 @@ private fun formatDate(isoString: String): String {
             }
         }
 
-        "$month/$day ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}"
+        "$month/$day"
     } catch (_: Exception) {
         isoString
     }
