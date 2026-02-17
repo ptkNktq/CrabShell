@@ -466,7 +466,7 @@ private fun MoneyItemForm(
                                         put(user.uid, (amount / 2).toString())
                                     }
                             },
-                            enabled = !saving && amount > 0,
+                            enabled = !saving && amount != 0L,
                             contentPadding = PaddingValues(horizontal = 8.dp),
                         ) {
                             Text("半額", style = MaterialTheme.typography.labelSmall)
@@ -478,7 +478,7 @@ private fun MoneyItemForm(
                                         put(user.uid, amount.toString())
                                     }
                             },
-                            enabled = !saving && amount > 0,
+                            enabled = !saving && amount != 0L,
                             contentPadding = PaddingValues(horizontal = 8.dp),
                         ) {
                             Text("全額", style = MaterialTheme.typography.labelSmall)
