@@ -40,6 +40,18 @@ external fun getIdToken(auth: JsAny): Promise<JsAny?>
 )
 external fun getIdTokenResult(auth: JsAny): Promise<JsAny?>
 
+// IDトークンを強制リフレッシュ → Promise<{ token, isAdmin }> を返す
+@JsFun(
+    """(auth) => {
+    if (!auth.currentUser) return Promise.resolve(null);
+    return auth.currentUser.getIdTokenResult(true).then((result) => ({
+        token: result.token,
+        isAdmin: result.claims.admin === true
+    }));
+}""",
+)
+external fun forceRefreshIdToken(auth: JsAny): Promise<JsAny?>
+
 // IDトークン結果からトークン文字列を取得
 @JsFun("(obj) => obj.token")
 external fun getTokenFromResult(obj: JsAny): JsString
