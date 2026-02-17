@@ -12,6 +12,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -47,6 +49,7 @@ fun MoneyScreen(vm: MoneyViewModel = koinViewModel()) {
         onClearForm = vm::onClearForm,
         onDeleteItem = vm::onDeleteItem,
         onSaveItem = vm::onSaveItem,
+        onToggleLock = vm::onToggleLock,
         windowSizeClass = windowSizeClass,
     )
 }
@@ -67,8 +70,10 @@ internal fun MoneyContent(
     onClearForm: () -> Unit,
     onDeleteItem: (MoneyItem) -> Unit,
     onSaveItem: (String, Long, String, List<Payment>, Boolean) -> Unit,
+    onToggleLock: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
+    val locked = monthlyMoney.locked
     val isCompact = windowSizeClass == WindowSizeClass.Compact
     // Compact 用: フォーム表示切替
     var showFormCompact by remember { mutableStateOf(false) }
@@ -121,15 +126,32 @@ internal fun MoneyContent(
                         color = MaterialTheme.colorScheme.primary,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    MonthSelector(
-                        month = currentMonth,
-                        onPrevious = onPreviousMonth,
-                        onNext = onNextMonth,
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        MonthSelector(
+                            month = currentMonth,
+                            onPrevious = onPreviousMonth,
+                            onNext = onNextMonth,
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        IconButton(onClick = onToggleLock) {
+                            Icon(
+                                if (locked) Icons.Default.Lock else Icons.Default.LockOpen,
+                                contentDescription = if (locked) "ロック解除" else "ロック",
+                                tint =
+                                    if (locked) {
+                                        MaterialTheme.colorScheme.error
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.height(8.dp))
 
                     // 追加ボタン
-                    if (!loading && error == null) {
+                    if (!loading && error == null && !locked) {
                         Button(
                             onClick = {
                                 onClearForm()
@@ -150,6 +172,7 @@ internal fun MoneyContent(
                         error = error,
                         users = users,
                         isCompact = true,
+                        locked = locked,
                         onEditItem = { item ->
                             onEditItem(item)
                             showFormCompact = true
@@ -173,11 +196,28 @@ internal fun MoneyContent(
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                MonthSelector(
-                    month = currentMonth,
-                    onPrevious = onPreviousMonth,
-                    onNext = onNextMonth,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    MonthSelector(
+                        month = currentMonth,
+                        onPrevious = onPreviousMonth,
+                        onNext = onNextMonth,
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(onClick = onToggleLock) {
+                        Icon(
+                            if (locked) Icons.Default.Lock else Icons.Default.LockOpen,
+                            contentDescription = if (locked) "ロック解除" else "ロック",
+                            tint =
+                                if (locked) {
+                                    MaterialTheme.colorScheme.error
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth().weight(1f),
@@ -188,22 +228,25 @@ internal fun MoneyContent(
                         error = error,
                         users = users,
                         isCompact = false,
+                        locked = locked,
                         onEditItem = onEditItem,
                         onDeleteItem = onDeleteItem,
                         modifier = Modifier.weight(1f),
                     )
 
-                    Spacer(modifier = Modifier.width(24.dp))
+                    if (!locked) {
+                        Spacer(modifier = Modifier.width(24.dp))
 
-                    MoneyItemForm(
-                        item = editingItem,
-                        formKey = formKey,
-                        users = users,
-                        saving = saving,
-                        onSave = onSaveItem,
-                        onCancel = onClearForm,
-                        modifier = Modifier.width(400.dp),
-                    )
+                        MoneyItemForm(
+                            item = editingItem,
+                            formKey = formKey,
+                            users = users,
+                            saving = saving,
+                            onSave = onSaveItem,
+                            onCancel = onClearForm,
+                            modifier = Modifier.width(400.dp),
+                        )
+                    }
                 }
             }
         }
@@ -222,6 +265,7 @@ private fun MoneyListContent(
     error: String?,
     users: List<User>,
     isCompact: Boolean,
+    locked: Boolean,
     onEditItem: (MoneyItem) -> Unit,
     onDeleteItem: (MoneyItem) -> Unit,
     modifier: Modifier = Modifier,
@@ -281,6 +325,7 @@ private fun MoneyListContent(
                         onEdit = { onEditItem(item) },
                         onDelete = { onDeleteItem(item) },
                         isCompact = isCompact,
+                        locked = locked,
                     )
                 }
             }
@@ -591,6 +636,7 @@ private fun MoneyItemCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     isCompact: Boolean,
+    locked: Boolean = false,
 ) {
     val paymentTotal = item.payments.sumOf { it.amount }
     val mismatch = paymentTotal != item.amount && item.payments.isNotEmpty()
@@ -641,20 +687,22 @@ private fun MoneyItemCard(
                     )
                 }
 
-                Row {
-                    IconButton(onClick = onEdit) {
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = "編集",
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "削除",
-                            tint = MaterialTheme.colorScheme.error,
-                        )
+                if (!locked) {
+                    Row {
+                        IconButton(onClick = onEdit) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "編集",
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        IconButton(onClick = onDelete) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "削除",
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
                     }
                 }
             }

@@ -119,6 +119,17 @@ class MoneyViewModel(
         onLoadMonth(shiftMonthJs(uiState.currentMonth.toJsString(), 1).toString())
     }
 
+    fun onToggleLock() {
+        viewModelScope.launch {
+            try {
+                val updated = moneyRepository.toggleLock(uiState.currentMonth)
+                uiState = uiState.copy(monthlyMoney = updated)
+            } catch (e: Exception) {
+                uiState = uiState.copy(error = e.message)
+            }
+        }
+    }
+
     fun onEditItem(item: MoneyItem) {
         uiState = uiState.copy(editingItem = item)
     }
