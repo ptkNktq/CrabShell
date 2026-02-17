@@ -104,6 +104,7 @@ internal fun MoneyContent(
                         formKey = formKey,
                         users = users,
                         saving = saving,
+                        locked = locked,
                         onSave = onSaveItem,
                         onCancel = {
                             onClearForm()
@@ -151,7 +152,7 @@ internal fun MoneyContent(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     // 追加ボタン
-                    if (!loading && error == null && !locked) {
+                    if (!loading && error == null) {
                         Button(
                             onClick = {
                                 onClearForm()
@@ -172,7 +173,6 @@ internal fun MoneyContent(
                         error = error,
                         users = users,
                         isCompact = true,
-                        locked = locked,
                         onEditItem = { item ->
                             onEditItem(item)
                             showFormCompact = true
@@ -228,25 +228,23 @@ internal fun MoneyContent(
                         error = error,
                         users = users,
                         isCompact = false,
-                        locked = locked,
                         onEditItem = onEditItem,
                         onDeleteItem = onDeleteItem,
                         modifier = Modifier.weight(1f),
                     )
 
-                    if (!locked) {
-                        Spacer(modifier = Modifier.width(24.dp))
+                    Spacer(modifier = Modifier.width(24.dp))
 
-                        MoneyItemForm(
-                            item = editingItem,
-                            formKey = formKey,
-                            users = users,
-                            saving = saving,
-                            onSave = onSaveItem,
-                            onCancel = onClearForm,
-                            modifier = Modifier.width(400.dp),
-                        )
-                    }
+                    MoneyItemForm(
+                        item = editingItem,
+                        formKey = formKey,
+                        users = users,
+                        saving = saving,
+                        locked = locked,
+                        onSave = onSaveItem,
+                        onCancel = onClearForm,
+                        modifier = Modifier.width(400.dp),
+                    )
                 }
             }
         }
@@ -265,7 +263,6 @@ private fun MoneyListContent(
     error: String?,
     users: List<User>,
     isCompact: Boolean,
-    locked: Boolean,
     onEditItem: (MoneyItem) -> Unit,
     onDeleteItem: (MoneyItem) -> Unit,
     modifier: Modifier = Modifier,
@@ -325,7 +322,6 @@ private fun MoneyListContent(
                         onEdit = { onEditItem(item) },
                         onDelete = { onDeleteItem(item) },
                         isCompact = isCompact,
-                        locked = locked,
                     )
                 }
             }
@@ -339,6 +335,7 @@ private fun MoneyItemForm(
     formKey: Int,
     users: List<User>,
     saving: Boolean,
+    locked: Boolean = false,
     onSave: (String, Long, String, List<Payment>, Boolean) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
@@ -476,6 +473,25 @@ private fun MoneyItemForm(
                 }
             }
 
+            if (locked) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(
+                        Icons.Default.Lock,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Text(
+                        text = "この月はロックされています",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
@@ -489,7 +505,7 @@ private fun MoneyItemForm(
                 }
                 Button(
                     onClick = { onSave(name, amount, note, payments, recurring) },
-                    enabled = name.isNotBlank() && amount != 0L && !saving,
+                    enabled = name.isNotBlank() && amount != 0L && !saving && !locked,
                 ) {
                     Text(if (isEditing) "保存" else "追加")
                 }
@@ -636,7 +652,6 @@ private fun MoneyItemCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     isCompact: Boolean,
-    locked: Boolean = false,
 ) {
     val paymentTotal = item.payments.sumOf { it.amount }
     val mismatch = paymentTotal != item.amount && item.payments.isNotEmpty()
@@ -687,22 +702,20 @@ private fun MoneyItemCard(
                     )
                 }
 
-                if (!locked) {
-                    Row {
-                        IconButton(onClick = onEdit) {
-                            Icon(
-                                Icons.Default.Edit,
-                                contentDescription = "編集",
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-                        IconButton(onClick = onDelete) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "削除",
-                                tint = MaterialTheme.colorScheme.error,
-                            )
-                        }
+                Row {
+                    IconButton(onClick = onEdit) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "編集",
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "削除",
+                            tint = MaterialTheme.colorScheme.error,
+                        )
                     }
                 }
             }
