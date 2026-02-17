@@ -795,7 +795,7 @@ private fun MoneyItemCard(
                             modifier = Modifier.size(16.dp),
                         )
                         Text(
-                            text = "差額: ¥${formatAmount(paymentTotal - amount)}",
+                            text = "差額: ¥${formatAmount(paymentTotal - item.amount)}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                         )
