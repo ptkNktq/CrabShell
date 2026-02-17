@@ -175,10 +175,6 @@ class MoneyViewModel(
     }
 
     fun onDeleteItem(item: MoneyItem) {
-        if (uiState.monthlyMoney.locked) {
-            uiState = uiState.copy(error = "この月はロックされています")
-            return
-        }
         val updatedItems = uiState.monthlyMoney.items.filter { it.id != item.id }
         if (uiState.editingItem?.id == item.id) onClearForm()
         persistAndThen(uiState.monthlyMoney.copy(items = updatedItems)) {}

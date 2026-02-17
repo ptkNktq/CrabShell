@@ -173,6 +173,7 @@ internal fun MoneyContent(
                         error = error,
                         users = users,
                         isCompact = true,
+                        locked = locked,
                         onEditItem = { item ->
                             onEditItem(item)
                             showFormCompact = true
@@ -228,6 +229,7 @@ internal fun MoneyContent(
                         error = error,
                         users = users,
                         isCompact = false,
+                        locked = locked,
                         onEditItem = onEditItem,
                         onDeleteItem = onDeleteItem,
                         modifier = Modifier.weight(1f),
@@ -263,6 +265,7 @@ private fun MoneyListContent(
     error: String?,
     users: List<User>,
     isCompact: Boolean,
+    locked: Boolean,
     onEditItem: (MoneyItem) -> Unit,
     onDeleteItem: (MoneyItem) -> Unit,
     modifier: Modifier = Modifier,
@@ -322,6 +325,7 @@ private fun MoneyListContent(
                         onEdit = { onEditItem(item) },
                         onDelete = { onDeleteItem(item) },
                         isCompact = isCompact,
+                        locked = locked,
                     )
                 }
             }
@@ -652,6 +656,7 @@ private fun MoneyItemCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     isCompact: Boolean,
+    locked: Boolean = false,
 ) {
     val paymentTotal = item.payments.sumOf { it.amount }
     val mismatch = paymentTotal != item.amount && item.payments.isNotEmpty()
@@ -702,20 +707,22 @@ private fun MoneyItemCard(
                     )
                 }
 
-                Row {
-                    IconButton(onClick = onEdit) {
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = "編集",
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "削除",
-                            tint = MaterialTheme.colorScheme.error,
-                        )
+                if (!locked) {
+                    Row {
+                        IconButton(onClick = onEdit) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "編集",
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        IconButton(onClick = onDelete) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "削除",
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
                     }
                 }
             }
