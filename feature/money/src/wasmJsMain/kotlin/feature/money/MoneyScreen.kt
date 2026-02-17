@@ -501,12 +501,10 @@ private fun MoneyItemForm(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (isEditing) {
-                    TextButton(onClick = onCancel, enabled = !saving) {
-                        Text("キャンセル")
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
+                TextButton(onClick = onCancel, enabled = !saving) {
+                    Text("キャンセル")
                 }
+                Spacer(modifier = Modifier.width(8.dp))
                 Button(
                     onClick = { onSave(name, amount, note, payments, recurring) },
                     enabled = name.isNotBlank() && amount != 0L && !saving && !locked,
