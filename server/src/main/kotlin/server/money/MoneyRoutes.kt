@@ -1,6 +1,7 @@
 package server.money
 
 import com.google.firebase.cloud.FirestoreClient
+import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -38,9 +39,22 @@ fun Route.moneyRoutes() {
 
             put {
                 val month = call.parameters["month"]!!
+                val existing = getMonthlyMoney(month)
+                if (existing.locked) {
+                    call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is locked"))
+                    return@put
+                }
                 val body = call.receive<MonthlyMoney>()
                 saveMonthlyMoney(month, body)
                 call.respond(body)
+            }
+
+            patch("lock") {
+                val month = call.parameters["month"]!!
+                val existing = getMonthlyMoney(month)
+                val updated = existing.copy(locked = !existing.locked)
+                saveMonthlyMoney(month, updated)
+                call.respond(updated)
             }
         }
 
@@ -65,7 +79,7 @@ fun Route.moneyRoutes() {
                         item.payments.any { it.uid == uid }
                     }
                 val myRecords = data.paymentRecords.filter { it.uid == uid }
-                call.respond(MonthlyMoney(month = month, items = myItems, paymentRecords = myRecords))
+                call.respond(MonthlyMoney(month = month, items = myItems, paymentRecords = myRecords, locked = data.locked))
             }
         }
 
@@ -83,11 +97,15 @@ fun Route.moneyRoutes() {
                         .document(month).get().get()
 
                 if (!doc.exists()) {
-                    call.respond(io.ktor.http.HttpStatusCode.NotFound, mapOf("error" to "Month not found"))
+                    call.respond(HttpStatusCode.NotFound, mapOf("error" to "Month not found"))
                     return@post
                 }
 
                 val data = parseMonthlyMoney(month, doc)
+                if (data.locked) {
+                    call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is locked"))
+                    return@post
+                }
                 val updated = data.copy(paymentRecords = data.paymentRecords + safeRecord)
                 saveMonthlyMoney(month, updated)
 
@@ -97,7 +115,7 @@ fun Route.moneyRoutes() {
                         item.payments.any { it.uid == uid }
                     }
                 val myRecords = updated.paymentRecords.filter { it.uid == uid }
-                call.respond(MonthlyMoney(month = month, items = myItems, paymentRecords = myRecords))
+                call.respond(MonthlyMoney(month = month, items = myItems, paymentRecords = myRecords, locked = updated.locked))
             }
         }
     }
@@ -110,7 +128,16 @@ private fun parseMonthlyMoney(
 ): MonthlyMoney {
     val items = parseItems(doc.get("items"))
     val records = parsePaymentRecords(doc.get("paymentRecords"))
-    return MonthlyMoney(month = month, items = items, paymentRecords = records)
+    val locked = doc.getBoolean("locked") ?: false
+    return MonthlyMoney(month = month, items = items, paymentRecords = records, locked = locked)
+}
+
+private fun getMonthlyMoney(month: String): MonthlyMoney {
+    val doc =
+        firestore.collection(MONEY_COLLECTION)
+            .document(month).get().get()
+    if (!doc.exists()) return MonthlyMoney(month = month)
+    return parseMonthlyMoney(month, doc)
 }
 
 private fun saveMonthlyMoney(
@@ -139,7 +166,7 @@ private fun saveMonthlyMoney(
 
     firestore.collection(MONEY_COLLECTION)
         .document(month)
-        .set(mapOf("month" to month, "items" to items, "paymentRecords" to records))
+        .set(mapOf("month" to month, "items" to items, "paymentRecords" to records, "locked" to data.locked))
         .get()
 }
 
