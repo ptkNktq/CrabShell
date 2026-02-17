@@ -1,5 +1,6 @@
 package core.network
 
+import core.auth.AuthRepository
 import core.auth.AuthStateHolder
 import io.ktor.client.*
 import io.ktor.client.plugins.*
@@ -36,7 +37,7 @@ fun createUnauthenticatedClient(): HttpClient =
         }
     }
 
-fun createAuthenticatedClient(): HttpClient =
+fun createAuthenticatedClient(authRepository: AuthRepository): HttpClient =
     HttpClient {
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })
@@ -47,10 +48,29 @@ fun createAuthenticatedClient(): HttpClient =
                 headers.append("Authorization", "Bearer $token")
             }
         }
+        // 401 時にトークンを強制リフレッシュして1回だけリトライ
+        install(HttpRequestRetry) {
+            retryIf(maxRetries = 1) { _, response ->
+                response.status == HttpStatusCode.Unauthorized
+            }
+            delay {
+                // delay は suspend なのでトークンリフレッシュを実行できる
+                authRepository.refreshToken()
+            }
+            modifyRequest { request ->
+                val token = AuthStateHolder.idToken
+                if (token != null) {
+                    request.headers.remove("Authorization")
+                    request.headers.append("Authorization", "Bearer $token")
+                }
+            }
+        }
+        // リトライ後も 401 の場合のみここに到達
         HttpResponseValidator {
             validateResponse { response ->
                 if (response.status == HttpStatusCode.Unauthorized) {
-                    AuthStateHolder.setUnauthenticated()
+                    // Firebase からサインアウトして認証状態を完全にリセット
+                    authRepository.signOut()
                     throw Exception("認証エラー: 再ログインしてください")
                 }
                 if (!response.status.isSuccess()) {
