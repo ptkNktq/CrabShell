@@ -643,6 +643,29 @@ private fun SummaryCard(
                 }
             }
 
+            val totalAllocated = userAllocated.values.sum()
+            val allocationMismatch = userAllocated.isNotEmpty() && totalAllocated != totalAmount
+
+            if (allocationMismatch) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(
+                        Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Text(
+                        text = "差額: ¥${formatAmount(totalAllocated - totalAmount)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+
             if (userAllocated.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
