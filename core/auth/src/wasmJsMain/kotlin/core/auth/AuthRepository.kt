@@ -104,18 +104,18 @@ class AuthRepositoryImpl : AuthRepository {
 
     override suspend fun refreshToken(): String? {
         return try {
-            val resultJs = getIdTokenResult(auth).await<JsAny?>()
+            val resultJs = forceRefreshIdToken(auth).await<JsAny?>()
             val token = resultJs?.let { getTokenFromResult(it).toString() }
             if (token != null) {
                 val isAdmin = getIsAdminFromResult(resultJs).toBoolean()
-                AuthStateHolder.idToken = token
-                // admin 状態も更新
                 val currentState = AuthStateHolder.state
                 if (currentState is AuthState.Authenticated) {
                     AuthStateHolder.setAuthenticated(
                         currentState.user.copy(isAdmin = isAdmin),
                         token,
                     )
+                } else {
+                    AuthStateHolder.idToken = token
                 }
             }
             token
