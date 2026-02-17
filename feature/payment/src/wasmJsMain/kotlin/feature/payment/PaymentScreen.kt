@@ -258,7 +258,10 @@ private fun PaymentListContent(
                             modifier = Modifier.padding(top = 8.dp),
                         )
                     }
-                    items(monthlyMoney.paymentRecords.reversed(), key = { "${it.paidAt}-${it.amount}" }) { record ->
+                    items(
+                        monthlyMoney.paymentRecords.sortedByDescending { it.paidAt },
+                        key = { "${it.paidAt}-${it.amount}" },
+                    ) { record ->
                         PaymentRecordCard(record = record, isCompact = isCompact)
                     }
                 }
@@ -561,22 +564,12 @@ private fun PaymentRecordCard(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
             ),
     ) {
-        Row(
+        Text(
+            text = formatDate(record.paidAt),
             modifier = Modifier.fillMaxWidth().padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = formatDate(record.paidAt),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = "¥${formatAmount(record.amount)}",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
