@@ -362,7 +362,7 @@ private fun MoneyItemForm(
     val payments =
         paymentAmounts.mapNotNull { (uid, text) ->
             val a = text.toLongOrNull()
-            if (a != null && a > 0) Payment(uid, a) else null
+            if (a != null && a != 0L) Payment(uid, a) else null
         }
     val paymentTotal = payments.sumOf { it.amount }
     val mismatch = payments.isNotEmpty() && paymentTotal != amount

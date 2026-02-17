@@ -509,7 +509,7 @@ private fun ItemBreakdownCard(
     isCompact: Boolean,
 ) {
     val myAllocation = item.payments.filter { it.uid == currentUid }.sumOf { it.amount }
-    if (myAllocation <= 0) return
+    if (myAllocation == 0L) return
 
     Card(
         modifier =
