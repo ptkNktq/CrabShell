@@ -180,6 +180,35 @@ class MoneyViewModel(
         persistAndThen(uiState.monthlyMoney.copy(items = updatedItems)) {}
     }
 
+    /** 項目を前月または次月に移動する（一時機能） */
+    fun onMoveItem(
+        item: MoneyItem,
+        offset: Int,
+    ) {
+        val targetMonth = shiftMonthJs(uiState.currentMonth.toJsString(), offset).toString()
+        uiState = uiState.copy(isSaving = true)
+        viewModelScope.launch {
+            try {
+                // 移動先の月データを取得して項目を追加
+                val targetData = moneyRepository.getMonthlyMoney(targetMonth)
+                val updatedTarget = targetData.copy(items = targetData.items + item)
+                moneyRepository.saveMonthlyMoney(updatedTarget)
+                // 現在の月から項目を削除
+                val updatedCurrent =
+                    uiState.monthlyMoney.copy(
+                        items = uiState.monthlyMoney.items.filter { it.id != item.id },
+                    )
+                moneyRepository.saveMonthlyMoney(updatedCurrent)
+                uiState = uiState.copy(monthlyMoney = updatedCurrent)
+                if (uiState.editingItem?.id == item.id) onClearForm()
+            } catch (e: Exception) {
+                uiState = uiState.copy(error = e.message)
+            } finally {
+                uiState = uiState.copy(isSaving = false)
+            }
+        }
+    }
+
     private fun persistAndThen(
         data: MonthlyMoney,
         onSuccess: () -> Unit,

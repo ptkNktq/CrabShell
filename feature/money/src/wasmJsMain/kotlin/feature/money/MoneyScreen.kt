@@ -48,6 +48,7 @@ fun MoneyScreen(vm: MoneyViewModel = koinViewModel()) {
         onEditItem = vm::onEditItem,
         onClearForm = vm::onClearForm,
         onDeleteItem = vm::onDeleteItem,
+        onMoveItem = vm::onMoveItem,
         onSaveItem = vm::onSaveItem,
         onToggleLock = vm::onToggleLock,
         windowSizeClass = windowSizeClass,
@@ -69,6 +70,7 @@ internal fun MoneyContent(
     onEditItem: (MoneyItem) -> Unit,
     onClearForm: () -> Unit,
     onDeleteItem: (MoneyItem) -> Unit,
+    onMoveItem: (MoneyItem, Int) -> Unit,
     onSaveItem: (String, Long, String, List<Payment>, Boolean) -> Unit,
     onToggleLock: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
@@ -179,6 +181,7 @@ internal fun MoneyContent(
                             showFormCompact = true
                         },
                         onDeleteItem = onDeleteItem,
+                        onMoveItem = onMoveItem,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -232,6 +235,7 @@ internal fun MoneyContent(
                         locked = locked,
                         onEditItem = onEditItem,
                         onDeleteItem = onDeleteItem,
+                        onMoveItem = onMoveItem,
                         modifier = Modifier.weight(1f),
                     )
 
@@ -268,6 +272,7 @@ private fun MoneyListContent(
     locked: Boolean,
     onEditItem: (MoneyItem) -> Unit,
     onDeleteItem: (MoneyItem) -> Unit,
+    onMoveItem: (MoneyItem, Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when {
@@ -324,6 +329,8 @@ private fun MoneyListContent(
                         users = users,
                         onEdit = { onEditItem(item) },
                         onDelete = { onDeleteItem(item) },
+                        onMovePrev = { onMoveItem(item, -1) },
+                        onMoveNext = { onMoveItem(item, 1) },
                         isCompact = isCompact,
                         locked = locked,
                     )
@@ -705,6 +712,8 @@ private fun MoneyItemCard(
     users: List<User>,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onMovePrev: () -> Unit,
+    onMoveNext: () -> Unit,
     isCompact: Boolean,
     locked: Boolean = false,
 ) {
@@ -757,8 +766,22 @@ private fun MoneyItemCard(
                     )
                 }
 
-                if (!locked) {
-                    Row {
+                Row {
+                    IconButton(onClick = onMovePrev) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "前月へ移動",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    IconButton(onClick = onMoveNext) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = "次月へ移動",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (!locked) {
                         IconButton(onClick = onEdit) {
                             Icon(
                                 Icons.Default.Edit,
