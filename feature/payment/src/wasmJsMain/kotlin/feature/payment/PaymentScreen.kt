@@ -125,7 +125,7 @@ internal fun PaymentContent(
                     PaymentInlineForm(
                         remaining = remaining,
                         saving = saving,
-                        enabled = remaining > 0,
+                        enabled = true,
                         onConfirmPay = onConfirmPay,
                     )
                 }
@@ -186,7 +186,7 @@ internal fun PaymentContent(
                             PaymentInlineForm(
                                 remaining = remaining,
                                 saving = saving,
-                                enabled = remaining > 0,
+                                enabled = true,
                                 onConfirmPay = onConfirmPay,
                                 modifier = Modifier.width(360.dp),
                             )
@@ -308,7 +308,7 @@ private fun PaymentInlineForm(
     onConfirmPay: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var amountText by remember(remaining) { mutableStateOf(if (remaining > 0) remaining.toString() else "") }
+    var amountText by remember(remaining) { mutableStateOf(if (remaining != 0L) remaining.toString() else "") }
     val amount = amountText.toLongOrNull() ?: 0L
     val inputEnabled = enabled && !saving
 
