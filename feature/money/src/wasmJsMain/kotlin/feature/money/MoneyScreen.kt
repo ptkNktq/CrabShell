@@ -378,7 +378,7 @@ private fun MoneyItemForm(
         Column(
             modifier =
                 Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
