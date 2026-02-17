@@ -7,6 +7,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -61,6 +62,7 @@ internal fun PaymentContent(
     // 支払い済み合計
     val totalPaid = monthlyMoney.paymentRecords.sumOf { it.amount }
     val remaining = totalAllocated - totalPaid
+    val locked = monthlyMoney.locked
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (isCompact) {
@@ -92,9 +94,10 @@ internal fun PaymentContent(
                     loading = loading,
                     error = error,
                     isCompact = true,
+                    locked = locked,
                     modifier = Modifier.weight(1f),
                 )
-                if (!loading && error == null) {
+                if (!loading && error == null && !locked) {
                     Spacer(modifier = Modifier.height(8.dp))
                     PaymentInlineForm(
                         remaining = remaining,
@@ -136,19 +139,22 @@ internal fun PaymentContent(
                         loading = loading,
                         error = error,
                         isCompact = false,
+                        locked = locked,
                         modifier = Modifier.weight(1f),
                     )
 
-                    Spacer(modifier = Modifier.width(24.dp))
+                    if (!locked) {
+                        Spacer(modifier = Modifier.width(24.dp))
 
-                    if (!loading && error == null) {
-                        PaymentInlineForm(
-                            remaining = remaining,
-                            saving = saving,
-                            enabled = remaining > 0,
-                            onConfirmPay = onConfirmPay,
-                            modifier = Modifier.width(360.dp),
-                        )
+                        if (!loading && error == null) {
+                            PaymentInlineForm(
+                                remaining = remaining,
+                                saving = saving,
+                                enabled = remaining > 0,
+                                onConfirmPay = onConfirmPay,
+                                modifier = Modifier.width(360.dp),
+                            )
+                        }
                     }
                 }
             }
@@ -170,6 +176,7 @@ private fun PaymentListContent(
     loading: Boolean,
     error: String?,
     isCompact: Boolean,
+    locked: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     when {
@@ -202,6 +209,7 @@ private fun PaymentListContent(
                         totalPaid = totalPaid,
                         remaining = remaining,
                         isCompact = isCompact,
+                        locked = locked,
                     )
                 }
 
@@ -349,6 +357,7 @@ private fun SummaryCard(
     totalPaid: Long,
     remaining: Long,
     isCompact: Boolean,
+    locked: Boolean = false,
 ) {
     Card(
         modifier =
@@ -370,17 +379,43 @@ private fun SummaryCard(
                     text = "今月の支払い",
                     style = MaterialTheme.typography.titleMedium,
                 )
-                if (remaining <= 0 && totalAllocated > 0) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.primary,
-                        shape = MaterialTheme.shapes.small,
-                    ) {
-                        Text(
-                            text = "支払い完了",
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (locked) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            shape = MaterialTheme.shapes.small,
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Icon(
+                                    Icons.Default.Lock,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                                )
+                                Text(
+                                    text = "ロック中",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                )
+                            }
+                        }
+                    }
+                    if (remaining <= 0 && totalAllocated > 0) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = MaterialTheme.shapes.small,
+                        ) {
+                            Text(
+                                text = "支払い完了",
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                            )
+                        }
                     }
                 }
             }
