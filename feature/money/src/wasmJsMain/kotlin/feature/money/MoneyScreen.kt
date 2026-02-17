@@ -12,6 +12,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -46,7 +48,9 @@ fun MoneyScreen(vm: MoneyViewModel = koinViewModel()) {
         onEditItem = vm::onEditItem,
         onClearForm = vm::onClearForm,
         onDeleteItem = vm::onDeleteItem,
+        onMoveItem = vm::onMoveItem,
         onSaveItem = vm::onSaveItem,
+        onToggleLock = vm::onToggleLock,
         windowSizeClass = windowSizeClass,
     )
 }
@@ -66,9 +70,12 @@ internal fun MoneyContent(
     onEditItem: (MoneyItem) -> Unit,
     onClearForm: () -> Unit,
     onDeleteItem: (MoneyItem) -> Unit,
+    onMoveItem: (MoneyItem, Int) -> Unit,
     onSaveItem: (String, Long, String, List<Payment>, Boolean) -> Unit,
+    onToggleLock: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
+    val locked = monthlyMoney.locked
     val isCompact = windowSizeClass == WindowSizeClass.Compact
     // Compact 用: フォーム表示切替
     var showFormCompact by remember { mutableStateOf(false) }
@@ -99,6 +106,7 @@ internal fun MoneyContent(
                         formKey = formKey,
                         users = users,
                         saving = saving,
+                        locked = locked,
                         onSave = onSaveItem,
                         onCancel = {
                             onClearForm()
@@ -121,11 +129,28 @@ internal fun MoneyContent(
                         color = MaterialTheme.colorScheme.primary,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    MonthSelector(
-                        month = currentMonth,
-                        onPrevious = onPreviousMonth,
-                        onNext = onNextMonth,
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        MonthSelector(
+                            month = currentMonth,
+                            onPrevious = onPreviousMonth,
+                            onNext = onNextMonth,
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        IconButton(onClick = onToggleLock) {
+                            Icon(
+                                if (locked) Icons.Default.Lock else Icons.Default.LockOpen,
+                                contentDescription = if (locked) "ロック解除" else "ロック",
+                                tint =
+                                    if (locked) {
+                                        MaterialTheme.colorScheme.error
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.height(8.dp))
 
                     // 追加ボタン
@@ -150,11 +175,13 @@ internal fun MoneyContent(
                         error = error,
                         users = users,
                         isCompact = true,
+                        locked = locked,
                         onEditItem = { item ->
                             onEditItem(item)
                             showFormCompact = true
                         },
                         onDeleteItem = onDeleteItem,
+                        onMoveItem = onMoveItem,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -173,11 +200,28 @@ internal fun MoneyContent(
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                MonthSelector(
-                    month = currentMonth,
-                    onPrevious = onPreviousMonth,
-                    onNext = onNextMonth,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    MonthSelector(
+                        month = currentMonth,
+                        onPrevious = onPreviousMonth,
+                        onNext = onNextMonth,
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(onClick = onToggleLock) {
+                        Icon(
+                            if (locked) Icons.Default.Lock else Icons.Default.LockOpen,
+                            contentDescription = if (locked) "ロック解除" else "ロック",
+                            tint =
+                                if (locked) {
+                                    MaterialTheme.colorScheme.error
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth().weight(1f),
@@ -188,8 +232,10 @@ internal fun MoneyContent(
                         error = error,
                         users = users,
                         isCompact = false,
+                        locked = locked,
                         onEditItem = onEditItem,
                         onDeleteItem = onDeleteItem,
+                        onMoveItem = onMoveItem,
                         modifier = Modifier.weight(1f),
                     )
 
@@ -200,6 +246,7 @@ internal fun MoneyContent(
                         formKey = formKey,
                         users = users,
                         saving = saving,
+                        locked = locked,
                         onSave = onSaveItem,
                         onCancel = onClearForm,
                         modifier = Modifier.width(400.dp),
@@ -222,8 +269,10 @@ private fun MoneyListContent(
     error: String?,
     users: List<User>,
     isCompact: Boolean,
+    locked: Boolean,
     onEditItem: (MoneyItem) -> Unit,
     onDeleteItem: (MoneyItem) -> Unit,
+    onMoveItem: (MoneyItem, Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when {
@@ -280,7 +329,10 @@ private fun MoneyListContent(
                         users = users,
                         onEdit = { onEditItem(item) },
                         onDelete = { onDeleteItem(item) },
+                        onMovePrev = { onMoveItem(item, -1) },
+                        onMoveNext = { onMoveItem(item, 1) },
                         isCompact = isCompact,
+                        locked = locked,
                     )
                 }
             }
@@ -294,6 +346,7 @@ private fun MoneyItemForm(
     formKey: Int,
     users: List<User>,
     saving: Boolean,
+    locked: Boolean = false,
     onSave: (String, Long, String, List<Payment>, Boolean) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
@@ -316,7 +369,7 @@ private fun MoneyItemForm(
     val payments =
         paymentAmounts.mapNotNull { (uid, text) ->
             val a = text.toLongOrNull()
-            if (a != null && a > 0) Payment(uid, a) else null
+            if (a != null && a != 0L) Payment(uid, a) else null
         }
     val paymentTotal = payments.sumOf { it.amount }
     val mismatch = payments.isNotEmpty() && paymentTotal != amount
@@ -332,7 +385,7 @@ private fun MoneyItemForm(
         Column(
             modifier =
                 Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -394,21 +447,67 @@ private fun MoneyItemForm(
                 )
 
                 for (user in users) {
-                    OutlinedTextField(
-                        value = paymentAmounts[user.uid] ?: "",
-                        onValueChange = { value ->
-                            paymentAmounts =
-                                paymentAmounts.toMutableMap().apply {
-                                    put(user.uid, value.filter { c -> c.isDigit() || c == '-' })
-                                }
-                        },
-                        label = { Text(user.displayName ?: user.uid) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        suffix = { Text("円") },
-                        enabled = !saving,
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        OutlinedTextField(
+                            value = paymentAmounts[user.uid] ?: "",
+                            onValueChange = { value ->
+                                paymentAmounts =
+                                    paymentAmounts.toMutableMap().apply {
+                                        put(user.uid, value.filter { c -> c.isDigit() || c == '-' })
+                                    }
+                            },
+                            label = { Text(user.displayName ?: user.uid) },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            suffix = { Text("円") },
+                            enabled = !saving,
+                        )
+                        OutlinedButton(
+                            onClick = {
+                                paymentAmounts =
+                                    paymentAmounts.toMutableMap().apply {
+                                        put(user.uid, (amount / 2).toString())
+                                    }
+                            },
+                            enabled = !saving && amount != 0L,
+                            contentPadding = PaddingValues(horizontal = 8.dp),
+                        ) {
+                            Text("半額", style = MaterialTheme.typography.labelSmall)
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                paymentAmounts =
+                                    paymentAmounts.toMutableMap().apply {
+                                        put(user.uid, amount.toString())
+                                    }
+                            },
+                            enabled = !saving && amount != 0L,
+                            contentPadding = PaddingValues(horizontal = 8.dp),
+                        ) {
+                            Text("全額", style = MaterialTheme.typography.labelSmall)
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                val othersTotal =
+                                    paymentAmounts
+                                        .filter { it.key != user.uid }
+                                        .values
+                                        .sumOf { it.toLongOrNull() ?: 0L }
+                                paymentAmounts =
+                                    paymentAmounts.toMutableMap().apply {
+                                        put(user.uid, (amount - othersTotal).toString())
+                                    }
+                            },
+                            enabled = !saving && amount != 0L,
+                            contentPadding = PaddingValues(horizontal = 8.dp),
+                        ) {
+                            Text("残額", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
                 }
 
                 if (mismatch) {
@@ -423,11 +522,30 @@ private fun MoneyItemForm(
                             modifier = Modifier.size(16.dp),
                         )
                         Text(
-                            text = "支払い合計 ¥${formatAmount(paymentTotal)} / 金額 ¥${formatAmount(amount)}",
+                            text = "差額: ¥${formatAmount(paymentTotal - amount)}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                         )
                     }
+                }
+            }
+
+            if (locked) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(
+                        Icons.Default.Lock,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Text(
+                        text = "この月はロックされています",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
                 }
             }
 
@@ -436,15 +554,13 @@ private fun MoneyItemForm(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (isEditing) {
-                    TextButton(onClick = onCancel, enabled = !saving) {
-                        Text("キャンセル")
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
+                TextButton(onClick = onCancel, enabled = !saving) {
+                    Text("キャンセル")
                 }
+                Spacer(modifier = Modifier.width(8.dp))
                 Button(
                     onClick = { onSave(name, amount, note, payments, recurring) },
-                    enabled = name.isNotBlank() && amount != 0L && !saving,
+                    enabled = name.isNotBlank() && amount != 0L && !saving && !locked,
                 ) {
                     Text(if (isEditing) "保存" else "追加")
                 }
@@ -551,6 +667,29 @@ private fun SummaryCard(
                 }
             }
 
+            val totalAllocated = userAllocated.values.sum()
+            val allocationMismatch = userAllocated.isNotEmpty() && totalAllocated != totalAmount
+
+            if (allocationMismatch) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(
+                        Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Text(
+                        text = "差額: ¥${formatAmount(totalAllocated - totalAmount)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+
             if (userAllocated.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -590,7 +729,10 @@ private fun MoneyItemCard(
     users: List<User>,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onMovePrev: () -> Unit,
+    onMoveNext: () -> Unit,
     isCompact: Boolean,
+    locked: Boolean = false,
 ) {
     val paymentTotal = item.payments.sumOf { it.amount }
     val mismatch = paymentTotal != item.amount && item.payments.isNotEmpty()
@@ -642,19 +784,35 @@ private fun MoneyItemCard(
                 }
 
                 Row {
-                    IconButton(onClick = onEdit) {
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = "編集",
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "削除",
-                            tint = MaterialTheme.colorScheme.error,
-                        )
+                    if (!locked) {
+                        IconButton(onClick = onMovePrev) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "前月へ移動",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        IconButton(onClick = onMoveNext) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = "次月へ移動",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        IconButton(onClick = onEdit) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "編集",
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        IconButton(onClick = onDelete) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "削除",
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
                     }
                 }
             }
@@ -700,7 +858,7 @@ private fun MoneyItemCard(
                             modifier = Modifier.size(16.dp),
                         )
                         Text(
-                            text = "支払い合計 (¥${formatAmount(paymentTotal)}) が金額と一致しません",
+                            text = "差額: ¥${formatAmount(paymentTotal - item.amount)}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                         )

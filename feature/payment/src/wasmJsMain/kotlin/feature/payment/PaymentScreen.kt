@@ -7,6 +7,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,6 +20,7 @@ import core.ui.WindowSizeClass
 import model.MoneyItem
 import model.MonthlyMoney
 import model.PaymentRecord
+import model.User
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -27,13 +30,17 @@ fun PaymentScreen(vm: PaymentViewModel = koinViewModel()) {
     PaymentContent(
         monthlyMoney = vm.uiState.monthlyMoney,
         currentMonth = vm.uiState.currentMonth,
-        currentUid = vm.uiState.currentUid,
+        currentUid = vm.uiState.viewingUid,
         loading = vm.uiState.isLoading,
         saving = vm.uiState.isSaving,
         error = vm.uiState.error,
+        isAdmin = vm.uiState.isAdmin,
+        users = vm.uiState.users,
+        isViewingOther = vm.uiState.isViewingOther,
         onPreviousMonth = vm::onGoToPreviousMonth,
         onNextMonth = vm::onGoToNextMonth,
         onConfirmPay = vm::onRecordPayment,
+        onSwitchUser = vm::onSwitchUser,
         windowSizeClass = windowSizeClass,
     )
 }
@@ -46,9 +53,13 @@ internal fun PaymentContent(
     loading: Boolean,
     saving: Boolean,
     error: String?,
+    isAdmin: Boolean = false,
+    users: List<User> = emptyList(),
+    isViewingOther: Boolean = false,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onConfirmPay: (Long) -> Unit,
+    onSwitchUser: (String) -> Unit = {},
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
@@ -61,6 +72,7 @@ internal fun PaymentContent(
     // 支払い済み合計
     val totalPaid = monthlyMoney.paymentRecords.sumOf { it.amount }
     val remaining = totalAllocated - totalPaid
+    val locked = monthlyMoney.locked
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (isCompact) {
@@ -71,11 +83,24 @@ internal fun PaymentContent(
                         .fillMaxSize()
                         .padding(12.dp),
             ) {
-                Text(
-                    text = "支払い",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "支払い",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    if (isAdmin && users.isNotEmpty()) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        UserSwitcher(
+                            users = users,
+                            currentUid = currentUid,
+                            onSwitchUser = onSwitchUser,
+                            compact = true,
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(8.dp))
                 MonthSelector(
                     month = currentMonth,
@@ -92,14 +117,15 @@ internal fun PaymentContent(
                     loading = loading,
                     error = error,
                     isCompact = true,
+                    locked = locked,
                     modifier = Modifier.weight(1f),
                 )
-                if (!loading && error == null) {
+                if (!loading && error == null && !locked && !isViewingOther) {
                     Spacer(modifier = Modifier.height(8.dp))
                     PaymentInlineForm(
                         remaining = remaining,
                         saving = saving,
-                        enabled = remaining > 0,
+                        enabled = true,
                         onConfirmPay = onConfirmPay,
                     )
                 }
@@ -112,11 +138,24 @@ internal fun PaymentContent(
                         .fillMaxSize()
                         .padding(24.dp),
             ) {
-                Text(
-                    text = "支払い",
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "支払い",
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    if (isAdmin && users.isNotEmpty()) {
+                        Spacer(modifier = Modifier.width(12.dp))
+                        UserSwitcher(
+                            users = users,
+                            currentUid = currentUid,
+                            onSwitchUser = onSwitchUser,
+                            compact = false,
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(16.dp))
                 MonthSelector(
                     month = currentMonth,
@@ -136,19 +175,22 @@ internal fun PaymentContent(
                         loading = loading,
                         error = error,
                         isCompact = false,
+                        locked = locked,
                         modifier = Modifier.weight(1f),
                     )
 
-                    Spacer(modifier = Modifier.width(24.dp))
+                    if (!locked && !isViewingOther) {
+                        Spacer(modifier = Modifier.width(24.dp))
 
-                    if (!loading && error == null) {
-                        PaymentInlineForm(
-                            remaining = remaining,
-                            saving = saving,
-                            enabled = remaining > 0,
-                            onConfirmPay = onConfirmPay,
-                            modifier = Modifier.width(360.dp),
-                        )
+                        if (!loading && error == null) {
+                            PaymentInlineForm(
+                                remaining = remaining,
+                                saving = saving,
+                                enabled = true,
+                                onConfirmPay = onConfirmPay,
+                                modifier = Modifier.width(360.dp),
+                            )
+                        }
                     }
                 }
             }
@@ -170,6 +212,7 @@ private fun PaymentListContent(
     loading: Boolean,
     error: String?,
     isCompact: Boolean,
+    locked: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     when {
@@ -202,6 +245,7 @@ private fun PaymentListContent(
                         totalPaid = totalPaid,
                         remaining = remaining,
                         isCompact = isCompact,
+                        locked = locked,
                     )
                 }
 
@@ -214,7 +258,10 @@ private fun PaymentListContent(
                             modifier = Modifier.padding(top = 8.dp),
                         )
                     }
-                    items(monthlyMoney.paymentRecords.reversed(), key = { "${it.paidAt}-${it.amount}" }) { record ->
+                    items(
+                        monthlyMoney.paymentRecords.sortedByDescending { it.paidAt },
+                        key = { "${it.paidAt}-${it.amount}" },
+                    ) { record ->
                         PaymentRecordCard(record = record, isCompact = isCompact)
                     }
                 }
@@ -264,7 +311,7 @@ private fun PaymentInlineForm(
     onConfirmPay: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var amountText by remember(remaining) { mutableStateOf(if (remaining > 0) remaining.toString() else "") }
+    var amountText by remember(remaining) { mutableStateOf(if (remaining != 0L) remaining.toString() else "") }
     val amount = amountText.toLongOrNull() ?: 0L
     val inputEnabled = enabled && !saving
 
@@ -317,6 +364,48 @@ private fun PaymentInlineForm(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun UserSwitcher(
+    users: List<User>,
+    currentUid: String,
+    onSwitchUser: (String) -> Unit,
+    compact: Boolean,
+) {
+    val chipStyle =
+        if (compact) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelMedium
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        for (user in users) {
+            val selected = user.uid == currentUid
+            FilterChip(
+                selected = selected,
+                onClick = { if (!selected) onSwitchUser(user.uid) },
+                label = {
+                    Text(
+                        text = user.displayName ?: user.uid.take(8),
+                        style = chipStyle,
+                    )
+                },
+                leadingIcon =
+                    if (selected) {
+                        {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    } else {
+                        null
+                    },
+            )
+        }
+    }
+}
+
 @Composable
 private fun MonthSelector(
     month: String,
@@ -349,6 +438,7 @@ private fun SummaryCard(
     totalPaid: Long,
     remaining: Long,
     isCompact: Boolean,
+    locked: Boolean = false,
 ) {
     Card(
         modifier =
@@ -370,17 +460,43 @@ private fun SummaryCard(
                     text = "今月の支払い",
                     style = MaterialTheme.typography.titleMedium,
                 )
-                if (remaining <= 0 && totalAllocated > 0) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.primary,
-                        shape = MaterialTheme.shapes.small,
-                    ) {
-                        Text(
-                            text = "支払い完了",
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (locked) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            shape = MaterialTheme.shapes.small,
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Icon(
+                                    Icons.Default.Lock,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                                )
+                                Text(
+                                    text = "ロック中",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                )
+                            }
+                        }
+                    }
+                    if (remaining <= 0 && totalAllocated > 0) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = MaterialTheme.shapes.small,
+                        ) {
+                            Text(
+                                text = "支払い完了",
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                            )
+                        }
                     }
                 }
             }
@@ -474,7 +590,7 @@ private fun ItemBreakdownCard(
     isCompact: Boolean,
 ) {
     val myAllocation = item.payments.filter { it.uid == currentUid }.sumOf { it.amount }
-    if (myAllocation <= 0) return
+    if (myAllocation == 0L) return
 
     Card(
         modifier =
@@ -557,7 +673,7 @@ private fun formatDate(isoString: String): String {
             }
         }
 
-        "$month/$day ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}"
+        "$month/$day"
     } catch (_: Exception) {
         isoString
     }
