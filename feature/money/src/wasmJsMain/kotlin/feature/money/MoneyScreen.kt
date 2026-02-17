@@ -490,6 +490,23 @@ private fun MoneyItemForm(
                         ) {
                             Text("全額", style = MaterialTheme.typography.labelSmall)
                         }
+                        OutlinedButton(
+                            onClick = {
+                                val othersTotal =
+                                    paymentAmounts
+                                        .filter { it.key != user.uid }
+                                        .values
+                                        .sumOf { it.toLongOrNull() ?: 0L }
+                                paymentAmounts =
+                                    paymentAmounts.toMutableMap().apply {
+                                        put(user.uid, (amount - othersTotal).toString())
+                                    }
+                            },
+                            enabled = !saving && amount != 0L,
+                            contentPadding = PaddingValues(horizontal = 8.dp),
+                        ) {
+                            Text("残額", style = MaterialTheme.typography.labelSmall)
+                        }
                     }
                 }
 
