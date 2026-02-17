@@ -498,7 +498,7 @@ private fun MoneyItemForm(
                             modifier = Modifier.size(16.dp),
                         )
                         Text(
-                            text = "支払い合計 ¥${formatAmount(paymentTotal)} / 金額 ¥${formatAmount(amount)}",
+                            text = "差額: ¥${formatAmount(paymentTotal - amount)}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                         )
@@ -795,7 +795,7 @@ private fun MoneyItemCard(
                             modifier = Modifier.size(16.dp),
                         )
                         Text(
-                            text = "支払い合計 (¥${formatAmount(paymentTotal)}) が金額と一致しません",
+                            text = "差額: ¥${formatAmount(paymentTotal - amount)}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                         )
