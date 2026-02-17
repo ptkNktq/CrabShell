@@ -361,6 +361,7 @@ private fun PaymentInlineForm(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun UserSwitcher(
     users: List<User>,
@@ -368,46 +369,36 @@ private fun UserSwitcher(
     onSwitchUser: (String) -> Unit,
     compact: Boolean,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val currentUser = users.find { it.uid == currentUid }
-    val displayName = currentUser?.displayName ?: currentUser?.uid?.take(8) ?: ""
-
-    Box {
-        AssistChip(
-            onClick = { expanded = true },
-            label = {
-                Text(
-                    text = displayName,
-                    style =
-                        if (compact) {
-                            MaterialTheme.typography.labelMedium
-                        } else {
-                            MaterialTheme.typography.labelLarge
-                        },
-                )
-            },
-            leadingIcon = {
-                Icon(
-                    Icons.Default.Person,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-            },
-        )
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            for (user in users) {
-                DropdownMenuItem(
-                    text = { Text(user.displayName ?: user.uid.take(8)) },
-                    onClick = {
-                        onSwitchUser(user.uid)
-                        expanded = false
+    val chipStyle =
+        if (compact) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelMedium
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        for (user in users) {
+            val selected = user.uid == currentUid
+            FilterChip(
+                selected = selected,
+                onClick = { if (!selected) onSwitchUser(user.uid) },
+                label = {
+                    Text(
+                        text = user.displayName ?: user.uid.take(8),
+                        style = chipStyle,
+                    )
+                },
+                leadingIcon =
+                    if (selected) {
+                        {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    } else {
+                        null
                     },
-                    enabled = user.uid != currentUid,
-                )
-            }
+            )
         }
     }
 }
