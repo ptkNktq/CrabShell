@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,6 +20,7 @@ import core.ui.WindowSizeClass
 import model.MoneyItem
 import model.MonthlyMoney
 import model.PaymentRecord
+import model.User
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -28,13 +30,17 @@ fun PaymentScreen(vm: PaymentViewModel = koinViewModel()) {
     PaymentContent(
         monthlyMoney = vm.uiState.monthlyMoney,
         currentMonth = vm.uiState.currentMonth,
-        currentUid = vm.uiState.currentUid,
+        currentUid = vm.uiState.viewingUid,
         loading = vm.uiState.isLoading,
         saving = vm.uiState.isSaving,
         error = vm.uiState.error,
+        isAdmin = vm.uiState.isAdmin,
+        users = vm.uiState.users,
+        isViewingOther = vm.uiState.isViewingOther,
         onPreviousMonth = vm::onGoToPreviousMonth,
         onNextMonth = vm::onGoToNextMonth,
         onConfirmPay = vm::onRecordPayment,
+        onSwitchUser = vm::onSwitchUser,
         windowSizeClass = windowSizeClass,
     )
 }
@@ -47,9 +53,13 @@ internal fun PaymentContent(
     loading: Boolean,
     saving: Boolean,
     error: String?,
+    isAdmin: Boolean = false,
+    users: List<User> = emptyList(),
+    isViewingOther: Boolean = false,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onConfirmPay: (Long) -> Unit,
+    onSwitchUser: (String) -> Unit = {},
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
@@ -73,11 +83,24 @@ internal fun PaymentContent(
                         .fillMaxSize()
                         .padding(12.dp),
             ) {
-                Text(
-                    text = "支払い",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "支払い",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    if (isAdmin && users.isNotEmpty()) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        UserSwitcher(
+                            users = users,
+                            currentUid = currentUid,
+                            onSwitchUser = onSwitchUser,
+                            compact = true,
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(8.dp))
                 MonthSelector(
                     month = currentMonth,
@@ -97,7 +120,7 @@ internal fun PaymentContent(
                     locked = locked,
                     modifier = Modifier.weight(1f),
                 )
-                if (!loading && error == null && !locked) {
+                if (!loading && error == null && !locked && !isViewingOther) {
                     Spacer(modifier = Modifier.height(8.dp))
                     PaymentInlineForm(
                         remaining = remaining,
@@ -115,11 +138,24 @@ internal fun PaymentContent(
                         .fillMaxSize()
                         .padding(24.dp),
             ) {
-                Text(
-                    text = "支払い",
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "支払い",
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    if (isAdmin && users.isNotEmpty()) {
+                        Spacer(modifier = Modifier.width(12.dp))
+                        UserSwitcher(
+                            users = users,
+                            currentUid = currentUid,
+                            onSwitchUser = onSwitchUser,
+                            compact = false,
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(16.dp))
                 MonthSelector(
                     month = currentMonth,
@@ -143,7 +179,7 @@ internal fun PaymentContent(
                         modifier = Modifier.weight(1f),
                     )
 
-                    if (!locked) {
+                    if (!locked && !isViewingOther) {
                         Spacer(modifier = Modifier.width(24.dp))
 
                         if (!loading && error == null) {
@@ -320,6 +356,57 @@ private fun PaymentInlineForm(
                 ) {
                     Text("記録")
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun UserSwitcher(
+    users: List<User>,
+    currentUid: String,
+    onSwitchUser: (String) -> Unit,
+    compact: Boolean,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val currentUser = users.find { it.uid == currentUid }
+    val displayName = currentUser?.displayName ?: currentUser?.uid?.take(8) ?: ""
+
+    Box {
+        AssistChip(
+            onClick = { expanded = true },
+            label = {
+                Text(
+                    text = displayName,
+                    style =
+                        if (compact) {
+                            MaterialTheme.typography.labelMedium
+                        } else {
+                            MaterialTheme.typography.labelLarge
+                        },
+                )
+            },
+            leadingIcon = {
+                Icon(
+                    Icons.Default.Person,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+            },
+        )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            for (user in users) {
+                DropdownMenuItem(
+                    text = { Text(user.displayName ?: user.uid.take(8)) },
+                    onClick = {
+                        onSwitchUser(user.uid)
+                        expanded = false
+                    },
+                    enabled = user.uid != currentUid,
+                )
             }
         }
     }
