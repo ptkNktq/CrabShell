@@ -23,4 +23,5 @@ data class MonthlyMoney(
     val month: String,
     val items: List<MoneyItem> = emptyList(),
     val paymentRecords: List<PaymentRecord> = emptyList(),
+    val locked: Boolean = false,
 )
