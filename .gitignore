@@ -18,6 +18,9 @@ kotlin-js-store/
 # Firebase
 firebase-service-account.json
 
+# Local data (SQLite DB etc.)
+data/
+
 # OS
 .DS_Store
 Thumbs.db
