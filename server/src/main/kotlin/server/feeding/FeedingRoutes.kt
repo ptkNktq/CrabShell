@@ -101,6 +101,73 @@ fun Route.feedingRoutes() {
                 call.respond(Feeding(done = true, timestamp = timestamp))
             }
 
+            patch("/{date}/{mealTime}/timestamp") {
+                val petId =
+                    call.parameters["petId"]
+                        ?: return@patch call.respond(HttpStatusCode.BadRequest, mapOf("error" to "petId is required"))
+                val date =
+                    call.parameters["date"]
+                        ?: return@patch call.respond(HttpStatusCode.BadRequest, mapOf("error" to "date is required"))
+                val mealTimeStr =
+                    call.parameters["mealTime"]
+                        ?: return@patch call.respond(HttpStatusCode.BadRequest, mapOf("error" to "mealTime is required"))
+
+                val mealTime =
+                    try {
+                        MealTime.valueOf(mealTimeStr.uppercase())
+                    } catch (_: IllegalArgumentException) {
+                        return@patch call.respond(
+                            HttpStatusCode.BadRequest,
+                            mapOf("error" to "Invalid mealTime: $mealTimeStr"),
+                        )
+                    }
+
+                val body = call.receive<Map<String, String>>()
+                val timestamp =
+                    body["timestamp"]
+                        ?: return@patch call.respond(
+                            HttpStatusCode.BadRequest,
+                            mapOf("error" to "timestamp is required"),
+                        )
+
+                // 対象の meal が done=true か確認
+                val docRef =
+                    firestore.collection("pets").document(petId)
+                        .collection("feeding_logs").document(date)
+                val doc = docRef.get().get()
+                if (doc.exists()) {
+                    @Suppress("UNCHECKED_CAST")
+                    val feedingsRaw = doc.data?.get("feedings") as? Map<String, Map<String, Any?>>
+                    val entry = feedingsRaw?.get(mealTime.name.lowercase())
+                    val done = entry?.get("done") as? Boolean ?: false
+                    if (!done) {
+                        return@patch call.respond(
+                            HttpStatusCode.BadRequest,
+                            mapOf("error" to "Meal ${mealTime.name} is not done yet"),
+                        )
+                    }
+                } else {
+                    return@patch call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Meal ${mealTime.name} is not done yet"),
+                    )
+                }
+
+                // timestamp のみ更新
+                docRef.set(
+                    mapOf(
+                        "feedings" to
+                            mapOf(
+                                mealTime.name.lowercase() to
+                                    mapOf("timestamp" to timestamp),
+                            ),
+                    ),
+                    SetOptions.mergeFields("feedings.${mealTime.name.lowercase()}.timestamp"),
+                ).get()
+
+                call.respond(Feeding(done = true, timestamp = timestamp))
+            }
+
             put("/{date}/note") {
                 val petId =
                     call.parameters["petId"]
