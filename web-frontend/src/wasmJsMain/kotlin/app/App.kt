@@ -25,6 +25,7 @@ import feature.dashboard.DashboardScreen
 import feature.feeding.FeedingScreen
 import feature.money.MoneyScreen
 import feature.payment.PaymentScreen
+import feature.report.ReportScreen
 import feature.settings.SettingsScreen
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -92,6 +93,7 @@ private fun ScreenContent(currentScreen: Screen) {
         Screen.Dashboard -> DashboardScreen()
         Screen.Feeding -> FeedingScreen()
         Screen.Payment -> PaymentScreen()
+        Screen.Report -> ReportScreen()
         Screen.Money -> MoneyScreen()
         Screen.Settings -> SettingsScreen()
     }
