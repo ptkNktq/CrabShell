@@ -3,6 +3,7 @@
   "extends": ["config:recommended"],
   "labels": ["dependencies"],
   "schedule": ["every weekend"],
+  "minimumReleaseAge": "3 days",
   "packageRules": [
     {
       "matchUpdateTypes": ["patch"],
@@ -27,6 +28,15 @@
     {
       "groupName": "Exposed",
       "matchPackagePrefixes": ["org.jetbrains.exposed"]
+    },
+    {
+      "groupName": "Server dependencies",
+      "matchPackageNames": [
+        "ch.qos.logback:logback-classic",
+        "com.google.firebase:firebase-admin",
+        "com.webauthn4j:webauthn4j-core",
+        "org.xerial:sqlite-jdbc"
+      ]
     }
   ]
 }
