@@ -25,6 +25,13 @@ interface FeedingRepository {
         date: String,
         note: String,
     )
+
+    suspend fun updateFeedingTimestamp(
+        petId: String,
+        date: String,
+        mealTime: MealTime,
+        timestamp: String,
+    ): Feeding
 }
 
 class FeedingRepositoryImpl(private val client: HttpClient) : FeedingRepository {
@@ -52,4 +59,15 @@ class FeedingRepositoryImpl(private val client: HttpClient) : FeedingRepository 
             setBody(mapOf("note" to note))
         }
     }
+
+    override suspend fun updateFeedingTimestamp(
+        petId: String,
+        date: String,
+        mealTime: MealTime,
+        timestamp: String,
+    ): Feeding =
+        client.patch("/api/pets/$petId/feeding/$date/${mealTime.name.lowercase()}/timestamp") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf("timestamp" to timestamp))
+        }.body()
 }

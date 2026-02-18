@@ -21,6 +21,7 @@ data class FeedingUiState(
     val error: String? = null,
     val noteDraft: String = "",
     val pet: Pet? = null,
+    val editingMealTime: MealTime? = null,
 )
 
 class FeedingViewModel(
@@ -88,6 +89,44 @@ class FeedingViewModel(
             try {
                 feedingRepository.updateNote(petId, uiState.selectedDate, uiState.noteDraft)
                 uiState = uiState.copy(log = uiState.log.copy(note = uiState.noteDraft))
+            } catch (e: Exception) {
+                uiState = uiState.copy(error = e.message)
+            }
+        }
+    }
+
+    fun onStartEditTimestamp(mealTime: MealTime) {
+        uiState = uiState.copy(editingMealTime = mealTime)
+    }
+
+    fun onCancelEditTimestamp() {
+        uiState = uiState.copy(editingMealTime = null)
+    }
+
+    fun onSaveTimestamp(
+        mealTime: MealTime,
+        hour: Int,
+        minute: Int,
+    ) {
+        val petId = uiState.pet?.id ?: return
+        val timestamp = "${uiState.selectedDate}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00+09:00"
+        viewModelScope.launch {
+            try {
+                val feeding =
+                    feedingRepository.updateFeedingTimestamp(
+                        petId,
+                        uiState.selectedDate,
+                        mealTime,
+                        timestamp,
+                    )
+                uiState =
+                    uiState.copy(
+                        editingMealTime = null,
+                        log =
+                            uiState.log.copy(
+                                feedings = uiState.log.feedings.toMutableMap().apply { put(mealTime, feeding) },
+                            ),
+                    )
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
             }
