@@ -252,7 +252,6 @@ Firebase Auth + Passkey (WebAuthn) のハイブリッド認証。
 | `FIREBASE_SERVICE_ACCOUNT_PATH` | | Firebase サービスアカウントキー（デフォルト: `firebase-service-account.json`） |
 | `WEBAUTHN_RP_ID` | **必須** | Relying Party ID（例: `localhost`, `example.com`） |
 | `WEBAUTHN_ORIGIN` | **必須** | 許可するオリジン（カンマ区切り。例: `https://example.com`） |
-| `CORS_ORIGINS` | | 許可する CORS オリジン（カンマ区切り。例: `https://example.com`。未設定時は同一オリジンのみ） |
 | `PASSKEY_DB_PATH` | | SQLite ファイルパス（デフォルト: `data/passkey.db`） |
 
 > `WEBAUTHN_RP_ID` / `WEBAUTHN_ORIGIN` が未設定の場合、パスキー機能は無効化されます（メール/パスワード認証のみ動作）。
