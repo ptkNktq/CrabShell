@@ -43,7 +43,12 @@ fun Application.module() {
         allowMethod(HttpMethod.Put)
         allowMethod(HttpMethod.Delete)
         allowMethod(HttpMethod.Patch)
-        anyHost()
+        // CORS_ORIGINS 環境変数でオリジンを制御（カンマ区切り）
+        // 未設定時は同一オリジンのみ許可（anyHost() を使わない）
+        val origins = System.getenv("CORS_ORIGINS")?.split(",")?.map { it.trim() }
+        if (origins != null) {
+            origins.forEach { allowHost(it.removePrefix("https://").removePrefix("http://"), schemes = listOf("http", "https")) }
+        }
     }
 
     routing {
