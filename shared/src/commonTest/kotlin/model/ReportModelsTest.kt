@@ -9,10 +9,17 @@ class ReportModelsTest {
 
     @Test
     fun expenseItemRoundTrip() {
-        val item = ExpenseItem(name = "家賃", amount = 80000L)
+        val item = ExpenseItem(name = "家賃", amount = 80000L, note = "管理費込み")
         val encoded = json.encodeToString(ExpenseItem.serializer(), item)
         val decoded = json.decodeFromString(ExpenseItem.serializer(), encoded)
         assertEquals(item, decoded)
+    }
+
+    @Test
+    fun expenseItemDefaultNote() {
+        val jsonStr = """{"name":"家賃","amount":80000}"""
+        val decoded = json.decodeFromString(ExpenseItem.serializer(), jsonStr)
+        assertEquals("", decoded.note)
     }
 
     @Test
