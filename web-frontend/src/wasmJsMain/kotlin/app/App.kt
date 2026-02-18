@@ -88,7 +88,15 @@ fun App() {
 }
 
 @Composable
-private fun ScreenContent(currentScreen: Screen) {
+private fun ScreenContent(
+    currentScreen: Screen,
+    isAdmin: Boolean,
+) {
+    // 管理者専用画面に非管理者がアクセスした場合はダッシュボードにリダイレクト
+    if (currentScreen.adminOnly && !isAdmin) {
+        Navigator.navigateTo(Screen.Dashboard)
+        return
+    }
     when (currentScreen) {
         Screen.Dashboard -> DashboardScreen()
         Screen.Feeding -> FeedingScreen()
@@ -113,7 +121,7 @@ private fun ExpandedLayout(
             onSignOut = onSignOut,
             isAdmin = isAdmin,
         )
-        ScreenContent(currentScreen)
+        ScreenContent(currentScreen, isAdmin)
     }
 }
 
@@ -132,7 +140,7 @@ private fun MediumLayout(
             isAdmin = isAdmin,
             expandable = false,
         )
-        ScreenContent(currentScreen)
+        ScreenContent(currentScreen, isAdmin)
     }
 }
 
@@ -174,7 +182,7 @@ private fun CompactLayout(
             },
         ) { innerPadding ->
             Surface(modifier = Modifier.padding(innerPadding)) {
-                ScreenContent(currentScreen)
+                ScreenContent(currentScreen, isAdmin)
             }
         }
     }
