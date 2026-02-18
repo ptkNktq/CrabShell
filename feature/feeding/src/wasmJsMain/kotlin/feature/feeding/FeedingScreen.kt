@@ -2,7 +2,6 @@
 
 package feature.feeding
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -299,59 +298,81 @@ private fun MealCard(
             ),
     ) {
         Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth().defaultMinSize(minHeight = 48.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // 左側: アイコン + ラベル
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Icon(
                     imageVector = mealTime.icon,
                     contentDescription = mealTime.label,
                     tint = mealTime.color,
+                    modifier = Modifier.size(20.dp),
                 )
-                Column {
-                    Text(
-                        text = mealTime.label,
-                        style = MaterialTheme.typography.titleMedium,
+                Text(
+                    text = mealTime.label,
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
+
+            // 右側: 時刻 + アクション
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                val ts = feeding.timestamp
+                if (feeding.done && ts != null) {
+                    if (isEditing) {
+                        TimestampEditor(
+                            timestamp = ts,
+                            onCancel = onCancelEdit,
+                            onSave = onSaveTimestamp,
+                        )
+                    } else {
+                        TimestampBadge(
+                            timestamp = ts,
+                            onClick = onStartEdit,
+                        )
+                    }
+                }
+
+                if (feeding.done) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "済み",
+                        tint = FeedingDoneColor,
+                        modifier = Modifier.size(24.dp),
                     )
-                    val ts = feeding.timestamp
-                    if (feeding.done && ts != null) {
-                        if (isEditing) {
-                            TimestampEditor(
-                                timestamp = ts,
-                                onCancel = onCancelEdit,
-                                onSave = onSaveTimestamp,
-                            )
-                        } else {
-                            Text(
-                                text = toJstHHMM(ts.toJsString()).toString(),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier =
-                                    Modifier.clickable(onClick = onStartEdit)
-                                        .padding(vertical = 2.dp),
-                            )
-                        }
+                } else {
+                    Button(onClick = onFeed) {
+                        Text("あげる")
                     }
                 }
             }
-
-            if (feeding.done) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = "済み",
-                    tint = FeedingDoneColor,
-                    modifier = Modifier.size(28.dp),
-                )
-            } else {
-                Button(onClick = onFeed) {
-                    Text("あげる")
-                }
-            }
         }
+    }
+}
+
+@Composable
+private fun TimestampBadge(
+    timestamp: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+    ) {
+        Text(
+            text = toJstHHMM(timestamp.toJsString()).toString(),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+        )
     }
 }
 
@@ -372,46 +393,61 @@ private fun TimestampEditor(
     var hourText by remember(timestamp) { mutableStateOf(initialHour.toString().padStart(2, '0')) }
     var minuteText by remember(timestamp) { mutableStateOf(initialMinute.toString().padStart(2, '0')) }
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
     ) {
-        OutlinedTextField(
-            value = hourText,
-            onValueChange = { if (it.length <= 2 && it.all { c -> c.isDigit() }) hourText = it },
-            modifier = Modifier.width(56.dp),
-            textStyle = MaterialTheme.typography.bodySmall,
-            singleLine = true,
-            label = { Text("時") },
-        )
-        Text(":", style = MaterialTheme.typography.bodySmall)
-        OutlinedTextField(
-            value = minuteText,
-            onValueChange = { if (it.length <= 2 && it.all { c -> c.isDigit() }) minuteText = it },
-            modifier = Modifier.width(56.dp),
-            textStyle = MaterialTheme.typography.bodySmall,
-            singleLine = true,
-            label = { Text("分") },
-        )
-        IconButton(onClick = {
-            val h = hourText.toIntOrNull()
-            val m = minuteText.toIntOrNull()
-            if (h != null && m != null && h in 0..23 && m in 0..59) {
-                onSave(h, m)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(start = 4.dp, top = 2.dp, bottom = 2.dp, end = 2.dp),
+        ) {
+            OutlinedTextField(
+                value = hourText,
+                onValueChange = { if (it.length <= 2 && it.all { c -> c.isDigit() }) hourText = it },
+                modifier = Modifier.width(48.dp),
+                textStyle = MaterialTheme.typography.labelMedium,
+                singleLine = true,
+            )
+            Text(
+                ":",
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(horizontal = 2.dp),
+            )
+            OutlinedTextField(
+                value = minuteText,
+                onValueChange = { if (it.length <= 2 && it.all { c -> c.isDigit() }) minuteText = it },
+                modifier = Modifier.width(48.dp),
+                textStyle = MaterialTheme.typography.labelMedium,
+                singleLine = true,
+            )
+            IconButton(
+                onClick = {
+                    val h = hourText.toIntOrNull()
+                    val m = minuteText.toIntOrNull()
+                    if (h != null && m != null && h in 0..23 && m in 0..59) {
+                        onSave(h, m)
+                    }
+                },
+                modifier = Modifier.size(28.dp),
+            ) {
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = "保存",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp),
+                )
             }
-        }, modifier = Modifier.size(32.dp)) {
-            Icon(
-                Icons.Default.Check,
-                contentDescription = "保存",
-                modifier = Modifier.size(18.dp),
-            )
-        }
-        IconButton(onClick = onCancel, modifier = Modifier.size(32.dp)) {
-            Icon(
-                Icons.Default.Close,
-                contentDescription = "キャンセル",
-                modifier = Modifier.size(18.dp),
-            )
+            IconButton(
+                onClick = onCancel,
+                modifier = Modifier.size(28.dp),
+            ) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "キャンセル",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
         }
     }
 }
