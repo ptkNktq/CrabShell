@@ -6,10 +6,9 @@ import io.ktor.client.request.get
 import model.ExpenseReport
 
 interface ReportRepository {
-    suspend fun getExpenseReport(months: Int = 6): ExpenseReport
+    suspend fun getExpenseReport(center: String): ExpenseReport
 }
 
 class ReportRepositoryImpl(private val client: HttpClient) : ReportRepository {
-    override suspend fun getExpenseReport(months: Int): ExpenseReport =
-        client.get("/api/report?months=$months").body()
+    override suspend fun getExpenseReport(center: String): ExpenseReport = client.get("/api/report?center=$center&range=3").body()
 }

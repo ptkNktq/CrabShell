@@ -75,11 +75,19 @@ private fun CategoryRow(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = item.name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.weight(1f),
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = item.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    if (item.note.isNotBlank()) {
+                        Text(
+                            text = item.note,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
                 Text(
                     text = "¥${formatAmount(item.amount)}",
                     style = MaterialTheme.typography.bodyMedium,
@@ -94,7 +102,9 @@ private fun CategoryRow(
                         .height(6.dp)
                         .clip(RoundedCornerShape(3.dp)),
                 color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                gapSize = 0.dp,
+                drawStopIndicator = {},
             )
         }
     }

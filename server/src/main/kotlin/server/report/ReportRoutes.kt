@@ -18,12 +18,18 @@ private const val MONEY_COLLECTION = "money"
 fun Route.reportRoutes() {
     authenticated {
         get("/report") {
-            val monthsParam = call.request.queryParameters["months"]?.toIntOrNull()?.coerceIn(1, 12) ?: 6
-            val now = YearMonth.now()
+            val centerStr = call.request.queryParameters["center"]
+            val range = call.request.queryParameters["range"]?.toIntOrNull()?.coerceIn(1, 6) ?: 3
+            val center =
+                if (centerStr != null) {
+                    runCatching { YearMonth.parse(centerStr) }.getOrElse { YearMonth.now() }
+                } else {
+                    YearMonth.now()
+                }
 
             val summaries =
-                (0 until monthsParam).map { offset ->
-                    val ym = now.minusMonths(offset.toLong())
+                (-range..range).map { offset ->
+                    val ym = center.plusMonths(offset.toLong())
                     val monthStr = ym.toString()
                     val doc =
                         firestore.collection(MONEY_COLLECTION)
@@ -34,7 +40,7 @@ fun Route.reportRoutes() {
                     } else {
                         val items = parseItems(doc.get("items"))
                         val expenseItems =
-                            items.map { ExpenseItem(name = it.name, amount = it.amount) }
+                            items.map { ExpenseItem(name = it.name, amount = it.amount, note = it.note) }
                         val totalAmount = items.sumOf { it.amount }
                         MonthlyExpenseSummary(
                             month = monthStr,
@@ -42,7 +48,7 @@ fun Route.reportRoutes() {
                             items = expenseItems,
                         )
                     }
-                }.sortedBy { it.month }
+                }
 
             call.respond(ExpenseReport(months = summaries))
         }

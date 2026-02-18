@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 data class ExpenseItem(
     val name: String,
     val amount: Long,
+    val note: String = "",
 )
 
 @Serializable

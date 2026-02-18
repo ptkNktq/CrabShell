@@ -72,14 +72,14 @@ class ReportViewModel(
         private set
 
     init {
-        loadReport()
+        loadReport(uiState.selectedMonth)
     }
 
-    private fun loadReport() {
+    private fun loadReport(center: String) {
         viewModelScope.launch {
             try {
                 uiState = uiState.copy(isLoading = true, error = null)
-                val report = reportRepository.getExpenseReport(6)
+                val report = reportRepository.getExpenseReport(center)
                 uiState = uiState.copy(report = report, isLoading = false)
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message, isLoading = false)
@@ -90,10 +90,12 @@ class ReportViewModel(
     fun onGoToPreviousMonth() {
         val newMonth = shiftMonthJs(uiState.selectedMonth.toJsString(), -1).toString()
         uiState = uiState.copy(selectedMonth = newMonth)
+        loadReport(newMonth)
     }
 
     fun onGoToNextMonth() {
         val newMonth = shiftMonthJs(uiState.selectedMonth.toJsString(), 1).toString()
         uiState = uiState.copy(selectedMonth = newMonth)
+        loadReport(newMonth)
     }
 }
