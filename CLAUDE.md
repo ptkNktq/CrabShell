@@ -109,12 +109,16 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 
 ## Docker
 
-Dockerfile はマルチステージビルド（Gradle でビルド → JRE で実行）。ビルドステージで WASM フロントエンド + fat JAR を生成し、実行ステージは `eclipse-temurin:21-jre` 上で `app.jar` を起動する。ポート 8080 を公開。GHCR 経由で本番デプロイする（リバースプロキシ前提）。詳細は README.md の「Docker」セクションを参照。
+Dockerfile はマルチステージビルド（Gradle でビルド → JRE Alpine で実行）。ビルドステージで WASM フロントエンド + fat JAR を生成し、実行ステージは `eclipse-temurin:21-jre-alpine` 上で `app.jar` を起動する。ポート 8080 を公開。GHCR 経由で本番デプロイする（リバースプロキシ前提）。HEALTHCHECK 付き。詳細は README.md の「Docker」セクションを参照。
 
 ```bash
-# 開発マシン: ビルド & push
-docker build -t ghcr.io/ptknktq/crabshell:latest .
+# 開発マシン: ビルド & push（COMMIT_HASH を渡すとサイドバーにハッシュ表示）
+docker build --build-arg COMMIT_HASH=$(git rev-parse --short HEAD) \
+  -t ghcr.io/ptknktq/crabshell:latest .
 docker push ghcr.io/ptknktq/crabshell:latest
+
+# docker compose 経由のビルド
+COMMIT_HASH=$(git rev-parse --short HEAD) docker compose build
 
 # 本番サーバー: 起動 / 更新
 docker compose up -d
