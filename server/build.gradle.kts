@@ -24,17 +24,11 @@ tasks.withType<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>().con
 dependencies {
     implementation(project(":shared"))
 
-    implementation(libs.ktor.server.core)
-    implementation(libs.ktor.server.netty)
-    implementation(libs.ktor.server.content.negotiation)
-    implementation(libs.ktor.server.cors)
-    implementation(libs.ktor.server.host.common)
-    implementation(libs.ktor.serialization.kotlinx.json.jvm)
+    implementation(libs.bundles.ktor.server)
     implementation(libs.logback.classic)
     implementation(libs.firebase.admin)
     implementation(libs.webauthn4j.core)
-    implementation(libs.exposed.core)
-    implementation(libs.exposed.jdbc)
+    implementation(libs.bundles.exposed)
     implementation(libs.sqlite.jdbc)
 
     testImplementation(kotlin("test"))
