@@ -10,7 +10,7 @@
 | 状態 | 件数 |
 |------|------|
 | :white_check_mark: 対応済み | 9 |
-| :hourglass_flowing_sand: 未対応（対応推奨） | 7 |
+| :hourglass_flowing_sand: 未対応（対応推奨） | 6 |
 | :pause_button: 保留（外部要因待ち） | 2 |
 
 ### 対応済み PR 一覧
@@ -20,18 +20,24 @@
 | [#45](https://github.com/ptkNktq/CrabShell/pull/45) | `fix/gitignore-data` | 3.2 `data/` を `.gitignore` に追加 |
 | [#46](https://github.com/ptkNktq/CrabShell/pull/46) | `chore/gradle-parallel` | 3.3 Gradle parallel + caching 有効化 |
 | [#47](https://github.com/ptkNktq/CrabShell/pull/47) | `chore/renovate-improvements` | 3.8 Renovate 設定改善 |
-| [#48](https://github.com/ptkNktq/CrabShell/pull/48) | `fix/cors-env-var` | 3.5 CORS 環境変数制御 |
-| [#49](https://github.com/ptkNktq/CrabShell/pull/49) | `chore/ci-pipeline` | 3.1 CI パイプライン追加 |
+| [#48](https://github.com/ptkNktq/CrabShell/pull/48) | `fix/cors-env-var` | 3.5 CORS プラグイン削除（同一オリジン配信のため不要） |
+| [#49](https://github.com/ptkNktq/CrabShell/pull/49) | `chore/ci-pipeline` | 3.1 CI/CD パイプライン追加（CI + タグトリガー CD + Renovate `platformAutomerge`） |
 | [#50](https://github.com/ptkNktq/CrabShell/pull/50) | `fix/frontend-route-guard` | 2.2 フロントエンドルートガード |
 | [#51](https://github.com/ptkNktq/CrabShell/pull/51) | `chore/docker-optimization` | 3.6 Docker 最適化 + 3.7 BuildConfig キャッシュ修正 |
 | [#52](https://github.com/ptkNktq/CrabShell/pull/52) | `refactor/dedup-jst-functions` | 2.5 `toJstHHMM` 重複解消 |
 | [#53](https://github.com/ptkNktq/CrabShell/pull/53) | `refactor/firestore-async` | 2.1 Firestore ブロッキング→非同期化 |
 
+### 追加 PR（監査対応中に発生した改善）
+
+| PR | ブランチ | 対応項目 |
+|----|---------|---------|
+| [#55](https://github.com/ptkNktq/CrabShell/pull/55) | `fix/ci-improvements` | CI トリガー修正（main push 削除、全 PR 対象化） |
+
 ---
 
 ## 1. 依存関係の更新状況
 
-> :information_source: パッチ・マイナー更新は Renovate Bot が自動で PR を作成する設定済み（PR #47 で改善）。手動対応が必要なのは破壊的変更を含むメジャー更新のみ。
+> :information_source: パッチ・マイナー更新は Renovate Bot が自動で PR を作成する設定済み（PR #47 で改善）。`platformAutomerge: false` により Renovate が CI pass を確認してからマージする（PR #49）。手動対応が必要なのは破壊的変更を含むメジャー更新のみ。
 
 | ライブラリ | 現在 | 最新安定版 | 優先度 | 状態 | 備考 |
 |---|---|---|---|---|---|
@@ -134,9 +140,11 @@
 
 ### 3.1 ~~Critical: CI/CD パイプラインが存在しない~~ :white_check_mark: 対応済み
 
-> **PR [#49](https://github.com/ptkNktq/CrabShell/pull/49)** (`chore/ci-pipeline`)
+> **PR [#49](https://github.com/ptkNktq/CrabShell/pull/49)** (`chore/ci-pipeline`) + **PR [#55](https://github.com/ptkNktq/CrabShell/pull/55)** (`fix/ci-improvements`)
 >
-> `.github/workflows/ci.yml` を追加。lint (`ktlintCheck`)、test (`:shared:jvmTest` + `:server:test`)、build (`:server:buildFatJar`) の3ジョブ構成。
+> - **CI** (`.github/workflows/ci.yml`): 全 PR で lint / test / build を実行
+> - **CD** (`.github/workflows/cd.yml`): `v*` タグ push で Docker イメージをビルドし GHCR に push（`:latest` + `:v1.x.x`）
+> - Renovate に `platformAutomerge: false` を設定し、CI pass 後にマージする運用に変更
 
 ### 3.2 ~~Critical: `data/` が `.gitignore` にない~~ :white_check_mark: 対応済み
 
@@ -169,11 +177,11 @@ dependencies {
 - 既存の `build.gradle.kts` をプラグイン適用に段階的に置き換え
 - Gradle 9.x アップグレードと同時に進めると効率的
 
-### 3.5 ~~High: CORS `anyHost()` が本番環境で使用されている~~ :white_check_mark: 対応済み
+### ~~3.5 High: CORS `anyHost()` が本番環境で使用されている~~ :white_check_mark: 対応済み（項目自体が不要）
 
 > **PR [#48](https://github.com/ptkNktq/CrabShell/pull/48)** (`fix/cors-env-var`)
 >
-> `CORS_ORIGINS` 環境変数で許可オリジンを制御するように変更。`docker-compose.yml` にも反映。
+> サーバーがフロントエンドも同一オリジンで配信する一体型構成のため、CORS 自体が不要と判断。CORS プラグインを削除。
 
 ### 3.6 ~~Medium: Docker 最適化~~ :white_check_mark: 対応済み
 
@@ -189,9 +197,9 @@ dependencies {
 
 ### 3.8 ~~Medium: Renovate 設定の改善点~~ :white_check_mark: 対応済み
 
-> **PR [#47](https://github.com/ptkNktq/CrabShell/pull/47)** (`chore/renovate-improvements`)
+> **PR [#47](https://github.com/ptkNktq/CrabShell/pull/47)** (`chore/renovate-improvements`) + **PR [#49](https://github.com/ptkNktq/CrabShell/pull/49)** (`chore/ci-pipeline`)
 >
-> `minimumReleaseAge: "3 days"` 追加、サーバー依存のグルーピング追加。
+> `minimumReleaseAge: "3 days"` 追加、サーバー依存のグルーピング追加。`platformAutomerge: false` で CI pass 後にマージする運用に変更。
 
 ### 3.9 Low: セキュリティ強化 — :hourglass_flowing_sand: 未対応
 
@@ -210,15 +218,15 @@ dependencies {
 
 ## 4. 優先度サマリー（更新版）
 
-### :white_check_mark: 対応済み（Critical + High）
-1. ~~CI パイプライン追加~~ — PR #49
+### :white_check_mark: 対応済み
+1. ~~CI/CD パイプライン追加~~ — PR #49, #55
 2. ~~`data/` を `.gitignore` に追加~~ — PR #45
-3. ~~CORS を環境変数で制御~~ — PR #48
+3. ~~CORS プラグイン削除~~ — PR #48
 4. ~~Firestore ブロッキング呼び出しの非同期化~~ — PR #53
 5. ~~Gradle parallel + caching 有効化~~ — PR #46
 6. ~~フロントエンドのルートガード~~ — PR #50
 7. ~~Docker 最適化~~ — PR #51
-8. ~~Renovate 設定改善~~ — PR #47
+8. ~~Renovate 設定改善~~ — PR #47, #49
 9. ~~コード重複解消 (`toJstHHMM`)~~ — PR #52
 
 ### :hourglass_flowing_sand: 次に対応すべき（推奨順）
@@ -228,7 +236,6 @@ dependencies {
 4. **AuthStateHolder DI 化** (2.3) — Koin single 登録
 5. **サーバーリポジトリ層導入** (2.6) — Firestore 初期化重複 (2.5) も同時解消
 6. **セキュリティ強化** (3.9) — レート制限、リクエストサイズ制限、認可
-7. **UI の細かい問題** (2.7) — リトライ機能、日付更新、可視性修飾子
 
 ### :pause_button: 外部要因待ち
 - **Koin 4.2.0 stable** — 安定版リリース待ち
