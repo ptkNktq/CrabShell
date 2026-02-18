@@ -5,6 +5,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import model.Pet
 import server.auth.authenticated
+import server.util.await
 
 private val firestore by lazy { FirestoreClient.getFirestore() }
 
@@ -25,7 +26,7 @@ fun seedDefaultPet() {
 fun Route.petRoutes() {
     authenticated {
         get("/pets") {
-            val docs = firestore.collection("pets").get().get().documents
+            val docs = firestore.collection("pets").get().await().documents
             val pets =
                 docs.map { doc ->
                     Pet(id = doc.id, name = doc.getString("name") ?: "")

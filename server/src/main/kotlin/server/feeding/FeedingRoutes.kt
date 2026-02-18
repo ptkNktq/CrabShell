@@ -10,6 +10,7 @@ import model.Feeding
 import model.FeedingLog
 import model.MealTime
 import server.auth.authenticated
+import server.util.await
 import java.time.Instant
 
 private val firestore by lazy { FirestoreClient.getFirestore() }
@@ -27,7 +28,7 @@ fun Route.feedingRoutes() {
 
                 val doc =
                     firestore.collection("pets").document(petId)
-                        .collection("feeding_logs").document(date).get().get()
+                        .collection("feeding_logs").document(date).get().await()
 
                 if (!doc.exists()) {
                     call.respond(FeedingLog(date = date))
@@ -96,7 +97,7 @@ fun Route.feedingRoutes() {
                             ),
                     ),
                     SetOptions.mergeFields("date", "feedings.${mealTime.name.lowercase()}"),
-                ).get()
+                ).await()
 
                 call.respond(Feeding(done = true, timestamp = timestamp))
             }
@@ -134,7 +135,7 @@ fun Route.feedingRoutes() {
                 val docRef =
                     firestore.collection("pets").document(petId)
                         .collection("feeding_logs").document(date)
-                val doc = docRef.get().get()
+                val doc = docRef.get().await()
                 if (doc.exists()) {
                     @Suppress("UNCHECKED_CAST")
                     val feedingsRaw = doc.data?.get("feedings") as? Map<String, Map<String, Any?>>
@@ -163,7 +164,7 @@ fun Route.feedingRoutes() {
                             ),
                     ),
                     SetOptions.mergeFields("feedings.${mealTime.name.lowercase()}.timestamp"),
-                ).get()
+                ).await()
 
                 call.respond(Feeding(done = true, timestamp = timestamp))
             }
@@ -186,7 +187,7 @@ fun Route.feedingRoutes() {
                 docRef.set(
                     mapOf("date" to date, "note" to note),
                     SetOptions.mergeFields("date", "note"),
-                ).get()
+                ).await()
 
                 call.respond(mapOf("note" to note))
             }
