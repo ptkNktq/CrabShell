@@ -21,9 +21,7 @@ kotlin {
             implementation(compose.ui)
             implementation(compose.materialIconsExtended)
 
-            implementation(libs.koin.core)
-            implementation(libs.koin.compose)
-            implementation(libs.koin.compose.viewmodel)
+            implementation(libs.bundles.koin)
             implementation(libs.lifecycle.viewmodel.compose)
         }
     }

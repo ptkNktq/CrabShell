@@ -14,9 +14,7 @@ kotlin {
             implementation(project(":core:auth"))
             implementation(project(":shared"))
 
-            implementation(libs.ktor.client.core)
-            implementation(libs.ktor.client.content.negotiation)
-            implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.bundles.ktor.client)
 
             implementation(libs.koin.core)
         }

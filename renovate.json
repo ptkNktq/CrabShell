@@ -1,0 +1,32 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "labels": ["dependencies"],
+  "schedule": ["every weekend"],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["patch"],
+      "automerge": true
+    },
+    {
+      "groupName": "Kotlin & Compose",
+      "matchPackagePrefixes": [
+        "org.jetbrains.kotlin",
+        "org.jetbrains.compose",
+        "org.jetbrains.androidx.lifecycle"
+      ]
+    },
+    {
+      "groupName": "Ktor",
+      "matchPackagePrefixes": ["io.ktor"]
+    },
+    {
+      "groupName": "Koin",
+      "matchPackagePrefixes": ["io.insert-koin"]
+    },
+    {
+      "groupName": "Exposed",
+      "matchPackagePrefixes": ["org.jetbrains.exposed"]
+    }
+  ]
+}
