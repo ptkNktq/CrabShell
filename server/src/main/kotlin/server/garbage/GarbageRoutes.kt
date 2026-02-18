@@ -9,6 +9,7 @@ import model.GarbageType
 import model.GarbageTypeSchedule
 import server.auth.adminOnly
 import server.auth.authenticated
+import server.util.await
 
 private val firestore by lazy { FirestoreClient.getFirestore() }
 
@@ -22,7 +23,7 @@ fun Route.garbageRoutes() {
             get {
                 val doc =
                     firestore.collection(SETTINGS_COLLECTION)
-                        .document(GARBAGE_DOC).get().get()
+                        .document(GARBAGE_DOC).get().await()
 
                 if (!doc.exists()) {
                     call.respond(emptyList<GarbageTypeSchedule>())
@@ -62,7 +63,7 @@ fun Route.garbageRoutes() {
                 firestore.collection(SETTINGS_COLLECTION)
                     .document(GARBAGE_DOC)
                     .set(mapOf(ENTRIES_FIELD to entries))
-                    .get()
+                    .await()
 
                 call.respond(schedules)
             }

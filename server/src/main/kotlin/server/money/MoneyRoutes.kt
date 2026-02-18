@@ -12,6 +12,7 @@ import model.PaymentRecord
 import server.auth.FirebaseTokenKey
 import server.auth.adminOnly
 import server.auth.authenticated
+import server.util.await
 import java.time.YearMonth
 
 private val firestore by lazy { FirestoreClient.getFirestore() }
@@ -26,7 +27,7 @@ fun Route.moneyRoutes() {
                 val month = call.parameters["month"]!!
                 val doc =
                     firestore.collection(MONEY_COLLECTION)
-                        .document(month).get().get()
+                        .document(month).get().await()
 
                 if (!doc.exists()) {
                     val recurringItems = getRecurringItemsFromPreviousMonth(month)
@@ -65,7 +66,7 @@ fun Route.moneyRoutes() {
                 val uid = call.attributes[FirebaseTokenKey].uid
                 val doc =
                     firestore.collection(MONEY_COLLECTION)
-                        .document(month).get().get()
+                        .document(month).get().await()
 
                 if (!doc.exists()) {
                     call.respond(MonthlyMoney(month = month))
@@ -94,7 +95,7 @@ fun Route.moneyRoutes() {
 
                 val doc =
                     firestore.collection(MONEY_COLLECTION)
-                        .document(month).get().get()
+                        .document(month).get().await()
 
                 if (!doc.exists()) {
                     call.respond(HttpStatusCode.NotFound, mapOf("error" to "Month not found"))
@@ -132,15 +133,15 @@ private fun parseMonthlyMoney(
     return MonthlyMoney(month = month, items = items, paymentRecords = records, locked = locked)
 }
 
-private fun getMonthlyMoney(month: String): MonthlyMoney {
+private suspend fun getMonthlyMoney(month: String): MonthlyMoney {
     val doc =
         firestore.collection(MONEY_COLLECTION)
-            .document(month).get().get()
+            .document(month).get().await()
     if (!doc.exists()) return MonthlyMoney(month = month)
     return parseMonthlyMoney(month, doc)
 }
 
-private fun saveMonthlyMoney(
+private suspend fun saveMonthlyMoney(
     month: String,
     data: MonthlyMoney,
 ) {
@@ -167,7 +168,7 @@ private fun saveMonthlyMoney(
     firestore.collection(MONEY_COLLECTION)
         .document(month)
         .set(mapOf("month" to month, "items" to items, "paymentRecords" to records, "locked" to data.locked))
-        .get()
+        .await()
 }
 
 @Suppress("UNCHECKED_CAST")
@@ -204,11 +205,11 @@ internal fun parsePaymentRecords(raw: Any?): List<PaymentRecord> {
     }
 }
 
-private fun getRecurringItemsFromPreviousMonth(month: String): List<MoneyItem> {
+private suspend fun getRecurringItemsFromPreviousMonth(month: String): List<MoneyItem> {
     val previousMonth = YearMonth.parse(month).minusMonths(1).toString()
     val prevDoc =
         firestore.collection(MONEY_COLLECTION)
-            .document(previousMonth).get().get()
+            .document(previousMonth).get().await()
 
     if (!prevDoc.exists()) return emptyList()
 
