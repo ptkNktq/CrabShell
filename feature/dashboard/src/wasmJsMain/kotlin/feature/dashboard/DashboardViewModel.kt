@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalWasmJsInterop::class)
-
 package feature.dashboard
 
 import androidx.compose.runtime.getValue
@@ -24,16 +22,6 @@ import model.FeedingLog
 import model.GarbageType
 import model.GarbageTypeSchedule
 import model.MealTime
-
-@JsFun(
-    """(iso) => {
-    const d = new Date(iso);
-    return d.toLocaleTimeString('ja-JP', {
-        hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Tokyo',
-    });
-}""",
-)
-external fun toJstHHMM(iso: JsString): JsString
 
 data class DashboardUiState(
     val feedingLog: FeedingLog = FeedingLog(date = ""),

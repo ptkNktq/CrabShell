@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalWasmJsInterop::class)
-
 package feature.dashboard
 
 import androidx.compose.foundation.background
@@ -25,6 +23,7 @@ import core.ui.theme.displayExLarge
 import core.ui.theme.displayOrder
 import core.ui.theme.icon
 import core.ui.theme.label
+import core.ui.util.toJstHHMM
 import model.FeedingLog
 import model.GarbageType
 import model.MealTime

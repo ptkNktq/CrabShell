@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalWasmJsInterop::class)
-
 package feature.feeding
 
 import androidx.compose.foundation.layout.*
@@ -28,37 +26,14 @@ import core.ui.theme.displayOrder
 import core.ui.theme.icon
 import core.ui.theme.label
 import core.ui.util.dayOfWeekShortJs
+import core.ui.util.toJstHHMM
+import core.ui.util.toJstHour
+import core.ui.util.toJstMinute
 import core.ui.util.todayDateJs
 import model.Feeding
 import model.FeedingLog
 import model.MealTime
 import org.koin.compose.viewmodel.koinViewModel
-
-@JsFun(
-    """(iso) => {
-    const d = new Date(iso);
-    return d.toLocaleTimeString('ja-JP', {
-        hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Tokyo',
-    });
-}""",
-)
-private external fun toJstHHMM(iso: JsString): JsString
-
-@JsFun(
-    """(iso) => {
-    const d = new Date(iso);
-    return d.toLocaleString('en-US', { hour: '2-digit', hour12: false, timeZone: 'Asia/Tokyo' });
-}""",
-)
-private external fun toJstHour(iso: JsString): JsString
-
-@JsFun(
-    """(iso) => {
-    const d = new Date(iso);
-    return d.toLocaleString('en-US', { minute: '2-digit', timeZone: 'Asia/Tokyo' });
-}""",
-)
-private external fun toJstMinute(iso: JsString): JsString
 
 @Composable
 fun FeedingScreen(vm: FeedingViewModel = koinViewModel()) {
