@@ -9,6 +9,7 @@ import model.ExpenseReport
 import model.MonthlyExpenseSummary
 import server.auth.authenticated
 import server.money.parseItems
+import server.util.await
 import java.time.YearMonth
 
 private val firestore by lazy { FirestoreClient.getFirestore() }
@@ -33,7 +34,7 @@ fun Route.reportRoutes() {
                     val monthStr = ym.toString()
                     val doc =
                         firestore.collection(MONEY_COLLECTION)
-                            .document(monthStr).get().get()
+                            .document(monthStr).get().await()
 
                     if (!doc.exists()) {
                         MonthlyExpenseSummary(month = monthStr, totalAmount = 0L)
