@@ -1,5 +1,3 @@
-import java.io.ByteArrayOutputStream
-
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.compose.multiplatform)
@@ -7,19 +5,22 @@ plugins {
 }
 
 // ビルド時にコミットハッシュを BuildConfig.kt として生成
-val generateBuildConfig by tasks.registering {
-    val outputDir = layout.buildDirectory.dir("generated/buildconfig")
-    outputs.dir(outputDir)
-    // git HEAD が変わるたびに再生成する
-    outputs.upToDateWhen { false }
-    doLast {
-        val out = ByteArrayOutputStream()
-        exec {
+// 環境変数 COMMIT_HASH があればそれを使い、なければ git から取得
+val commitHashProvider: Provider<String> = providers.environmentVariable("COMMIT_HASH")
+    .orElse(
+        providers.exec {
             commandLine("git", "rev-parse", "--short", "HEAD")
             workingDir = rootProject.projectDir
-            standardOutput = out
-        }
-        val commitHash = out.toString().trim()
+        }.standardOutput.asText.map { it.trim() },
+    )
+
+val generateBuildConfig by tasks.registering {
+    val outputDir = layout.buildDirectory.dir("generated/buildconfig")
+    val hash = commitHashProvider
+    inputs.property("commitHash", hash)
+    outputs.dir(outputDir)
+    doLast {
+        val commitHash = hash.get()
         val file = outputDir.get().file("app/BuildConfig.kt").asFile
         file.parentFile.mkdirs()
         file.writeText(
