@@ -19,6 +19,7 @@ import server.garbage.garbageRoutes
 import server.money.moneyRoutes
 import server.passkey.PasskeyDatabase
 import server.passkey.passkeyRoutes
+import server.report.reportRoutes
 import server.pet.petRoutes
 import server.pet.seedDefaultPet
 import server.user.userRoutes
@@ -57,6 +58,7 @@ fun Application.module() {
             feedingRoutes()
             garbageRoutes()
             moneyRoutes()
+            reportRoutes()
             passkeyRoutes()
         }
 
