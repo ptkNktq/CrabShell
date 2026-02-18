@@ -7,6 +7,7 @@ import feature.dashboard.di.dashboardModule
 import feature.feeding.di.feedingModule
 import feature.money.di.moneyModule
 import feature.payment.di.paymentModule
+import feature.report.di.reportModule
 import feature.settings.di.settingsModule
 
 val appModules =
@@ -18,5 +19,6 @@ val appModules =
         feedingModule,
         moneyModule,
         paymentModule,
+        reportModule,
         settingsModule,
     )

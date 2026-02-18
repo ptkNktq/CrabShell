@@ -73,6 +73,7 @@ kotlin {
             implementation(project(":feature:feeding"))
             implementation(project(":feature:money"))
             implementation(project(":feature:payment"))
+            implementation(project(":feature:report"))
             implementation(project(":feature:settings"))
         }
     }

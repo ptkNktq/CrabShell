@@ -10,6 +10,7 @@ enum class Screen(val title: String, val path: String) {
     Dashboard("ダッシュボード", "/dashboard"),
     Feeding("ごはん", "/feeding"),
     Payment("お支払い", "/payment"),
+    Report("家計レポート", "/report"),
     Money("お金の管理", "/money"),
     Settings("設定", "/settings"),
     ;
