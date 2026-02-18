@@ -24,4 +24,5 @@ suspend fun <T> ApiFuture<T>.await(): T =
             },
             MoreExecutors.directExecutor(),
         )
+        cont.invokeOnCancellation { this@await.cancel(false) }
     }
