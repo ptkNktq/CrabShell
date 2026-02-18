@@ -107,18 +107,32 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Feature report: `feature/report/src/wasmJsMain/kotlin/feature/report/` (ReportViewModel, ReportScreen, components/)
 - App shell: `web-frontend/src/wasmJsMain/kotlin/app/` (Main.kt, App.kt, components/Sidebar.kt)
 
+## CI/CD
+
+GitHub Actions で CI/CD を構成。
+
+- **CI** (`.github/workflows/ci.yml`): PR・main push 時に lint / test / build を実行。Renovate の patch auto-merge は `platformAutomerge: false` により CI pass 後に Renovate 自身がマージする。
+- **CD** (`.github/workflows/cd.yml`): `v*` タグ push 時に Docker イメージをビルドし GHCR に push。`:latest` と `:v1.x.x` の2タグ。
+
+### デプロイフロー
+
+```
+PR マージ → main 更新（CI 検証済み）
+  ↓ 任意のタイミングでタグ push
+git tag v1.x.x && git push origin v1.x.x
+  ↓ CD が GHCR にイメージ push
+  ↓ 本番サーバーが定期的に pull → 自動反映
+```
+
 ## Docker
 
 Dockerfile はマルチステージビルド（Gradle でビルド → JRE Alpine で実行）。ビルドステージで WASM フロントエンド + fat JAR を生成し、実行ステージは `eclipse-temurin:21-jre-alpine` 上で `app.jar` を起動する。ポート 8080 を公開。GHCR 経由で本番デプロイする（リバースプロキシ前提）。HEALTHCHECK 付き。詳細は README.md の「Docker」セクションを参照。
 
 ```bash
-# 開発マシン: ビルド & push（COMMIT_HASH を渡すとサイドバーにハッシュ表示）
+# 手動ビルド & push（通常は CD ワークフローが自動実行するため不要）
 docker build --build-arg COMMIT_HASH=$(git rev-parse --short HEAD) \
   -t ghcr.io/ptknktq/crabshell:latest .
 docker push ghcr.io/ptknktq/crabshell:latest
-
-# docker compose 経由のビルド
-COMMIT_HASH=$(git rev-parse --short HEAD) docker compose build
 
 # 本番サーバー: 起動 / 更新
 docker compose up -d
