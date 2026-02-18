@@ -76,6 +76,8 @@ feature/auth/        → LoginViewModel + LoginScreen + AuthenticatedApp
                        Depends on :core:auth, :core:ui
 feature/dashboard/   → DashboardViewModel + DashboardScreen
                        Depends on :core:network, :core:ui, :shared
+feature/report/      → ReportViewModel + ReportScreen + Canvas 棒グラフ
+                       Depends on :core:network, :core:ui, :shared
 
 web-frontend/        → App シェル: Main.kt, App.kt, Sidebar.kt
                        Depends on :core:auth, :core:ui, :feature:auth, :feature:dashboard
@@ -90,7 +92,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - **Kotlin** 2.3.0, **Compose Multiplatform** 1.10.0, **Ktor** 3.4.0
 - **DI**: Koin 4.2.0-RC1（Kotlin 2.3.0 wasmJs 互換の唯一のバージョン）
 - **Serialization**: kotlinx-serialization-json 1.8.1
-- **Dependency versions**: managed in `gradle/libs.versions.toml`
+- **Dependency versions**: managed in `gradle/libs.versions.toml` (bundles: `ktor-server`, `ktor-client`, `koin`, `exposed`)
 - **Kotlin code style**: official (set in `gradle.properties`)
 
 ## Key Source Locations
@@ -102,6 +104,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Core theme: `core/ui/src/wasmJsMain/kotlin/core/ui/theme/Color.kt`
 - Feature auth: `feature/auth/src/wasmJsMain/kotlin/feature/auth/` (LoginViewModel, LoginScreen, AuthenticatedApp)
 - Feature dashboard: `feature/dashboard/src/wasmJsMain/kotlin/feature/dashboard/` (DashboardViewModel, DashboardScreen)
+- Feature report: `feature/report/src/wasmJsMain/kotlin/feature/report/` (ReportViewModel, ReportScreen, components/)
 - App shell: `web-frontend/src/wasmJsMain/kotlin/app/` (Main.kt, App.kt, components/Sidebar.kt)
 
 ## Docker
@@ -170,6 +173,12 @@ docker compose pull && docker compose up -d
 - **ktlint** (`org.jlleitschuh.gradle.ktlint`) を全サブプロジェクトに適用済み。
 - コミット前に必ず `./gradlew ktlintFormat` を実行してからステージング・コミットすること。
 - チェックのみ: `./gradlew ktlintCheck`
+
+## Dependency Management
+
+- **Renovate Bot** (`renovate.json`) がライブラリの更新を自動監視し、PR を作成する。
+- patch 更新は自動マージ、Kotlin & Compose / Ktor / Koin / Exposed はグループ化して1つの PR にまとめる。
+- `gradle/libs.versions.toml` の `[bundles]` セクションで関連ライブラリをグループ化済み。新しいライブラリ追加時は既存 bundle に含められるか確認すること。
 
 ## Notes
 
