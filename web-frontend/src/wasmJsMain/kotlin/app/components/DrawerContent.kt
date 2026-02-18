@@ -81,7 +81,7 @@ fun DrawerContent(
             )
 
             Text(
-                text = "v${BuildConfig.VERSION}",
+                text = BuildConfig.VERSION,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
