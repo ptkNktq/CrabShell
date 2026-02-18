@@ -63,7 +63,7 @@ shared/              → Kotlin Multiplatform library (JVM + WASM/JS targets)
 server/              → Ktor server (Netty, JVM)
                        Depends on :shared
                        Routes: GET /api/items (JSON), GET / (serves static frontend)
-                       Firebase Auth verification, CORS enabled
+                       Firebase Auth verification
 
 core/auth/           → Firebase interop, AuthRepository, AuthState/AuthStateHolder
                        Depends on :shared, compose.runtime

@@ -1,13 +1,11 @@
 package server
 
-import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.http.content.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
-import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import model.DashboardItem
@@ -35,21 +33,6 @@ fun Application.module() {
     seedDefaultPet()
 
     install(ContentNegotiation) { json() }
-    install(CORS) {
-        allowHeader(HttpHeaders.ContentType)
-        allowHeader(HttpHeaders.Authorization)
-        allowMethod(HttpMethod.Get)
-        allowMethod(HttpMethod.Post)
-        allowMethod(HttpMethod.Put)
-        allowMethod(HttpMethod.Delete)
-        allowMethod(HttpMethod.Patch)
-        // CORS_ORIGINS 環境変数でオリジンを制御（カンマ区切り）
-        // 未設定時は同一オリジンのみ許可（anyHost() を使わない）
-        val origins = System.getenv("CORS_ORIGINS")?.split(",")?.map { it.trim() }
-        if (origins != null) {
-            origins.forEach { allowHost(it.removePrefix("https://").removePrefix("http://"), schemes = listOf("http", "https")) }
-        }
-    }
 
     routing {
         route("/api") {
