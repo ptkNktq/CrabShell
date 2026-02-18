@@ -119,3 +119,32 @@ external fun weekOfMonthJs(): Int
 }""",
 )
 external fun dayOfWeekIndexJs(): Int
+
+/** ISO タイムスタンプを JST の HH:MM 形式に変換 */
+@JsFun(
+    """(iso) => {
+    const d = new Date(iso);
+    return d.toLocaleTimeString('ja-JP', {
+        hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Tokyo',
+    });
+}""",
+)
+external fun toJstHHMM(iso: JsString): JsString
+
+/** ISO タイムスタンプから JST の時を取得 */
+@JsFun(
+    """(iso) => {
+    const d = new Date(iso);
+    return d.toLocaleString('en-US', { hour: '2-digit', hour12: false, timeZone: 'Asia/Tokyo' });
+}""",
+)
+external fun toJstHour(iso: JsString): JsString
+
+/** ISO タイムスタンプから JST の分を取得 */
+@JsFun(
+    """(iso) => {
+    const d = new Date(iso);
+    return d.toLocaleString('en-US', { minute: '2-digit', timeZone: 'Asia/Tokyo' });
+}""",
+)
+external fun toJstMinute(iso: JsString): JsString
