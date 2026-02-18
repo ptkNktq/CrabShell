@@ -9,9 +9,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -40,6 +44,22 @@ import org.koin.compose.viewmodel.koinViewModel
 )
 private external fun toJstHHMM(iso: JsString): JsString
 
+@JsFun(
+    """(iso) => {
+    const d = new Date(iso);
+    return d.toLocaleString('en-US', { hour: '2-digit', hour12: false, timeZone: 'Asia/Tokyo' });
+}""",
+)
+private external fun toJstHour(iso: JsString): JsString
+
+@JsFun(
+    """(iso) => {
+    const d = new Date(iso);
+    return d.toLocaleString('en-US', { minute: '2-digit', timeZone: 'Asia/Tokyo' });
+}""",
+)
+private external fun toJstMinute(iso: JsString): JsString
+
 @Composable
 fun FeedingScreen(vm: FeedingViewModel = koinViewModel()) {
     val today = remember { todayDateJs().toString() }
@@ -53,12 +73,16 @@ fun FeedingScreen(vm: FeedingViewModel = koinViewModel()) {
         error = vm.uiState.error,
         log = vm.uiState.log,
         noteDraft = vm.uiState.noteDraft,
+        editingMealTime = vm.uiState.editingMealTime,
         onDateSelected = vm::onLoadLog,
         onPreviousDay = vm::onGoToPreviousDay,
         onNextDay = vm::onGoToNextDay,
         onFeed = vm::onFeed,
         onNoteChange = vm::onUpdateNoteDraft,
         onSaveNote = vm::onSaveNote,
+        onStartEditTimestamp = vm::onStartEditTimestamp,
+        onCancelEditTimestamp = vm::onCancelEditTimestamp,
+        onSaveTimestamp = vm::onSaveTimestamp,
         windowSizeClass = windowSizeClass,
     )
 }
@@ -72,12 +96,16 @@ internal fun FeedingContent(
     error: String?,
     log: FeedingLog,
     noteDraft: String,
+    editingMealTime: MealTime?,
     onDateSelected: (String) -> Unit,
     onPreviousDay: () -> Unit,
     onNextDay: () -> Unit,
     onFeed: (MealTime) -> Unit,
     onNoteChange: (String) -> Unit,
     onSaveNote: () -> Unit,
+    onStartEditTimestamp: (MealTime) -> Unit,
+    onCancelEditTimestamp: () -> Unit,
+    onSaveTimestamp: (MealTime, Int, Int) -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
@@ -113,11 +141,15 @@ internal fun FeedingContent(
                     error = error,
                     log = log,
                     noteDraft = noteDraft,
+                    editingMealTime = editingMealTime,
                     onPreviousDay = onPreviousDay,
                     onNextDay = onNextDay,
                     onFeed = onFeed,
                     onNoteChange = onNoteChange,
                     onSaveNote = onSaveNote,
+                    onStartEditTimestamp = onStartEditTimestamp,
+                    onCancelEditTimestamp = onCancelEditTimestamp,
+                    onSaveTimestamp = onSaveTimestamp,
                 )
             }
         } else {
@@ -141,11 +173,15 @@ internal fun FeedingContent(
                         error = error,
                         log = log,
                         noteDraft = noteDraft,
+                        editingMealTime = editingMealTime,
                         onPreviousDay = onPreviousDay,
                         onNextDay = onNextDay,
                         onFeed = onFeed,
                         onNoteChange = onNoteChange,
                         onSaveNote = onSaveNote,
+                        onStartEditTimestamp = onStartEditTimestamp,
+                        onCancelEditTimestamp = onCancelEditTimestamp,
+                        onSaveTimestamp = onSaveTimestamp,
                     )
                 }
             }
@@ -160,11 +196,15 @@ private fun FeedingDetailSection(
     error: String?,
     log: FeedingLog,
     noteDraft: String,
+    editingMealTime: MealTime?,
     onPreviousDay: () -> Unit,
     onNextDay: () -> Unit,
     onFeed: (MealTime) -> Unit,
     onNoteChange: (String) -> Unit,
     onSaveNote: () -> Unit,
+    onStartEditTimestamp: (MealTime) -> Unit,
+    onCancelEditTimestamp: () -> Unit,
+    onSaveTimestamp: (MealTime, Int, Int) -> Unit,
 ) {
     DateSelector(
         date = selectedDate,
@@ -191,7 +231,11 @@ private fun FeedingDetailSection(
                     MealCard(
                         mealTime = mealTime,
                         feeding = log.feedings[mealTime] ?: Feeding(),
+                        isEditing = editingMealTime == mealTime,
                         onFeed = { onFeed(mealTime) },
+                        onStartEdit = { onStartEditTimestamp(mealTime) },
+                        onCancelEdit = onCancelEditTimestamp,
+                        onSaveTimestamp = { hour, minute -> onSaveTimestamp(mealTime, hour, minute) },
                     )
                 }
             }
@@ -235,7 +279,11 @@ private fun DateSelector(
 private fun MealCard(
     mealTime: MealTime,
     feeding: Feeding,
+    isEditing: Boolean,
     onFeed: () -> Unit,
+    onStartEdit: () -> Unit,
+    onCancelEdit: () -> Unit,
+    onSaveTimestamp: (hour: Int, minute: Int) -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -250,46 +298,155 @@ private fun MealCard(
             ),
     ) {
         Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth().defaultMinSize(minHeight = 48.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // 左側: アイコン + ラベル
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Icon(
                     imageVector = mealTime.icon,
                     contentDescription = mealTime.label,
                     tint = mealTime.color,
+                    modifier = Modifier.size(20.dp),
                 )
-                Column {
-                    Text(
-                        text = mealTime.label,
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    val ts = feeding.timestamp
-                    if (feeding.done && ts != null) {
-                        Text(
-                            text = toJstHHMM(ts.toJsString()).toString(),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                Text(
+                    text = mealTime.label,
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
+
+            // 右側: 時刻 + アクション
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                val ts = feeding.timestamp
+                if (feeding.done && ts != null) {
+                    if (isEditing) {
+                        TimestampEditor(
+                            timestamp = ts,
+                            onCancel = onCancelEdit,
+                            onSave = onSaveTimestamp,
+                        )
+                    } else {
+                        TimestampBadge(
+                            timestamp = ts,
+                            onClick = onStartEdit,
                         )
                     }
                 }
-            }
 
-            if (feeding.done) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = "済み",
-                    tint = FeedingDoneColor,
-                    modifier = Modifier.size(28.dp),
-                )
-            } else {
-                Button(onClick = onFeed) {
-                    Text("あげる")
+                if (feeding.done) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "済み",
+                        tint = FeedingDoneColor,
+                        modifier = Modifier.size(24.dp),
+                    )
+                } else {
+                    Button(onClick = onFeed) {
+                        Text("あげる")
+                    }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimestampBadge(
+    timestamp: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+    ) {
+        Text(
+            text = toJstHHMM(timestamp.toJsString()).toString(),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+        )
+    }
+}
+
+@Composable
+private fun TimestampEditor(
+    timestamp: String,
+    onCancel: () -> Unit,
+    onSave: (hour: Int, minute: Int) -> Unit,
+) {
+    val initialHour =
+        remember(timestamp) {
+            toJstHour(timestamp.toJsString()).toString().trim().toIntOrNull() ?: 0
+        }
+    val initialMinute =
+        remember(timestamp) {
+            toJstMinute(timestamp.toJsString()).toString().trim().toIntOrNull() ?: 0
+        }
+    var hourText by remember(timestamp) { mutableStateOf(initialHour.toString().padStart(2, '0')) }
+    var minuteText by remember(timestamp) { mutableStateOf(initialMinute.toString().padStart(2, '0')) }
+
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(start = 4.dp, top = 2.dp, bottom = 2.dp, end = 2.dp),
+        ) {
+            OutlinedTextField(
+                value = hourText,
+                onValueChange = { if (it.length <= 2 && it.all { c -> c.isDigit() }) hourText = it },
+                modifier = Modifier.width(48.dp),
+                textStyle = MaterialTheme.typography.labelMedium,
+                singleLine = true,
+            )
+            Text(
+                ":",
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(horizontal = 2.dp),
+            )
+            OutlinedTextField(
+                value = minuteText,
+                onValueChange = { if (it.length <= 2 && it.all { c -> c.isDigit() }) minuteText = it },
+                modifier = Modifier.width(48.dp),
+                textStyle = MaterialTheme.typography.labelMedium,
+                singleLine = true,
+            )
+            IconButton(
+                onClick = {
+                    val h = hourText.toIntOrNull()
+                    val m = minuteText.toIntOrNull()
+                    if (h != null && m != null && h in 0..23 && m in 0..59) {
+                        onSave(h, m)
+                    }
+                },
+                modifier = Modifier.size(28.dp),
+            ) {
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = "保存",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+            IconButton(
+                onClick = onCancel,
+                modifier = Modifier.size(28.dp),
+            ) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "キャンセル",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp),
+                )
             }
         }
     }
