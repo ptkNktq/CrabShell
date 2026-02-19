@@ -105,6 +105,7 @@ graph TD
 ## 構成
 
 ```
+build-logic/         → Convention Plugin（KMP + Compose + wasmJs 共通設定）
 shared/              → 共有データモデル（全モジュール共通）
 server/              → Ktor サーバー（API + 静的ファイル配信）
 core/auth/           → Firebase 認証・AuthState 管理・WebAuthn JS interop
