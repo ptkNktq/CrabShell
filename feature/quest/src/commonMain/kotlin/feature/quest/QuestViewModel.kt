@@ -14,12 +14,14 @@ import model.QuestStatus
 
 data class QuestUiState(
     val quests: List<Quest> = emptyList(),
-    val selectedCategory: QuestCategory? = null,
-    val selectedStatus: QuestStatus? = null,
     val isLoading: Boolean = true,
     val error: String? = null,
     val isCreating: Boolean = false,
-)
+) {
+    /** 同時発行上限（Open + Accepted が3件未満なら作成可能） */
+    val canCreateQuest: Boolean
+        get() = quests.count { it.status == QuestStatus.Open || it.status == QuestStatus.Accepted } < 3
+}
 
 class QuestViewModel(
     private val questRepository: QuestRepository,
@@ -35,26 +37,12 @@ class QuestViewModel(
         uiState = uiState.copy(isLoading = true, error = null)
         viewModelScope.launch {
             try {
-                val quests = questRepository.getQuests(uiState.selectedStatus)
-                val filtered =
-                    uiState.selectedCategory?.let { cat ->
-                        quests.filter { it.category == cat }
-                    } ?: quests
-                uiState = uiState.copy(quests = filtered, isLoading = false)
+                val quests = questRepository.getQuests(null)
+                uiState = uiState.copy(quests = quests, isLoading = false)
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message, isLoading = false)
             }
         }
-    }
-
-    fun onFilterCategory(category: QuestCategory?) {
-        uiState = uiState.copy(selectedCategory = category)
-        loadQuests()
-    }
-
-    fun onFilterStatus(status: QuestStatus?) {
-        uiState = uiState.copy(selectedStatus = status)
-        loadQuests()
     }
 
     fun onToggleCreateForm() {
