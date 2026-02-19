@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
@@ -73,11 +75,13 @@ internal fun QuestBoardContent(
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
+    val scrollState = rememberScrollState()
 
     Column(
         modifier =
             Modifier
                 .fillMaxSize()
+                .verticalScroll(scrollState)
                 .padding(if (isCompact) 12.dp else 24.dp),
     ) {
         // ヘッダー
@@ -130,7 +134,7 @@ internal fun QuestBoardContent(
         when {
             isLoading -> {
                 Box(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     CircularProgressIndicator()
@@ -138,7 +142,7 @@ internal fun QuestBoardContent(
             }
             quests.isEmpty() -> {
                 Box(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -154,6 +158,7 @@ internal fun QuestBoardContent(
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         quests.forEach { quest ->
                             QuestCard(
@@ -163,12 +168,11 @@ internal fun QuestBoardContent(
                                 onComplete = { onCompleteQuest(quest.id) },
                                 onVerify = { onVerifyQuest(quest.id) },
                                 onDelete = { onDeleteQuest(quest.id) },
-                                modifier = Modifier.fillMaxWidth(),
                             )
                         }
                     }
                 } else {
-                    // Expanded: 横に並べる（最大3枚）
+                    // Expanded: 横に並べる（固定幅カード）
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -181,12 +185,7 @@ internal fun QuestBoardContent(
                                 onComplete = { onCompleteQuest(quest.id) },
                                 onVerify = { onVerifyQuest(quest.id) },
                                 onDelete = { onDeleteQuest(quest.id) },
-                                modifier = Modifier.weight(1f),
                             )
-                        }
-                        // 空スロットで幅を揃える
-                        repeat(3 - quests.size) {
-                            Spacer(Modifier.weight(1f))
                         }
                     }
                 }

@@ -148,3 +148,27 @@ external fun toJstHour(iso: JsString): JsString
 }""",
 )
 external fun toJstMinute(iso: JsString): JsString
+
+/**
+ * 期限文字列("YYYY-MM-DD" or "YYYY-MM-DD HH:MM")から残り時間テキストを返す。
+ * 1日以上: "あとX日"、1日以内: "あとX時間"、期限切れ: "期限切れ"
+ */
+@JsFun(
+    """(deadline) => {
+    const now = new Date();
+    let target;
+    if (deadline.length > 10) {
+        const parts = deadline.split(' ');
+        target = new Date(parts[0] + 'T' + parts[1] + ':00');
+    } else {
+        target = new Date(deadline + 'T23:59:59');
+    }
+    const diff = target.getTime() - now.getTime();
+    if (diff <= 0) return '期限切れ';
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    if (hours < 24) return 'あと' + hours + '時間';
+    const days = Math.floor(hours / 24);
+    return 'あと' + days + '日';
+}""",
+)
+external fun remainingTimeJs(deadline: JsString): JsString

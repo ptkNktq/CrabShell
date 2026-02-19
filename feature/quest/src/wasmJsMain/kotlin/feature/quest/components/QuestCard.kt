@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalWasmJsInterop::class)
+
 package feature.quest.components
 
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +30,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -36,9 +39,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import core.ui.extensions.icon
 import core.ui.extensions.label
+import core.ui.util.remainingTimeJs
 import model.Quest
 import model.QuestStatus
 
+internal val CARD_WIDTH = 300.dp
 private val CARD_HEIGHT = 360.dp
 
 @Composable
@@ -55,7 +60,7 @@ internal fun QuestCard(
     val isAssignee = quest.assigneeUid == currentUserUid
 
     Card(
-        modifier = modifier.height(CARD_HEIGHT),
+        modifier = modifier.width(CARD_WIDTH).height(CARD_HEIGHT),
         colors =
             CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -76,6 +81,20 @@ internal fun QuestCard(
                         .offset(x = 20.dp, y = 20.dp)
                         .graphicsLayer { rotationZ = -28f },
             )
+
+            // 削除ボタン（右上）
+            if (isCreator && quest.status == QuestStatus.Open) {
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.align(Alignment.TopEnd),
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "削除",
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
 
             // カードコンテンツ
             Column(
@@ -156,11 +175,20 @@ internal fun QuestCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    quest.deadline?.let {
+                    quest.deadline?.let { deadline ->
+                        val remaining =
+                            remember(deadline) {
+                                remainingTimeJs(deadline.toJsString()).toString()
+                            }
                         Text(
-                            text = "期限: $it",
+                            text = "期限: $deadline ($remaining)",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color =
+                                if (remaining == "期限切れ") {
+                                    MaterialTheme.colorScheme.error
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                         )
                     }
                 }
@@ -174,7 +202,6 @@ internal fun QuestCard(
                     onAccept = onAccept,
                     onComplete = onComplete,
                     onVerify = onVerify,
-                    onDelete = onDelete,
                 )
             }
         }
@@ -224,30 +251,18 @@ private fun QuestActionButton(
     onAccept: () -> Unit,
     onComplete: () -> Unit,
     onVerify: () -> Unit,
-    onDelete: () -> Unit,
 ) {
     when (quest.status) {
         QuestStatus.Open -> {
-            if (isCreator) {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.CenterEnd,
-                ) {
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "削除",
-                            tint = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                }
-            } else {
+            if (!isCreator) {
                 Button(
                     onClick = onAccept,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text("受注する")
                 }
+            } else {
+                Spacer(Modifier.height(0.dp))
             }
         }
         QuestStatus.Accepted -> {
