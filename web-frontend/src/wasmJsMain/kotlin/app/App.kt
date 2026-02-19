@@ -119,6 +119,7 @@ private fun ExpandedLayout(
             currentScreen = currentScreen,
             onNavigate = onNavigate,
             onSignOut = onSignOut,
+            version = BuildConfig.VERSION,
             isAdmin = isAdmin,
         )
         ScreenContent(currentScreen, isAdmin)
@@ -137,6 +138,7 @@ private fun MediumLayout(
             currentScreen = currentScreen,
             onNavigate = onNavigate,
             onSignOut = onSignOut,
+            version = BuildConfig.VERSION,
             isAdmin = isAdmin,
             expandable = false,
         )
@@ -165,6 +167,7 @@ private fun CompactLayout(
                     scope.launch { drawerState.close() }
                 },
                 onSignOut = onSignOut,
+                version = BuildConfig.VERSION,
                 isAdmin = isAdmin,
             )
         },

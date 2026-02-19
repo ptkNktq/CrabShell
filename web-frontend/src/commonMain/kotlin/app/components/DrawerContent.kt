@@ -17,7 +17,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import app.BuildConfig
 import app.Screen
 
 @Composable
@@ -25,6 +24,7 @@ fun DrawerContent(
     currentScreen: Screen,
     onNavigate: (Screen) -> Unit,
     onSignOut: () -> Unit,
+    version: String,
     isAdmin: Boolean = false,
 ) {
     Surface(
@@ -81,7 +81,7 @@ fun DrawerContent(
             )
 
             Text(
-                text = BuildConfig.VERSION,
+                text = version,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
