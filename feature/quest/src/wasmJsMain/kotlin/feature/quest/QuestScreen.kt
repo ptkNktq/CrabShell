@@ -3,10 +3,8 @@ package feature.quest
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -94,8 +92,11 @@ internal fun QuestBoardContent(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
             )
-            if (canCreateQuest && !isCreating) {
-                Button(onClick = onToggleCreateForm) {
+            if (!isCreating) {
+                Button(
+                    onClick = onToggleCreateForm,
+                    enabled = canCreateQuest,
+                ) {
                     Icon(
                         Icons.Default.Add,
                         contentDescription = null,
@@ -169,10 +170,7 @@ internal fun QuestBoardContent(
                 } else {
                     // Expanded: 横に並べる（最大3枚）
                     Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .height(IntrinsicSize.Max),
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         quests.forEach { quest ->
@@ -183,7 +181,7 @@ internal fun QuestBoardContent(
                                 onComplete = { onCompleteQuest(quest.id) },
                                 onVerify = { onVerifyQuest(quest.id) },
                                 onDelete = { onDeleteQuest(quest.id) },
-                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                modifier = Modifier.weight(1f),
                             )
                         }
                         // 空スロットで幅を揃える

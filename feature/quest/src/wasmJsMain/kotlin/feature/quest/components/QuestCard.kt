@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -28,12 +30,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import core.ui.extensions.icon
 import core.ui.extensions.label
 import model.Quest
 import model.QuestStatus
+
+private val CARD_HEIGHT = 360.dp
 
 @Composable
 internal fun QuestCard(
@@ -49,119 +55,128 @@ internal fun QuestCard(
     val isAssignee = quest.assigneeUid == currentUserUid
 
     Card(
-        modifier = modifier,
+        modifier = modifier.height(CARD_HEIGHT),
         colors =
             CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
             ),
     ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+        Box(
+            modifier = Modifier.fillMaxSize().clipToBounds(),
         ) {
-            // ヘッダー: カテゴリアイコン + ステータスバッジ
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+            // 背景ウォーターマーク: カテゴリアイコン（大きく、薄く、回転）
+            Icon(
+                imageVector = quest.category.icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.06f),
+                modifier =
+                    Modifier
+                        .size(160.dp)
+                        .align(Alignment.BottomEnd)
+                        .offset(x = 20.dp, y = 20.dp)
+                        .graphicsLayer { rotationZ = -28f },
+            )
+
+            // カードコンテンツ
+            Column(
+                modifier = Modifier.fillMaxSize().padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                // ヘッダー: ステータスバッジ
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Icon(
-                        imageVector = quest.category.icon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp),
-                    )
                     Text(
                         text = quest.category.label,
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    StatusBadge(status = quest.status)
                 }
-                StatusBadge(status = quest.status)
-            }
 
-            HorizontalDivider(
-                thickness = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant,
-            )
-
-            // タイトル
-            Text(
-                text = quest.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-
-            // RPG風テキスト
-            if (quest.description.isNotBlank()) {
-                Text(
-                    text = quest.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant,
                 )
-            }
 
-            // 報酬ポイント
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.Star,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(4.dp))
+                // タイトル
                 Text(
-                    text = "${quest.rewardPoints} pt",
-                    style = MaterialTheme.typography.titleSmall,
+                    text = quest.title,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
                 )
-            }
 
-            HorizontalDivider(
-                thickness = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant,
-            )
-
-            // メタ情報
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = "依頼者: ${quest.creatorName}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                quest.assigneeName?.let {
+                // RPG風テキスト
+                if (quest.description.isNotBlank()) {
                     Text(
-                        text = "受注者: $it",
+                        text = quest.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 3,
+                    )
+                }
+
+                // 報酬ポイント
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Star,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = "${quest.rewardPoints} pt",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                )
+
+                // メタ情報
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = "依頼者: ${quest.creatorName}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    quest.assigneeName?.let {
+                        Text(
+                            text = "受注者: $it",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    quest.deadline?.let {
+                        Text(
+                            text = "期限: $it",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
-                quest.deadline?.let {
-                    Text(
-                        text = "期限: $it",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
 
-            // アクションボタン
-            Spacer(Modifier.weight(1f))
-            QuestActionButton(
-                quest = quest,
-                isCreator = isCreator,
-                isAssignee = isAssignee,
-                onAccept = onAccept,
-                onComplete = onComplete,
-                onVerify = onVerify,
-                onDelete = onDelete,
-            )
+                // アクションボタン（下端に固定）
+                Spacer(Modifier.weight(1f))
+                QuestActionButton(
+                    quest = quest,
+                    isCreator = isCreator,
+                    isAssignee = isAssignee,
+                    onAccept = onAccept,
+                    onComplete = onComplete,
+                    onVerify = onVerify,
+                    onDelete = onDelete,
+                )
+            }
         }
     }
 }
