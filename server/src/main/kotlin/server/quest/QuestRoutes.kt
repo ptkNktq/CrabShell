@@ -20,6 +20,7 @@ import server.util.await
 import java.time.Instant
 import java.time.LocalDate
 
+private const val MAX_ACTIVE_QUESTS = 3
 private val firestore by lazy { FirestoreClient.getFirestore() }
 private val questsCollection by lazy { firestore.collection("quests") }
 
@@ -77,6 +78,20 @@ fun Route.questRoutes() {
             post {
                 val token = call.attributes[FirebaseTokenKey]
                 val request = call.receive<CreateQuestRequest>()
+
+                // 同時発行数の上限チェック（全ユーザーで最大3件）
+                val activeCount =
+                    questsCollection
+                        .whereIn("status", listOf(QuestStatus.Open.name, QuestStatus.Accepted.name))
+                        .get()
+                        .await()
+                        .size()
+                if (activeCount >= MAX_ACTIVE_QUESTS) {
+                    return@post call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "同時に発行できるクエストは${MAX_ACTIVE_QUESTS}件までです"),
+                    )
+                }
 
                 val questData =
                     mapOf(
