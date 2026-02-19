@@ -57,6 +57,10 @@ The server listens on `0.0.0.0:8080`. Building the server automatically copies t
 ## Architecture
 
 ```
+build-logic/         → Gradle included build (Convention Plugin)
+                       crabshell.compose.wasmjs: KMP + Compose + wasmJs { browser() }
+                       core/ と feature/ の全モジュール + app が使用
+
 shared/              → Kotlin Multiplatform library
                        Contains serializable data models (DashboardItem, User, Status)
 
@@ -105,6 +109,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 
 ## Key Source Locations
 
+- Convention Plugin: `build-logic/src/main/kotlin/CrabshellComposeWasmJsPlugin.kt`
 - Shared models: `shared/src/commonMain/kotlin/model/DashboardItem.kt`, `User.kt`
 - Server entry point: `server/src/main/kotlin/server/Application.kt`
 - Core auth (commonMain): `core/auth/src/commonMain/kotlin/core/auth/` (AuthRepository interface, AuthState)
