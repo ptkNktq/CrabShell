@@ -10,6 +10,8 @@ import core.network.PasskeyRepository
 import core.network.PasskeyRepositoryImpl
 import core.network.PetRepository
 import core.network.PetRepositoryImpl
+import core.network.QuestRepository
+import core.network.QuestRepositoryImpl
 import core.network.ReportRepository
 import core.network.ReportRepositoryImpl
 import core.network.UserRepository
@@ -26,6 +28,7 @@ val networkModule =
         single<GarbageScheduleRepository> { GarbageScheduleRepositoryImpl(get()) }
         single<MoneyRepository> { MoneyRepositoryImpl(get()) }
         single<ReportRepository> { ReportRepositoryImpl(get()) }
+        single<QuestRepository> { QuestRepositoryImpl(get()) }
         single<UserRepository> { UserRepositoryImpl(get()) }
         single<PasskeyRepository> { PasskeyRepositoryImpl(get()) }
     }

@@ -6,6 +6,7 @@ enum class Screen(val title: String, val path: String, val adminOnly: Boolean = 
     Payment("お支払い", "/payment"),
     Report("家計レポート", "/report"),
     Money("お金の管理", "/money", adminOnly = true),
+    Quest("クエスト", "/quest"),
     Settings("設定", "/settings"),
     ;
 

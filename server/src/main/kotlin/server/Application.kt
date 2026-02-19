@@ -19,6 +19,7 @@ import server.passkey.PasskeyDatabase
 import server.passkey.passkeyRoutes
 import server.pet.petRoutes
 import server.pet.seedDefaultPet
+import server.quest.questRoutes
 import server.report.reportRoutes
 import server.user.userRoutes
 
@@ -47,6 +48,7 @@ fun Application.module() {
             garbageRoutes()
             moneyRoutes()
             reportRoutes()
+            questRoutes()
             passkeyRoutes()
         }
 
