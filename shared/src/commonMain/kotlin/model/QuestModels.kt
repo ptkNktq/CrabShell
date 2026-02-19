@@ -51,3 +51,16 @@ data class CreateQuestRequest(
 data class QuestBoard(
     val quests: List<Quest> = emptyList(),
 )
+
+@Serializable
+data class GenerateQuestTextRequest(
+    val title: String,
+    val category: QuestCategory,
+    val rewardPoints: Int,
+    val deadline: String? = null,
+)
+
+@Serializable
+data class GenerateQuestTextResponse(
+    val generatedText: String,
+)

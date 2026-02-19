@@ -11,7 +11,10 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import model.CreateQuestRequest
+import model.GenerateQuestTextRequest
+import model.GenerateQuestTextResponse
 import model.Quest
+import model.QuestCategory
 import model.QuestStatus
 
 interface QuestRepository {
@@ -24,6 +27,15 @@ interface QuestRepository {
     suspend fun verifyQuest(id: String): Quest
 
     suspend fun deleteQuest(id: String)
+
+    suspend fun isAiAvailable(): Boolean
+
+    suspend fun generateQuestText(
+        title: String,
+        category: QuestCategory,
+        rewardPoints: Int,
+        deadline: String?,
+    ): String
 }
 
 class QuestRepositoryImpl(
@@ -49,4 +61,33 @@ class QuestRepositoryImpl(
     override suspend fun deleteQuest(id: String) {
         client.delete("/api/quests/$id")
     }
+
+    override suspend fun isAiAvailable(): Boolean =
+        try {
+            client
+                .get("/api/quests/ai-available")
+                .body<Map<String, Boolean>>()["available"] == true
+        } catch (_: Exception) {
+            false
+        }
+
+    override suspend fun generateQuestText(
+        title: String,
+        category: QuestCategory,
+        rewardPoints: Int,
+        deadline: String?,
+    ): String =
+        client
+            .post("/api/quests/generate-text") {
+                contentType(ContentType.Application.Json)
+                setBody(
+                    GenerateQuestTextRequest(
+                        title = title,
+                        category = category,
+                        rewardPoints = rewardPoints,
+                        deadline = deadline,
+                    ),
+                )
+            }.body<GenerateQuestTextResponse>()
+            .generatedText
 }
