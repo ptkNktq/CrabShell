@@ -48,15 +48,19 @@ kotlin {
     }
 
     sourceSets {
-        wasmJsMain {
-            kotlin.srcDir(generateBuildConfig.map { it.outputs.files.singleFile })
-        }
-        wasmJsMain.dependencies {
+        commonMain.dependencies {
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
             implementation(compose.ui)
             implementation(compose.materialIconsExtended)
+
+            implementation(project(":core:ui"))
+        }
+        wasmJsMain {
+            kotlin.srcDir(generateBuildConfig.map { it.outputs.files.singleFile })
+        }
+        wasmJsMain.dependencies {
             implementation(compose.components.resources)
 
             // Ktor WASM engine（wasmJs ターゲットの実行に必要）
@@ -69,7 +73,6 @@ kotlin {
             // モジュール依存
             implementation(project(":core:auth"))
             implementation(project(":core:network"))
-            implementation(project(":core:ui"))
             implementation(project(":feature:auth"))
             implementation(project(":feature:dashboard"))
             implementation(project(":feature:feeding"))
