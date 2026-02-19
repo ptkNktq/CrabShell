@@ -1,6 +1,10 @@
 package app
 
-enum class Screen(val title: String, val path: String, val adminOnly: Boolean = false) {
+enum class Screen(
+    val title: String,
+    val path: String,
+    val adminOnly: Boolean = false,
+) {
     Dashboard("ダッシュボード", "/dashboard"),
     Feeding("ごはん", "/feeding"),
     Payment("お支払い", "/payment"),
