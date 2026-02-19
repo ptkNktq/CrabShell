@@ -19,7 +19,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push Docker image
         run: |
-          docker build --build-arg COMMIT_HASH=${{ github.sha }} \
+          docker build --build-arg COMMIT_HASH=${GITHUB_SHA::7} \
             -t ghcr.io/ptknktq/crabshell:latest \
             -t ghcr.io/ptknktq/crabshell:${{ github.ref_name }} .
           docker push ghcr.io/ptknktq/crabshell:latest
