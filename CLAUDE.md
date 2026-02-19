@@ -65,21 +65,29 @@ server/              → Ktor server (Netty, JVM)
                        Routes: GET /api/items (JSON), GET / (serves static frontend)
                        Firebase Auth verification
 
-core/auth/           → Firebase interop, AuthRepository, AuthState/AuthStateHolder
+core/auth/           → AuthRepository interface + AuthState/AuthStateHolder (commonMain)
+                       Firebase/WebAuthn interop + AuthRepositoryImpl (wasmJsMain)
                        Depends on :shared, compose.runtime
-core/network/        → 認証トークン付き HTTP client (authenticatedClient)
+core/network/        → 認証トークン付き HTTP client + Repository interfaces/impls (commonMain)
+                       PasskeyRepositoryImpl + NetworkModule (wasmJsMain)
                        Depends on :core:auth, ktor-client
-core/ui/             → テーマ定義 (AppColorScheme)
+core/ui/             → テーマ定義 + WindowSizeClass (commonMain)
+                       DateUtils (@JsFun) + CalendarView (wasmJsMain)
                        Depends on compose (runtime, foundation, material3, ui)
 
-feature/auth/        → LoginViewModel + LoginScreen + AuthenticatedApp
-                       Depends on :core:auth, :core:ui
-feature/dashboard/   → DashboardViewModel + DashboardScreen
+feature/auth/        → LoginViewModel + LoginScreen (commonMain)
+                       AuthenticatedApp + PasskeySetupViewModel (wasmJsMain)
+                       Depends on :core:auth, :core:network, :core:ui
+feature/dashboard/   → DashboardViewModel + DashboardScreen (wasmJsMain)
                        Depends on :core:network, :core:ui, :shared
-feature/report/      → ReportViewModel + ReportScreen + Canvas 棒グラフ
+feature/report/      → ReportSummaryCard + MonthlyBarChart + CategoryBreakdown (commonMain)
+                       ReportViewModel + ReportScreen (wasmJsMain)
                        Depends on :core:network, :core:ui, :shared
+feature/settings/    → 全ファイル commonMain (wasmJs 固有 API 不使用)
+                       Depends on :core:auth, :core:network, :core:ui, :shared
 
-web-frontend/        → App シェル: Main.kt, App.kt, Sidebar.kt
+web-frontend/        → Screen enum + Sidebar + DrawerContent + NavigationItems (commonMain)
+                       Main.kt + Navigator + App.kt + AppModule (wasmJsMain)
                        Depends on :core:auth, :core:ui, :feature:auth, :feature:dashboard
 ```
 
@@ -99,13 +107,20 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 
 - Shared models: `shared/src/commonMain/kotlin/model/DashboardItem.kt`, `User.kt`
 - Server entry point: `server/src/main/kotlin/server/Application.kt`
-- Core auth: `core/auth/src/wasmJsMain/kotlin/core/auth/` (AuthRepository, AuthState, FirebaseInterop)
-- Core network: `core/network/src/wasmJsMain/kotlin/core/network/AuthHttpClient.kt`
-- Core theme: `core/ui/src/wasmJsMain/kotlin/core/ui/theme/Color.kt`
-- Feature auth: `feature/auth/src/wasmJsMain/kotlin/feature/auth/` (LoginViewModel, LoginScreen, AuthenticatedApp)
+- Core auth (commonMain): `core/auth/src/commonMain/kotlin/core/auth/` (AuthRepository interface, AuthState)
+- Core auth (wasmJsMain): `core/auth/src/wasmJsMain/kotlin/core/auth/` (AuthRepositoryImpl, FirebaseInterop, WebAuthnInterop)
+- Core network (commonMain): `core/network/src/commonMain/kotlin/core/network/` (AuthHttpClient, Repository interfaces/impls)
+- Core network (wasmJsMain): `core/network/src/wasmJsMain/kotlin/core/network/` (PasskeyRepositoryImpl, NetworkModule)
+- Core theme (commonMain): `core/ui/src/commonMain/kotlin/core/ui/theme/` (Color.kt, Theme.kt, Typography.kt)
+- Core UI (wasmJsMain): `core/ui/src/wasmJsMain/kotlin/core/ui/` (DateUtils.kt, CalendarView.kt)
+- Feature auth (commonMain): `feature/auth/src/commonMain/kotlin/feature/auth/` (LoginViewModel, LoginScreen)
+- Feature auth (wasmJsMain): `feature/auth/src/wasmJsMain/kotlin/feature/auth/` (AuthenticatedApp, PasskeySetupViewModel)
+- Feature settings (commonMain): `feature/settings/src/commonMain/kotlin/feature/settings/` (全ファイル)
 - Feature dashboard: `feature/dashboard/src/wasmJsMain/kotlin/feature/dashboard/` (DashboardViewModel, DashboardScreen)
-- Feature report: `feature/report/src/wasmJsMain/kotlin/feature/report/` (ReportViewModel, ReportScreen, components/)
-- App shell: `web-frontend/src/wasmJsMain/kotlin/app/` (Main.kt, App.kt, components/Sidebar.kt)
+- Feature report (commonMain): `feature/report/src/commonMain/kotlin/feature/report/components/` (UI コンポーネント)
+- Feature report (wasmJsMain): `feature/report/src/wasmJsMain/kotlin/feature/report/` (ReportViewModel, ReportScreen)
+- App shell (commonMain): `web-frontend/src/commonMain/kotlin/app/` (Screen.kt, components/)
+- App shell (wasmJsMain): `web-frontend/src/wasmJsMain/kotlin/app/` (Main.kt, App.kt, Navigator.kt)
 
 ## CI/CD
 
