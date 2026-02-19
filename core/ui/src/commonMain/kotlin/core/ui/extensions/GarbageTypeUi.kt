@@ -1,4 +1,4 @@
-package core.ui.theme
+package core.ui.extensions
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteOutline

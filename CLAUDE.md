@@ -57,7 +57,7 @@ The server listens on `0.0.0.0:8080`. Building the server automatically copies t
 ## Architecture
 
 ```
-shared/              → Kotlin Multiplatform library (JVM + WASM/JS targets)
+shared/              → Kotlin Multiplatform library
                        Contains serializable data models (DashboardItem, User, Status)
 
 server/              → Ktor server (Netty, JVM)

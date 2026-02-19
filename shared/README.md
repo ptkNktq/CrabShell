@@ -1,6 +1,6 @@
 # shared
 
-Kotlin Multiplatform の共有データモデルライブラリ。JVM（server）と wasmJs（app）の両ターゲットで使用される。
+Kotlin Multiplatform の共有データモデルライブラリ。サーバー・フロントエンド全モジュールから参照される。
 
 ## 依存関係
 
