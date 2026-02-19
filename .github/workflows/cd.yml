@@ -23,7 +23,7 @@ jobs:
           context: .
           push: true
           provenance: false
-          attestations: false
+          sbom: false
           build-args: COMMIT_HASH=${{ github.sha }}
           tags: |
             ghcr.io/ptknktq/crabshell:latest
