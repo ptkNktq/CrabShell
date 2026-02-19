@@ -28,10 +28,11 @@ class PasskeyRepositoryImpl(
         runCatching {
             // 1. サーバーからオプション取得
             val optionsResponse =
-                httpClient.post("/api/passkey/register/options") {
-                    contentType(ContentType.Application.Json)
-                    setBody(mapOf("displayName" to displayName))
-                }.body<PasskeyRegisterOptionsResponse>()
+                httpClient
+                    .post("/api/passkey/register/options") {
+                        contentType(ContentType.Application.Json)
+                        setBody(mapOf("displayName" to displayName))
+                    }.body<PasskeyRegisterOptionsResponse>()
 
             // 2. WebAuthn API 呼出
             val credentialJson =
@@ -53,10 +54,11 @@ class PasskeyRepositoryImpl(
             try {
                 // 1. サーバーからオプション取得
                 val optionsResponse =
-                    unauthClient.post("/api/passkey/authenticate/options") {
-                        contentType(ContentType.Application.Json)
-                        setBody(PasskeyAuthenticateOptionsRequest(email = email))
-                    }.body<PasskeyAuthenticateOptionsResponse>()
+                    unauthClient
+                        .post("/api/passkey/authenticate/options") {
+                            contentType(ContentType.Application.Json)
+                            setBody(PasskeyAuthenticateOptionsRequest(email = email))
+                        }.body<PasskeyAuthenticateOptionsResponse>()
 
                 // 2. WebAuthn API 呼出
                 val credentialJson =
@@ -66,15 +68,16 @@ class PasskeyRepositoryImpl(
 
                 // 3. サーバーに結果送信
                 val response =
-                    unauthClient.post("/api/passkey/authenticate/complete") {
-                        contentType(ContentType.Application.Json)
-                        setBody(
-                            PasskeyAuthenticateCompleteRequest(
-                                email = email,
-                                authenticationResponseJSON = credentialJson,
-                            ),
-                        )
-                    }.body<PasskeyAuthenticateResponse>()
+                    unauthClient
+                        .post("/api/passkey/authenticate/complete") {
+                            contentType(ContentType.Application.Json)
+                            setBody(
+                                PasskeyAuthenticateCompleteRequest(
+                                    email = email,
+                                    authenticationResponseJSON = credentialJson,
+                                ),
+                            )
+                        }.body<PasskeyAuthenticateResponse>()
 
                 response.customToken
             } finally {

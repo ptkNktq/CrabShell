@@ -16,7 +16,11 @@ import kotlinx.serialization.json.jsonPrimitive
 private suspend fun HttpResponse.extractErrorMessage(): String {
     val body = bodyAsText()
     return try {
-        Json.parseToJsonElement(body).jsonObject["error"]?.jsonPrimitive?.content
+        Json
+            .parseToJsonElement(body)
+            .jsonObject["error"]
+            ?.jsonPrimitive
+            ?.content
             ?: "リクエストに失敗しました ($status)"
     } catch (_: Exception) {
         body.ifBlank { "リクエストに失敗しました ($status)" }

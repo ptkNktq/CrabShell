@@ -16,15 +16,18 @@ interface UserRepository {
     ): User
 }
 
-class UserRepositoryImpl(private val client: HttpClient) : UserRepository {
+class UserRepositoryImpl(
+    private val client: HttpClient,
+) : UserRepository {
     override suspend fun getUsers(): List<User> = client.get("/api/users").body()
 
     override suspend fun updateDisplayName(
         uid: String,
         displayName: String,
     ): User =
-        client.put("/api/users/$uid/name") {
-            contentType(ContentType.Application.Json)
-            setBody(UpdateDisplayNameRequest(displayName))
-        }.body()
+        client
+            .put("/api/users/$uid/name") {
+                contentType(ContentType.Application.Json)
+                setBody(UpdateDisplayNameRequest(displayName))
+            }.body()
 }

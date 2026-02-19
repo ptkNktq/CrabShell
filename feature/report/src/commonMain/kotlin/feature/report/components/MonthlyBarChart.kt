@@ -75,7 +75,9 @@ fun MonthlyBarChart(
                 color = barColor,
                 topLeft = Offset(x, y),
                 size = Size(barWidth, barHeight),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(cornerRadius, cornerRadius),
+                cornerRadius =
+                    androidx.compose.ui.geometry
+                        .CornerRadius(cornerRadius, cornerRadius),
             )
 
             // 金額ラベル（棒の上）
@@ -115,13 +117,12 @@ fun MonthlyBarChart(
     }
 }
 
-private fun formatChartAmount(amount: Long): String {
-    return if (amount >= 10000) {
+private fun formatChartAmount(amount: Long): String =
+    if (amount >= 10000) {
         "¥${amount / 10000}万"
     } else {
         "¥$amount"
     }
-}
 
 private fun formatMonthLabel(month: String): String {
     val parts = month.split("-")

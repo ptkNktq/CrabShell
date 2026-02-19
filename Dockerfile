@@ -1,4 +1,4 @@
-FROM gradle:8.12-jdk21 AS build
+FROM gradle:9.3.1-jdk21 AS build
 RUN apt-get update && apt-get install -y libatomic1 && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
@@ -9,6 +9,7 @@ ENV COMMIT_HASH=${COMMIT_HASH}
 # 依存解決のレイヤーキャッシュ: ビルドスクリプトのみ先にコピー
 COPY gradle/ gradle/
 COPY build.gradle.kts settings.gradle.kts gradle.properties gradlew ./
+COPY build-logic/ build-logic/
 COPY shared/build.gradle.kts shared/
 COPY server/build.gradle.kts server/
 COPY app/build.gradle.kts app/

@@ -20,7 +20,10 @@ fun Route.reportRoutes() {
     authenticated {
         get("/report") {
             val centerStr = call.request.queryParameters["center"]
-            val range = call.request.queryParameters["range"]?.toIntOrNull()?.coerceIn(1, 6) ?: 3
+            val range =
+                call.request.queryParameters["range"]
+                    ?.toIntOrNull()
+                    ?.coerceIn(1, 6) ?: 3
             val center =
                 if (centerStr != null) {
                     runCatching { YearMonth.parse(centerStr) }.getOrElse { YearMonth.now() }
@@ -33,8 +36,11 @@ fun Route.reportRoutes() {
                     val ym = center.plusMonths(offset.toLong())
                     val monthStr = ym.toString()
                     val doc =
-                        firestore.collection(MONEY_COLLECTION)
-                            .document(monthStr).get().await()
+                        firestore
+                            .collection(MONEY_COLLECTION)
+                            .document(monthStr)
+                            .get()
+                            .await()
 
                     if (!doc.exists()) {
                         MonthlyExpenseSummary(month = monthStr, totalAmount = 0L)

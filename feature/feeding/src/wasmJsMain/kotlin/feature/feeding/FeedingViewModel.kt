@@ -70,7 +70,10 @@ class FeedingViewModel(
                     uiState.copy(
                         log =
                             uiState.log.copy(
-                                feedings = uiState.log.feedings.toMutableMap().apply { put(mealTime, feeding) },
+                                feedings =
+                                    uiState.log.feedings
+                                        .toMutableMap()
+                                        .apply { put(mealTime, feeding) },
                             ),
                     )
             } catch (e: Exception) {
@@ -124,7 +127,10 @@ class FeedingViewModel(
                         editingMealTime = null,
                         log =
                             uiState.log.copy(
-                                feedings = uiState.log.feedings.toMutableMap().apply { put(mealTime, feeding) },
+                                feedings =
+                                    uiState.log.feedings
+                                        .toMutableMap()
+                                        .apply { put(mealTime, feeding) },
                             ),
                     )
             } catch (e: Exception) {

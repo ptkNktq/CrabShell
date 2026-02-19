@@ -5,12 +5,16 @@ plugins {
 // ビルド時にコミットハッシュを BuildConfig.kt として生成
 // 環境変数 COMMIT_HASH があればそれを使い、なければ git から取得
 val commitHashProvider: Provider<String> =
-    providers.environmentVariable("COMMIT_HASH")
+    providers
+        .environmentVariable("COMMIT_HASH")
         .orElse(
-            providers.exec {
-                commandLine("git", "rev-parse", "--short", "HEAD")
-                workingDir = rootProject.projectDir
-            }.standardOutput.asText.map { it.trim() },
+            providers
+                .exec {
+                    commandLine("git", "rev-parse", "--short", "HEAD")
+                    workingDir = rootProject.projectDir
+                }.standardOutput
+                .asText
+                .map { it.trim() },
         )
 
 val generateBuildConfig by tasks.registering {

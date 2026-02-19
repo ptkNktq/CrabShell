@@ -25,7 +25,7 @@ subprojects {
     // kotlin-stdlib-wasm-js 2.3.20-Beta1 を推移的に要求する。
     // wasmJs ターゲットでは stdlib とコンパイラのバージョンが一致しないとビルドが失敗するため、
     // stdlib をプロジェクトの Kotlin バージョンに強制する。
-    configurations.all {
+    configurations.configureEach {
         resolutionStrategy.eachDependency {
             if (requested.group == "org.jetbrains.kotlin" && requested.name.startsWith("kotlin-stdlib")) {
                 useVersion(libs.versions.kotlin.get())

@@ -121,9 +121,10 @@ class DashboardViewModel(
         uiState =
             uiState.copy(
                 todayGarbageTypes =
-                    cachedSchedules.filter { schedule ->
-                        dayOfWeek in schedule.daysOfWeek && matchesFrequency(schedule.frequency, weekOfMonth)
-                    }.map { it.garbageType },
+                    cachedSchedules
+                        .filter { schedule ->
+                            dayOfWeek in schedule.daysOfWeek && matchesFrequency(schedule.frequency, weekOfMonth)
+                        }.map { it.garbageType },
             )
     }
 
