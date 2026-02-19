@@ -1,4 +1,4 @@
-package core.ui.theme
+package core.ui.extensions
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bedtime
@@ -7,6 +7,12 @@ import androidx.compose.material.icons.filled.WbTwilight
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import model.MealTime
+
+// Feeding ドメイン色
+val MorningColor = Color(0xCDFF4E4E)
+val LunchColor = Color(0xFFFBC02D)
+val EveningColor = Color(0xFF5C6BC0)
+val FeedingDoneColor = Color(0xFF4CAF50)
 
 /** UI 上の表示順（昼→晩→朝） */
 val MealTime.Companion.displayOrder: List<MealTime>

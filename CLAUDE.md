@@ -13,7 +13,7 @@ CrabShell is a Kotlin Multiplatform dashboard application with a Ktor server bac
 ./gradlew :server:run
 
 # Build the WASM frontend only
-./gradlew :web-frontend:wasmJsBrowserDistribution
+./gradlew :app:wasmJsBrowserDistribution
 
 # Build the server (also triggers frontend build via copyWasmFrontend task)
 ./gradlew :server:build
@@ -35,7 +35,7 @@ The server listens on `0.0.0.0:8080`. Building the server automatically copies t
   java -jar server/build/libs/server-all.jar
 
 # Terminal 2: webpack dev server（フロントエンド開発用）
-./gradlew :web-frontend:wasmJsBrowserDevelopmentRun
+./gradlew :app:wasmJsBrowserDevelopmentRun
 
 # ブラウザ: http://localhost:3000
 ```
@@ -52,12 +52,12 @@ The server listens on `0.0.0.0:8080`. Building the server automatically copies t
 | server/ の Kotlin (API) | Terminal 1 を再ビルド＆再起動 |
 | shared/ のモデル変更 | 両方再起動 |
 
-> **Note:** ネイティブ Linux / macOS 環境では `./gradlew :web-frontend:wasmJsBrowserDevelopmentRun -t` の `-t`（continuous build）でファイル変更を自動検知し、リビルド＆リロードが自動化される。WSL2 の `/mnt/`（Windows ファイルシステム）では inotify が機能しないため `-t` は使えない。
+> **Note:** ネイティブ Linux / macOS 環境では `./gradlew :app:wasmJsBrowserDevelopmentRun -t` の `-t`（continuous build）でファイル変更を自動検知し、リビルド＆リロードが自動化される。WSL2 の `/mnt/`（Windows ファイルシステム）では inotify が機能しないため `-t` は使えない。
 
 ## Architecture
 
 ```
-shared/              → Kotlin Multiplatform library (JVM + WASM/JS targets)
+shared/              → Kotlin Multiplatform library
                        Contains serializable data models (DashboardItem, User, Status)
 
 server/              → Ktor server (Netty, JVM)
@@ -86,7 +86,7 @@ feature/report/      → ReportSummaryCard + MonthlyBarChart + CategoryBreakdown
 feature/settings/    → 全ファイル commonMain (wasmJs 固有 API 不使用)
                        Depends on :core:auth, :core:network, :core:ui, :shared
 
-web-frontend/        → Screen enum + Sidebar + DrawerContent + NavigationItems (commonMain)
+app/                 → Screen enum + Sidebar + DrawerContent + NavigationItems (commonMain)
                        Main.kt + Navigator + App.kt + AppModule (wasmJsMain)
                        Depends on :core:auth, :core:ui, :feature:auth, :feature:dashboard
 ```
@@ -119,8 +119,8 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Feature dashboard: `feature/dashboard/src/wasmJsMain/kotlin/feature/dashboard/` (DashboardViewModel, DashboardScreen)
 - Feature report (commonMain): `feature/report/src/commonMain/kotlin/feature/report/components/` (UI コンポーネント)
 - Feature report (wasmJsMain): `feature/report/src/wasmJsMain/kotlin/feature/report/` (ReportViewModel, ReportScreen)
-- App shell (commonMain): `web-frontend/src/commonMain/kotlin/app/` (Screen.kt, components/)
-- App shell (wasmJsMain): `web-frontend/src/wasmJsMain/kotlin/app/` (Main.kt, App.kt, Navigator.kt)
+- App shell (commonMain): `app/src/commonMain/kotlin/app/` (Screen.kt, components/)
+- App shell (wasmJsMain): `app/src/wasmJsMain/kotlin/app/` (Main.kt, App.kt, Navigator.kt)
 
 ## CI/CD
 

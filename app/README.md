@@ -1,20 +1,20 @@
-# web-frontend
+# app
 
-Compose for Web (WASM) のアプリシェル。ルーティング、サイドバーナビゲーション、ドロワーレイアウトを構成し、全 feature モジュールを統合する。
+アプリシェル。ルーティング、サイドバーナビゲーション、ドロワーレイアウトを構成し、全 feature モジュールを統合する。
 
 ## 依存関係
 
 ```mermaid
 graph LR
-  web-frontend --> core:auth
-  web-frontend --> core:network
-  web-frontend --> core:ui
-  web-frontend --> feature:auth
-  web-frontend --> feature:dashboard
-  web-frontend --> feature:feeding
-  web-frontend --> feature:money
-  web-frontend --> feature:payment
-  web-frontend --> feature:settings
+  app --> core:auth
+  app --> core:network
+  app --> core:ui
+  app --> feature:auth
+  app --> feature:dashboard
+  app --> feature:feeding
+  app --> feature:money
+  app --> feature:payment
+  app --> feature:settings
 ```
 
 ## 主要ファイル

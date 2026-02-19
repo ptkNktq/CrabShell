@@ -11,7 +11,7 @@ COPY gradle/ gradle/
 COPY build.gradle.kts settings.gradle.kts gradle.properties gradlew ./
 COPY shared/build.gradle.kts shared/
 COPY server/build.gradle.kts server/
-COPY web-frontend/build.gradle.kts web-frontend/
+COPY app/build.gradle.kts app/
 COPY core/auth/build.gradle.kts core/auth/
 COPY core/network/build.gradle.kts core/network/
 COPY core/ui/build.gradle.kts core/ui/
@@ -27,7 +27,7 @@ COPY gradle/libs.versions.toml gradle/
 # ソースコードをコピーしてビルド
 COPY shared/ shared/
 COPY server/ server/
-COPY web-frontend/ web-frontend/
+COPY app/ app/
 COPY core/ core/
 COPY feature/ feature/
 RUN gradle :server:buildFatJar --no-daemon

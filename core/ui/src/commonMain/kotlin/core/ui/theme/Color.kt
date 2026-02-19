@@ -3,12 +3,6 @@ package core.ui.theme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.ui.graphics.Color
 
-// Feeding
-val MorningColor = Color(0xCDFF4E4E)
-val LunchColor = Color(0xFFFBC02D)
-val EveningColor = Color(0xFF5C6BC0)
-val FeedingDoneColor = Color(0xFF4CAF50)
-
 val AppColorScheme =
     darkColorScheme(
         primary = Color(0xFFE8844A),
