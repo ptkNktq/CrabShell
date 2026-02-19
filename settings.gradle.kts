@@ -1,6 +1,7 @@
 rootProject.name = "CrabShell"
 
 pluginManagement {
+    includeBuild("build-logic")
     repositories {
         google()
         mavenCentral()

@@ -1,14 +1,8 @@
 plugins {
-    alias(libs.plugins.kotlin.multiplatform)
-    alias(libs.plugins.compose.multiplatform)
-    alias(libs.plugins.compose.compiler)
+    id("crabshell.compose.wasmjs")
 }
 
 kotlin {
-    wasmJs {
-        browser()
-    }
-
     sourceSets {
         commonMain.dependencies {
             // compose.runtime が coroutines を推移的に提供

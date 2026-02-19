@@ -1,7 +1,5 @@
 plugins {
-    alias(libs.plugins.kotlin.multiplatform)
-    alias(libs.plugins.compose.multiplatform)
-    alias(libs.plugins.compose.compiler)
+    id("crabshell.compose.wasmjs")
 }
 
 // ビルド時にコミットハッシュを BuildConfig.kt として生成
