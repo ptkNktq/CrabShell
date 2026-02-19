@@ -17,7 +17,7 @@ dependencyResolutionManagement {
 
 include(":shared")
 include(":server")
-include(":web-frontend")
+include(":app")
 
 // core モジュール
 include(":core:auth")
