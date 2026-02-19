@@ -32,10 +32,10 @@ COPY core/ core/
 COPY feature/ feature/
 RUN gradle :server:buildFatJar --no-daemon
 
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:21-jre-noble
 WORKDIR /app
 COPY --from=build /app/server/build/libs/*-all.jar app.jar
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD wget -qO /dev/null http://localhost:8080/ || exit 1
-CMD ["java", "-Dio.netty.handler.ssl.noOpenSsl=true", "-jar", "app.jar"]
+  CMD curl -sf http://localhost:8080/ > /dev/null || exit 1
+CMD ["java", "-jar", "app.jar"]
