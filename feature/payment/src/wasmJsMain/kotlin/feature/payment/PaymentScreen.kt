@@ -639,8 +639,8 @@ private fun formatAmount(amount: Long): String {
 }
 
 /** UTC ISO 文字列を JST (UTC+9) に変換して表示用にフォーマットする */
-private fun formatDate(isoString: String): String {
-    return try {
+private fun formatDate(isoString: String): String =
+    try {
         val date = isoString.substringBefore("T")
         val time = isoString.substringAfter("T").substringBefore(".")
         val dateParts = date.split("-").map { it.toInt() }
@@ -677,4 +677,3 @@ private fun formatDate(isoString: String): String {
     } catch (_: Exception) {
         isoString
     }
-}

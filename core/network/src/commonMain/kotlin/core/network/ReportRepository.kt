@@ -9,6 +9,8 @@ interface ReportRepository {
     suspend fun getExpenseReport(center: String): ExpenseReport
 }
 
-class ReportRepositoryImpl(private val client: HttpClient) : ReportRepository {
+class ReportRepositoryImpl(
+    private val client: HttpClient,
+) : ReportRepository {
     override suspend fun getExpenseReport(center: String): ExpenseReport = client.get("/api/report?center=$center&range=3").body()
 }

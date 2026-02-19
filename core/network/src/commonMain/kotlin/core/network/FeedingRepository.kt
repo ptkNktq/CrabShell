@@ -34,7 +34,9 @@ interface FeedingRepository {
     ): Feeding
 }
 
-class FeedingRepositoryImpl(private val client: HttpClient) : FeedingRepository {
+class FeedingRepositoryImpl(
+    private val client: HttpClient,
+) : FeedingRepository {
     override suspend fun getFeedingLog(
         petId: String,
         date: String,
@@ -45,9 +47,10 @@ class FeedingRepositoryImpl(private val client: HttpClient) : FeedingRepository 
         date: String,
         mealTime: MealTime,
     ): Feeding =
-        client.put(
-            "/api/pets/$petId/feeding/$date/${mealTime.name.lowercase()}",
-        ).body()
+        client
+            .put(
+                "/api/pets/$petId/feeding/$date/${mealTime.name.lowercase()}",
+            ).body()
 
     override suspend fun updateNote(
         petId: String,
@@ -66,8 +69,9 @@ class FeedingRepositoryImpl(private val client: HttpClient) : FeedingRepository 
         mealTime: MealTime,
         timestamp: String,
     ): Feeding =
-        client.patch("/api/pets/$petId/feeding/$date/${mealTime.name.lowercase()}/timestamp") {
-            contentType(ContentType.Application.Json)
-            setBody(mapOf("timestamp" to timestamp))
-        }.body()
+        client
+            .patch("/api/pets/$petId/feeding/$date/${mealTime.name.lowercase()}/timestamp") {
+                contentType(ContentType.Application.Json)
+                setBody(mapOf("timestamp" to timestamp))
+            }.body()
 }

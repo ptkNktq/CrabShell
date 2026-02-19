@@ -35,29 +35,27 @@ class AuthRepositoryImpl : AuthRepository {
     override suspend fun signIn(
         email: String,
         password: String,
-    ): Result<Unit> {
-        return try {
+    ): Result<Unit> =
+        try {
             signInWithEmailAndPassword(auth, email.toJsString(), password.toJsString()).await<Nothing?>()
             Result.success(Unit)
         } catch (e: Throwable) {
             Result.failure(e)
         }
-    }
 
-    override suspend fun signOut(): Result<Unit> {
-        return try {
+    override suspend fun signOut(): Result<Unit> =
+        try {
             firebaseSignOut(auth).await<Nothing?>()
             Result.success(Unit)
         } catch (e: Throwable) {
             Result.failure(e)
         }
-    }
 
     override suspend fun changePassword(
         currentPassword: String,
         newPassword: String,
-    ): Result<Unit> {
-        return try {
+    ): Result<Unit> =
+        try {
             reauthenticateAndChangePassword(
                 auth,
                 currentPassword.toJsString(),
@@ -67,21 +65,19 @@ class AuthRepositoryImpl : AuthRepository {
         } catch (e: Throwable) {
             Result.failure(e)
         }
-    }
 
-    override suspend fun signInWithCustomToken(token: String): Result<Unit> {
-        return try {
+    override suspend fun signInWithCustomToken(token: String): Result<Unit> =
+        try {
             signInWithCustomToken(auth, token.toJsString()).await<Nothing?>()
             Result.success(Unit)
         } catch (e: Throwable) {
             Result.failure(e)
         }
-    }
 
     override fun isWebAuthnSupported(): Boolean = isWebAuthnAvailable()
 
-    override suspend fun refreshToken(): String? {
-        return try {
+    override suspend fun refreshToken(): String? =
+        try {
             val resultJs = forceRefreshIdToken(auth).await<JsAny?>()
             val token = resultJs?.let { getTokenFromResult(it).toString() }
             if (token != null) {
@@ -100,5 +96,4 @@ class AuthRepositoryImpl : AuthRepository {
         } catch (e: Throwable) {
             null
         }
-    }
 }

@@ -86,7 +86,8 @@ class LoginViewModel(
         }
         uiState = uiState.copy(isLoading = true, errorMessage = null)
         viewModelScope.launch {
-            passkeyRepository.authenticateWithPasskey(uiState.email)
+            passkeyRepository
+                .authenticateWithPasskey(uiState.email)
                 .onSuccess { customToken ->
                     AuthStateHolder.signedInViaPasskey = true
                     val result = authRepository.signInWithCustomToken(customToken)
@@ -97,8 +98,7 @@ class LoginViewModel(
                                 errorMessage = result.exceptionOrNull()?.message ?: "認証に失敗しました",
                             )
                     }
-                }
-                .onFailure { e ->
+                }.onFailure { e ->
                     uiState =
                         uiState.copy(
                             isLoading = false,

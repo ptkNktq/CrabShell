@@ -22,8 +22,18 @@ import core.ui.util.firstDayOfWeekJs
 
 private val MONTH_NAMES =
     arrayOf(
-        "1月", "2月", "3月", "4月", "5月", "6月",
-        "7月", "8月", "9月", "10月", "11月", "12月",
+        "1月",
+        "2月",
+        "3月",
+        "4月",
+        "5月",
+        "6月",
+        "7月",
+        "8月",
+        "9月",
+        "10月",
+        "11月",
+        "12月",
     )
 
 private val DAY_OF_WEEK_LABELS = arrayOf("日", "月", "火", "水", "木", "金", "土")
@@ -206,8 +216,7 @@ private fun DayCell(
                         isToday -> Modifier.border(1.5.dp, primary, CircleShape)
                         else -> Modifier
                     },
-                )
-                .clickable(onClick = onClick),
+                ).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(

@@ -22,8 +22,11 @@ fun Route.garbageRoutes() {
         authenticated {
             get {
                 val doc =
-                    firestore.collection(SETTINGS_COLLECTION)
-                        .document(GARBAGE_DOC).get().await()
+                    firestore
+                        .collection(SETTINGS_COLLECTION)
+                        .document(GARBAGE_DOC)
+                        .get()
+                        .await()
 
                 if (!doc.exists()) {
                     call.respond(emptyList<GarbageTypeSchedule>())
@@ -60,7 +63,8 @@ fun Route.garbageRoutes() {
                         )
                     }
 
-                firestore.collection(SETTINGS_COLLECTION)
+                firestore
+                    .collection(SETTINGS_COLLECTION)
                     .document(GARBAGE_DOC)
                     .set(mapOf(ENTRIES_FIELD to entries))
                     .await()

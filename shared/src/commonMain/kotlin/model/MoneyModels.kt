@@ -3,10 +3,17 @@ package model
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class Payment(val uid: String, val amount: Long)
+data class Payment(
+    val uid: String,
+    val amount: Long,
+)
 
 @Serializable
-data class PaymentRecord(val uid: String, val amount: Long, val paidAt: String)
+data class PaymentRecord(
+    val uid: String,
+    val amount: Long,
+    val paidAt: String,
+)
 
 @Serializable
 data class MoneyItem(
