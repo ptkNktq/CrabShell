@@ -19,6 +19,7 @@ import model.GenerateQuestTextRequest
 import model.GenerateQuestTextResponse
 import model.Quest
 import model.QuestStatus
+import model.WebhookEvent
 import server.auth.FirebaseTokenKey
 import server.auth.authenticated
 import server.util.await
@@ -144,6 +145,7 @@ fun Route.questRoutes() {
                         createdAt = questData["createdAt"] as String,
                     )
 
+                WebhookService.notify(WebhookEvent.QUEST_CREATED, created)
                 call.respond(HttpStatusCode.Created, created)
             }
 
@@ -223,7 +225,9 @@ fun Route.questRoutes() {
                     awardPoints(assigneeUid, assigneeName, rewardPoints, "クエスト達成: $questTitle")
                 }
 
-                call.respond(buildQuest(id, data, QuestStatus.Verified))
+                val verifiedQuest = buildQuest(id, data, QuestStatus.Verified)
+                WebhookService.notify(WebhookEvent.QUEST_VERIFIED, verifiedQuest)
+                call.respond(verifiedQuest)
             }
 
             delete("/{id}") {

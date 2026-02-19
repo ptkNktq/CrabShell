@@ -31,7 +31,7 @@ dependencies {
     implementation(libs.bundles.exposed)
     implementation(libs.sqlite.jdbc)
 
-    // Ktor Client (Gemini API 呼び出し用)
+    // Ktor Client (Gemini API + Webhook 送信用)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.java)
     implementation(libs.ktor.client.content.negotiation)

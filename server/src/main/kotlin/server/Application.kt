@@ -21,6 +21,7 @@ import server.pet.petRoutes
 import server.pet.seedDefaultPet
 import server.quest.pointRoutes
 import server.quest.questRoutes
+import server.quest.webhookRoutes
 import server.report.reportRoutes
 import server.user.userRoutes
 
@@ -51,6 +52,7 @@ fun Application.module() {
             reportRoutes()
             questRoutes()
             pointRoutes()
+            webhookRoutes()
             passkeyRoutes()
         }
 

@@ -28,6 +28,7 @@ import model.CollectionFrequency
 import model.GarbageType
 import model.GarbageTypeSchedule
 import model.User
+import model.WebhookEvent
 import org.koin.compose.getKoin
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -39,6 +40,7 @@ fun SettingsScreen(passwordVm: PasswordChangeViewModel = koinViewModel()) {
     val koin = getKoin()
     val userNameVm = remember(isAdmin) { if (isAdmin) koin.get<UserNameViewModel>() else null }
     val garbageVm = remember(isAdmin) { if (isAdmin) koin.get<GarbageScheduleViewModel>() else null }
+    val webhookVm = remember(isAdmin) { if (isAdmin) koin.get<WebhookViewModel>() else null }
     val scrollState = rememberScrollState()
     val windowSizeClass = LocalWindowSizeClass.current
 
@@ -66,6 +68,16 @@ fun SettingsScreen(passwordVm: PasswordChangeViewModel = koinViewModel()) {
         onToggleDay = { type, day -> garbageVm?.onToggleDay(type, day) },
         onFrequencyChange = { type, freq -> garbageVm?.onChangeFrequency(type, freq) },
         onSaveGarbageSchedule = { garbageVm?.onSaveSchedule() },
+        webhookLoading = webhookVm?.uiState?.isLoading ?: false,
+        webhookUrl = webhookVm?.uiState?.url ?: "",
+        webhookEnabled = webhookVm?.uiState?.enabled ?: false,
+        webhookEvents = webhookVm?.uiState?.events ?: emptyList(),
+        webhookSaving = webhookVm?.uiState?.isSaving ?: false,
+        webhookMessage = webhookVm?.uiState?.message,
+        onWebhookUrlChanged = { webhookVm?.onUrlChanged(it) },
+        onWebhookEnabledChanged = { webhookVm?.onEnabledChanged(it) },
+        onWebhookToggleEvent = { webhookVm?.onToggleEvent(it) },
+        onSaveWebhook = { webhookVm?.onSave() },
         windowSizeClass = windowSizeClass,
     )
 }
@@ -95,6 +107,16 @@ internal fun SettingsContent(
     onToggleDay: (GarbageType, Int) -> Unit,
     onFrequencyChange: (GarbageType, CollectionFrequency) -> Unit,
     onSaveGarbageSchedule: () -> Unit,
+    webhookLoading: Boolean = false,
+    webhookUrl: String = "",
+    webhookEnabled: Boolean = false,
+    webhookEvents: List<String> = emptyList(),
+    webhookSaving: Boolean = false,
+    webhookMessage: String? = null,
+    onWebhookUrlChanged: (String) -> Unit = {},
+    onWebhookEnabledChanged: (Boolean) -> Unit = {},
+    onWebhookToggleEvent: (String) -> Unit = {},
+    onSaveWebhook: () -> Unit = {},
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
@@ -155,6 +177,28 @@ internal fun SettingsContent(
                             onToggleDay = onToggleDay,
                             onFrequencyChange = onFrequencyChange,
                             onSaveClick = onSaveGarbageSchedule,
+                            modifier = cardModifier,
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Webhook 設定セクション（管理者のみ）
+                SettingsSection(title = "Webhook 通知", badge = "管理者") {
+                    if (webhookLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    } else {
+                        WebhookSettingsCard(
+                            url = webhookUrl,
+                            enabled = webhookEnabled,
+                            events = webhookEvents,
+                            isSaving = webhookSaving,
+                            message = webhookMessage,
+                            onUrlChanged = onWebhookUrlChanged,
+                            onEnabledChanged = onWebhookEnabledChanged,
+                            onToggleEvent = onWebhookToggleEvent,
+                            onSave = onSaveWebhook,
                             modifier = cardModifier,
                         )
                     }
@@ -552,6 +596,91 @@ private fun PasswordChangeCard(
                     )
                 } else {
                     Text("変更する")
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun WebhookSettingsCard(
+    url: String,
+    enabled: Boolean,
+    events: List<String>,
+    isSaving: Boolean,
+    message: String?,
+    onUrlChanged: (String) -> Unit,
+    onEnabledChanged: (Boolean) -> Unit,
+    onToggleEvent: (String) -> Unit,
+    onSave: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier,
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp).fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Webhook 設定", style = MaterialTheme.typography.titleSmall)
+                Switch(
+                    checked = enabled,
+                    onCheckedChange = onEnabledChanged,
+                )
+            }
+
+            OutlinedTextField(
+                value = url,
+                onValueChange = onUrlChanged,
+                label = { Text("Webhook URL") },
+                placeholder = { Text("https://discord.com/api/webhooks/...") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isSaving,
+            )
+
+            Text("通知するイベント", style = MaterialTheme.typography.labelMedium)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                WebhookEvent.all.forEach { event ->
+                    FilterChip(
+                        selected = event in events,
+                        onClick = { onToggleEvent(event) },
+                        label = { Text(WebhookEvent.label(event)) },
+                    )
+                }
+            }
+
+            if (message != null) {
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+
+            Button(
+                onClick = onSave,
+                modifier = Modifier.height(48.dp),
+                enabled = !isSaving,
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                } else {
+                    Text("保存する")
                 }
             }
         }
