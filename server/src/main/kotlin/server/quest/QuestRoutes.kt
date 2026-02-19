@@ -227,6 +227,15 @@ fun Route.questRoutes() {
                     .update("status", QuestStatus.Verified.name)
                     .await()
 
+                // ポイント付与
+                val assigneeUid = data["assigneeUid"] as? String
+                val assigneeName = data["assigneeName"] as? String ?: ""
+                val rewardPoints = (data["rewardPoints"] as? Number)?.toInt() ?: 0
+                val questTitle = data["title"] as? String ?: ""
+                if (assigneeUid != null && rewardPoints > 0) {
+                    awardPoints(assigneeUid, assigneeName, rewardPoints, "クエスト達成: $questTitle")
+                }
+
                 call.respond(buildQuest(id, data, QuestStatus.Verified))
             }
 

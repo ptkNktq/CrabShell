@@ -5,18 +5,36 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import core.network.PointRepository
 import core.network.QuestRepository
+import core.network.RewardRepository
 import kotlinx.coroutines.launch
 import model.CreateQuestRequest
+import model.CreateRewardRequest
+import model.PointHistory
 import model.Quest
 import model.QuestCategory
 import model.QuestStatus
+import model.Reward
+import model.UserPoints
+
+enum class QuestTab {
+    Board,
+    Rewards,
+    History,
+}
 
 data class QuestUiState(
     val quests: List<Quest> = emptyList(),
     val isLoading: Boolean = true,
     val error: String? = null,
     val isCreating: Boolean = false,
+    val currentTab: QuestTab = QuestTab.Board,
+    val myPoints: UserPoints? = null,
+    val ranking: List<UserPoints> = emptyList(),
+    val history: List<PointHistory> = emptyList(),
+    val rewards: List<Reward> = emptyList(),
+    val isCreatingReward: Boolean = false,
 ) {
     /** 同時発行上限（Open + Accepted が3件未満なら作成可能） */
     val canCreateQuest: Boolean
@@ -25,12 +43,15 @@ data class QuestUiState(
 
 class QuestViewModel(
     private val questRepository: QuestRepository,
+    private val pointRepository: PointRepository,
+    private val rewardRepository: RewardRepository,
 ) : ViewModel() {
     var uiState by mutableStateOf(QuestUiState())
         private set
 
     init {
         loadQuests()
+        loadPoints()
     }
 
     fun loadQuests() {
@@ -39,6 +60,51 @@ class QuestViewModel(
             try {
                 val quests = questRepository.getQuests(null)
                 uiState = uiState.copy(quests = quests, isLoading = false)
+            } catch (e: Exception) {
+                uiState = uiState.copy(error = e.message, isLoading = false)
+            }
+        }
+    }
+
+    private fun loadPoints() {
+        viewModelScope.launch {
+            try {
+                val points = pointRepository.getMyPoints()
+                uiState = uiState.copy(myPoints = points)
+            } catch (_: Exception) {
+                // ポイント取得失敗は致命的でないので無視
+            }
+        }
+    }
+
+    fun onSelectTab(tab: QuestTab) {
+        uiState = uiState.copy(currentTab = tab)
+        when (tab) {
+            QuestTab.Board -> loadQuests()
+            QuestTab.Rewards -> loadRewards()
+            QuestTab.History -> loadHistory()
+        }
+    }
+
+    private fun loadRewards() {
+        uiState = uiState.copy(isLoading = true)
+        viewModelScope.launch {
+            try {
+                val rewards = rewardRepository.getRewards()
+                val ranking = pointRepository.getRanking()
+                uiState = uiState.copy(rewards = rewards, ranking = ranking, isLoading = false)
+            } catch (e: Exception) {
+                uiState = uiState.copy(error = e.message, isLoading = false)
+            }
+        }
+    }
+
+    private fun loadHistory() {
+        uiState = uiState.copy(isLoading = true)
+        viewModelScope.launch {
+            try {
+                val history = pointRepository.getHistory()
+                uiState = uiState.copy(history = history, isLoading = false)
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message, isLoading = false)
             }
@@ -106,6 +172,7 @@ class QuestViewModel(
             try {
                 val updated = questRepository.verifyQuest(id)
                 uiState = uiState.copy(quests = uiState.quests.map { if (it.id == id) updated else it })
+                loadPoints()
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
             }
@@ -117,6 +184,52 @@ class QuestViewModel(
             try {
                 questRepository.deleteQuest(id)
                 uiState = uiState.copy(quests = uiState.quests.filter { it.id != id })
+            } catch (e: Exception) {
+                uiState = uiState.copy(error = e.message)
+            }
+        }
+    }
+
+    fun onExchangeReward(id: String) {
+        viewModelScope.launch {
+            try {
+                rewardRepository.exchangeReward(id)
+                loadPoints()
+                loadRewards()
+            } catch (e: Exception) {
+                uiState = uiState.copy(error = e.message)
+            }
+        }
+    }
+
+    fun onToggleCreateReward() {
+        uiState = uiState.copy(isCreatingReward = !uiState.isCreatingReward)
+    }
+
+    fun onCreateReward(
+        name: String,
+        description: String,
+        cost: Int,
+    ) {
+        viewModelScope.launch {
+            try {
+                val reward = rewardRepository.createReward(CreateRewardRequest(name, description, cost))
+                uiState =
+                    uiState.copy(
+                        rewards = uiState.rewards + reward,
+                        isCreatingReward = false,
+                    )
+            } catch (e: Exception) {
+                uiState = uiState.copy(error = e.message)
+            }
+        }
+    }
+
+    fun onDeleteReward(id: String) {
+        viewModelScope.launch {
+            try {
+                rewardRepository.deleteReward(id)
+                uiState = uiState.copy(rewards = uiState.rewards.filter { it.id != id })
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
             }
