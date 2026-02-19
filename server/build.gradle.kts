@@ -36,8 +36,8 @@ dependencies {
 
 // Compose Wasm フロントエンドのビルド出力をサーバーの静的リソースにコピー
 val copyWasmFrontend by tasks.registering(Copy::class) {
-    dependsOn(":web-frontend:wasmJsBrowserDistribution")
-    from(project(":web-frontend").layout.buildDirectory.dir("dist/wasmJs/productionExecutable"))
+    dependsOn(":app:wasmJsBrowserDistribution")
+    from(project(":app").layout.buildDirectory.dir("dist/wasmJs/productionExecutable"))
     into(layout.buildDirectory.dir("resources/main/static"))
 }
 

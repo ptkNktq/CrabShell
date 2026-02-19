@@ -17,12 +17,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
-import core.ui.theme.FeedingDoneColor
-import core.ui.theme.color
+import core.ui.extensions.FeedingDoneColor
+import core.ui.extensions.color
+import core.ui.extensions.displayOrder
+import core.ui.extensions.icon
+import core.ui.extensions.label
 import core.ui.theme.displayExLarge
-import core.ui.theme.displayOrder
-import core.ui.theme.icon
-import core.ui.theme.label
 import core.ui.util.toJstHHMM
 import model.FeedingLog
 import model.GarbageType

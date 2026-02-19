@@ -41,7 +41,7 @@ kotlin {
     wasmJs {
         browser {
             commonWebpackConfig {
-                outputFileName = "web-frontend.js"
+                outputFileName = "app.js"
             }
         }
         binaries.executable()

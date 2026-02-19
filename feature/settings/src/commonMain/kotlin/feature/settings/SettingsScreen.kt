@@ -21,9 +21,9 @@ import core.auth.AuthState
 import core.auth.AuthStateHolder
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
-import core.ui.theme.color
-import core.ui.theme.icon
-import core.ui.theme.label
+import core.ui.extensions.color
+import core.ui.extensions.icon
+import core.ui.extensions.label
 import model.CollectionFrequency
 import model.GarbageType
 import model.GarbageTypeSchedule
