@@ -10,9 +10,7 @@ kotlin {
     }
 
     sourceSets {
-        wasmJsMain.dependencies {
-            implementation(project(":core:auth"))
-            implementation(project(":core:network"))
+        commonMain.dependencies {
             implementation(project(":core:ui"))
             implementation(project(":shared"))
 
@@ -21,6 +19,12 @@ kotlin {
             implementation(compose.material3)
             implementation(compose.ui)
             implementation(compose.materialIconsExtended)
+
+            implementation(libs.koin.core)
+        }
+        wasmJsMain.dependencies {
+            implementation(project(":core:auth"))
+            implementation(project(":core:network"))
 
             implementation(libs.ktor.client.core)
 
