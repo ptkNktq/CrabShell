@@ -64,16 +64,19 @@ object PasskeyService {
 
     fun isRegistered(firebaseUid: String): Boolean =
         transaction {
-            PasskeyCredentials.selectAll()
+            PasskeyCredentials
+                .selectAll()
                 .where { PasskeyCredentials.firebaseUid eq firebaseUid }
                 .count() > 0
         }
 
     fun credentialCount(firebaseUid: String): Int =
         transaction {
-            PasskeyCredentials.selectAll()
+            PasskeyCredentials
+                .selectAll()
                 .where { PasskeyCredentials.firebaseUid eq firebaseUid }
-                .count().toInt()
+                .count()
+                .toInt()
         }
 
     fun verifyAndSaveRegistration(
@@ -126,7 +129,8 @@ object PasskeyService {
 
     fun findCredentialsByUid(firebaseUid: String): List<CredentialRecord> =
         transaction {
-            PasskeyCredentials.selectAll()
+            PasskeyCredentials
+                .selectAll()
                 .where { PasskeyCredentials.firebaseUid eq firebaseUid }
                 .map {
                     CredentialRecord(
@@ -143,7 +147,8 @@ object PasskeyService {
 
     fun findCredentialByCredentialId(credentialIdBase64: String): CredentialRecord? =
         transaction {
-            PasskeyCredentials.selectAll()
+            PasskeyCredentials
+                .selectAll()
                 .where { PasskeyCredentials.credentialIdBase64 eq credentialIdBase64 }
                 .firstOrNull()
                 ?.let {

@@ -22,7 +22,9 @@ interface MoneyRepository {
     suspend fun toggleLock(month: String): MonthlyMoney
 }
 
-class MoneyRepositoryImpl(private val client: HttpClient) : MoneyRepository {
+class MoneyRepositoryImpl(
+    private val client: HttpClient,
+) : MoneyRepository {
     override suspend fun getMonthlyMoney(month: String): MonthlyMoney = client.get("/api/money/$month").body()
 
     override suspend fun getMyMonthlyMoney(month: String): MonthlyMoney = client.get("/api/money/$month/my").body()
@@ -38,10 +40,11 @@ class MoneyRepositoryImpl(private val client: HttpClient) : MoneyRepository {
         month: String,
         record: PaymentRecord,
     ): MonthlyMoney =
-        client.post("/api/money/$month/pay") {
-            contentType(ContentType.Application.Json)
-            setBody(record)
-        }.body()
+        client
+            .post("/api/money/$month/pay") {
+                contentType(ContentType.Application.Json)
+                setBody(record)
+            }.body()
 
     override suspend fun toggleLock(month: String): MonthlyMoney = client.patch("/api/money/$month/lock").body()
 }

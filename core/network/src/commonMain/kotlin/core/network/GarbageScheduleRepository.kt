@@ -12,7 +12,9 @@ interface GarbageScheduleRepository {
     suspend fun saveSchedules(schedules: List<GarbageTypeSchedule>)
 }
 
-class GarbageScheduleRepositoryImpl(private val client: HttpClient) : GarbageScheduleRepository {
+class GarbageScheduleRepositoryImpl(
+    private val client: HttpClient,
+) : GarbageScheduleRepository {
     override suspend fun getSchedules(): List<GarbageTypeSchedule> = client.get("/api/garbage/schedule").body()
 
     override suspend fun saveSchedules(schedules: List<GarbageTypeSchedule>) {

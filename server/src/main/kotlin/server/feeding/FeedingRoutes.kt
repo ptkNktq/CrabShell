@@ -27,8 +27,13 @@ fun Route.feedingRoutes() {
                         ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "date is required"))
 
                 val doc =
-                    firestore.collection("pets").document(petId)
-                        .collection("feeding_logs").document(date).get().await()
+                    firestore
+                        .collection("pets")
+                        .document(petId)
+                        .collection("feeding_logs")
+                        .document(date)
+                        .get()
+                        .await()
 
                 if (!doc.exists()) {
                     call.respond(FeedingLog(date = date))
@@ -81,23 +86,27 @@ fun Route.feedingRoutes() {
 
                 val timestamp = Instant.now().toString()
                 val docRef =
-                    firestore.collection("pets").document(petId)
-                        .collection("feeding_logs").document(date)
+                    firestore
+                        .collection("pets")
+                        .document(petId)
+                        .collection("feeding_logs")
+                        .document(date)
 
-                docRef.set(
-                    mapOf(
-                        "date" to date,
-                        "feedings" to
-                            mapOf(
-                                mealTime.name.lowercase() to
-                                    mapOf(
-                                        "done" to true,
-                                        "timestamp" to timestamp,
-                                    ),
-                            ),
-                    ),
-                    SetOptions.mergeFields("date", "feedings.${mealTime.name.lowercase()}"),
-                ).await()
+                docRef
+                    .set(
+                        mapOf(
+                            "date" to date,
+                            "feedings" to
+                                mapOf(
+                                    mealTime.name.lowercase() to
+                                        mapOf(
+                                            "done" to true,
+                                            "timestamp" to timestamp,
+                                        ),
+                                ),
+                        ),
+                        SetOptions.mergeFields("date", "feedings.${mealTime.name.lowercase()}"),
+                    ).await()
 
                 call.respond(Feeding(done = true, timestamp = timestamp))
             }
@@ -133,8 +142,11 @@ fun Route.feedingRoutes() {
 
                 // 対象の meal が done=true か確認
                 val docRef =
-                    firestore.collection("pets").document(petId)
-                        .collection("feeding_logs").document(date)
+                    firestore
+                        .collection("pets")
+                        .document(petId)
+                        .collection("feeding_logs")
+                        .document(date)
                 val doc = docRef.get().await()
                 if (doc.exists()) {
                     @Suppress("UNCHECKED_CAST")
@@ -155,16 +167,17 @@ fun Route.feedingRoutes() {
                 }
 
                 // timestamp のみ更新
-                docRef.set(
-                    mapOf(
-                        "feedings" to
-                            mapOf(
-                                mealTime.name.lowercase() to
-                                    mapOf("timestamp" to timestamp),
-                            ),
-                    ),
-                    SetOptions.mergeFields("feedings.${mealTime.name.lowercase()}.timestamp"),
-                ).await()
+                docRef
+                    .set(
+                        mapOf(
+                            "feedings" to
+                                mapOf(
+                                    mealTime.name.lowercase() to
+                                        mapOf("timestamp" to timestamp),
+                                ),
+                        ),
+                        SetOptions.mergeFields("feedings.${mealTime.name.lowercase()}.timestamp"),
+                    ).await()
 
                 call.respond(Feeding(done = true, timestamp = timestamp))
             }
@@ -181,13 +194,17 @@ fun Route.feedingRoutes() {
                 val note = body["note"] ?: ""
 
                 val docRef =
-                    firestore.collection("pets").document(petId)
-                        .collection("feeding_logs").document(date)
+                    firestore
+                        .collection("pets")
+                        .document(petId)
+                        .collection("feeding_logs")
+                        .document(date)
 
-                docRef.set(
-                    mapOf("date" to date, "note" to note),
-                    SetOptions.mergeFields("date", "note"),
-                ).await()
+                docRef
+                    .set(
+                        mapOf("date" to date, "note" to note),
+                        SetOptions.mergeFields("date", "note"),
+                    ).await()
 
                 call.respond(mapOf("note" to note))
             }

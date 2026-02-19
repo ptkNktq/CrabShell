@@ -27,15 +27,15 @@ class PasskeySetupViewModel(
     fun checkStatus() {
         viewModelScope.launch {
             uiState = uiState.copy(isLoading = true)
-            passkeyRepository.getPasskeyStatus()
+            passkeyRepository
+                .getPasskeyStatus()
                 .onSuccess { status ->
                     if (status.registered) {
                         window.localStorage.setItem("passkey_registered", "true")
                         setupComplete = true
                     }
                     uiState = uiState.copy(isLoading = false)
-                }
-                .onFailure {
+                }.onFailure {
                     uiState = uiState.copy(isLoading = false)
                     // ステータス取得失敗時はスキップして先に進める
                     setupComplete = true
@@ -46,13 +46,13 @@ class PasskeySetupViewModel(
     fun onRegisterPasskey() {
         uiState = uiState.copy(isRegistering = true, errorMessage = null)
         viewModelScope.launch {
-            passkeyRepository.registerPasskey()
+            passkeyRepository
+                .registerPasskey()
                 .onSuccess {
                     window.localStorage.setItem("passkey_registered", "true")
                     uiState = uiState.copy(isRegistering = false)
                     setupComplete = true
-                }
-                .onFailure { e ->
+                }.onFailure { e ->
                     uiState =
                         uiState.copy(
                             isRegistering = false,

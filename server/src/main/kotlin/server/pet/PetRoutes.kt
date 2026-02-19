@@ -17,16 +17,22 @@ fun seedDefaultPet() {
     val docRef = firestore.collection("pets").document(DEFAULT_PET_ID)
     val doc = docRef.get().get()
     if (!doc.exists()) {
-        docRef.set(
-            mapOf("name" to DEFAULT_PET_NAME, "members" to emptyList<String>()),
-        ).get()
+        docRef
+            .set(
+                mapOf("name" to DEFAULT_PET_NAME, "members" to emptyList<String>()),
+            ).get()
     }
 }
 
 fun Route.petRoutes() {
     authenticated {
         get("/pets") {
-            val docs = firestore.collection("pets").get().await().documents
+            val docs =
+                firestore
+                    .collection("pets")
+                    .get()
+                    .await()
+                    .documents
             val pets =
                 docs.map { doc ->
                     Pet(id = doc.id, name = doc.getString("name") ?: "")

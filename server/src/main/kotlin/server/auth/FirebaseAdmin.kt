@@ -28,7 +28,8 @@ object FirebaseAdmin {
         }
 
         val options =
-            FirebaseOptions.builder()
+            FirebaseOptions
+                .builder()
                 .setCredentials(GoogleCredentials.fromStream(FileInputStream(file)))
                 .build()
 

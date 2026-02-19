@@ -360,7 +360,13 @@ private fun MoneyItemForm(
     var paymentAmounts by remember(key) {
         mutableStateOf(
             users.associate { user ->
-                user.uid to (item?.payments?.find { it.uid == user.uid }?.amount?.toString() ?: "")
+                user.uid to (
+                    item
+                        ?.payments
+                        ?.find { it.uid == user.uid }
+                        ?.amount
+                        ?.toString() ?: ""
+                )
             },
         )
     }
