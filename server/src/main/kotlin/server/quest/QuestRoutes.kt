@@ -11,12 +11,12 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
-import server.util.await
 import model.CreateQuestRequest
 import model.Quest
 import model.QuestStatus
 import server.auth.FirebaseTokenKey
 import server.auth.authenticated
+import server.util.await
 import java.time.Instant
 import java.time.LocalDate
 
