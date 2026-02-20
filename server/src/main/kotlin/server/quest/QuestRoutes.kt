@@ -44,10 +44,11 @@ fun Route.questRoutes() {
                         val deadline = data["deadline"] as? String
 
                         // 期限切れチェック: Open/Accepted のクエストで期限を過ぎていたら Expired に更新
+                        // deadline は "YYYY-MM-DD" or "YYYY-MM-DD HH:MM" 形式
                         val effectiveStatus =
                             if (deadline != null &&
                                 (status == "Open" || status == "Accepted") &&
-                                LocalDate.parse(deadline).isBefore(now)
+                                LocalDate.parse(deadline.take(10)).isBefore(now)
                             ) {
                                 doc.reference.update("status", "Expired").await()
                                 "Expired"
