@@ -129,7 +129,6 @@ internal fun QuestCard(
                         text = quest.description,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 3,
                     )
                 }
 
