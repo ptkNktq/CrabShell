@@ -271,14 +271,20 @@ fun Route.questRoutes() {
                 val input =
                     QuestTextInput(
                         title = request.title,
+                        description = request.description,
                         category = request.category,
                         rewardPoints = request.rewardPoints,
                         deadline = request.deadline,
                     )
 
                 try {
-                    val text = generator.generate(input)
-                    call.respond(GenerateQuestTextResponse(generatedText = text))
+                    val result = generator.generate(input)
+                    call.respond(
+                        GenerateQuestTextResponse(
+                            generatedTitle = result.title,
+                            generatedDescription = result.description,
+                        ),
+                    )
                 } catch (e: Exception) {
                     call.respond(
                         HttpStatusCode.InternalServerError,

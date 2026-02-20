@@ -63,7 +63,7 @@ internal fun CreateQuestForm(
     onCancel: () -> Unit,
     isAiAvailable: Boolean = false,
     isGenerating: Boolean = false,
-    onGenerateText: (String, QuestCategory, Int, String?, (String) -> Unit) -> Unit = { _, _, _, _, _ -> },
+    onGenerateText: (String, String, QuestCategory, Int, String?, (String, String) -> Unit) -> Unit = { _, _, _, _, _, _ -> },
     modifier: Modifier = Modifier,
     showCloseButton: Boolean = true,
     enabled: Boolean = true,
@@ -301,11 +301,13 @@ internal fun CreateQuestForm(
                     onClick = {
                         onGenerateText(
                             title,
+                            description,
                             category,
                             rewardPointsText.toIntOrNull() ?: 0,
                             deadlineStr,
-                        ) { generatedText ->
-                            description = generatedText
+                        ) { generatedTitle, generatedDescription ->
+                            title = generatedTitle
+                            description = generatedDescription
                         }
                     },
                     enabled = canGenerate,
@@ -326,7 +328,7 @@ internal fun CreateQuestForm(
                             modifier = Modifier.size(16.dp),
                         )
                         Spacer(Modifier.size(8.dp))
-                        Text("AI で説明文を生成")
+                        Text("AI で生成")
                     }
                 }
                 Spacer(Modifier.height(8.dp))

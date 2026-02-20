@@ -32,10 +32,11 @@ interface QuestRepository {
 
     suspend fun generateQuestText(
         title: String,
+        description: String,
         category: QuestCategory,
         rewardPoints: Int,
         deadline: String?,
-    ): String
+    ): GenerateQuestTextResponse
 }
 
 class QuestRepositoryImpl(
@@ -73,21 +74,22 @@ class QuestRepositoryImpl(
 
     override suspend fun generateQuestText(
         title: String,
+        description: String,
         category: QuestCategory,
         rewardPoints: Int,
         deadline: String?,
-    ): String =
+    ): GenerateQuestTextResponse =
         client
             .post("/api/quests/generate-text") {
                 contentType(ContentType.Application.Json)
                 setBody(
                     GenerateQuestTextRequest(
                         title = title,
+                        description = description,
                         category = category,
                         rewardPoints = rewardPoints,
                         deadline = deadline,
                     ),
                 )
-            }.body<GenerateQuestTextResponse>()
-            .generatedText
+            }.body()
 }
