@@ -21,8 +21,6 @@ interface QuestRepository {
 
     suspend fun acceptQuest(id: String): Quest
 
-    suspend fun completeQuest(id: String): Quest
-
     suspend fun verifyQuest(id: String): Quest
 
     suspend fun deleteQuest(id: String)
@@ -45,8 +43,6 @@ class QuestRepositoryImpl(
             }.body()
 
     override suspend fun acceptQuest(id: String): Quest = client.put("/api/quests/$id/accept").body()
-
-    override suspend fun completeQuest(id: String): Quest = client.put("/api/quests/$id/complete").body()
 
     override suspend fun verifyQuest(id: String): Quest = client.put("/api/quests/$id/verify").body()
 

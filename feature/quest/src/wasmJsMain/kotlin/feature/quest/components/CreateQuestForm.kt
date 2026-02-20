@@ -303,7 +303,7 @@ internal fun CreateQuestForm(
 
             if (!enabled) {
                 Text(
-                    "同時に発行できるクエストは3件までです",
+                    "同時に発行できるクエストは10件までです",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )
