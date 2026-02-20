@@ -384,6 +384,15 @@ internal fun CreateQuestForm(
                         rewardPointsText.toIntOrNull() ?: 0,
                         deadlineStr,
                     )
+                    title = ""
+                    description = ""
+                    category = QuestCategory.Other
+                    rewardPointsText = ""
+                    deadlineDate = ""
+                    hasTime = false
+                    deadlineHour = ""
+                    deadlineMinute = ""
+                    aiError = null
                 },
                 enabled = isValid && enabled,
                 modifier = Modifier.fillMaxWidth(),
