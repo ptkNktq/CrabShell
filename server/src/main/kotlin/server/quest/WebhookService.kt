@@ -63,18 +63,7 @@ object WebhookService {
                 val settings = getSettings()
                 if (!settings.enabled || settings.url.isBlank() || event !in settings.events) return@launch
 
-                val payload =
-                    WebhookPayload(
-                        event = event,
-                        quest =
-                            WebhookQuestData(
-                                title = quest.title,
-                                description = quest.description,
-                                rewardPoints = quest.rewardPoints,
-                                creatorName = quest.creatorName,
-                            ),
-                        timestamp = Instant.now().toString(),
-                    )
+                val payload = buildPayload(settings.url, event, quest)
 
                 client.post(settings.url) {
                     contentType(ContentType.Application.Json)
@@ -85,17 +74,129 @@ object WebhookService {
             }
         }
     }
+
+    /** URL パターンからサービスを判別しペイロードを生成 */
+    private fun buildPayload(
+        url: String,
+        event: String,
+        quest: Quest,
+    ): Any =
+        when (detectService(url)) {
+            WebhookService.Service.DISCORD -> buildDiscordPayload(event, quest)
+            WebhookService.Service.SLACK -> buildSlackPayload(event, quest)
+            WebhookService.Service.GENERIC -> buildGenericPayload(event, quest)
+        }
+
+    private fun detectService(url: String): Service {
+        val lower = url.lowercase()
+        return when {
+            "discord.com/api/webhooks/" in lower || "discordapp.com/api/webhooks/" in lower -> Service.DISCORD
+            "hooks.slack.com/services/" in lower -> Service.SLACK
+            else -> Service.GENERIC
+        }
+    }
+
+    private fun eventPrefix(event: String): String =
+        when (event) {
+            "quest_created" -> "\uD83C\uDD95 新しいクエスト"
+            "quest_verified" -> "\u2705 クエスト達成"
+            else -> event
+        }
+
+    private fun buildDiscordPayload(
+        event: String,
+        quest: Quest,
+    ): DiscordPayload {
+        val prefix = eventPrefix(event)
+        return DiscordPayload(
+            embeds =
+                listOf(
+                    DiscordEmbed(
+                        title = "$prefix: ${quest.title}",
+                        description = quest.description,
+                        color = DISCORD_EMBED_COLOR,
+                        fields =
+                            listOf(
+                                DiscordField(name = "報酬", value = "${quest.rewardPoints}pt", inline = true),
+                                DiscordField(name = "依頼者", value = quest.creatorName, inline = true),
+                            ),
+                    ),
+                ),
+        )
+    }
+
+    private fun buildSlackPayload(
+        event: String,
+        quest: Quest,
+    ): SlackPayload {
+        val prefix = eventPrefix(event)
+        return SlackPayload(
+            text = "$prefix: ${quest.title}\n${quest.description}\n報酬: ${quest.rewardPoints}pt | 依頼者: ${quest.creatorName}",
+        )
+    }
+
+    private fun buildGenericPayload(
+        event: String,
+        quest: Quest,
+    ): GenericPayload =
+        GenericPayload(
+            event = event,
+            quest =
+                GenericQuestData(
+                    title = quest.title,
+                    description = quest.description,
+                    rewardPoints = quest.rewardPoints,
+                    creatorName = quest.creatorName,
+                ),
+            timestamp = Instant.now().toString(),
+        )
+
+    private enum class Service { DISCORD, SLACK, GENERIC }
+
+    /** Discord embed カラー (紫系: #58ACFF) */
+    private const val DISCORD_EMBED_COLOR = 5814783
 }
 
+// --- Discord ペイロード ---
+
 @Serializable
-private data class WebhookPayload(
+private data class DiscordPayload(
+    val embeds: List<DiscordEmbed>,
+)
+
+@Serializable
+private data class DiscordEmbed(
+    val title: String,
+    val description: String,
+    val color: Int,
+    val fields: List<DiscordField>,
+)
+
+@Serializable
+private data class DiscordField(
+    val name: String,
+    val value: String,
+    val inline: Boolean = false,
+)
+
+// --- Slack ペイロード ---
+
+@Serializable
+private data class SlackPayload(
+    val text: String,
+)
+
+// --- 汎用ペイロード (従来互換) ---
+
+@Serializable
+private data class GenericPayload(
     val event: String,
-    val quest: WebhookQuestData,
+    val quest: GenericQuestData,
     val timestamp: String,
 )
 
 @Serializable
-private data class WebhookQuestData(
+private data class GenericQuestData(
     val title: String,
     val description: String,
     val rewardPoints: Int,
