@@ -206,6 +206,7 @@ internal fun QuestBoardContent(
                     rewards = rewards,
                     myPoints = myPoints,
                     isLoading = isLoading,
+                    currentUserUid = currentUserUid,
                     isAdmin = isAdmin,
                     isCreatingReward = isCreatingReward,
                     onExchange = onExchangeReward,
@@ -424,6 +425,7 @@ private fun RewardsTab(
     rewards: List<Reward>,
     myPoints: UserPoints?,
     isLoading: Boolean,
+    currentUserUid: String,
     isAdmin: Boolean,
     isCreatingReward: Boolean,
     onExchange: (String) -> Unit,
@@ -446,7 +448,7 @@ private fun RewardsTab(
         modifier = modifier.verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        if (isAdmin && !isCreatingReward) {
+        if (!isCreatingReward) {
             Button(
                 onClick = onToggleCreateReward,
                 modifier = Modifier.padding(bottom = 12.dp),
@@ -460,7 +462,6 @@ private fun RewardsTab(
             }
         }
 
-        // 報酬作成フォーム (admin)
         if (isCreatingReward) {
             CreateRewardForm(
                 onSubmit = onCreateReward,
@@ -485,7 +486,7 @@ private fun RewardsTab(
             RewardCard(
                 reward = reward,
                 canExchange = (myPoints?.balance ?: 0) >= reward.cost && reward.isAvailable,
-                isAdmin = isAdmin,
+                canDelete = reward.creatorUid == currentUserUid || isAdmin,
                 onExchange = { onExchange(reward.id) },
                 onDelete = { onDeleteReward(reward.id) },
             )
@@ -497,7 +498,7 @@ private fun RewardsTab(
 private fun RewardCard(
     reward: Reward,
     canExchange: Boolean,
-    isAdmin: Boolean,
+    canDelete: Boolean,
     onExchange: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -541,7 +542,7 @@ private fun RewardCard(
                 ) {
                     Text("交換")
                 }
-                if (isAdmin) {
+                if (canDelete) {
                     IconButton(onClick = onDelete) {
                         Icon(
                             Icons.Default.Delete,

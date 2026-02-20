@@ -25,6 +25,7 @@ data class Reward(
     val description: String = "",
     val cost: Int = 0,
     val isAvailable: Boolean = true,
+    val creatorUid: String = "",
 )
 
 @Serializable

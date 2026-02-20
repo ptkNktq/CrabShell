@@ -8,14 +8,12 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
-import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import model.CreateRewardRequest
 import model.PointHistory
 import model.Reward
 import model.UserPoints
 import server.auth.FirebaseTokenKey
-import server.auth.adminOnly
 import server.auth.authenticated
 import server.util.await
 import java.time.Instant
@@ -81,9 +79,55 @@ fun Route.pointRoutes() {
                             description = data["description"] as? String ?: "",
                             cost = (data["cost"] as? Number)?.toInt() ?: 0,
                             isAvailable = data["isAvailable"] as? Boolean ?: true,
+                            creatorUid = data["creatorUid"] as? String ?: "",
                         )
                     }
                 call.respond(rewards)
+            }
+
+            post {
+                val token = call.attributes[FirebaseTokenKey]
+                val request = call.receive<CreateRewardRequest>()
+                val rewardData =
+                    mapOf(
+                        "name" to request.name,
+                        "description" to request.description,
+                        "cost" to request.cost,
+                        "isAvailable" to true,
+                        "creatorUid" to token.uid,
+                    )
+                val docRef = firestore.collection("rewards").add(rewardData).await()
+                call.respond(
+                    HttpStatusCode.Created,
+                    Reward(
+                        id = docRef.id,
+                        name = request.name,
+                        description = request.description,
+                        cost = request.cost,
+                        creatorUid = token.uid,
+                    ),
+                )
+            }
+
+            delete("/{id}") {
+                val token = call.attributes[FirebaseTokenKey]
+                val id =
+                    call.parameters["id"]
+                        ?: return@delete call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
+
+                val doc = firestore.collection("rewards").document(id).get().await()
+                if (!doc.exists()) {
+                    return@delete call.respond(HttpStatusCode.NotFound, mapOf("error" to "Reward not found"))
+                }
+
+                val creatorUid = doc.data!!["creatorUid"] as? String ?: ""
+                val isAdmin = token.claims["admin"] == true
+                if (creatorUid != token.uid && !isAdmin) {
+                    return@delete call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only creator or admin can delete"))
+                }
+
+                firestore.collection("rewards").document(id).delete().await()
+                call.respond(HttpStatusCode.NoContent)
             }
 
             post("/{id}/exchange") {
@@ -131,71 +175,6 @@ fun Route.pointRoutes() {
                 ).await()
 
                 call.respond(HttpStatusCode.OK, mapOf("message" to "Exchanged successfully"))
-            }
-        }
-
-        adminOnly {
-            post {
-                val request = call.receive<CreateRewardRequest>()
-                val rewardData =
-                    mapOf(
-                        "name" to request.name,
-                        "description" to request.description,
-                        "cost" to request.cost,
-                        "isAvailable" to true,
-                    )
-                val docRef = firestore.collection("rewards").add(rewardData).await()
-                call.respond(
-                    HttpStatusCode.Created,
-                    Reward(
-                        id = docRef.id,
-                        name = request.name,
-                        description = request.description,
-                        cost = request.cost,
-                    ),
-                )
-            }
-
-            put("/{id}") {
-                val id =
-                    call.parameters["id"]
-                        ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
-                val request = call.receive<CreateRewardRequest>()
-
-                val doc = firestore.collection("rewards").document(id).get().await()
-                if (!doc.exists()) {
-                    return@put call.respond(HttpStatusCode.NotFound, mapOf("error" to "Reward not found"))
-                }
-
-                firestore
-                    .collection("rewards")
-                    .document(id)
-                    .update(
-                        mapOf(
-                            "name" to request.name,
-                            "description" to request.description,
-                            "cost" to request.cost,
-                        ),
-                    ).await()
-
-                call.respond(
-                    Reward(
-                        id = id,
-                        name = request.name,
-                        description = request.description,
-                        cost = request.cost,
-                        isAvailable = doc.data!!["isAvailable"] as? Boolean ?: true,
-                    ),
-                )
-            }
-
-            delete("/{id}") {
-                val id =
-                    call.parameters["id"]
-                        ?: return@delete call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
-
-                firestore.collection("rewards").document(id).delete().await()
-                call.respond(HttpStatusCode.NoContent)
             }
         }
     }
