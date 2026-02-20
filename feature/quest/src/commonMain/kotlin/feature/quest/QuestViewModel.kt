@@ -35,9 +35,9 @@ data class QuestUiState(
     val rewards: List<Reward> = emptyList(),
     val isCreatingReward: Boolean = false,
 ) {
-    /** 同時発行上限（Open + Accepted が3件未満なら作成可能） */
+    /** 同時発行上限（Open + Accepted が10件未満なら作成可能） */
     val canCreateQuest: Boolean
-        get() = quests.count { it.status == QuestStatus.Open || it.status == QuestStatus.Accepted } < 3
+        get() = quests.count { it.status == QuestStatus.Open || it.status == QuestStatus.Accepted } < 10
 }
 
 class QuestViewModel(
@@ -149,17 +149,6 @@ class QuestViewModel(
         viewModelScope.launch {
             try {
                 val updated = questRepository.acceptQuest(id)
-                uiState = uiState.copy(quests = uiState.quests.map { if (it.id == id) updated else it })
-            } catch (e: Exception) {
-                uiState = uiState.copy(error = e.message)
-            }
-        }
-    }
-
-    fun onCompleteQuest(id: String) {
-        viewModelScope.launch {
-            try {
-                val updated = questRepository.completeQuest(id)
                 uiState = uiState.copy(quests = uiState.quests.map { if (it.id == id) updated else it })
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)

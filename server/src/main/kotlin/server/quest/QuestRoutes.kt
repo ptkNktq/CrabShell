@@ -20,7 +20,7 @@ import server.util.await
 import java.time.Instant
 import java.time.LocalDate
 
-private const val MAX_ACTIVE_QUESTS = 3
+private const val MAX_ACTIVE_QUESTS = 10
 private val firestore by lazy { FirestoreClient.getFirestore() }
 private val questsCollection by lazy { firestore.collection("quests") }
 
@@ -163,43 +163,6 @@ fun Route.questRoutes() {
                 call.respond(buildQuest(id, data, QuestStatus.Accepted, token.uid, token.name))
             }
 
-            put("/{id}/complete") {
-                val token = call.attributes[FirebaseTokenKey]
-                val id =
-                    call.parameters["id"]
-                        ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
-
-                val doc = questsCollection.document(id).get().await()
-                if (!doc.exists()) {
-                    return@put call.respond(HttpStatusCode.NotFound, mapOf("error" to "Quest not found"))
-                }
-
-                val data = doc.data!!
-                val status = data["status"] as? String ?: ""
-                val assigneeUid = data["assigneeUid"] as? String
-
-                if (status != QuestStatus.Accepted.name) {
-                    return@put call.respond(HttpStatusCode.Conflict, mapOf("error" to "Quest is not accepted"))
-                }
-                if (assigneeUid != token.uid) {
-                    return@put call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only assignee can complete"))
-                }
-
-                val now = Instant.now().toString()
-                questsCollection
-                    .document(id)
-                    .update(
-                        mapOf(
-                            "status" to QuestStatus.Completed.name,
-                            "completedAt" to now,
-                        ),
-                    ).await()
-
-                call.respond(
-                    buildQuest(id, data, QuestStatus.Completed).copy(completedAt = now),
-                )
-            }
-
             put("/{id}/verify") {
                 val token = call.attributes[FirebaseTokenKey]
                 val id =
@@ -215,17 +178,22 @@ fun Route.questRoutes() {
                 val status = data["status"] as? String ?: ""
                 val creatorUid = data["creatorUid"] as? String ?: ""
 
-                if (status != QuestStatus.Completed.name) {
-                    return@put call.respond(HttpStatusCode.Conflict, mapOf("error" to "Quest is not completed"))
+                if (status != QuestStatus.Accepted.name) {
+                    return@put call.respond(HttpStatusCode.Conflict, mapOf("error" to "Quest is not accepted"))
                 }
                 if (creatorUid != token.uid) {
                     return@put call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only creator can verify"))
                 }
 
+                val now = Instant.now().toString()
                 questsCollection
                     .document(id)
-                    .update("status", QuestStatus.Verified.name)
-                    .await()
+                    .update(
+                        mapOf(
+                            "status" to QuestStatus.Verified.name,
+                            "completedAt" to now,
+                        ),
+                    ).await()
 
                 // ポイント付与
                 val assigneeUid = data["assigneeUid"] as? String
@@ -254,8 +222,8 @@ fun Route.questRoutes() {
                 val status = data["status"] as? String ?: ""
                 val creatorUid = data["creatorUid"] as? String ?: ""
 
-                if (status != QuestStatus.Open.name) {
-                    return@delete call.respond(HttpStatusCode.Conflict, mapOf("error" to "Can only delete open quests"))
+                if (status != QuestStatus.Open.name && status != QuestStatus.Expired.name) {
+                    return@delete call.respond(HttpStatusCode.Conflict, mapOf("error" to "Can only delete open or expired quests"))
                 }
                 if (creatorUid != token.uid) {
                     return@delete call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only creator can delete"))

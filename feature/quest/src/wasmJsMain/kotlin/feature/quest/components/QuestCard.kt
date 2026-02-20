@@ -25,7 +25,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,7 +46,6 @@ internal fun QuestCard(
     quest: Quest,
     currentUserUid: String,
     onAccept: () -> Unit,
-    onComplete: () -> Unit,
     onVerify: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -99,7 +97,7 @@ internal fun QuestCard(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         StatusBadge(status = quest.status)
-                        if (isCreator && quest.status == QuestStatus.Open) {
+                        if (isCreator && (quest.status == QuestStatus.Open || quest.status == QuestStatus.Expired)) {
                             IconButton(onClick = onDelete) {
                                 Icon(
                                     Icons.Default.Delete,
@@ -194,9 +192,7 @@ internal fun QuestCard(
                 QuestActionButton(
                     quest = quest,
                     isCreator = isCreator,
-                    isAssignee = isAssignee,
                     onAccept = onAccept,
-                    onComplete = onComplete,
                     onVerify = onVerify,
                 )
             }
@@ -243,9 +239,7 @@ private fun StatusBadge(status: QuestStatus) {
 private fun QuestActionButton(
     quest: Quest,
     isCreator: Boolean,
-    isAssignee: Boolean,
     onAccept: () -> Unit,
-    onComplete: () -> Unit,
     onVerify: () -> Unit,
 ) {
     when (quest.status) {
@@ -260,16 +254,6 @@ private fun QuestActionButton(
             }
         }
         QuestStatus.Accepted -> {
-            if (isAssignee) {
-                OutlinedButton(
-                    onClick = onComplete,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("達成報告")
-                }
-            }
-        }
-        QuestStatus.Completed -> {
             if (isCreator) {
                 Button(
                     onClick = onVerify,
@@ -283,6 +267,7 @@ private fun QuestActionButton(
                 }
             }
         }
+        QuestStatus.Completed,
         QuestStatus.Verified,
         QuestStatus.Expired,
         -> {}
