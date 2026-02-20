@@ -68,7 +68,8 @@ class QuestViewModel(
         viewModelScope.launch {
             try {
                 val quests =
-                    questRepository.getQuests(null)
+                    questRepository
+                        .getQuests(null)
                         .filter { it.status != QuestStatus.Verified }
                 uiState = uiState.copy(quests = quests, isLoading = false)
             } catch (e: Exception) {
