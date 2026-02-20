@@ -3,7 +3,6 @@ package server.quest
 import com.google.cloud.firestore.Query
 import com.google.firebase.cloud.FirestoreClient
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
@@ -37,7 +36,7 @@ private val questTextGenerator: QuestTextGenerator? by lazy {
         GeminiTextGenerator(
             apiKey = key,
             client =
-                HttpClient(CIO) {
+                HttpClient {
                     install(ContentNegotiation) { json() }
                 },
         )

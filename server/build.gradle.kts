@@ -33,7 +33,7 @@ dependencies {
 
     // Ktor Client (Gemini API 呼び出し用)
     implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.cio)
+    implementation(libs.ktor.client.java)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
 
