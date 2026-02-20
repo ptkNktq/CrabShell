@@ -32,6 +32,7 @@ The server listens on `0.0.0.0:8080`. Building the server automatically copies t
 # Terminal 1: API サーバー（fat JAR をビルドして直接起動）
 ./gradlew :server:buildFatJar -PskipFrontend && \
   WEBAUTHN_RP_ID=localhost WEBAUTHN_ORIGIN=http://localhost:8080,http://localhost:3000 \
+  GEMINI_API_KEY=your-api-key \
   java -jar server/build/libs/server-all.jar
 
 # Terminal 2: webpack dev server（フロントエンド開発用）
@@ -41,6 +42,15 @@ The server listens on `0.0.0.0:8080`. Building the server automatically copies t
 ```
 
 - `./gradlew :server:run` は Gradle のプロジェクトロックを保持し続けるため使用不可。fat JAR で起動すること。
+
+### 環境変数
+
+| 変数 | 説明 | 必須 |
+|------|------|------|
+| `WEBAUTHN_RP_ID` | WebAuthn の Relying Party ID（開発時は `localhost`） | はい |
+| `WEBAUTHN_ORIGIN` | WebAuthn の許可オリジン（カンマ区切り） | はい |
+| `GEMINI_API_KEY` | Google AI Studio の API キー（クエスト AI テキスト生成用） | いいえ（未設定時は AI 生成ボタン非表示） |
+| `GEMINI_MODEL` | Gemini モデル名（デフォルト: `gemini-2.5-flash`） | いいえ |
 - webpack dev server (port 3000) が `/api/*` を Ktor サーバー (port 8080) にプロキシ
 - `-PskipFrontend` を付けるとサーバービルド時に WASM フロントエンドのビルドをスキップ
 

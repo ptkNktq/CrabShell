@@ -34,6 +34,8 @@ data class QuestUiState(
     val history: List<PointHistory> = emptyList(),
     val rewards: List<Reward> = emptyList(),
     val isCreatingReward: Boolean = false,
+    val isAiAvailable: Boolean = false,
+    val isGenerating: Boolean = false,
 ) {
     /** 同時発行上限（Open + Accepted が10件未満なら作成可能） */
     val canCreateQuest: Boolean
@@ -51,6 +53,14 @@ class QuestViewModel(
     init {
         loadQuests()
         loadPoints()
+        checkAiAvailability()
+    }
+
+    private fun checkAiAvailability() {
+        viewModelScope.launch {
+            val available = questRepository.isAiAvailable()
+            uiState = uiState.copy(isAiAvailable = available)
+        }
     }
 
     fun loadQuests() {
@@ -114,6 +124,28 @@ class QuestViewModel(
 
     fun onToggleCreateForm() {
         uiState = uiState.copy(isCreating = !uiState.isCreating)
+    }
+
+    fun onGenerateText(
+        title: String,
+        description: String,
+        category: QuestCategory,
+        rewardPoints: Int,
+        deadline: String?,
+        onResult: (generatedTitle: String, generatedDescription: String) -> Unit,
+        onError: (String) -> Unit,
+    ) {
+        uiState = uiState.copy(isGenerating = true)
+        viewModelScope.launch {
+            try {
+                val response = questRepository.generateQuestText(title, description, category, rewardPoints, deadline)
+                onResult(response.generatedTitle, response.generatedDescription)
+            } catch (e: Exception) {
+                onError("AI 生成に失敗しました: ${e.message}")
+            } finally {
+                uiState = uiState.copy(isGenerating = false)
+            }
+        }
     }
 
     fun onCreateQuest(
