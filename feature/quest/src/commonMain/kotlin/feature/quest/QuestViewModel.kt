@@ -80,6 +80,7 @@ class QuestViewModel(
 
     fun onSelectTab(tab: QuestTab) {
         uiState = uiState.copy(currentTab = tab)
+        loadPoints()
         when (tab) {
             QuestTab.Board -> loadQuests()
             QuestTab.Rewards -> loadRewards()
