@@ -1,0 +1,269 @@
+@file:OptIn(ExperimentalWasmJsInterop::class)
+
+package feature.quest.components
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import core.ui.extensions.icon
+import core.ui.extensions.label
+import core.ui.util.remainingTimeJs
+import model.Quest
+import model.QuestStatus
+
+@Composable
+internal fun QuestCard(
+    quest: Quest,
+    currentUserUid: String,
+    onAccept: () -> Unit,
+    onVerify: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isCreator = quest.creatorUid == currentUserUid
+    val isAssignee = quest.assigneeUid == currentUserUid
+
+    Card(
+        modifier = modifier,
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize().clipToBounds(),
+        ) {
+            // 背景ウォーターマーク: カテゴリアイコン（大きく、薄く、回転）
+            Icon(
+                imageVector = quest.category.icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.06f),
+                modifier =
+                    Modifier
+                        .size(160.dp)
+                        .align(Alignment.BottomEnd)
+                        .offset(x = 20.dp, y = 20.dp)
+                        .graphicsLayer { rotationZ = -28f },
+            )
+
+            // カードコンテンツ
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                // ヘッダー: カテゴリ + ステータスバッジ + 削除ボタン
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = quest.category.label,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        StatusBadge(status = quest.status)
+                        if (isCreator && (quest.status == QuestStatus.Open || quest.status == QuestStatus.Expired)) {
+                            IconButton(onClick = onDelete) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "削除",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                )
+
+                // タイトル
+                Text(
+                    text = quest.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                )
+
+                // RPG風テキスト
+                if (quest.description.isNotBlank()) {
+                    Text(
+                        text = quest.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                // 報酬ポイント
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Star,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = "${quest.rewardPoints} pt",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                )
+
+                // メタ情報
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = "依頼者: ${quest.creatorName}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    quest.assigneeName?.let {
+                        Text(
+                            text = "受注者: $it",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    quest.deadline?.let { deadline ->
+                        val remaining =
+                            remember(deadline) {
+                                remainingTimeJs(deadline.toJsString()).toString()
+                            }
+                        Text(
+                            text = "期限: $deadline ($remaining)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color =
+                                if (remaining == "期限切れ") {
+                                    MaterialTheme.colorScheme.error
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                        )
+                    }
+                }
+
+                // アクションボタン
+                QuestActionButton(
+                    quest = quest,
+                    isCreator = isCreator,
+                    onAccept = onAccept,
+                    onVerify = onVerify,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatusBadge(status: QuestStatus) {
+    val (containerColor, contentColor) =
+        when (status) {
+            QuestStatus.Open ->
+                MaterialTheme.colorScheme.primaryContainer to
+                    MaterialTheme.colorScheme.onPrimaryContainer
+            QuestStatus.Accepted ->
+                MaterialTheme.colorScheme.secondaryContainer to
+                    MaterialTheme.colorScheme.onSecondaryContainer
+            QuestStatus.Completed ->
+                MaterialTheme.colorScheme.tertiaryContainer to
+                    MaterialTheme.colorScheme.onTertiaryContainer
+            QuestStatus.Verified ->
+                MaterialTheme.colorScheme.primaryContainer to
+                    MaterialTheme.colorScheme.onPrimaryContainer
+            QuestStatus.Expired ->
+                MaterialTheme.colorScheme.errorContainer to
+                    MaterialTheme.colorScheme.onErrorContainer
+        }
+
+    Surface(
+        color = containerColor,
+        shape = RoundedCornerShape(12.dp),
+    ) {
+        Text(
+            text = status.label,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = contentColor,
+        )
+    }
+}
+
+@Composable
+private fun QuestActionButton(
+    quest: Quest,
+    isCreator: Boolean,
+    onAccept: () -> Unit,
+    onVerify: () -> Unit,
+) {
+    when (quest.status) {
+        QuestStatus.Open -> {
+            if (!isCreator) {
+                Button(
+                    onClick = onAccept,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("受注する")
+                }
+            }
+        }
+        QuestStatus.Accepted -> {
+            if (isCreator) {
+                Button(
+                    onClick = onVerify,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("承認する")
+                }
+            }
+        }
+        QuestStatus.Completed,
+        QuestStatus.Verified,
+        QuestStatus.Expired,
+        -> {}
+    }
+}
