@@ -6,6 +6,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
@@ -66,13 +67,13 @@ class GeminiTextGenerator(
             ?.get("text")
             ?.jsonPrimitive
             ?.content
-            ?: throw IllegalStateException("Failed to parse Gemini response")
+            ?: throw IllegalStateException("Failed to parse Gemini response: $json")
     }
 }
 
 @Serializable
 private data class GeminiRequest(
-    val systemInstruction: GeminiContent,
+    @SerialName("system_instruction") val systemInstruction: GeminiContent,
     val contents: List<GeminiContent>,
 )
 
