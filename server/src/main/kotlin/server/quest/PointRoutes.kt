@@ -58,6 +58,8 @@ fun Route.pointRoutes() {
                                 uid = data["uid"] as? String ?: "",
                                 amount = (data["amount"] as? Number)?.toInt() ?: 0,
                                 reason = data["reason"] as? String ?: "",
+                                questId = data["questId"] as? String,
+                                rewardId = data["rewardId"] as? String,
                                 timestamp = data["timestamp"] as? String ?: "",
                             )
                         }.sortedByDescending { it.timestamp }
@@ -170,6 +172,7 @@ fun Route.pointRoutes() {
                         "uid" to token.uid,
                         "amount" to -cost,
                         "reason" to "報酬交換: $rewardName",
+                        "rewardId" to id,
                         "timestamp" to Instant.now().toString(),
                     ),
                 ).await()
@@ -186,6 +189,7 @@ suspend fun awardPoints(
     displayName: String,
     points: Int,
     reason: String,
+    questId: String? = null,
 ) {
     val pointsRef = firestore.collection("user_points").document(uid)
     val doc = pointsRef.get().await()
@@ -198,12 +202,15 @@ suspend fun awardPoints(
         ),
     ).await()
 
-    firestore.collection("point_history").add(
-        mapOf(
+    val historyData =
+        mutableMapOf<String, Any>(
             "uid" to uid,
             "amount" to points,
             "reason" to reason,
             "timestamp" to Instant.now().toString(),
-        ),
-    ).await()
+        )
+    if (questId != null) {
+        historyData["questId"] = questId
+    }
+    firestore.collection("point_history").add(historyData).await()
 }
