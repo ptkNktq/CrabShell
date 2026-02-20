@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -19,6 +21,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -75,14 +81,60 @@ internal fun QuestBoardContent(
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
-    val scrollState = rememberScrollState()
 
+    if (isCompact) {
+        CompactLayout(
+            quests = quests,
+            isLoading = isLoading,
+            error = error,
+            isCreating = isCreating,
+            canCreateQuest = canCreateQuest,
+            currentUserUid = currentUserUid,
+            onToggleCreateForm = onToggleCreateForm,
+            onCreateQuest = onCreateQuest,
+            onAcceptQuest = onAcceptQuest,
+            onCompleteQuest = onCompleteQuest,
+            onVerifyQuest = onVerifyQuest,
+            onDeleteQuest = onDeleteQuest,
+        )
+    } else {
+        ExpandedLayout(
+            quests = quests,
+            isLoading = isLoading,
+            error = error,
+            isCreating = isCreating,
+            canCreateQuest = canCreateQuest,
+            currentUserUid = currentUserUid,
+            onToggleCreateForm = onToggleCreateForm,
+            onCreateQuest = onCreateQuest,
+            onAcceptQuest = onAcceptQuest,
+            onCompleteQuest = onCompleteQuest,
+            onVerifyQuest = onVerifyQuest,
+            onDeleteQuest = onDeleteQuest,
+        )
+    }
+}
+
+@Composable
+private fun ExpandedLayout(
+    quests: List<Quest>,
+    isLoading: Boolean,
+    error: String?,
+    isCreating: Boolean,
+    canCreateQuest: Boolean,
+    currentUserUid: String,
+    onToggleCreateForm: () -> Unit,
+    onCreateQuest: (String, String, QuestCategory, Int, String?) -> Unit,
+    onAcceptQuest: (String) -> Unit,
+    onCompleteQuest: (String) -> Unit,
+    onVerifyQuest: (String) -> Unit,
+    onDeleteQuest: (String) -> Unit,
+) {
     Column(
         modifier =
             Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(if (isCompact) 12.dp else 24.dp),
+                .padding(24.dp),
     ) {
         // ヘッダー
         Row(
@@ -96,19 +148,6 @@ internal fun QuestBoardContent(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
             )
-            if (!isCreating) {
-                Button(
-                    onClick = onToggleCreateForm,
-                    enabled = canCreateQuest,
-                ) {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.padding(end = 4.dp),
-                    )
-                    Text("クエスト作成")
-                }
-            }
         }
 
         // エラー表示
@@ -121,73 +160,190 @@ internal fun QuestBoardContent(
             Spacer(Modifier.height(8.dp))
         }
 
-        // 作成フォーム
-        if (isCreating) {
-            CreateQuestForm(
-                onSubmit = onCreateQuest,
-                onCancel = onToggleCreateForm,
+        // 左: クエスト一覧、右: 投稿フォーム
+        Row(
+            modifier = Modifier.fillMaxWidth().weight(1f),
+        ) {
+            // 左カラム: クエスト一覧
+            QuestListContent(
+                quests = quests,
+                isLoading = isLoading,
+                currentUserUid = currentUserUid,
+                onAcceptQuest = onAcceptQuest,
+                onCompleteQuest = onCompleteQuest,
+                onVerifyQuest = onVerifyQuest,
+                onDeleteQuest = onDeleteQuest,
+                modifier = Modifier.weight(1f),
             )
-            Spacer(Modifier.height(16.dp))
-        }
 
-        // コンテンツ
-        when {
-            isLoading -> {
-                Box(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator()
-                }
+            Spacer(Modifier.width(24.dp))
+
+            // 右カラム: 投稿フォーム（常時表示）
+            Column(
+                modifier =
+                    Modifier
+                        .width(400.dp)
+                        .verticalScroll(rememberScrollState()),
+            ) {
+                CreateQuestForm(
+                    onSubmit = onCreateQuest,
+                    onCancel = {},
+                    showCloseButton = false,
+                    enabled = canCreateQuest,
+                )
             }
-            quests.isEmpty() -> {
-                Box(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp),
-                    contentAlignment = Alignment.Center,
+        }
+    }
+}
+
+@Composable
+private fun CompactLayout(
+    quests: List<Quest>,
+    isLoading: Boolean,
+    error: String?,
+    isCreating: Boolean,
+    canCreateQuest: Boolean,
+    currentUserUid: String,
+    onToggleCreateForm: () -> Unit,
+    onCreateQuest: (String, String, QuestCategory, Int, String?) -> Unit,
+    onAcceptQuest: (String) -> Unit,
+    onCompleteQuest: (String) -> Unit,
+    onVerifyQuest: (String) -> Unit,
+    onDeleteQuest: (String) -> Unit,
+) {
+    var showFormCompact by remember { mutableStateOf(false) }
+
+    if (isCreating || showFormCompact) {
+        // フォーム表示
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(12.dp),
+        ) {
+            CreateQuestForm(
+                onSubmit = { title, desc, cat, pts, deadline ->
+                    onCreateQuest(title, desc, cat, pts, deadline)
+                    showFormCompact = false
+                },
+                onCancel = {
+                    onToggleCreateForm()
+                    showFormCompact = false
+                },
+                showCloseButton = true,
+                enabled = canCreateQuest,
+            )
+        }
+    } else {
+        // リスト表示
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(12.dp),
+        ) {
+            // ヘッダー
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "クエスト掲示板",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Button(
+                    onClick = {
+                        showFormCompact = true
+                        onToggleCreateForm()
+                    },
+                    enabled = canCreateQuest,
                 ) {
-                    Text(
-                        "クエストはありません",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = 4.dp),
                     )
+                    Text("クエスト作成")
                 }
             }
-            else -> {
-                if (isCompact) {
-                    // Compact: 縦に並べる
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        quests.forEach { quest ->
-                            QuestCard(
-                                quest = quest,
-                                currentUserUid = currentUserUid,
-                                onAccept = { onAcceptQuest(quest.id) },
-                                onComplete = { onCompleteQuest(quest.id) },
-                                onVerify = { onVerifyQuest(quest.id) },
-                                onDelete = { onDeleteQuest(quest.id) },
-                            )
-                        }
-                    }
-                } else {
-                    // Expanded: 横に並べる（固定幅カード）
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        quests.forEach { quest ->
-                            QuestCard(
-                                quest = quest,
-                                currentUserUid = currentUserUid,
-                                onAccept = { onAcceptQuest(quest.id) },
-                                onComplete = { onCompleteQuest(quest.id) },
-                                onVerify = { onVerifyQuest(quest.id) },
-                                onDelete = { onDeleteQuest(quest.id) },
-                            )
-                        }
-                    }
+
+            // エラー表示
+            error?.let {
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Spacer(Modifier.height(8.dp))
+            }
+
+            QuestListContent(
+                quests = quests,
+                isLoading = isLoading,
+                currentUserUid = currentUserUid,
+                onAcceptQuest = onAcceptQuest,
+                onCompleteQuest = onCompleteQuest,
+                onVerifyQuest = onVerifyQuest,
+                onDeleteQuest = onDeleteQuest,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun QuestListContent(
+    quests: List<Quest>,
+    isLoading: Boolean,
+    currentUserUid: String,
+    onAcceptQuest: (String) -> Unit,
+    onCompleteQuest: (String) -> Unit,
+    onVerifyQuest: (String) -> Unit,
+    onDeleteQuest: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    when {
+        isLoading -> {
+            Box(
+                modifier = modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+        quests.isEmpty() -> {
+            Box(
+                modifier = modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "クエストはありません",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        else -> {
+            Column(
+                modifier =
+                    modifier
+                        .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                quests.forEach { quest ->
+                    QuestCard(
+                        quest = quest,
+                        currentUserUid = currentUserUid,
+                        onAccept = { onAcceptQuest(quest.id) },
+                        onComplete = { onCompleteQuest(quest.id) },
+                        onVerify = { onVerifyQuest(quest.id) },
+                        onDelete = { onDeleteQuest(quest.id) },
+                        modifier = Modifier.widthIn(max = 600.dp),
+                    )
                 }
             }
         }

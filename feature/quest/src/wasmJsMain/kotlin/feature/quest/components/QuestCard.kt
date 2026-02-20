@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -43,9 +42,6 @@ import core.ui.util.remainingTimeJs
 import model.Quest
 import model.QuestStatus
 
-internal val CARD_WIDTH = 300.dp
-private val CARD_HEIGHT = 360.dp
-
 @Composable
 internal fun QuestCard(
     quest: Quest,
@@ -60,7 +56,7 @@ internal fun QuestCard(
     val isAssignee = quest.assigneeUid == currentUserUid
 
     Card(
-        modifier = modifier.width(CARD_WIDTH).height(CARD_HEIGHT),
+        modifier = modifier,
         colors =
             CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -82,26 +78,12 @@ internal fun QuestCard(
                         .graphicsLayer { rotationZ = -28f },
             )
 
-            // 削除ボタン（右上）
-            if (isCreator && quest.status == QuestStatus.Open) {
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.align(Alignment.TopEnd),
-                ) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "削除",
-                        tint = MaterialTheme.colorScheme.error,
-                    )
-                }
-            }
-
             // カードコンテンツ
             Column(
-                modifier = Modifier.fillMaxSize().padding(20.dp),
+                modifier = Modifier.fillMaxWidth().padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                // ヘッダー: ステータスバッジ
+                // ヘッダー: カテゴリ + ステータスバッジ + 削除ボタン
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -112,7 +94,22 @@ internal fun QuestCard(
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    StatusBadge(status = quest.status)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        StatusBadge(status = quest.status)
+                        if (isCreator && quest.status == QuestStatus.Open) {
+                            IconButton(onClick = onDelete) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "削除",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                        }
+                    }
                 }
 
                 HorizontalDivider(
@@ -193,8 +190,7 @@ internal fun QuestCard(
                     }
                 }
 
-                // アクションボタン（下端に固定）
-                Spacer(Modifier.weight(1f))
+                // アクションボタン
                 QuestActionButton(
                     quest = quest,
                     isCreator = isCreator,
@@ -261,8 +257,6 @@ private fun QuestActionButton(
                 ) {
                     Text("受注する")
                 }
-            } else {
-                Spacer(Modifier.height(0.dp))
             }
         }
         QuestStatus.Accepted -> {
@@ -273,8 +267,6 @@ private fun QuestActionButton(
                 ) {
                     Text("達成報告")
                 }
-            } else {
-                Spacer(Modifier.height(0.dp))
             }
         }
         QuestStatus.Completed -> {
@@ -289,14 +281,10 @@ private fun QuestActionButton(
                 ) {
                     Text("承認する")
                 }
-            } else {
-                Spacer(Modifier.height(0.dp))
             }
         }
         QuestStatus.Verified,
         QuestStatus.Expired,
-        -> {
-            Spacer(Modifier.height(0.dp))
-        }
+        -> {}
     }
 }
