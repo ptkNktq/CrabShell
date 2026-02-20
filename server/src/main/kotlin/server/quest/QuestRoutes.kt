@@ -2,7 +2,10 @@ package server.quest
 
 import com.google.cloud.firestore.Query
 import com.google.firebase.cloud.FirestoreClient
+import io.ktor.client.HttpClient
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.HttpStatusCode
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -12,6 +15,8 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import model.CreateQuestRequest
+import model.GenerateQuestTextRequest
+import model.GenerateQuestTextResponse
 import model.Quest
 import model.QuestStatus
 import server.auth.FirebaseTokenKey
@@ -23,6 +28,20 @@ import java.time.LocalDate
 private const val MAX_ACTIVE_QUESTS = 10
 private val firestore by lazy { FirestoreClient.getFirestore() }
 private val questsCollection by lazy { firestore.collection("quests") }
+
+private val geminiApiKey: String? = System.getenv("GEMINI_API_KEY")
+
+private val questTextGenerator: QuestTextGenerator? by lazy {
+    geminiApiKey?.let { key ->
+        GeminiTextGenerator(
+            apiKey = key,
+            client =
+                HttpClient {
+                    install(ContentNegotiation) { json() }
+                },
+        )
+    }
+}
 
 fun Route.questRoutes() {
     route("/quests") {
@@ -231,6 +250,46 @@ fun Route.questRoutes() {
 
                 questsCollection.document(id).delete().await()
                 call.respond(HttpStatusCode.NoContent)
+            }
+
+            // AI テキスト生成が利用可能かどうかを返す
+            get("/ai-available") {
+                call.respond(mapOf("available" to (questTextGenerator != null)))
+            }
+
+            // Gemini でクエスト説明文を AI 生成する
+            post("/generate-text") {
+                val generator =
+                    questTextGenerator
+                        ?: return@post call.respond(
+                            HttpStatusCode.ServiceUnavailable,
+                            mapOf("error" to "AI text generation is not configured"),
+                        )
+
+                val request = call.receive<GenerateQuestTextRequest>()
+                val input =
+                    QuestTextInput(
+                        title = request.title,
+                        description = request.description,
+                        category = request.category,
+                        rewardPoints = request.rewardPoints,
+                        deadline = request.deadline,
+                    )
+
+                try {
+                    val result = generator.generate(input)
+                    call.respond(
+                        GenerateQuestTextResponse(
+                            generatedTitle = result.title,
+                            generatedDescription = result.description,
+                        ),
+                    )
+                } catch (e: Exception) {
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        mapOf("error" to "Text generation failed: ${e.message}"),
+                    )
+                }
             }
         }
     }

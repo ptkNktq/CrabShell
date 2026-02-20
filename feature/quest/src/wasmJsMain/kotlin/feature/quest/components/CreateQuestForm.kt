@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Schedule
@@ -23,6 +24,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -59,6 +61,17 @@ internal fun CreateQuestForm(
         deadline: String?,
     ) -> Unit,
     onCancel: () -> Unit,
+    isAiAvailable: Boolean = false,
+    isGenerating: Boolean = false,
+    onGenerateText: (
+        String,
+        String,
+        QuestCategory,
+        Int,
+        String?,
+        onResult: (String, String) -> Unit,
+        onError: (String) -> Unit,
+    ) -> Unit = { _, _, _, _, _, _, _ -> },
     modifier: Modifier = Modifier,
     showCloseButton: Boolean = true,
     enabled: Boolean = true,
@@ -67,6 +80,7 @@ internal fun CreateQuestForm(
     var description by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(QuestCategory.Other) }
     var rewardPointsText by remember { mutableStateOf("") }
+    var aiError by remember { mutableStateOf<String?>(null) }
 
     // 期限: 日付
     val today = remember { todayDateJs().toString() }
@@ -289,6 +303,57 @@ internal fun CreateQuestForm(
 
             Spacer(Modifier.height(8.dp))
 
+            // AI 生成ボタン
+            if (isAiAvailable) {
+                val canGenerate = title.isNotBlank() && !isGenerating
+                aiError?.let {
+                    Text(
+                        text = it,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                }
+                Button(
+                    onClick = {
+                        aiError = null
+                        onGenerateText(
+                            title,
+                            description,
+                            category,
+                            rewardPointsText.toIntOrNull() ?: 0,
+                            deadlineStr,
+                            { generatedTitle, generatedDescription ->
+                                title = generatedTitle
+                                description = generatedDescription
+                            },
+                            { error -> aiError = error },
+                        )
+                    },
+                    enabled = canGenerate,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (isGenerating) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                        Spacer(Modifier.size(8.dp))
+                        Text("生成中...")
+                    } else {
+                        Icon(
+                            Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.size(8.dp))
+                        Text("AI で生成")
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
@@ -319,6 +384,15 @@ internal fun CreateQuestForm(
                         rewardPointsText.toIntOrNull() ?: 0,
                         deadlineStr,
                     )
+                    title = ""
+                    description = ""
+                    category = QuestCategory.Other
+                    rewardPointsText = ""
+                    deadlineDate = ""
+                    hasTime = false
+                    deadlineHour = ""
+                    deadlineMinute = ""
+                    aiError = null
                 },
                 enabled = isValid && enabled,
                 modifier = Modifier.fillMaxWidth(),
