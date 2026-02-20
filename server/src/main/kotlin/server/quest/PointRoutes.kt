@@ -59,6 +59,7 @@ fun Route.pointRoutes() {
                                 amount = (data["amount"] as? Number)?.toInt() ?: 0,
                                 reason = data["reason"] as? String ?: "",
                                 questId = data["questId"] as? String,
+                                rewardId = data["rewardId"] as? String,
                                 timestamp = data["timestamp"] as? String ?: "",
                             )
                         }.sortedByDescending { it.timestamp }
@@ -171,6 +172,7 @@ fun Route.pointRoutes() {
                         "uid" to token.uid,
                         "amount" to -cost,
                         "reason" to "報酬交換: $rewardName",
+                        "rewardId" to id,
                         "timestamp" to Instant.now().toString(),
                     ),
                 ).await()

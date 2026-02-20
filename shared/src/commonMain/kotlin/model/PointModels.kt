@@ -16,6 +16,7 @@ data class PointHistory(
     val amount: Int = 0,
     val reason: String = "",
     val questId: String? = null,
+    val rewardId: String? = null,
     val timestamp: String = "",
 )
 
