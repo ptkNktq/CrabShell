@@ -133,6 +133,7 @@ class QuestViewModel(
         rewardPoints: Int,
         deadline: String?,
         onResult: (generatedTitle: String, generatedDescription: String) -> Unit,
+        onError: (String) -> Unit,
     ) {
         uiState = uiState.copy(isGenerating = true)
         viewModelScope.launch {
@@ -140,7 +141,7 @@ class QuestViewModel(
                 val response = questRepository.generateQuestText(title, description, category, rewardPoints, deadline)
                 onResult(response.generatedTitle, response.generatedDescription)
             } catch (e: Exception) {
-                uiState = uiState.copy(error = "AI 生成に失敗しました: ${e.message}")
+                onError("AI 生成に失敗しました: ${e.message}")
             } finally {
                 uiState = uiState.copy(isGenerating = false)
             }

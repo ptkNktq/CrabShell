@@ -63,7 +63,15 @@ internal fun CreateQuestForm(
     onCancel: () -> Unit,
     isAiAvailable: Boolean = false,
     isGenerating: Boolean = false,
-    onGenerateText: (String, String, QuestCategory, Int, String?, (String, String) -> Unit) -> Unit = { _, _, _, _, _, _ -> },
+    onGenerateText: (
+        String,
+        String,
+        QuestCategory,
+        Int,
+        String?,
+        onResult: (String, String) -> Unit,
+        onError: (String) -> Unit,
+    ) -> Unit = { _, _, _, _, _, _, _ -> },
     modifier: Modifier = Modifier,
     showCloseButton: Boolean = true,
     enabled: Boolean = true,
@@ -72,6 +80,7 @@ internal fun CreateQuestForm(
     var description by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(QuestCategory.Other) }
     var rewardPointsText by remember { mutableStateOf("") }
+    var aiError by remember { mutableStateOf<String?>(null) }
 
     // 期限: 日付
     val today = remember { todayDateJs().toString() }
@@ -297,18 +306,29 @@ internal fun CreateQuestForm(
             // AI 生成ボタン
             if (isAiAvailable) {
                 val canGenerate = title.isNotBlank() && !isGenerating
+                aiError?.let {
+                    Text(
+                        text = it,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                }
                 Button(
                     onClick = {
+                        aiError = null
                         onGenerateText(
                             title,
                             description,
                             category,
                             rewardPointsText.toIntOrNull() ?: 0,
                             deadlineStr,
-                        ) { generatedTitle, generatedDescription ->
-                            title = generatedTitle
-                            description = generatedDescription
-                        }
+                            { generatedTitle, generatedDescription ->
+                                title = generatedTitle
+                                description = generatedDescription
+                            },
+                            { error -> aiError = error },
+                        )
                     },
                     enabled = canGenerate,
                     modifier = Modifier.fillMaxWidth(),
