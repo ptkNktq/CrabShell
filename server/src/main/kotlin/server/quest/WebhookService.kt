@@ -2,16 +2,16 @@ package server.quest
 
 import com.google.firebase.cloud.FirestoreClient
 import io.ktor.client.HttpClient
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
-import io.ktor.http.contentType
-import io.ktor.serialization.kotlinx.json.json
+import io.ktor.http.content.TextContent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import model.Quest
 import model.WebhookSettings
 import org.slf4j.LoggerFactory
@@ -25,10 +25,8 @@ object WebhookService {
     private val settingsDoc by lazy { firestore.collection("settings").document("webhook") }
     private val scope = CoroutineScope(Dispatchers.IO)
 
-    private val client =
-        HttpClient {
-            install(ContentNegotiation) { json() }
-        }
+    private val client = HttpClient()
+    private val json = Json
 
     suspend fun getSettings(): WebhookSettings {
         val doc = settingsDoc.get().await()
@@ -66,8 +64,7 @@ object WebhookService {
                 val payload = buildPayload(settings.url, event, quest)
 
                 client.post(settings.url) {
-                    contentType(ContentType.Application.Json)
-                    setBody(payload)
+                    setBody(TextContent(payload, ContentType.Application.Json))
                 }
             } catch (e: Exception) {
                 logger.warn("Webhook delivery failed for event=$event: ${e.message}")
@@ -75,16 +72,16 @@ object WebhookService {
         }
     }
 
-    /** URL パターンからサービスを判別しペイロードを生成 */
+    /** URL パターンからサービスを判別し JSON 文字列を生成 */
     private fun buildPayload(
         url: String,
         event: String,
         quest: Quest,
-    ): Any =
+    ): String =
         when (detectService(url)) {
-            WebhookService.Service.DISCORD -> buildDiscordPayload(event, quest)
-            WebhookService.Service.SLACK -> buildSlackPayload(event, quest)
-            WebhookService.Service.GENERIC -> buildGenericPayload(event, quest)
+            Service.DISCORD -> json.encodeToString(buildDiscordPayload(event, quest))
+            Service.SLACK -> json.encodeToString(buildSlackPayload(event, quest))
+            Service.GENERIC -> json.encodeToString(buildGenericPayload(event, quest))
         }
 
     private fun detectService(url: String): Service {
