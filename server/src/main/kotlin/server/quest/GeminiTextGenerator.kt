@@ -13,7 +13,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
-private val geminiModel = System.getenv("GEMINI_MODEL") ?: "gemini-2.0-flash-lite"
+private val geminiModel = System.getenv("GEMINI_MODEL") ?: "gemini-2.5-flash"
 
 private val GEMINI_API_URL =
     "https://generativelanguage.googleapis.com/v1beta/models/$geminiModel:generateContent"
