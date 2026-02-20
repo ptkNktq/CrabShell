@@ -60,6 +60,8 @@ internal fun CreateQuestForm(
     ) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
+    showCloseButton: Boolean = true,
+    enabled: Boolean = true,
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -109,8 +111,10 @@ internal fun CreateQuestForm(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                IconButton(onClick = onCancel) {
-                    Icon(Icons.Default.Close, contentDescription = "閉じる")
+                if (showCloseButton) {
+                    IconButton(onClick = onCancel) {
+                        Icon(Icons.Default.Close, contentDescription = "閉じる")
+                    }
                 }
             }
 
@@ -297,6 +301,15 @@ internal fun CreateQuestForm(
 
             Spacer(Modifier.height(12.dp))
 
+            if (!enabled) {
+                Text(
+                    "同時に発行できるクエストは3件までです",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                Spacer(Modifier.height(4.dp))
+            }
+
             Button(
                 onClick = {
                     onSubmit(
@@ -307,7 +320,7 @@ internal fun CreateQuestForm(
                         deadlineStr,
                     )
                 },
-                enabled = isValid,
+                enabled = isValid && enabled,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("クエストを投稿")
