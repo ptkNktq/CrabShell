@@ -6,5 +6,5 @@ import org.koin.dsl.module
 
 val questModule =
     module {
-        viewModel { QuestViewModel(get()) }
+        viewModel { QuestViewModel(get(), get(), get()) }
     }
