@@ -20,6 +20,8 @@ import core.network.RewardRepository
 import core.network.RewardRepositoryImpl
 import core.network.UserRepository
 import core.network.UserRepositoryImpl
+import core.network.WebhookRepository
+import core.network.WebhookRepositoryImpl
 import core.network.createAuthenticatedClient
 import io.ktor.client.*
 import org.koin.dsl.module
@@ -37,4 +39,5 @@ val networkModule =
         single<RewardRepository> { RewardRepositoryImpl(get()) }
         single<UserRepository> { UserRepositoryImpl(get()) }
         single<PasskeyRepository> { PasskeyRepositoryImpl(get()) }
+        single<WebhookRepository> { WebhookRepositoryImpl(get()) }
     }

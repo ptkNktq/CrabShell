@@ -3,6 +3,7 @@ package feature.settings.di
 import feature.settings.GarbageScheduleViewModel
 import feature.settings.PasswordChangeViewModel
 import feature.settings.UserNameViewModel
+import feature.settings.WebhookViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
@@ -12,4 +13,5 @@ val settingsModule =
         // Admin のみ条件付き生成
         factory { UserNameViewModel(get()) }
         factory { GarbageScheduleViewModel(get()) }
+        factory { WebhookViewModel(get()) }
     }
