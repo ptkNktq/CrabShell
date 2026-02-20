@@ -189,12 +189,13 @@ fun Route.pointRoutes() {
                 }
 
                 // ポイント減算
-                pointsRef.set(
-                    mapOf(
-                        "balance" to (currentBalance - cost),
-                        "displayName" to (token.name ?: ""),
-                    ),
-                ).await()
+                pointsRef
+                    .set(
+                        mapOf(
+                            "balance" to (currentBalance - cost),
+                            "displayName" to (token.name ?: ""),
+                        ),
+                    ).await()
 
                 // 履歴追加
                 val rewardName = rewardData["name"] as? String ?: ""
@@ -231,12 +232,13 @@ suspend fun awardPoints(
     val doc = pointsRef.get().await()
     val currentBalance = if (doc.exists()) (doc.data!!["balance"] as? Number)?.toInt() ?: 0 else 0
 
-    pointsRef.set(
-        mapOf(
-            "balance" to (currentBalance + points),
-            "displayName" to displayName,
-        ),
-    ).await()
+    pointsRef
+        .set(
+            mapOf(
+                "balance" to (currentBalance + points),
+                "displayName" to displayName,
+            ),
+        ).await()
 
     val historyData =
         mutableMapOf<String, Any>(
