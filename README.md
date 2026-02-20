@@ -257,6 +257,7 @@ Firebase Auth + Passkey (WebAuthn) のハイブリッド認証。
 | `WEBAUTHN_ORIGIN` | **必須** | 許可するオリジン（カンマ区切り。例: `https://example.com`） |
 | `PASSKEY_DB_PATH` | | SQLite ファイルパス（デフォルト: `data/passkey.db`） |
 | `GEMINI_API_KEY` | | Google AI Studio の API キー（クエスト AI テキスト生成用。未設定時は AI 生成ボタン非表示） |
+| `GEMINI_MODEL` | | Gemini モデル名（デフォルト: `gemini-2.0-flash-lite`） |
 
 > `WEBAUTHN_RP_ID` / `WEBAUTHN_ORIGIN` が未設定の場合、パスキー機能は無効化されます（メール/パスワード認証のみ動作）。
 

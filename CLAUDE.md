@@ -50,6 +50,7 @@ The server listens on `0.0.0.0:8080`. Building the server automatically copies t
 | `WEBAUTHN_RP_ID` | WebAuthn の Relying Party ID（開発時は `localhost`） | はい |
 | `WEBAUTHN_ORIGIN` | WebAuthn の許可オリジン（カンマ区切り） | はい |
 | `GEMINI_API_KEY` | Google AI Studio の API キー（クエスト AI テキスト生成用） | いいえ（未設定時は AI 生成ボタン非表示） |
+| `GEMINI_MODEL` | Gemini モデル名（デフォルト: `gemini-2.0-flash-lite`） | いいえ |
 - webpack dev server (port 3000) が `/api/*` を Ktor サーバー (port 8080) にプロキシ
 - `-PskipFrontend` を付けるとサーバービルド時に WASM フロントエンドのビルドをスキップ
 
