@@ -150,8 +150,8 @@ object WebhookService {
 
     private enum class Service { DISCORD, SLACK, GENERIC }
 
-    /** Discord embed カラー (紫系: #58ACFF) */
-    private const val DISCORD_EMBED_COLOR = 5814783
+    /** Discord embed カラー (primary: #E8844A) */
+    private const val DISCORD_EMBED_COLOR = 0xE8844A
 }
 
 // --- Discord ペイロード ---
