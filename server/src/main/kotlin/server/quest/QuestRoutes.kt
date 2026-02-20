@@ -222,7 +222,7 @@ fun Route.questRoutes() {
                 val rewardPoints = (data["rewardPoints"] as? Number)?.toInt() ?: 0
                 val questTitle = data["title"] as? String ?: ""
                 if (assigneeUid != null && rewardPoints > 0) {
-                    awardPoints(assigneeUid, assigneeName, rewardPoints, "クエスト達成: $questTitle")
+                    awardPoints(assigneeUid, assigneeName, rewardPoints, "クエスト達成: $questTitle", questId = id)
                 }
 
                 val verifiedQuest = buildQuest(id, data, QuestStatus.Verified)
