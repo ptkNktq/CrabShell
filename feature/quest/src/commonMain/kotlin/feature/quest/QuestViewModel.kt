@@ -31,7 +31,6 @@ data class QuestUiState(
     val isCreating: Boolean = false,
     val currentTab: QuestTab = QuestTab.Board,
     val myPoints: UserPoints? = null,
-    val ranking: List<UserPoints> = emptyList(),
     val history: List<PointHistory> = emptyList(),
     val rewards: List<Reward> = emptyList(),
     val isCreatingReward: Boolean = false,
@@ -58,7 +57,9 @@ class QuestViewModel(
         uiState = uiState.copy(isLoading = true, error = null)
         viewModelScope.launch {
             try {
-                val quests = questRepository.getQuests(null)
+                val quests =
+                    questRepository.getQuests(null)
+                        .filter { it.status != QuestStatus.Verified }
                 uiState = uiState.copy(quests = quests, isLoading = false)
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message, isLoading = false)
@@ -91,8 +92,7 @@ class QuestViewModel(
         viewModelScope.launch {
             try {
                 val rewards = rewardRepository.getRewards()
-                val ranking = pointRepository.getRanking()
-                uiState = uiState.copy(rewards = rewards, ranking = ranking, isLoading = false)
+                uiState = uiState.copy(rewards = rewards, isLoading = false)
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message, isLoading = false)
             }
@@ -170,8 +170,8 @@ class QuestViewModel(
     fun onVerifyQuest(id: String) {
         viewModelScope.launch {
             try {
-                val updated = questRepository.verifyQuest(id)
-                uiState = uiState.copy(quests = uiState.quests.map { if (it.id == id) updated else it })
+                questRepository.verifyQuest(id)
+                uiState = uiState.copy(quests = uiState.quests.filter { it.id != id })
                 loadPoints()
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)

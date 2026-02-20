@@ -42,21 +42,6 @@ fun Route.pointRoutes() {
                 )
             }
 
-            get("/ranking") {
-                val docs = firestore.collection("user_points").get().await().documents
-                val ranking =
-                    docs
-                        .map { doc ->
-                            val data = doc.data
-                            UserPoints(
-                                uid = doc.id,
-                                displayName = data["displayName"] as? String ?: "",
-                                balance = (data["balance"] as? Number)?.toInt() ?: 0,
-                            )
-                        }.sortedByDescending { it.balance }
-                call.respond(ranking)
-            }
-
             get("/history") {
                 val token = call.attributes[FirebaseTokenKey]
                 val docs =

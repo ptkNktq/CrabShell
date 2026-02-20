@@ -70,7 +70,6 @@ fun QuestScreen(vm: QuestViewModel = koinViewModel()) {
         currentUserUid = currentUserUid,
         currentTab = vm.uiState.currentTab,
         myPoints = vm.uiState.myPoints,
-        ranking = vm.uiState.ranking,
         rewards = vm.uiState.rewards,
         history = vm.uiState.history,
         isAdmin = isAdmin,
@@ -102,7 +101,6 @@ internal fun QuestBoardContent(
     currentUserUid: String,
     currentTab: QuestTab,
     myPoints: UserPoints?,
-    ranking: List<UserPoints>,
     rewards: List<Reward>,
     history: List<PointHistory>,
     isAdmin: Boolean,
@@ -209,7 +207,6 @@ internal fun QuestBoardContent(
             QuestTab.Rewards ->
                 RewardsTab(
                     rewards = rewards,
-                    ranking = ranking,
                     myPoints = myPoints,
                     isLoading = isLoading,
                     isAdmin = isAdmin,
@@ -435,7 +432,6 @@ private fun QuestListInline(
 @Composable
 private fun RewardsTab(
     rewards: List<Reward>,
-    ranking: List<UserPoints>,
     myPoints: UserPoints?,
     isLoading: Boolean,
     isAdmin: Boolean,
@@ -472,42 +468,6 @@ private fun RewardsTab(
                 )
                 Text("報酬追加")
             }
-        }
-
-        // ランキング
-        if (ranking.isNotEmpty()) {
-            Text(
-                "ポイントランキング",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Spacer(Modifier.height(8.dp))
-            ranking.forEach { user ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        ),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(
-                            user.displayName.ifBlank { user.uid.take(8) },
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Text(
-                            "${user.balance}pt",
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
-            }
-            Spacer(Modifier.height(16.dp))
         }
 
         // 報酬作成フォーム (admin)
