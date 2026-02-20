@@ -54,6 +54,19 @@ class GeminiTextGenerator(
             }
 
         val json = response.body<JsonObject>()
+
+        // API エラーレスポンスのハンドリング
+        json["error"]?.jsonObject?.let { error ->
+            val status = error["status"]?.jsonPrimitive?.content ?: ""
+            val message =
+                if (status == "RESOURCE_EXHAUSTED") {
+                    "API の利用制限に達しました。しばらく待ってから再試行してください"
+                } else {
+                    error["message"]?.jsonPrimitive?.content ?: "Gemini API エラー"
+                }
+            throw IllegalStateException(message)
+        }
+
         return json["candidates"]
             ?.jsonArray
             ?.firstOrNull()
@@ -67,7 +80,7 @@ class GeminiTextGenerator(
             ?.get("text")
             ?.jsonPrimitive
             ?.content
-            ?: throw IllegalStateException("Failed to parse Gemini response: $json")
+            ?: throw IllegalStateException("Gemini レスポンスの解析に失敗しました")
     }
 }
 
