@@ -32,6 +32,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -112,7 +113,7 @@ internal fun QuestBoardContent(
     onSelectTab: (QuestTab) -> Unit,
     onToggleCreateForm: () -> Unit,
     onCreateQuest: (String, String, QuestCategory, Int, String?) -> Unit,
-    onGenerateText: (String, QuestCategory, Int, String?, (String) -> Unit) -> Unit,
+    onGenerateText: (String, String, QuestCategory, Int, String?, (String, String) -> Unit) -> Unit,
     onAcceptQuest: (String) -> Unit,
     onVerifyQuest: (String) -> Unit,
     onDeleteQuest: (String) -> Unit,
@@ -182,8 +183,12 @@ internal fun QuestBoardContent(
             }
         }
 
-        // エラー表示
+        // エラー表示（5秒後に自動消去）
         error?.let {
+            LaunchedEffect(it) {
+                kotlinx.coroutines.delay(5000)
+                onDismissError()
+            }
             Text(
                 text = it,
                 color = MaterialTheme.colorScheme.error,
@@ -244,7 +249,7 @@ private fun BoardTab(
     isGenerating: Boolean,
     currentUserUid: String,
     onCreateQuest: (String, String, QuestCategory, Int, String?) -> Unit,
-    onGenerateText: (String, QuestCategory, Int, String?, (String) -> Unit) -> Unit,
+    onGenerateText: (String, String, QuestCategory, Int, String?, (String, String) -> Unit) -> Unit,
     onAcceptQuest: (String) -> Unit,
     onVerifyQuest: (String) -> Unit,
     onDeleteQuest: (String) -> Unit,
