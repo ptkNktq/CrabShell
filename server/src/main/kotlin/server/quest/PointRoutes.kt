@@ -25,7 +25,12 @@ fun Route.pointRoutes() {
         authenticated {
             get {
                 val token = call.attributes[FirebaseTokenKey]
-                val doc = firestore.collection("user_points").document(token.uid).get().await()
+                val doc =
+                    firestore
+                        .collection("user_points")
+                        .document(token.uid)
+                        .get()
+                        .await()
                 if (!doc.exists()) {
                     call.respond(UserPoints(uid = token.uid, displayName = token.name ?: "", balance = 0))
                     return@get
@@ -71,7 +76,12 @@ fun Route.pointRoutes() {
     route("/rewards") {
         authenticated {
             get {
-                val docs = firestore.collection("rewards").get().await().documents
+                val docs =
+                    firestore
+                        .collection("rewards")
+                        .get()
+                        .await()
+                        .documents
                 val rewards =
                     docs.map { doc ->
                         val data = doc.data
@@ -98,7 +108,11 @@ fun Route.pointRoutes() {
                         "isAvailable" to true,
                         "creatorUid" to token.uid,
                     )
-                val docRef = firestore.collection("rewards").add(rewardData).await()
+                val docRef =
+                    firestore
+                        .collection("rewards")
+                        .add(rewardData)
+                        .await()
                 call.respond(
                     HttpStatusCode.Created,
                     Reward(
@@ -117,7 +131,12 @@ fun Route.pointRoutes() {
                     call.parameters["id"]
                         ?: return@delete call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
 
-                val doc = firestore.collection("rewards").document(id).get().await()
+                val doc =
+                    firestore
+                        .collection("rewards")
+                        .document(id)
+                        .get()
+                        .await()
                 if (!doc.exists()) {
                     return@delete call.respond(HttpStatusCode.NotFound, mapOf("error" to "Reward not found"))
                 }
@@ -128,7 +147,11 @@ fun Route.pointRoutes() {
                     return@delete call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only creator or admin can delete"))
                 }
 
-                firestore.collection("rewards").document(id).delete().await()
+                firestore
+                    .collection("rewards")
+                    .document(id)
+                    .delete()
+                    .await()
                 call.respond(HttpStatusCode.NoContent)
             }
 
@@ -138,7 +161,12 @@ fun Route.pointRoutes() {
                     call.parameters["id"]
                         ?: return@post call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
 
-                val rewardDoc = firestore.collection("rewards").document(id).get().await()
+                val rewardDoc =
+                    firestore
+                        .collection("rewards")
+                        .document(id)
+                        .get()
+                        .await()
                 if (!rewardDoc.exists()) {
                     return@post call.respond(HttpStatusCode.NotFound, mapOf("error" to "Reward not found"))
                 }
@@ -149,7 +177,10 @@ fun Route.pointRoutes() {
                     return@post call.respond(HttpStatusCode.Conflict, mapOf("error" to "Reward is not available"))
                 }
 
-                val pointsRef = firestore.collection("user_points").document(token.uid)
+                val pointsRef =
+                    firestore
+                        .collection("user_points")
+                        .document(token.uid)
                 val pointsDoc = pointsRef.get().await()
                 val currentBalance = if (pointsDoc.exists()) (pointsDoc.data!!["balance"] as? Number)?.toInt() ?: 0 else 0
 
@@ -167,15 +198,17 @@ fun Route.pointRoutes() {
 
                 // 履歴追加
                 val rewardName = rewardData["name"] as? String ?: ""
-                firestore.collection("point_history").add(
-                    mapOf(
-                        "uid" to token.uid,
-                        "amount" to -cost,
-                        "reason" to "報酬交換: $rewardName",
-                        "rewardId" to id,
-                        "timestamp" to Instant.now().toString(),
-                    ),
-                ).await()
+                firestore
+                    .collection("point_history")
+                    .add(
+                        mapOf(
+                            "uid" to token.uid,
+                            "amount" to -cost,
+                            "reason" to "報酬交換: $rewardName",
+                            "rewardId" to id,
+                            "timestamp" to Instant.now().toString(),
+                        ),
+                    ).await()
 
                 call.respond(HttpStatusCode.OK, mapOf("message" to "Exchanged successfully"))
             }
@@ -191,7 +224,10 @@ suspend fun awardPoints(
     reason: String,
     questId: String? = null,
 ) {
-    val pointsRef = firestore.collection("user_points").document(uid)
+    val pointsRef =
+        firestore
+            .collection("user_points")
+            .document(uid)
     val doc = pointsRef.get().await()
     val currentBalance = if (doc.exists()) (doc.data!!["balance"] as? Number)?.toInt() ?: 0 else 0
 
@@ -212,5 +248,8 @@ suspend fun awardPoints(
     if (questId != null) {
         historyData["questId"] = questId
     }
-    firestore.collection("point_history").add(historyData).await()
+    firestore
+        .collection("point_history")
+        .add(historyData)
+        .await()
 }
