@@ -16,7 +16,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
       - name: ktlint check
         run: chmod +x gradlew && ./gradlew ktlintCheck
 
@@ -28,7 +28,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
       - name: Shared model tests
         run: chmod +x gradlew && ./gradlew :shared:jvmTest
       - name: Server unit tests
@@ -43,6 +43,6 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
       - name: Build fat JAR (server + WASM frontend)
         run: chmod +x gradlew && ./gradlew :server:buildFatJar
