@@ -1,5 +1,6 @@
 package server.report
 
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.cloud.FirestoreClient
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -7,8 +8,11 @@ import io.ktor.server.routing.get
 import model.ExpenseItem
 import model.ExpenseReport
 import model.MonthlyExpenseSummary
+import model.UserBalance
+import server.auth.adminOnly
 import server.auth.authenticated
 import server.money.parseItems
+import server.money.parsePaymentRecords
 import server.util.await
 import java.time.YearMonth
 
@@ -58,6 +62,62 @@ fun Route.reportRoutes() {
                 }
 
             call.respond(ExpenseReport(months = summaries))
+        }
+    }
+
+    // admin 専用: ユーザーごとの残額
+    adminOnly {
+        get("/report/balances") {
+            val monthStr =
+                call.request.queryParameters["month"]
+                    ?: YearMonth.now().toString()
+
+            val doc =
+                firestore
+                    .collection(MONEY_COLLECTION)
+                    .document(monthStr)
+                    .get()
+                    .await()
+
+            if (!doc.exists()) {
+                call.respond(emptyList<UserBalance>())
+                return@get
+            }
+
+            val items = parseItems(doc.get("items"))
+            val records = parsePaymentRecords(doc.get("paymentRecords"))
+
+            // ユーザーごとの割当額を集計
+            val allocatedByUser = mutableMapOf<String, Long>()
+            for (item in items) {
+                for (payment in item.payments) {
+                    allocatedByUser[payment.uid] =
+                        (allocatedByUser[payment.uid] ?: 0L) + payment.amount
+                }
+            }
+
+            // ユーザーごとの支払済み額を集計
+            val paidByUser = mutableMapOf<String, Long>()
+            for (record in records) {
+                paidByUser[record.uid] =
+                    (paidByUser[record.uid] ?: 0L) + record.amount
+            }
+
+            val allUids = allocatedByUser.keys + paidByUser.keys
+            val balances =
+                allUids.map { uid ->
+                    val displayName =
+                        try {
+                            FirebaseAuth.getInstance().getUser(uid).displayName ?: uid
+                        } catch (_: Exception) {
+                            uid
+                        }
+                    val allocated = allocatedByUser[uid] ?: 0L
+                    val paid = paidByUser[uid] ?: 0L
+                    UserBalance(uid, displayName, allocated, paid, allocated - paid)
+                }
+
+            call.respond(balances)
         }
     }
 }

@@ -20,3 +20,12 @@ data class MonthlyExpenseSummary(
 data class ExpenseReport(
     val months: List<MonthlyExpenseSummary> = emptyList(),
 )
+
+@Serializable
+data class UserBalance(
+    val uid: String,
+    val displayName: String,
+    val allocated: Long,
+    val paid: Long,
+    val remaining: Long,
+)

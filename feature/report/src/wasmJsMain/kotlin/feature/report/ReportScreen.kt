@@ -21,21 +21,33 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import core.auth.AuthState
+import core.auth.AuthStateHolder
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
 import feature.report.components.CategoryBreakdown
 import feature.report.components.MonthlyBarChart
 import feature.report.components.ReportSummaryCard
+import feature.report.components.UserBalanceCard
 import model.ExpenseReport
 import model.MonthlyExpenseSummary
+import model.UserBalance
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun ReportScreen(vm: ReportViewModel = koinViewModel()) {
     val windowSizeClass = LocalWindowSizeClass.current
+    val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
+
+    LaunchedEffect(vm.uiState.selectedMonth, isAdmin) {
+        if (isAdmin) {
+            vm.loadBalances(vm.uiState.selectedMonth)
+        }
+    }
 
     ReportContent(
         report = vm.uiState.report,
@@ -48,6 +60,7 @@ fun ReportScreen(vm: ReportViewModel = koinViewModel()) {
         onPreviousMonth = vm::onGoToPreviousMonth,
         onNextMonth = vm::onGoToNextMonth,
         windowSizeClass = windowSizeClass,
+        userBalances = if (isAdmin) vm.uiState.userBalances else emptyList(),
     )
 }
 
@@ -63,6 +76,7 @@ internal fun ReportContent(
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
+    userBalances: List<UserBalance> = emptyList(),
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
     val outerPadding = if (isCompact) 12.dp else 24.dp
@@ -117,6 +131,15 @@ internal fun ReportContent(
                             previousMonthDiff = previousMonthDiff,
                             modifier = Modifier.widthIn(max = 600.dp),
                         )
+                    }
+
+                    if (userBalances.isNotEmpty()) {
+                        item(key = "balances") {
+                            UserBalanceCard(
+                                balances = userBalances,
+                                modifier = Modifier.widthIn(max = 600.dp),
+                            )
+                        }
                     }
 
                     item(key = "chart") {
