@@ -49,7 +49,7 @@ fun UserBalanceCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "残高",
+                    text = "過払い額",
                     style = MaterialTheme.typography.titleMedium,
                 )
                 if (period.isNotEmpty()) {
@@ -70,6 +70,12 @@ fun UserBalanceCard(
                 }
             }
 
+            Text(
+                text = "※ 割当額を超えて支払った分のみ表示",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
             if (isLoading) {
@@ -81,7 +87,7 @@ fun UserBalanceCard(
                 }
             } else if (balances.isEmpty()) {
                 Text(
-                    text = "データなし",
+                    text = "該当なし",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -96,13 +102,6 @@ fun UserBalanceCard(
 
 @Composable
 private fun BalanceRow(balance: UserBalance) {
-    val color =
-        if (balance.remaining < 0) {
-            MaterialTheme.colorScheme.error
-        } else {
-            MaterialTheme.colorScheme.primary
-        }
-
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -115,20 +114,17 @@ private fun BalanceRow(balance: UserBalance) {
         Text(
             text = "¥${formatAmount(balance.remaining)}",
             style = MaterialTheme.typography.bodyMedium,
-            color = color,
+            color = MaterialTheme.colorScheme.primary,
         )
     }
 }
 
 private fun formatAmount(amount: Long): String {
     val str = amount.toString()
-    val negative = str.startsWith("-")
-    val digits = if (negative) str.substring(1) else str
     val result = StringBuilder()
-    for ((i, c) in digits.reversed().withIndex()) {
+    for ((i, c) in str.reversed().withIndex()) {
         if (i > 0 && i % 3 == 0) result.append(',')
         result.append(c)
     }
-    val formatted = result.reverse().toString()
-    return if (negative) "-$formatted" else formatted
+    return result.reverse().toString()
 }

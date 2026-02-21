@@ -66,7 +66,7 @@ fun Route.reportRoutes() {
         }
     }
 
-    // admin 専用: ユーザーごとの残額（全期間累計）
+    // admin 専用: ユーザーごとの過払い額（全期間累計、過払い時のみ）
     adminOnly {
         get("/report/balances") {
             val docs =
@@ -99,16 +99,18 @@ fun Route.reportRoutes() {
 
             val allUids = allocatedByUser.keys + paidByUser.keys
             val balances =
-                allUids.map { uid ->
+                allUids.mapNotNull { uid ->
+                    val allocated = allocatedByUser[uid] ?: 0L
+                    val paid = paidByUser[uid] ?: 0L
+                    val overpaid = paid - allocated
+                    if (overpaid <= 0L) return@mapNotNull null
                     val displayName =
                         try {
                             FirebaseAuth.getInstance().getUser(uid).displayName ?: uid
                         } catch (_: Exception) {
                             uid
                         }
-                    val allocated = allocatedByUser[uid] ?: 0L
-                    val paid = paidByUser[uid] ?: 0L
-                    UserBalance(uid, displayName, allocated, paid, paid - allocated)
+                    UserBalance(uid, displayName, allocated, paid, overpaid)
                 }
 
             months.sort()
