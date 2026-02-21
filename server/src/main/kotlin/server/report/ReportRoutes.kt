@@ -66,7 +66,7 @@ fun Route.reportRoutes() {
         }
     }
 
-    // admin 専用: ユーザーごとの過払い額（全期間累計、過払い時のみ）
+    // admin 専用: ユーザーごとの過払い額（月ごとに判定、過払い月のみ合算）
     adminOnly {
         get("/report/balances") {
             val docs =
@@ -75,42 +75,53 @@ fun Route.reportRoutes() {
                     .get()
                     .await()
 
-            val allocatedByUser = mutableMapOf<String, Long>()
-            val paidByUser = mutableMapOf<String, Long>()
+            // 月ごとにユーザー別の割当額・支払額を集計
             val months = mutableListOf<String>()
+            val overpaidByUser = mutableMapOf<String, Long>()
+            val allUids = mutableSetOf<String>()
 
             for (doc in docs.documents) {
                 months.add(doc.id)
                 val items = parseItems(doc.get("items"))
                 val records = parsePaymentRecords(doc.get("paymentRecords"))
 
+                // この月のユーザー別割当額
+                val monthAllocated = mutableMapOf<String, Long>()
                 for (item in items) {
                     for (payment in item.payments) {
-                        allocatedByUser[payment.uid] =
-                            (allocatedByUser[payment.uid] ?: 0L) + payment.amount
+                        allUids.add(payment.uid)
+                        monthAllocated[payment.uid] =
+                            (monthAllocated[payment.uid] ?: 0L) + payment.amount
                     }
                 }
 
+                // この月のユーザー別支払額
+                val monthPaid = mutableMapOf<String, Long>()
                 for (record in records) {
-                    paidByUser[record.uid] =
-                        (paidByUser[record.uid] ?: 0L) + record.amount
+                    allUids.add(record.uid)
+                    monthPaid[record.uid] =
+                        (monthPaid[record.uid] ?: 0L) + record.amount
+                }
+
+                // 過払い月のみ加算
+                val uidsInMonth = monthAllocated.keys + monthPaid.keys
+                for (uid in uidsInMonth) {
+                    val diff = (monthPaid[uid] ?: 0L) - (monthAllocated[uid] ?: 0L)
+                    if (diff > 0L) {
+                        overpaidByUser[uid] = (overpaidByUser[uid] ?: 0L) + diff
+                    }
                 }
             }
 
-            val allUids = allocatedByUser.keys + paidByUser.keys
             val balances =
-                allUids.mapNotNull { uid ->
-                    val allocated = allocatedByUser[uid] ?: 0L
-                    val paid = paidByUser[uid] ?: 0L
-                    val overpaid = paid - allocated
-                    if (overpaid <= 0L) return@mapNotNull null
+                overpaidByUser.map { (uid, overpaid) ->
                     val displayName =
                         try {
                             FirebaseAuth.getInstance().getUser(uid).displayName ?: uid
                         } catch (_: Exception) {
                             uid
                         }
-                    UserBalance(uid, displayName, allocated, paid, overpaid)
+                    UserBalance(uid, displayName, 0L, 0L, overpaid)
                 }
 
             months.sort()
