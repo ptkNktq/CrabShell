@@ -111,9 +111,9 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 
 ## Tech Stack
 
-- **Kotlin** 2.3.0, **Compose Multiplatform** 1.10.0, **Ktor** 3.4.0
+- **Kotlin** 2.3.10, **Compose Multiplatform** 1.10.1, **Ktor** 3.4.0
 - **DI**: Koin 4.2.0-RC1（Kotlin 2.3.0 wasmJs 互換の唯一のバージョン）
-- **Serialization**: kotlinx-serialization-json 1.8.1
+- **Serialization**: kotlinx-serialization-json 1.10.0
 - **Dependency versions**: managed in `gradle/libs.versions.toml` (bundles: `ktor-server`, `ktor-client`, `koin`, `exposed`)
 - **Kotlin code style**: official (set in `gradle.properties`)
 
