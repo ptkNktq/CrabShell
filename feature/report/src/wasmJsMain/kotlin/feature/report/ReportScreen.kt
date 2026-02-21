@@ -136,42 +136,37 @@ internal fun ReportContent(
             }
         } else {
             // Expanded + admin: 左右分離
+            MonthSelector(
+                month = selectedMonth,
+                onPrevious = onPreviousMonth,
+                onNext = onNextMonth,
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
             Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 // 左: レポート本体
-                Column(modifier = Modifier.weight(1f)) {
-                    MonthSelector(
-                        month = selectedMonth,
-                        onPrevious = onPreviousMonth,
-                        onNext = onNextMonth,
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    ReportMainContent(
-                        report = report,
-                        selectedMonth = selectedMonth,
-                        selectedSummary = selectedSummary,
-                        averageAmount = averageAmount,
-                        previousMonthDiff = previousMonthDiff,
-                        isLoading = isLoading,
-                        error = error,
-                        isCompact = false,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+                ReportMainContent(
+                    report = report,
+                    selectedMonth = selectedMonth,
+                    selectedSummary = selectedSummary,
+                    averageAmount = averageAmount,
+                    previousMonthDiff = previousMonthDiff,
+                    isLoading = isLoading,
+                    error = error,
+                    isCompact = false,
+                    modifier = Modifier.weight(1f),
+                )
 
                 Spacer(modifier = Modifier.width(24.dp))
 
-                // 右: 残高パネル（admin 専用）
-                // MonthSelector + Spacer(16.dp) の高さ分だけ下げる
-                Column(modifier = Modifier.width(400.dp)) {
-                    Spacer(modifier = Modifier.height(56.dp))
-                    UserBalanceCard(
-                        balances = userBalances,
-                        period = balancePeriod,
-                        isLoading = isLoadingBalances,
-                        onRefresh = onRefreshBalances,
-                    )
-                }
+                // 右: 過払いパネル（admin 専用）
+                UserBalanceCard(
+                    balances = userBalances,
+                    period = balancePeriod,
+                    isLoading = isLoadingBalances,
+                    onRefresh = onRefreshBalances,
+                    modifier = Modifier.width(400.dp),
+                )
             }
         }
     }
