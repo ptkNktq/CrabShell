@@ -1,5 +1,6 @@
 package server
 
+import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -59,6 +60,25 @@ fun Application.module() {
         // Compose Wasm フロントエンドを配信
         staticResources("/", "static") {
             default("index.html")
+            cacheControl { url ->
+                val path = url.path
+                when {
+                    // エントリーポイント: 毎回サーバーに再検証（ETag/304）
+                    path.endsWith("index.html") ||
+                        path.endsWith("app.js") ||
+                        path.endsWith("firebase-config.js") ->
+                        listOf(CacheControl.NoCache(null))
+                    // ハッシュ付きファイル（チャンク JS, WASM, フォント等）: 1年キャッシュ
+                    else ->
+                        listOf(
+                            CacheControl.MaxAge(
+                                maxAgeSeconds = 31536000,
+                                mustRevalidate = false,
+                                visibility = CacheControl.Visibility.Public,
+                            ),
+                        )
+                }
+            }
         }
     }
 }
