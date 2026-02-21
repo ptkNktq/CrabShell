@@ -30,6 +30,7 @@ dependencies {
     implementation(libs.webauthn4j.core)
     implementation(libs.bundles.exposed)
     implementation(libs.sqlite.jdbc)
+    implementation(libs.dotenv.java)
 
     // Ktor Client (Gemini API + Webhook 送信用)
     implementation(libs.ktor.client.core)
