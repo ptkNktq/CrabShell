@@ -9,7 +9,7 @@ import model.UserBalance
 interface ReportRepository {
     suspend fun getExpenseReport(center: String): ExpenseReport
 
-    suspend fun getUserBalances(month: String): List<UserBalance>
+    suspend fun getUserBalances(): List<UserBalance>
 }
 
 class ReportRepositoryImpl(
@@ -17,5 +17,5 @@ class ReportRepositoryImpl(
 ) : ReportRepository {
     override suspend fun getExpenseReport(center: String): ExpenseReport = client.get("/api/report?center=$center&range=3").body()
 
-    override suspend fun getUserBalances(month: String): List<UserBalance> = client.get("/api/report/balances?month=$month").body()
+    override suspend fun getUserBalances(): List<UserBalance> = client.get("/api/report/balances").body()
 }

@@ -89,10 +89,10 @@ class ReportViewModel(
         }
     }
 
-    fun loadBalances(month: String) {
+    fun loadBalances() {
         viewModelScope.launch {
             try {
-                val balances = reportRepository.getUserBalances(month)
+                val balances = reportRepository.getUserBalances()
                 uiState = uiState.copy(userBalances = balances)
             } catch (_: Exception) {
                 uiState = uiState.copy(userBalances = emptyList())

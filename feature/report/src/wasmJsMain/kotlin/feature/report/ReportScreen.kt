@@ -43,9 +43,9 @@ fun ReportScreen(vm: ReportViewModel = koinViewModel()) {
     val windowSizeClass = LocalWindowSizeClass.current
     val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
 
-    LaunchedEffect(vm.uiState.selectedMonth, isAdmin) {
+    LaunchedEffect(isAdmin) {
         if (isAdmin) {
-            vm.loadBalances(vm.uiState.selectedMonth)
+            vm.loadBalances()
         }
     }
 
@@ -92,7 +92,13 @@ internal fun ReportContent(
             style = if (isCompact) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.primary,
         )
-        Spacer(modifier = Modifier.height(if (isCompact) 8.dp else 16.dp))
+        if (userBalances.isNotEmpty()) {
+            UserBalanceCard(
+                balances = userBalances,
+                modifier = Modifier.widthIn(max = 600.dp),
+            )
+            Spacer(modifier = Modifier.height(if (isCompact) 8.dp else 16.dp))
+        }
 
         MonthSelector(
             month = selectedMonth,
@@ -131,15 +137,6 @@ internal fun ReportContent(
                             previousMonthDiff = previousMonthDiff,
                             modifier = Modifier.widthIn(max = 600.dp),
                         )
-                    }
-
-                    if (userBalances.isNotEmpty()) {
-                        item(key = "balances") {
-                            UserBalanceCard(
-                                balances = userBalances,
-                                modifier = Modifier.widthIn(max = 600.dp),
-                            )
-                        }
                     }
 
                     item(key = "chart") {

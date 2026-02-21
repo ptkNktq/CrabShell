@@ -65,42 +65,33 @@ fun Route.reportRoutes() {
         }
     }
 
-    // admin 専用: ユーザーごとの残額
+    // admin 専用: ユーザーごとの残額（全期間累計）
     adminOnly {
         get("/report/balances") {
-            val monthStr =
-                call.request.queryParameters["month"]
-                    ?: YearMonth.now().toString()
-
-            val doc =
+            val docs =
                 firestore
                     .collection(MONEY_COLLECTION)
-                    .document(monthStr)
                     .get()
                     .await()
 
-            if (!doc.exists()) {
-                call.respond(emptyList<UserBalance>())
-                return@get
-            }
-
-            val items = parseItems(doc.get("items"))
-            val records = parsePaymentRecords(doc.get("paymentRecords"))
-
-            // ユーザーごとの割当額を集計
             val allocatedByUser = mutableMapOf<String, Long>()
-            for (item in items) {
-                for (payment in item.payments) {
-                    allocatedByUser[payment.uid] =
-                        (allocatedByUser[payment.uid] ?: 0L) + payment.amount
-                }
-            }
-
-            // ユーザーごとの支払済み額を集計
             val paidByUser = mutableMapOf<String, Long>()
-            for (record in records) {
-                paidByUser[record.uid] =
-                    (paidByUser[record.uid] ?: 0L) + record.amount
+
+            for (doc in docs.documents) {
+                val items = parseItems(doc.get("items"))
+                val records = parsePaymentRecords(doc.get("paymentRecords"))
+
+                for (item in items) {
+                    for (payment in item.payments) {
+                        allocatedByUser[payment.uid] =
+                            (allocatedByUser[payment.uid] ?: 0L) + payment.amount
+                    }
+                }
+
+                for (record in records) {
+                    paidByUser[record.uid] =
+                        (paidByUser[record.uid] ?: 0L) + record.amount
+                }
             }
 
             val allUids = allocatedByUser.keys + paidByUser.keys
