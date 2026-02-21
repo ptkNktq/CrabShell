@@ -4,6 +4,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -35,7 +36,10 @@ import org.koin.compose.viewmodel.koinViewModel
 private val dayLabels = listOf("日", "月", "火", "水", "木", "金", "土")
 
 @Composable
-fun SettingsScreen(passwordVm: PasswordChangeViewModel = koinViewModel()) {
+fun SettingsScreen(
+    passwordVm: PasswordChangeViewModel = koinViewModel(),
+    passkeyVm: PasskeyManagementViewModel = koinViewModel(),
+) {
     val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
     val koin = getKoin()
     val userNameVm = remember(isAdmin) { if (isAdmin) koin.get<UserNameViewModel>() else null }
@@ -57,6 +61,12 @@ fun SettingsScreen(passwordVm: PasswordChangeViewModel = koinViewModel()) {
         onNewPasswordChanged = passwordVm::onNewPasswordChanged,
         onConfirmPasswordChanged = passwordVm::onConfirmPasswordChanged,
         onChangePassword = passwordVm::onChangePassword,
+        passkeyAvailable = passkeyVm.uiState.isAvailable,
+        passkeyRegistering = passkeyVm.uiState.isRegistering,
+        credentialCount = passkeyVm.uiState.credentialCount,
+        passkeyError = passkeyVm.uiState.errorMessage,
+        passkeySuccess = passkeyVm.uiState.successMessage,
+        onRegisterPasskey = passkeyVm::onRegisterPasskey,
         users = userNameVm?.uiState?.users ?: emptyList(),
         usersSaving = userNameVm?.uiState?.isSaving ?: false,
         usersMessage = userNameVm?.uiState?.message,
@@ -96,6 +106,12 @@ internal fun SettingsContent(
     onNewPasswordChanged: (String) -> Unit,
     onConfirmPasswordChanged: (String) -> Unit,
     onChangePassword: () -> Unit,
+    passkeyAvailable: Boolean = false,
+    passkeyRegistering: Boolean = false,
+    credentialCount: Int = 0,
+    passkeyError: String? = null,
+    passkeySuccess: String? = null,
+    onRegisterPasskey: () -> Unit = {},
     users: List<User>,
     usersSaving: Boolean,
     usersMessage: String?,
@@ -147,6 +163,16 @@ internal fun SettingsContent(
                     onChangePassword = onChangePassword,
                     modifier = cardModifier,
                 )
+                if (passkeyAvailable) {
+                    PasskeyManagementCard(
+                        credentialCount = credentialCount,
+                        isRegistering = passkeyRegistering,
+                        errorMessage = passkeyError,
+                        successMessage = passkeySuccess,
+                        onRegisterPasskey = onRegisterPasskey,
+                        modifier = cardModifier,
+                    )
+                }
             }
 
             if (isAdmin) {
@@ -596,6 +622,89 @@ private fun PasswordChangeCard(
                     )
                 } else {
                     Text("変更する")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PasskeyManagementCard(
+    credentialCount: Int,
+    isRegistering: Boolean,
+    errorMessage: String?,
+    successMessage: String?,
+    onRegisterPasskey: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier,
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp).fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Fingerprint,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = "パスキー管理",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+
+            Text(
+                text = "登録済み: $credentialCount 件",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Text(
+                text = "別の端末やブラウザからログインするには、パスキーを追加してください。",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+
+            if (successMessage != null) {
+                Text(
+                    text = successMessage,
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+
+            Button(
+                onClick = onRegisterPasskey,
+                modifier = Modifier.height(48.dp),
+                enabled = !isRegistering,
+            ) {
+                if (isRegistering) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                } else {
+                    Text("パスキーを追加")
                 }
             }
         }
