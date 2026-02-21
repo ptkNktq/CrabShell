@@ -5,6 +5,7 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseToken
+import server.config.EnvConfig
 import java.io.File
 import java.io.FileInputStream
 
@@ -18,7 +19,7 @@ object FirebaseAdmin {
         }
 
         val serviceAccountPath =
-            System.getenv("FIREBASE_SERVICE_ACCOUNT_PATH")
+            EnvConfig["FIREBASE_SERVICE_ACCOUNT_PATH"]
                 ?: "firebase-service-account.json"
 
         val file = File(serviceAccountPath)

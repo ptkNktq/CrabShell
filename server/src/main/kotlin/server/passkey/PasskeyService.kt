@@ -19,6 +19,7 @@ import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
+import server.config.EnvConfig
 import java.util.Base64
 
 object PasskeyService {
@@ -27,8 +28,8 @@ object PasskeyService {
     private val attestedCredentialDataConverter = AttestedCredentialDataConverter(objectConverter)
 
     val enabled: Boolean by lazy {
-        val hasRpId = System.getenv("WEBAUTHN_RP_ID") != null
-        val hasOrigin = System.getenv("WEBAUTHN_ORIGIN") != null
+        val hasRpId = EnvConfig["WEBAUTHN_RP_ID"] != null
+        val hasOrigin = EnvConfig["WEBAUTHN_ORIGIN"] != null
         if (!hasRpId || !hasOrigin) {
             println("WARNING: WEBAUTHN_RP_ID / WEBAUTHN_ORIGIN が未設定のためパスキー機能は無効です")
         }
@@ -36,11 +37,11 @@ object PasskeyService {
     }
 
     val rpId: String by lazy {
-        System.getenv("WEBAUTHN_RP_ID") ?: ""
+        EnvConfig["WEBAUTHN_RP_ID"] ?: ""
     }
 
     val allowedOrigins: Set<String> by lazy {
-        (System.getenv("WEBAUTHN_ORIGIN") ?: "")
+        (EnvConfig["WEBAUTHN_ORIGIN"] ?: "")
             .split(",")
             .map { it.trim() }
             .filter { it.isNotEmpty() }

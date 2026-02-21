@@ -22,6 +22,7 @@ import model.QuestStatus
 import model.WebhookEvent
 import server.auth.FirebaseTokenKey
 import server.auth.authenticated
+import server.config.EnvConfig
 import server.util.await
 import java.time.Instant
 import java.time.LocalDate
@@ -30,7 +31,7 @@ private const val MAX_ACTIVE_QUESTS = 10
 private val firestore by lazy { FirestoreClient.getFirestore() }
 private val questsCollection by lazy { firestore.collection("quests") }
 
-private val geminiApiKey: String? = System.getenv("GEMINI_API_KEY")
+private val geminiApiKey: String? = EnvConfig["GEMINI_API_KEY"]
 
 private val questTextGenerator: QuestTextGenerator? by lazy {
     geminiApiKey?.let { key ->
