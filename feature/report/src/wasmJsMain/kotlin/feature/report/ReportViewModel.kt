@@ -12,7 +12,6 @@ import core.network.ReportRepository
 import kotlinx.coroutines.launch
 import model.ExpenseReport
 import model.MonthlyExpenseSummary
-import model.UserBalance
 
 /** 現在の年月を "YYYY-MM" 形式で返す */
 @JsFun(
@@ -45,9 +44,6 @@ data class ReportUiState(
     val selectedMonth: String = "",
     val isLoading: Boolean = true,
     val error: String? = null,
-    val userBalances: List<UserBalance> = emptyList(),
-    val balancePeriod: String = "",
-    val isLoadingBalances: Boolean = false,
 ) {
     val selectedSummary: MonthlyExpenseSummary?
         get() = report.months.find { it.month == selectedMonth }
@@ -87,29 +83,6 @@ class ReportViewModel(
                 uiState = uiState.copy(report = report, isLoading = false)
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message, isLoading = false)
-            }
-        }
-    }
-
-    fun loadBalances() {
-        viewModelScope.launch {
-            uiState = uiState.copy(isLoadingBalances = true)
-            try {
-                val summary = reportRepository.getBalanceSummary()
-                val period =
-                    if (summary.periodStart.isNotEmpty()) {
-                        "${summary.periodStart} 〜 ${summary.periodEnd}"
-                    } else {
-                        ""
-                    }
-                uiState =
-                    uiState.copy(
-                        userBalances = summary.balances,
-                        balancePeriod = period,
-                        isLoadingBalances = false,
-                    )
-            } catch (_: Exception) {
-                uiState = uiState.copy(userBalances = emptyList(), balancePeriod = "", isLoadingBalances = false)
             }
         }
     }

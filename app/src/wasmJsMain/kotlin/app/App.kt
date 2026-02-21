@@ -26,6 +26,7 @@ import feature.feeding.FeedingScreen
 import feature.money.MoneyScreen
 import feature.payment.PaymentScreen
 import feature.quest.QuestScreen
+import feature.report.OverpaymentScreen
 import feature.report.ReportScreen
 import feature.settings.SettingsScreen
 import kotlinx.coroutines.launch
@@ -104,6 +105,7 @@ private fun ScreenContent(
         Screen.Payment -> PaymentScreen()
         Screen.Report -> ReportScreen()
         Screen.Money -> MoneyScreen()
+        Screen.Overpayment -> OverpaymentScreen()
         Screen.Quest -> QuestScreen()
         Screen.Settings -> SettingsScreen()
     }

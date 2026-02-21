@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -22,33 +21,21 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import core.auth.AuthState
-import core.auth.AuthStateHolder
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
 import feature.report.components.CategoryBreakdown
 import feature.report.components.MonthlyBarChart
 import feature.report.components.ReportSummaryCard
-import feature.report.components.UserBalanceCard
 import model.ExpenseReport
 import model.MonthlyExpenseSummary
-import model.UserBalance
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun ReportScreen(vm: ReportViewModel = koinViewModel()) {
     val windowSizeClass = LocalWindowSizeClass.current
-    val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
-
-    LaunchedEffect(isAdmin) {
-        if (isAdmin) {
-            vm.loadBalances()
-        }
-    }
 
     ReportContent(
         report = vm.uiState.report,
@@ -61,11 +48,6 @@ fun ReportScreen(vm: ReportViewModel = koinViewModel()) {
         onPreviousMonth = vm::onGoToPreviousMonth,
         onNextMonth = vm::onGoToNextMonth,
         windowSizeClass = windowSizeClass,
-        isAdmin = isAdmin,
-        userBalances = vm.uiState.userBalances,
-        balancePeriod = vm.uiState.balancePeriod,
-        isLoadingBalances = vm.uiState.isLoadingBalances,
-        onRefreshBalances = vm::loadBalances,
     )
 }
 
@@ -81,11 +63,6 @@ internal fun ReportContent(
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
-    isAdmin: Boolean = false,
-    userBalances: List<UserBalance> = emptyList(),
-    balancePeriod: String = "",
-    isLoadingBalances: Boolean = false,
-    onRefreshBalances: () -> Unit = {},
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
     val outerPadding = if (isCompact) 12.dp else 24.dp
@@ -103,72 +80,24 @@ internal fun ReportContent(
         )
         Spacer(modifier = Modifier.height(if (isCompact) 8.dp else 16.dp))
 
-        if (isCompact || !isAdmin) {
-            // Compact / 非admin: 従来の縦レイアウト
-            MonthSelector(
-                month = selectedMonth,
-                onPrevious = onPreviousMonth,
-                onNext = onNextMonth,
-            )
-            Spacer(modifier = Modifier.height(if (isCompact) 8.dp else 16.dp))
+        MonthSelector(
+            month = selectedMonth,
+            onPrevious = onPreviousMonth,
+            onNext = onNextMonth,
+        )
+        Spacer(modifier = Modifier.height(if (isCompact) 8.dp else 16.dp))
 
-            ReportMainContent(
-                report = report,
-                selectedMonth = selectedMonth,
-                selectedSummary = selectedSummary,
-                averageAmount = averageAmount,
-                previousMonthDiff = previousMonthDiff,
-                isLoading = isLoading,
-                error = error,
-                isCompact = isCompact,
-                modifier = Modifier.weight(1f),
-            )
-
-            if (isAdmin && isCompact) {
-                Spacer(modifier = Modifier.height(12.dp))
-                UserBalanceCard(
-                    balances = userBalances,
-                    period = balancePeriod,
-                    isLoading = isLoadingBalances,
-                    onRefresh = onRefreshBalances,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        } else {
-            // Expanded + admin: 左右分離
-            MonthSelector(
-                month = selectedMonth,
-                onPrevious = onPreviousMonth,
-                onNext = onNextMonth,
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                // 左: レポート本体
-                ReportMainContent(
-                    report = report,
-                    selectedMonth = selectedMonth,
-                    selectedSummary = selectedSummary,
-                    averageAmount = averageAmount,
-                    previousMonthDiff = previousMonthDiff,
-                    isLoading = isLoading,
-                    error = error,
-                    isCompact = false,
-                    modifier = Modifier.weight(1f),
-                )
-
-                Spacer(modifier = Modifier.width(24.dp))
-
-                // 右: 過払いパネル（admin 専用）
-                UserBalanceCard(
-                    balances = userBalances,
-                    period = balancePeriod,
-                    isLoading = isLoadingBalances,
-                    onRefresh = onRefreshBalances,
-                    modifier = Modifier.width(400.dp),
-                )
-            }
-        }
+        ReportMainContent(
+            report = report,
+            selectedMonth = selectedMonth,
+            selectedSummary = selectedSummary,
+            averageAmount = averageAmount,
+            previousMonthDiff = previousMonthDiff,
+            isLoading = isLoading,
+            error = error,
+            isCompact = isCompact,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
