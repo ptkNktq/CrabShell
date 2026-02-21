@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import core.ui.formatYen
 import model.UserBalance
 
 @Composable
@@ -111,19 +112,9 @@ private fun BalanceRow(balance: UserBalance) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            text = "¥${formatAmount(balance.remaining)}",
+            text = formatYen(balance.remaining),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.primary,
         )
     }
-}
-
-private fun formatAmount(amount: Long): String {
-    val str = amount.toString()
-    val result = StringBuilder()
-    for ((i, c) in str.reversed().withIndex()) {
-        if (i > 0 && i % 3 == 0) result.append(',')
-        result.append(c)
-    }
-    return result.reverse().toString()
 }

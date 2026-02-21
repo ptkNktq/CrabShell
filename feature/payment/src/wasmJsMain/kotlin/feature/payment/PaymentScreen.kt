@@ -17,6 +17,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
+import core.ui.formatYen
 import model.MoneyItem
 import model.MonthlyMoney
 import model.PaymentRecord
@@ -333,7 +334,7 @@ private fun PaymentInlineForm(
 
             if (enabled) {
                 Text(
-                    text = "残り ¥${formatAmount(remaining)}",
+                    text = "残り ${formatYen(remaining)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -508,7 +509,7 @@ private fun SummaryCard(
             ) {
                 Text("合計", style = MaterialTheme.typography.bodyMedium)
                 Text(
-                    "¥${formatAmount(totalAllocated)}",
+                    formatYen(totalAllocated),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
@@ -518,7 +519,7 @@ private fun SummaryCard(
             ) {
                 Text("支払済", style = MaterialTheme.typography.bodyMedium)
                 Text(
-                    "¥${formatAmount(totalPaid)}",
+                    formatYen(totalPaid),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -535,7 +536,7 @@ private fun SummaryCard(
             ) {
                 Text("残り", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "¥${formatAmount(remaining)}",
+                    formatYen(remaining),
                     style = MaterialTheme.typography.headlineMedium,
                     color =
                         if (remaining <= 0) {
@@ -586,7 +587,7 @@ private fun PaymentRecordCard(
                 }
             }
             Text(
-                text = "¥${formatAmount(record.amount)}",
+                text = formatYen(record.amount),
                 style = MaterialTheme.typography.titleMedium,
                 color = if (hasNote) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
             )
@@ -632,21 +633,11 @@ private fun ItemBreakdownCard(
                 }
             }
             Text(
-                text = "¥${formatAmount(myAllocation)}",
+                text = formatYen(myAllocation),
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
     }
-}
-
-private fun formatAmount(amount: Long): String {
-    val str = amount.toString()
-    val result = StringBuilder()
-    for ((i, c) in str.reversed().withIndex()) {
-        if (i > 0 && i % 3 == 0) result.append(',')
-        result.append(c)
-    }
-    return result.reverse().toString()
 }
 
 /** UTC ISO 文字列を JST (UTC+9) に変換して表示用にフォーマットする */

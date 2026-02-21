@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import core.ui.formatYen
 import model.ExpenseItem
 
 @Composable
@@ -89,7 +90,7 @@ private fun CategoryRow(
                     }
                 }
                 Text(
-                    text = "¥${formatAmount(item.amount)}",
+                    text = formatYen(item.amount),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -108,14 +109,4 @@ private fun CategoryRow(
             )
         }
     }
-}
-
-private fun formatAmount(amount: Long): String {
-    val str = amount.toString()
-    val result = StringBuilder()
-    for ((i, c) in str.reversed().withIndex()) {
-        if (i > 0 && i % 3 == 0) result.append(',')
-        result.append(c)
-    }
-    return result.reverse().toString()
 }
