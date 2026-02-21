@@ -1,14 +1,17 @@
 package feature.report.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -23,6 +26,7 @@ import model.UserBalance
 @Composable
 fun UserBalanceCard(
     balances: List<UserBalance>,
+    isLoading: Boolean,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -57,8 +61,23 @@ fun UserBalanceCard(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-            for (balance in balances) {
-                BalanceRow(balance)
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else if (balances.isEmpty()) {
+                Text(
+                    text = "データなし",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                for (balance in balances) {
+                    BalanceRow(balance)
+                }
             }
         }
     }

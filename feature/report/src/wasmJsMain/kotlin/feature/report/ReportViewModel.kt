@@ -46,6 +46,7 @@ data class ReportUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val userBalances: List<UserBalance> = emptyList(),
+    val isLoadingBalances: Boolean = false,
 ) {
     val selectedSummary: MonthlyExpenseSummary?
         get() = report.months.find { it.month == selectedMonth }
@@ -91,11 +92,12 @@ class ReportViewModel(
 
     fun loadBalances() {
         viewModelScope.launch {
+            uiState = uiState.copy(isLoadingBalances = true)
             try {
                 val balances = reportRepository.getUserBalances()
-                uiState = uiState.copy(userBalances = balances)
+                uiState = uiState.copy(userBalances = balances, isLoadingBalances = false)
             } catch (_: Exception) {
-                uiState = uiState.copy(userBalances = emptyList())
+                uiState = uiState.copy(userBalances = emptyList(), isLoadingBalances = false)
             }
         }
     }

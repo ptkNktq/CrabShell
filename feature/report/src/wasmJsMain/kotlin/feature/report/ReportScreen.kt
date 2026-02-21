@@ -3,15 +3,14 @@ package feature.report
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -62,7 +61,9 @@ fun ReportScreen(vm: ReportViewModel = koinViewModel()) {
         onPreviousMonth = vm::onGoToPreviousMonth,
         onNextMonth = vm::onGoToNextMonth,
         windowSizeClass = windowSizeClass,
-        userBalances = if (isAdmin) vm.uiState.userBalances else emptyList(),
+        isAdmin = isAdmin,
+        userBalances = vm.uiState.userBalances,
+        isLoadingBalances = vm.uiState.isLoadingBalances,
         onRefreshBalances = vm::loadBalances,
     )
 }
@@ -79,7 +80,9 @@ internal fun ReportContent(
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
+    isAdmin: Boolean = false,
     userBalances: List<UserBalance> = emptyList(),
+    isLoadingBalances: Boolean = false,
     onRefreshBalances: () -> Unit = {},
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
@@ -98,92 +101,133 @@ internal fun ReportContent(
         )
         Spacer(modifier = Modifier.height(if (isCompact) 8.dp else 16.dp))
 
-        MonthSelector(
-            month = selectedMonth,
-            onPrevious = onPreviousMonth,
-            onNext = onNextMonth,
-        )
-        Spacer(modifier = Modifier.height(if (isCompact) 8.dp else 16.dp))
+        if (isCompact || !isAdmin) {
+            // Compact / 非admin: 従来の縦レイアウト
+            MonthSelector(
+                month = selectedMonth,
+                onPrevious = onPreviousMonth,
+                onNext = onNextMonth,
+            )
+            Spacer(modifier = Modifier.height(if (isCompact) 8.dp else 16.dp))
 
-        when {
-            isLoading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator()
-                }
+            ReportMainContent(
+                report = report,
+                selectedMonth = selectedMonth,
+                selectedSummary = selectedSummary,
+                averageAmount = averageAmount,
+                previousMonthDiff = previousMonthDiff,
+                isLoading = isLoading,
+                error = error,
+                isCompact = isCompact,
+                modifier = Modifier.weight(1f),
+            )
+
+            if (isAdmin && isCompact) {
+                Spacer(modifier = Modifier.height(12.dp))
+                UserBalanceCard(
+                    balances = userBalances,
+                    isLoading = isLoadingBalances,
+                    onRefresh = onRefreshBalances,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
+        } else {
+            // Expanded + admin: 左右分離
+            Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                // 左: レポート本体
+                Column(modifier = Modifier.weight(1f)) {
+                    MonthSelector(
+                        month = selectedMonth,
+                        onPrevious = onPreviousMonth,
+                        onNext = onNextMonth,
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
 
-            error != null -> {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Text("エラー: $error", color = MaterialTheme.colorScheme.error)
+                    ReportMainContent(
+                        report = report,
+                        selectedMonth = selectedMonth,
+                        selectedSummary = selectedSummary,
+                        averageAmount = averageAmount,
+                        previousMonthDiff = previousMonthDiff,
+                        isLoading = isLoading,
+                        error = error,
+                        isCompact = false,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
+
+                Spacer(modifier = Modifier.width(24.dp))
+
+                // 右: 残高パネル（admin 専用）
+                UserBalanceCard(
+                    balances = userBalances,
+                    isLoading = isLoadingBalances,
+                    onRefresh = onRefreshBalances,
+                    modifier = Modifier.width(400.dp),
+                )
             }
+        }
+    }
+}
 
-            else -> {
-                val spacing = if (isCompact) 12.dp else 16.dp
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(spacing),
-                    contentPadding = PaddingValues(bottom = 16.dp),
-                ) {
-                    item(key = "summary") {
-                        if (userBalances.isNotEmpty() && !isCompact) {
-                            Row(
-                                modifier =
-                                    Modifier
-                                        .widthIn(max = 900.dp)
-                                        .height(IntrinsicSize.Max),
-                                horizontalArrangement = Arrangement.spacedBy(spacing),
-                            ) {
-                                ReportSummaryCard(
-                                    currentTotal = selectedSummary?.totalAmount ?: 0L,
-                                    averageAmount = averageAmount,
-                                    previousMonthDiff = previousMonthDiff,
-                                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                                )
-                                UserBalanceCard(
-                                    balances = userBalances,
-                                    onRefresh = onRefreshBalances,
-                                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                                )
-                            }
-                        } else {
-                            ReportSummaryCard(
-                                currentTotal = selectedSummary?.totalAmount ?: 0L,
-                                averageAmount = averageAmount,
-                                previousMonthDiff = previousMonthDiff,
-                                modifier = Modifier.widthIn(max = 600.dp),
-                            )
-                        }
-                    }
+@Composable
+private fun ReportMainContent(
+    report: ExpenseReport,
+    selectedMonth: String,
+    selectedSummary: MonthlyExpenseSummary?,
+    averageAmount: Long,
+    previousMonthDiff: Long?,
+    isLoading: Boolean,
+    error: String?,
+    isCompact: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    when {
+        isLoading -> {
+            Box(
+                modifier = modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
+            }
+        }
 
-                    if (userBalances.isNotEmpty() && isCompact) {
-                        item(key = "balances") {
-                            UserBalanceCard(
-                                balances = userBalances,
-                                onRefresh = onRefreshBalances,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                    }
+        error != null -> {
+            Box(modifier = modifier.fillMaxWidth()) {
+                Text("エラー: $error", color = MaterialTheme.colorScheme.error)
+            }
+        }
 
-                    item(key = "chart") {
-                        MonthlyBarChart(
-                            months = report.months,
-                            selectedMonth = selectedMonth,
-                            modifier = Modifier.widthIn(max = 600.dp),
-                        )
-                    }
+        else -> {
+            val spacing = if (isCompact) 12.dp else 16.dp
+            LazyColumn(
+                modifier = modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(spacing),
+                contentPadding = PaddingValues(bottom = 16.dp),
+            ) {
+                item(key = "summary") {
+                    ReportSummaryCard(
+                        currentTotal = selectedSummary?.totalAmount ?: 0L,
+                        averageAmount = averageAmount,
+                        previousMonthDiff = previousMonthDiff,
+                        modifier = Modifier.widthIn(max = 600.dp),
+                    )
+                }
 
-                    item(key = "breakdown") {
-                        CategoryBreakdown(
-                            items = selectedSummary?.items ?: emptyList(),
-                            totalAmount = selectedSummary?.totalAmount ?: 0L,
-                            modifier = Modifier.widthIn(max = 600.dp),
-                        )
-                    }
+                item(key = "chart") {
+                    MonthlyBarChart(
+                        months = report.months,
+                        selectedMonth = selectedMonth,
+                        modifier = Modifier.widthIn(max = 600.dp),
+                    )
+                }
+
+                item(key = "breakdown") {
+                    CategoryBreakdown(
+                        items = selectedSummary?.items ?: emptyList(),
+                        totalAmount = selectedSummary?.totalAmount ?: 0L,
+                        modifier = Modifier.widthIn(max = 600.dp),
+                    )
                 }
             }
         }
