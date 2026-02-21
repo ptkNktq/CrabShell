@@ -28,12 +28,19 @@ The server listens on `0.0.0.0:8080`. Building the server automatically copies t
 
 フロントエンドとサーバーを分離起動し、UI 変更の反映を高速化する開発モード。フルビルド（約5分）に対し、インクリメンタルビルド（数十秒）で変更を確認できる。
 
+### セットアップ
+
+```bash
+# .env ファイルを作成し、環境変数を設定
+cp .env.example .env
+# .env を編集して GEMINI_API_KEY 等を設定
+```
+
+### 起動
+
 ```bash
 # Terminal 1: API サーバー（fat JAR をビルドして直接起動）
-./gradlew :server:buildFatJar -PskipFrontend && \
-  WEBAUTHN_RP_ID=localhost WEBAUTHN_ORIGIN=http://localhost:8080,http://localhost:3000 \
-  GEMINI_API_KEY=your-api-key \
-  java -jar server/build/libs/server-all.jar
+./gradlew :server:buildFatJar -PskipFrontend && java -jar server/build/libs/server-all.jar
 
 # Terminal 2: webpack dev server（フロントエンド開発用）
 ./gradlew :app:wasmJsBrowserDevelopmentRun
@@ -45,12 +52,17 @@ The server listens on `0.0.0.0:8080`. Building the server automatically copies t
 
 ### 環境変数
 
+サーバーはプロジェクトルートの `.env` ファイルから環境変数を自動読み込みする（[dotenv-java](https://github.com/cdimascio/dotenv-java) 使用）。`.env` が存在しない場合は無視される。OS の環境変数が `.env` より優先される。
+
 | 変数 | 説明 | 必須 |
 |------|------|------|
 | `WEBAUTHN_RP_ID` | WebAuthn の Relying Party ID（開発時は `localhost`） | はい |
 | `WEBAUTHN_ORIGIN` | WebAuthn の許可オリジン（カンマ区切り） | はい |
 | `GEMINI_API_KEY` | Google AI Studio の API キー（クエスト AI テキスト生成用） | いいえ（未設定時は AI 生成ボタン非表示） |
 | `GEMINI_MODEL` | Gemini モデル名（デフォルト: `gemini-2.5-flash`） | いいえ |
+| `FIREBASE_SERVICE_ACCOUNT_PATH` | Firebase サービスアカウント JSON のパス（デフォルト: `firebase-service-account.json`） | いいえ |
+| `PASSKEY_DB_PATH` | Passkey SQLite DB のパス（デフォルト: `data/passkey.db`） | いいえ |
+
 - webpack dev server (port 3000) が `/api/*` を Ktor サーバー (port 8080) にプロキシ
 - `-PskipFrontend` を付けるとサーバービルド時に WASM フロントエンドのビルドをスキップ
 
