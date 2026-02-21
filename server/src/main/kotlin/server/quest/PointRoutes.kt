@@ -27,7 +27,7 @@ fun Route.pointRoutes() {
                 val token = call.attributes[FirebaseTokenKey]
                 val doc =
                     firestore
-                        .collection("user_points")
+                        .collection("users")
                         .document(token.uid)
                         .get()
                         .await()
@@ -49,8 +49,9 @@ fun Route.pointRoutes() {
                 val token = call.attributes[FirebaseTokenKey]
                 val docs =
                     firestore
+                        .collection("users")
+                        .document(token.uid)
                         .collection("point_history")
-                        .whereEqualTo("uid", token.uid)
                         .get()
                         .await()
                         .documents
@@ -179,7 +180,7 @@ fun Route.pointRoutes() {
 
                 val pointsRef =
                     firestore
-                        .collection("user_points")
+                        .collection("users")
                         .document(token.uid)
                 val pointsDoc = pointsRef.get().await()
                 val currentBalance = if (pointsDoc.exists()) (pointsDoc.data!!["balance"] as? Number)?.toInt() ?: 0 else 0
@@ -200,6 +201,8 @@ fun Route.pointRoutes() {
                 // 履歴追加
                 val rewardName = rewardData["name"] as? String ?: ""
                 firestore
+                    .collection("users")
+                    .document(token.uid)
                     .collection("point_history")
                     .add(
                         mapOf(
@@ -227,7 +230,7 @@ suspend fun awardPoints(
 ) {
     val pointsRef =
         firestore
-            .collection("user_points")
+            .collection("users")
             .document(uid)
     val doc = pointsRef.get().await()
     val currentBalance = if (doc.exists()) (doc.data!!["balance"] as? Number)?.toInt() ?: 0 else 0
@@ -251,6 +254,8 @@ suspend fun awardPoints(
         historyData["questId"] = questId
     }
     firestore
+        .collection("users")
+        .document(uid)
         .collection("point_history")
         .add(historyData)
         .await()
