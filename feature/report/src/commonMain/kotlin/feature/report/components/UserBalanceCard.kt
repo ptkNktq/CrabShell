@@ -5,12 +5,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import model.UserBalance
@@ -18,6 +23,7 @@ import model.UserBalance
 @Composable
 fun UserBalanceCard(
     balances: List<UserBalance>,
+    onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -31,10 +37,23 @@ fun UserBalanceCard(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                text = "ユーザー残額",
-                style = MaterialTheme.typography.titleMedium,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "残高",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = onRefresh) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "更新",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
@@ -48,7 +67,7 @@ fun UserBalanceCard(
 @Composable
 private fun BalanceRow(balance: UserBalance) {
     val color =
-        if (balance.remaining > 0) {
+        if (balance.remaining < 0) {
             MaterialTheme.colorScheme.error
         } else {
             MaterialTheme.colorScheme.primary
@@ -73,7 +92,6 @@ private fun BalanceRow(balance: UserBalance) {
 
 private fun formatAmount(amount: Long): String {
     val str = amount.toString()
-    // 負数の場合はマイナス記号を分離して処理
     val negative = str.startsWith("-")
     val digits = if (negative) str.substring(1) else str
     val result = StringBuilder()

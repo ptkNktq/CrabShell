@@ -3,9 +3,11 @@ package feature.report
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -61,6 +63,7 @@ fun ReportScreen(vm: ReportViewModel = koinViewModel()) {
         onNextMonth = vm::onGoToNextMonth,
         windowSizeClass = windowSizeClass,
         userBalances = if (isAdmin) vm.uiState.userBalances else emptyList(),
+        onRefreshBalances = vm::loadBalances,
     )
 }
 
@@ -77,6 +80,7 @@ internal fun ReportContent(
     onNextMonth: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
     userBalances: List<UserBalance> = emptyList(),
+    onRefreshBalances: () -> Unit = {},
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
     val outerPadding = if (isCompact) 12.dp else 24.dp
@@ -92,13 +96,7 @@ internal fun ReportContent(
             style = if (isCompact) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.primary,
         )
-        if (userBalances.isNotEmpty()) {
-            UserBalanceCard(
-                balances = userBalances,
-                modifier = Modifier.widthIn(max = 600.dp),
-            )
-            Spacer(modifier = Modifier.height(if (isCompact) 8.dp else 16.dp))
-        }
+        Spacer(modifier = Modifier.height(if (isCompact) 8.dp else 16.dp))
 
         MonthSelector(
             month = selectedMonth,
@@ -131,12 +129,44 @@ internal fun ReportContent(
                     contentPadding = PaddingValues(bottom = 16.dp),
                 ) {
                     item(key = "summary") {
-                        ReportSummaryCard(
-                            currentTotal = selectedSummary?.totalAmount ?: 0L,
-                            averageAmount = averageAmount,
-                            previousMonthDiff = previousMonthDiff,
-                            modifier = Modifier.widthIn(max = 600.dp),
-                        )
+                        if (userBalances.isNotEmpty() && !isCompact) {
+                            Row(
+                                modifier =
+                                    Modifier
+                                        .widthIn(max = 900.dp)
+                                        .height(IntrinsicSize.Max),
+                                horizontalArrangement = Arrangement.spacedBy(spacing),
+                            ) {
+                                ReportSummaryCard(
+                                    currentTotal = selectedSummary?.totalAmount ?: 0L,
+                                    averageAmount = averageAmount,
+                                    previousMonthDiff = previousMonthDiff,
+                                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                                )
+                                UserBalanceCard(
+                                    balances = userBalances,
+                                    onRefresh = onRefreshBalances,
+                                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                                )
+                            }
+                        } else {
+                            ReportSummaryCard(
+                                currentTotal = selectedSummary?.totalAmount ?: 0L,
+                                averageAmount = averageAmount,
+                                previousMonthDiff = previousMonthDiff,
+                                modifier = Modifier.widthIn(max = 600.dp),
+                            )
+                        }
+                    }
+
+                    if (userBalances.isNotEmpty() && isCompact) {
+                        item(key = "balances") {
+                            UserBalanceCard(
+                                balances = userBalances,
+                                onRefresh = onRefreshBalances,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
                     }
 
                     item(key = "chart") {

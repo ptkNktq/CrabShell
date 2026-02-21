@@ -105,7 +105,7 @@ fun Route.reportRoutes() {
                         }
                     val allocated = allocatedByUser[uid] ?: 0L
                     val paid = paidByUser[uid] ?: 0L
-                    UserBalance(uid, displayName, allocated, paid, allocated - paid)
+                    UserBalance(uid, displayName, allocated, paid, paid - allocated)
                 }
 
             call.respond(balances)
