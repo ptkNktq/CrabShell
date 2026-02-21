@@ -33,7 +33,7 @@ COPY core/ core/
 COPY feature/ feature/
 RUN gradle :server:buildFatJar --no-daemon
 
-FROM eclipse-temurin:21-jre-noble
+FROM eclipse-temurin:21.0.10_7-jre-noble
 WORKDIR /app
 COPY --from=build /app/server/build/libs/*-all.jar app.jar
 EXPOSE 8080
