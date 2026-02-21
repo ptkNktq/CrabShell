@@ -42,4 +42,5 @@ data class OverpaymentRedemptionRequest(
     val uid: String,
     val month: String,
     val amount: Long,
+    val note: String = "",
 )

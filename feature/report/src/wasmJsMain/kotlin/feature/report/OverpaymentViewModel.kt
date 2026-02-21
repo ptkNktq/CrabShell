@@ -15,15 +15,20 @@ import model.MonthlyMoney
 import model.OverpaymentRedemptionRequest
 import model.UserBalance
 
+private const val DEFAULT_REDEMPTION_NOTE = "過払い金から支払い"
+
 data class RedemptionFormState(
     val selectedUid: String = "",
     val selectedMonth: String = "",
     val amountText: String = "",
+    val noteText: String = "",
     val isSaving: Boolean = false,
     val error: String? = null,
     val monthData: MonthlyMoney? = null,
 ) {
     val amount: Long get() = amountText.toLongOrNull() ?: 0L
+    val effectiveNote: String
+        get() = if (noteText.isBlank()) DEFAULT_REDEMPTION_NOTE else "$DEFAULT_REDEMPTION_NOTE: $noteText"
     val isMonthLocked: Boolean get() = monthData?.locked == true
 
     /** 選択ユーザーの当月未払い額 */
@@ -119,6 +124,13 @@ class OverpaymentViewModel(
         loadMonthData()
     }
 
+    fun onRedemptionNoteChange(text: String) {
+        uiState =
+            uiState.copy(
+                redemptionForm = uiState.redemptionForm.copy(noteText = text),
+            )
+    }
+
     fun onRedemptionAmountChange(text: String) {
         uiState =
             uiState.copy(
@@ -189,6 +201,7 @@ class OverpaymentViewModel(
                         uid = form.selectedUid,
                         month = form.selectedMonth,
                         amount = form.amount,
+                        note = form.effectiveNote,
                     ),
                 )
                 onClearForm()

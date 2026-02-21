@@ -58,6 +58,7 @@ fun OverpaymentScreen(vm: OverpaymentViewModel = koinViewModel()) {
         redemptionForm = vm.uiState.redemptionForm,
         onSelectUser = vm::onSelectUser,
         onAmountChange = vm::onRedemptionAmountChange,
+        onNoteChange = vm::onRedemptionNoteChange,
         onMonthPrevious = vm::onRedemptionMonthPrevious,
         onMonthNext = vm::onRedemptionMonthNext,
         onFillRemaining = vm::onFillRemainingAmount,
@@ -76,6 +77,7 @@ internal fun OverpaymentContent(
     redemptionForm: RedemptionFormState,
     onSelectUser: (String) -> Unit,
     onAmountChange: (String) -> Unit,
+    onNoteChange: (String) -> Unit,
     onMonthPrevious: () -> Unit,
     onMonthNext: () -> Unit,
     onFillRemaining: () -> Unit,
@@ -113,6 +115,7 @@ internal fun OverpaymentContent(
             form = redemptionForm,
             onSelectUser = onSelectUser,
             onAmountChange = onAmountChange,
+            onNoteChange = onNoteChange,
             onMonthPrevious = onMonthPrevious,
             onMonthNext = onMonthNext,
             onFillRemaining = onFillRemaining,
@@ -130,6 +133,7 @@ private fun RedemptionInlineCard(
     form: RedemptionFormState,
     onSelectUser: (String) -> Unit,
     onAmountChange: (String) -> Unit,
+    onNoteChange: (String) -> Unit,
     onMonthPrevious: () -> Unit,
     onMonthNext: () -> Unit,
     onFillRemaining: () -> Unit,
@@ -250,6 +254,17 @@ private fun RedemptionInlineCard(
                     Text("残額全額", style = MaterialTheme.typography.labelSmall)
                 }
             }
+
+            // 備考
+            OutlinedTextField(
+                value = form.noteText,
+                onValueChange = onNoteChange,
+                label = { Text("備考") },
+                placeholder = { Text("過払い金から支払い") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                enabled = inputEnabled && !locked,
+            )
 
             // エラー表示
             if (form.error != null) {

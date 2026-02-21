@@ -109,7 +109,7 @@ fun Route.reportRoutes() {
                 val monthPaid = mutableMapOf<String, Long>()
                 for (record in records) {
                     allUids.add(record.uid)
-                    if (record.note == REDEMPTION_NOTE) {
+                    if (record.note.startsWith(REDEMPTION_NOTE)) {
                         redeemedByUser[record.uid] =
                             (redeemedByUser[record.uid] ?: 0L) + record.amount
                     } else {
@@ -174,7 +174,7 @@ fun Route.reportRoutes() {
                     uid = req.uid,
                     amount = req.amount,
                     paidAt = Instant.now().toString(),
-                    note = REDEMPTION_NOTE,
+                    note = if (req.note.isBlank()) REDEMPTION_NOTE else req.note,
                 )
             val updated = data.copy(paymentRecords = data.paymentRecords + record)
             saveMonthlyMoney(req.month, updated)
