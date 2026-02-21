@@ -554,6 +554,8 @@ private fun PaymentRecordCard(
     record: PaymentRecord,
     isCompact: Boolean,
 ) {
+    val hasNote = record.note.isNotEmpty()
+
     Card(
         modifier =
             Modifier.fillMaxWidth().let {
@@ -569,15 +571,24 @@ private fun PaymentRecordCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = formatDate(record.paidAt),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Column {
+                Text(
+                    text = formatDate(record.paidAt),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (hasNote) {
+                    Text(
+                        text = record.note,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.tertiary,
+                    )
+                }
+            }
             Text(
                 text = "¥${formatAmount(record.amount)}",
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = if (hasNote) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
             )
         }
     }

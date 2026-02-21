@@ -36,3 +36,10 @@ data class BalanceSummary(
     val periodStart: String = "",
     val periodEnd: String = "",
 )
+
+@Serializable
+data class OverpaymentRedemptionRequest(
+    val uid: String,
+    val month: String,
+    val amount: Long,
+)

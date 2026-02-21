@@ -142,7 +142,7 @@ private fun parseMonthlyMoney(
     return MonthlyMoney(month = month, items = items, paymentRecords = records, locked = locked)
 }
 
-private suspend fun getMonthlyMoney(month: String): MonthlyMoney {
+internal suspend fun getMonthlyMoney(month: String): MonthlyMoney {
     val doc =
         firestore
             .collection(MONEY_COLLECTION)
@@ -153,7 +153,7 @@ private suspend fun getMonthlyMoney(month: String): MonthlyMoney {
     return parseMonthlyMoney(month, doc)
 }
 
-private suspend fun saveMonthlyMoney(
+internal suspend fun saveMonthlyMoney(
     month: String,
     data: MonthlyMoney,
 ) {
@@ -174,7 +174,7 @@ private suspend fun saveMonthlyMoney(
 
     val records =
         data.paymentRecords.map { r ->
-            mapOf("uid" to r.uid, "amount" to r.amount, "paidAt" to r.paidAt)
+            mapOf("uid" to r.uid, "amount" to r.amount, "paidAt" to r.paidAt, "note" to r.note)
         }
 
     firestore
@@ -214,6 +214,7 @@ internal fun parsePaymentRecords(raw: Any?): List<PaymentRecord> {
             uid = r["uid"] as String,
             amount = (r["amount"] as Number).toLong(),
             paidAt = r["paidAt"] as String,
+            note = r["note"] as? String ?: "",
         )
     }
 }

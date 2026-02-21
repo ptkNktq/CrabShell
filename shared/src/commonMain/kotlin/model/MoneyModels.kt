@@ -13,6 +13,7 @@ data class PaymentRecord(
     val uid: String,
     val amount: Long,
     val paidAt: String,
+    val note: String = "",
 )
 
 @Serializable
