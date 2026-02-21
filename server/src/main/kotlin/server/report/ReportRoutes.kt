@@ -165,6 +165,10 @@ fun Route.reportRoutes() {
             }
 
             val data = getMonthlyMoney(req.month)
+            if (data.locked) {
+                call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is locked"))
+                return@post
+            }
             val record =
                 PaymentRecord(
                     uid = req.uid,

@@ -8,8 +8,10 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import core.auth.toJsString
+import core.network.MoneyRepository
 import core.network.ReportRepository
 import kotlinx.coroutines.launch
+import model.MonthlyMoney
 import model.OverpaymentRedemptionRequest
 import model.UserBalance
 
@@ -19,8 +21,22 @@ data class RedemptionFormState(
     val amountText: String = "",
     val isSaving: Boolean = false,
     val error: String? = null,
+    val monthData: MonthlyMoney? = null,
 ) {
     val amount: Long get() = amountText.toLongOrNull() ?: 0L
+    val isMonthLocked: Boolean get() = monthData?.locked == true
+
+    /** 選択ユーザーの当月未払い額 */
+    fun remainingForUser(uid: String): Long {
+        val data = monthData ?: return 0L
+        val allocated =
+            data.items
+                .flatMap { it.payments }
+                .filter { it.uid == uid }
+                .sumOf { it.amount }
+        val paid = data.paymentRecords.filter { it.uid == uid }.sumOf { it.amount }
+        return (allocated - paid).coerceAtLeast(0L)
+    }
 }
 
 data class OverpaymentUiState(
@@ -32,6 +48,7 @@ data class OverpaymentUiState(
 
 class OverpaymentViewModel(
     private val reportRepository: ReportRepository,
+    private val moneyRepository: MoneyRepository,
 ) : ViewModel() {
     var uiState by mutableStateOf(
         OverpaymentUiState(
@@ -42,6 +59,7 @@ class OverpaymentViewModel(
 
     init {
         loadBalances()
+        loadMonthData()
     }
 
     fun loadBalances() {
@@ -67,6 +85,24 @@ class OverpaymentViewModel(
         }
     }
 
+    private fun loadMonthData() {
+        val month = uiState.redemptionForm.selectedMonth
+        viewModelScope.launch {
+            try {
+                val data = moneyRepository.getMonthlyMoney(month)
+                uiState =
+                    uiState.copy(
+                        redemptionForm = uiState.redemptionForm.copy(monthData = data),
+                    )
+            } catch (_: Exception) {
+                uiState =
+                    uiState.copy(
+                        redemptionForm = uiState.redemptionForm.copy(monthData = null),
+                    )
+            }
+        }
+    }
+
     fun onSelectUser(uid: String) {
         uiState =
             uiState.copy(
@@ -75,10 +111,12 @@ class OverpaymentViewModel(
     }
 
     fun onClearForm() {
+        val month = currentMonthJs().toString()
         uiState =
             uiState.copy(
-                redemptionForm = RedemptionFormState(selectedMonth = currentMonthJs().toString()),
+                redemptionForm = RedemptionFormState(selectedMonth = month),
             )
+        loadMonthData()
     }
 
     fun onRedemptionAmountChange(text: String) {
@@ -92,24 +130,27 @@ class OverpaymentViewModel(
         val newMonth = shiftMonthJs(uiState.redemptionForm.selectedMonth.toJsString(), -1).toString()
         uiState =
             uiState.copy(
-                redemptionForm = uiState.redemptionForm.copy(selectedMonth = newMonth),
+                redemptionForm = uiState.redemptionForm.copy(selectedMonth = newMonth, monthData = null),
             )
+        loadMonthData()
     }
 
     fun onRedemptionMonthNext() {
         val newMonth = shiftMonthJs(uiState.redemptionForm.selectedMonth.toJsString(), 1).toString()
         uiState =
             uiState.copy(
-                redemptionForm = uiState.redemptionForm.copy(selectedMonth = newMonth),
+                redemptionForm = uiState.redemptionForm.copy(selectedMonth = newMonth, monthData = null),
             )
+        loadMonthData()
     }
 
     fun onFillRemainingAmount() {
         val uid = uiState.redemptionForm.selectedUid
-        val balance = uiState.balances.find { it.uid == uid } ?: return
+        if (uid.isEmpty()) return
+        val remaining = uiState.redemptionForm.remainingForUser(uid)
         uiState =
             uiState.copy(
-                redemptionForm = uiState.redemptionForm.copy(amountText = balance.remaining.toString()),
+                redemptionForm = uiState.redemptionForm.copy(amountText = remaining.toString()),
             )
     }
 
@@ -126,6 +167,13 @@ class OverpaymentViewModel(
             uiState =
                 uiState.copy(
                     redemptionForm = form.copy(error = "金額を入力してください"),
+                )
+            return
+        }
+        if (form.isMonthLocked) {
+            uiState =
+                uiState.copy(
+                    redemptionForm = form.copy(error = "この月はロックされています"),
                 )
             return
         }

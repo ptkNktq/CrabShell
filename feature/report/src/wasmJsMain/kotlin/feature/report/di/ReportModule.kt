@@ -8,5 +8,5 @@ import org.koin.dsl.module
 val reportModule =
     module {
         viewModel { ReportViewModel(get()) }
-        viewModel { OverpaymentViewModel(get()) }
+        viewModel { OverpaymentViewModel(get(), get()) }
     }

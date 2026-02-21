@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -18,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -27,6 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -134,6 +138,7 @@ private fun RedemptionInlineCard(
     modifier: Modifier = Modifier,
 ) {
     val inputEnabled = !form.isSaving
+    val locked = form.isMonthLocked
 
     Card(
         modifier = modifier,
@@ -203,26 +208,48 @@ private fun RedemptionInlineCard(
                 enabled = inputEnabled,
             )
 
-            // 金額入力
-            OutlinedTextField(
-                value = form.amountText,
-                onValueChange = { onAmountChange(it.filter { c -> c.isDigit() }) },
-                label = { Text("金額 (円)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                enabled = inputEnabled,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                trailingIcon = {
-                    if (form.selectedUid.isNotEmpty()) {
-                        TextButton(
-                            onClick = onFillRemaining,
-                            enabled = inputEnabled,
-                        ) {
-                            Text("残額全額")
-                        }
-                    }
-                },
-            )
+            // ロック警告
+            if (locked) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(
+                        Icons.Default.Lock,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Text(
+                        text = "この月はロックされています",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+
+            // 金額入力 + 残額全額ボタン
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedTextField(
+                    value = form.amountText,
+                    onValueChange = { onAmountChange(it.filter { c -> c.isDigit() }) },
+                    label = { Text("金額 (円)") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    enabled = inputEnabled && !locked,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                )
+                OutlinedButton(
+                    onClick = onFillRemaining,
+                    enabled = inputEnabled && !locked && form.selectedUid.isNotEmpty(),
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                ) {
+                    Text("残額全額", style = MaterialTheme.typography.labelSmall)
+                }
+            }
 
             // エラー表示
             if (form.error != null) {
@@ -245,9 +272,10 @@ private fun RedemptionInlineCard(
                 ) {
                     Text("クリア")
                 }
+                Spacer(modifier = Modifier.width(8.dp))
                 Button(
                     onClick = onConfirm,
-                    enabled = form.selectedUid.isNotEmpty() && form.amount > 0L && inputEnabled,
+                    enabled = form.selectedUid.isNotEmpty() && form.amount > 0L && inputEnabled && !locked,
                 ) {
                     Text("記録")
                 }
