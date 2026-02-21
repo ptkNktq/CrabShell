@@ -10,7 +10,7 @@ ktlint-gradle = "14.0.1"
 koin = "4.2.0-RC1"
 lifecycle = "2.9.6"
 webauthn4j = "0.31.0.RELEASE"
-exposed = "0.61.0"
+exposed = "1.0.0"
 sqlite-jdbc = "3.51.2.0"
 dotenv-java = "3.2.0"
 
