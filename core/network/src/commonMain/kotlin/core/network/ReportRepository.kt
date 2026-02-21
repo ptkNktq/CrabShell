@@ -3,13 +3,13 @@ package core.network
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
+import model.BalanceSummary
 import model.ExpenseReport
-import model.UserBalance
 
 interface ReportRepository {
     suspend fun getExpenseReport(center: String): ExpenseReport
 
-    suspend fun getUserBalances(): List<UserBalance>
+    suspend fun getBalanceSummary(): BalanceSummary
 }
 
 class ReportRepositoryImpl(
@@ -17,5 +17,5 @@ class ReportRepositoryImpl(
 ) : ReportRepository {
     override suspend fun getExpenseReport(center: String): ExpenseReport = client.get("/api/report?center=$center&range=3").body()
 
-    override suspend fun getUserBalances(): List<UserBalance> = client.get("/api/report/balances").body()
+    override suspend fun getBalanceSummary(): BalanceSummary = client.get("/api/report/balances").body()
 }

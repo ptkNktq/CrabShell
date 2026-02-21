@@ -63,6 +63,7 @@ fun ReportScreen(vm: ReportViewModel = koinViewModel()) {
         windowSizeClass = windowSizeClass,
         isAdmin = isAdmin,
         userBalances = vm.uiState.userBalances,
+        balancePeriod = vm.uiState.balancePeriod,
         isLoadingBalances = vm.uiState.isLoadingBalances,
         onRefreshBalances = vm::loadBalances,
     )
@@ -82,6 +83,7 @@ internal fun ReportContent(
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
     isAdmin: Boolean = false,
     userBalances: List<UserBalance> = emptyList(),
+    balancePeriod: String = "",
     isLoadingBalances: Boolean = false,
     onRefreshBalances: () -> Unit = {},
 ) {
@@ -126,6 +128,7 @@ internal fun ReportContent(
                 Spacer(modifier = Modifier.height(12.dp))
                 UserBalanceCard(
                     balances = userBalances,
+                    period = balancePeriod,
                     isLoading = isLoadingBalances,
                     onRefresh = onRefreshBalances,
                     modifier = Modifier.fillMaxWidth(),
@@ -159,12 +162,16 @@ internal fun ReportContent(
                 Spacer(modifier = Modifier.width(24.dp))
 
                 // 右: 残高パネル（admin 専用）
-                UserBalanceCard(
-                    balances = userBalances,
-                    isLoading = isLoadingBalances,
-                    onRefresh = onRefreshBalances,
-                    modifier = Modifier.width(400.dp),
-                )
+                // MonthSelector + Spacer(16.dp) の高さ分だけ下げる
+                Column(modifier = Modifier.width(400.dp)) {
+                    Spacer(modifier = Modifier.height(56.dp))
+                    UserBalanceCard(
+                        balances = userBalances,
+                        period = balancePeriod,
+                        isLoading = isLoadingBalances,
+                        onRefresh = onRefreshBalances,
+                    )
+                }
             }
         }
     }

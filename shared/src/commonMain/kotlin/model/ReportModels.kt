@@ -29,3 +29,10 @@ data class UserBalance(
     val paid: Long,
     val remaining: Long,
 )
+
+@Serializable
+data class BalanceSummary(
+    val balances: List<UserBalance> = emptyList(),
+    val periodStart: String = "",
+    val periodEnd: String = "",
+)

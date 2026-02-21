@@ -46,6 +46,7 @@ data class ReportUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val userBalances: List<UserBalance> = emptyList(),
+    val balancePeriod: String = "",
     val isLoadingBalances: Boolean = false,
 ) {
     val selectedSummary: MonthlyExpenseSummary?
@@ -94,10 +95,21 @@ class ReportViewModel(
         viewModelScope.launch {
             uiState = uiState.copy(isLoadingBalances = true)
             try {
-                val balances = reportRepository.getUserBalances()
-                uiState = uiState.copy(userBalances = balances, isLoadingBalances = false)
+                val summary = reportRepository.getBalanceSummary()
+                val period =
+                    if (summary.periodStart.isNotEmpty()) {
+                        "${summary.periodStart} 〜 ${summary.periodEnd}"
+                    } else {
+                        ""
+                    }
+                uiState =
+                    uiState.copy(
+                        userBalances = summary.balances,
+                        balancePeriod = period,
+                        isLoadingBalances = false,
+                    )
             } catch (_: Exception) {
-                uiState = uiState.copy(userBalances = emptyList(), isLoadingBalances = false)
+                uiState = uiState.copy(userBalances = emptyList(), balancePeriod = "", isLoadingBalances = false)
             }
         }
     }

@@ -5,6 +5,7 @@ import com.google.firebase.cloud.FirestoreClient
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import model.BalanceSummary
 import model.ExpenseItem
 import model.ExpenseReport
 import model.MonthlyExpenseSummary
@@ -76,8 +77,10 @@ fun Route.reportRoutes() {
 
             val allocatedByUser = mutableMapOf<String, Long>()
             val paidByUser = mutableMapOf<String, Long>()
+            val months = mutableListOf<String>()
 
             for (doc in docs.documents) {
+                months.add(doc.id)
                 val items = parseItems(doc.get("items"))
                 val records = parsePaymentRecords(doc.get("paymentRecords"))
 
@@ -108,7 +111,14 @@ fun Route.reportRoutes() {
                     UserBalance(uid, displayName, allocated, paid, paid - allocated)
                 }
 
-            call.respond(balances)
+            months.sort()
+            call.respond(
+                BalanceSummary(
+                    balances = balances,
+                    periodStart = months.firstOrNull() ?: "",
+                    periodEnd = months.lastOrNull() ?: "",
+                ),
+            )
         }
     }
 }
