@@ -26,20 +26,13 @@ data class RedemptionFormState(
     val error: String? = null,
     val monthData: MonthlyMoney? = null,
 ) {
-    val amount: Long get() = amountText.toLongOrNull() ?: 0L
     val isMonthLocked: Boolean get() = monthData?.locked == true
-
-    /** 選択ユーザーの当月未払い額 */
-    fun remainingForUser(uid: String): Long {
-        val data = monthData ?: return 0L
-        val allocated =
-            data.items
-                .flatMap { it.payments }
-                .filter { it.uid == uid }
-                .sumOf { it.amount }
-        val paid = data.paymentRecords.filter { it.uid == uid }.sumOf { it.amount }
-        return (allocated - paid).coerceAtLeast(0L)
-    }
+    val canSubmit: Boolean
+        get() =
+            selectedUid.isNotEmpty() &&
+                (amountText.toLongOrNull() ?: 0L) > 0L &&
+                !isSaving &&
+                !isMonthLocked
 }
 
 data class OverpaymentUiState(
@@ -155,17 +148,26 @@ class OverpaymentViewModel(
     }
 
     fun onFillRemainingAmount() {
-        val uid = uiState.redemptionForm.selectedUid
+        val form = uiState.redemptionForm
+        val uid = form.selectedUid
         if (uid.isEmpty()) return
-        val remaining = uiState.redemptionForm.remainingForUser(uid)
+        val data = form.monthData ?: return
+        val allocated =
+            data.items
+                .flatMap { it.payments }
+                .filter { it.uid == uid }
+                .sumOf { it.amount }
+        val paid = data.paymentRecords.filter { it.uid == uid }.sumOf { it.amount }
+        val remaining = (allocated - paid).coerceAtLeast(0L)
         uiState =
             uiState.copy(
-                redemptionForm = uiState.redemptionForm.copy(amountText = remaining.toString()),
+                redemptionForm = form.copy(amountText = remaining.toString()),
             )
     }
 
     fun onConfirmRedemption() {
         val form = uiState.redemptionForm
+        val amount = form.amountText.toLongOrNull() ?: 0L
         if (form.selectedUid.isEmpty()) {
             uiState =
                 uiState.copy(
@@ -173,7 +175,7 @@ class OverpaymentViewModel(
                 )
             return
         }
-        if (form.amount <= 0L) {
+        if (amount <= 0L) {
             uiState =
                 uiState.copy(
                     redemptionForm = form.copy(error = "金額を入力してください"),
@@ -198,7 +200,7 @@ class OverpaymentViewModel(
                     OverpaymentRedemptionRequest(
                         uid = form.selectedUid,
                         month = form.selectedMonth,
-                        amount = form.amount,
+                        amount = amount,
                         note = form.noteText,
                     ),
                 )

@@ -289,7 +289,7 @@ private fun RedemptionInlineCard(
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
                     onClick = onConfirm,
-                    enabled = form.selectedUid.isNotEmpty() && form.amount > 0L && inputEnabled && !locked,
+                    enabled = form.canSubmit,
                 ) {
                     Text("記録")
                 }
