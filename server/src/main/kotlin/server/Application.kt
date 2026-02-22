@@ -19,6 +19,7 @@ import model.DashboardItem
 import model.Status
 import server.auth.FirebaseAdmin
 import server.auth.authenticated
+import server.config.EnvConfig
 import server.feeding.feedingRoutes
 import server.garbage.garbageRoutes
 import server.money.moneyRoutes
@@ -63,8 +64,10 @@ fun Application.module() {
         }
     }
 
+    val swaggerEnabled = EnvConfig["SWAGGER_ENABLED"]?.toBooleanStrictOrNull() == true
+
     routing {
-        if (developmentMode) {
+        if (swaggerEnabled) {
             route("api.json") { openApi() }
             route("swagger") { swaggerUI("/api.json") }
         }
