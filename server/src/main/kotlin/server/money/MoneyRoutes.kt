@@ -174,7 +174,7 @@ internal suspend fun saveMonthlyMoney(
 
     val records =
         data.paymentRecords.map { r ->
-            mapOf("uid" to r.uid, "amount" to r.amount, "paidAt" to r.paidAt, "note" to r.note)
+            mapOf("uid" to r.uid, "amount" to r.amount, "paidAt" to r.paidAt, "note" to r.note, "isRedemption" to r.isRedemption)
         }
 
     firestore
@@ -215,6 +215,7 @@ internal fun parsePaymentRecords(raw: Any?): List<PaymentRecord> {
             amount = (r["amount"] as Number).toLong(),
             paidAt = r["paidAt"] as String,
             note = r["note"] as? String ?: "",
+            isRedemption = r["isRedemption"] as? Boolean ?: false,
         )
     }
 }

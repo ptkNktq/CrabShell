@@ -28,7 +28,7 @@ import java.time.YearMonth
 private val firestore by lazy { FirestoreClient.getFirestore() }
 
 private const val MONEY_COLLECTION = "money"
-private const val REDEMPTION_NOTE = "過払い金から支払い"
+private const val DEFAULT_REDEMPTION_NOTE = "過払い金から支払い"
 
 fun Route.reportRoutes() {
     authenticated {
@@ -109,7 +109,7 @@ fun Route.reportRoutes() {
                 val monthPaid = mutableMapOf<String, Long>()
                 for (record in records) {
                     allUids.add(record.uid)
-                    if (record.note.startsWith(REDEMPTION_NOTE)) {
+                    if (record.isRedemption) {
                         redeemedByUser[record.uid] =
                             (redeemedByUser[record.uid] ?: 0L) + record.amount
                     } else {
@@ -174,7 +174,8 @@ fun Route.reportRoutes() {
                     uid = req.uid,
                     amount = req.amount,
                     paidAt = Instant.now().toString(),
-                    note = if (req.note.isBlank()) REDEMPTION_NOTE else req.note,
+                    note = req.note.ifBlank { DEFAULT_REDEMPTION_NOTE },
+                    isRedemption = true,
                 )
             val updated = data.copy(paymentRecords = data.paymentRecords + record)
             saveMonthlyMoney(req.month, updated)

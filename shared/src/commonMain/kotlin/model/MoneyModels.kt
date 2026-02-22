@@ -14,6 +14,7 @@ data class PaymentRecord(
     val amount: Long,
     val paidAt: String,
     val note: String = "",
+    val isRedemption: Boolean = false,
 )
 
 @Serializable
