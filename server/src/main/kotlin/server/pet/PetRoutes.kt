@@ -1,6 +1,8 @@
 package server.pet
 
 import com.google.firebase.cloud.FirestoreClient
+import io.github.smiley4.ktoropenapi.get
+import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import model.Pet
@@ -26,7 +28,15 @@ fun seedDefaultPet() {
 
 fun Route.petRoutes() {
     authenticated {
-        get("/pets") {
+        get("/pets", {
+            tags = listOf("pet")
+            summary = "ペット一覧取得"
+            response {
+                code(HttpStatusCode.OK) {
+                    body<List<Pet>>()
+                }
+            }
+        }) {
             val docs =
                 firestore
                     .collection("pets")

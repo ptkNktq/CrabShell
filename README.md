@@ -139,6 +139,7 @@ cp .env.example .env
 ./gradlew :app:wasmJsBrowserDevelopmentRun
 
 # ブラウザ: http://localhost:3000
+# Swagger UI: http://localhost:3000/swagger（SWAGGER_ENABLED=true 時のみ）
 ```
 
 サーバーはプロジェクトルートの `.env` ファイルから環境変数を自動読み込みする（[dotenv-java](https://github.com/cdimascio/dotenv-java) 使用）。`.env` が存在しない場合は無視される。OS の環境変数が `.env` より優先される。
@@ -261,6 +262,7 @@ Firebase Auth + Passkey (WebAuthn) のハイブリッド認証。
 | `PASSKEY_DB_PATH` | | SQLite ファイルパス（デフォルト: `data/passkey.db`） |
 | `GEMINI_API_KEY` | | Google AI Studio の API キー（クエスト AI テキスト生成用。未設定時は AI 生成ボタン非表示） |
 | `GEMINI_MODEL` | | Gemini モデル名（デフォルト: `gemini-2.5-flash`） |
+| `SWAGGER_ENABLED` | | `true` で Swagger UI (`/swagger`) を有効化（本番では設定しない） |
 
 > `WEBAUTHN_RP_ID` / `WEBAUTHN_ORIGIN` が未設定の場合、パスキー機能は無効化されます（メール/パスワード認証のみ動作）。
 

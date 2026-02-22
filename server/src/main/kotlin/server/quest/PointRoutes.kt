@@ -1,13 +1,13 @@
 package server.quest
 
 import com.google.firebase.cloud.FirestoreClient
+import io.github.smiley4.ktoropenapi.delete
+import io.github.smiley4.ktoropenapi.get
+import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
-import io.ktor.server.routing.delete
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import model.CreateRewardRequest
 import model.PointHistory
@@ -23,7 +23,15 @@ private val firestore by lazy { FirestoreClient.getFirestore() }
 fun Route.pointRoutes() {
     route("/points") {
         authenticated {
-            get {
+            get({
+                tags = listOf("point")
+                summary = "自分のポイント残高取得"
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<UserPoints>()
+                    }
+                }
+            }) {
                 val token = call.attributes[FirebaseTokenKey]
                 val doc =
                     firestore
@@ -45,7 +53,15 @@ fun Route.pointRoutes() {
                 )
             }
 
-            get("/history") {
+            get("/history", {
+                tags = listOf("point")
+                summary = "ポイント履歴取得"
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<List<PointHistory>>()
+                    }
+                }
+            }) {
                 val token = call.attributes[FirebaseTokenKey]
                 val docs =
                     firestore
@@ -76,7 +92,15 @@ fun Route.pointRoutes() {
 
     route("/rewards") {
         authenticated {
-            get {
+            get({
+                tags = listOf("point")
+                summary = "報酬一覧取得"
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<List<Reward>>()
+                    }
+                }
+            }) {
                 val docs =
                     firestore
                         .collection("rewards")
@@ -98,7 +122,18 @@ fun Route.pointRoutes() {
                 call.respond(rewards)
             }
 
-            post {
+            post({
+                tags = listOf("point")
+                summary = "報酬作成"
+                request {
+                    body<CreateRewardRequest>()
+                }
+                response {
+                    code(HttpStatusCode.Created) {
+                        body<Reward>()
+                    }
+                }
+            }) {
                 val token = call.attributes[FirebaseTokenKey]
                 val request = call.receive<CreateRewardRequest>()
                 val rewardData =
@@ -126,7 +161,18 @@ fun Route.pointRoutes() {
                 )
             }
 
-            delete("/{id}") {
+            delete("/{id}", {
+                tags = listOf("point")
+                summary = "報酬削除"
+                request {
+                    pathParameter<String>("id") { description = "報酬 ID" }
+                }
+                response {
+                    code(HttpStatusCode.NoContent) { description = "削除成功" }
+                    code(HttpStatusCode.NotFound) { description = "報酬未発見" }
+                    code(HttpStatusCode.Forbidden) { description = "作成者/admin のみ削除可" }
+                }
+            }) {
                 val token = call.attributes[FirebaseTokenKey]
                 val id =
                     call.parameters["id"]
@@ -156,7 +202,20 @@ fun Route.pointRoutes() {
                 call.respond(HttpStatusCode.NoContent)
             }
 
-            post("/{id}/exchange") {
+            post("/{id}/exchange", {
+                tags = listOf("point")
+                summary = "報酬交換"
+                request {
+                    pathParameter<String>("id") { description = "報酬 ID" }
+                }
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<Map<String, String>>()
+                    }
+                    code(HttpStatusCode.NotFound) { description = "報酬未発見" }
+                    code(HttpStatusCode.Conflict) { description = "ポイント不足または利用不可" }
+                }
+            }) {
                 val token = call.attributes[FirebaseTokenKey]
                 val id =
                     call.parameters["id"]

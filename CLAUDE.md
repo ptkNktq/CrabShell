@@ -46,6 +46,7 @@ cp .env.example .env
 ./gradlew :app:wasmJsBrowserDevelopmentRun
 
 # ブラウザ: http://localhost:3000
+# Swagger UI: http://localhost:3000/swagger（SWAGGER_ENABLED=true 時のみ）
 ```
 
 - `./gradlew :server:run` は Gradle のプロジェクトロックを保持し続けるため使用不可。fat JAR で起動すること。
@@ -62,6 +63,7 @@ cp .env.example .env
 | `GEMINI_MODEL` | Gemini モデル名（デフォルト: `gemini-2.5-flash`） | いいえ |
 | `FIREBASE_SERVICE_ACCOUNT_PATH` | Firebase サービスアカウント JSON のパス（デフォルト: `firebase-service-account.json`） | いいえ |
 | `PASSKEY_DB_PATH` | Passkey SQLite DB のパス（デフォルト: `data/passkey.db`） | いいえ |
+| `SWAGGER_ENABLED` | `true` で Swagger UI (`/swagger`) を有効化（本番では設定しない） | いいえ |
 
 - webpack dev server (port 3000) が `/api/*` を Ktor サーバー (port 8080) にプロキシ
 - `-PskipFrontend` を付けるとサーバービルド時に WASM フロントエンドのビルドをスキップ
@@ -126,6 +128,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - **Kotlin** 2.3.10, **Compose Multiplatform** 1.10.1, **Ktor** 3.4.0
 - **DI**: Koin 4.2.0-RC1（Kotlin 2.3.0 wasmJs 互換の唯一のバージョン）
 - **Serialization**: kotlinx-serialization-json 1.10.0
+- **API Docs**: ktor-openapi-tools 5.5.0（OpenAPI spec + Swagger UI、開発モード時のみ）
 - **Dependency versions**: managed in `gradle/libs.versions.toml` (bundles: `ktor-server`, `ktor-client`, `koin`, `exposed`)
 - **Kotlin code style**: official (set in `gradle.properties`)
 

@@ -1,5 +1,10 @@
 package server
 
+import io.github.smiley4.ktoropenapi.OpenApi
+import io.github.smiley4.ktoropenapi.config.AuthScheme
+import io.github.smiley4.ktoropenapi.config.AuthType
+import io.github.smiley4.ktoropenapi.openApi
+import io.github.smiley4.ktorswaggerui.swaggerUI
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -7,12 +12,9 @@ import io.ktor.server.engine.*
 import io.ktor.server.http.content.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
-import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import model.DashboardItem
-import model.Status
 import server.auth.FirebaseAdmin
-import server.auth.authenticated
+import server.config.EnvConfig
 import server.feeding.feedingRoutes
 import server.garbage.garbageRoutes
 import server.money.moneyRoutes
@@ -38,13 +40,35 @@ fun Application.module() {
 
     install(ContentNegotiation) { json() }
 
-    routing {
-        route("/api") {
-            authenticated {
-                get("/items") {
-                    call.respond(sampleItems())
-                }
+    install(OpenApi) {
+        pathFilter = { _, url -> url.firstOrNull() == "api" }
+        info {
+            title = "CrabShell API"
+            version = "1.0.0"
+            description = "CrabShell ダッシュボードアプリケーションの API"
+        }
+        security {
+            securityScheme("firebase") {
+                type = AuthType.HTTP
+                scheme = AuthScheme.BEARER
+                bearerFormat = "Firebase ID Token"
             }
+            defaultSecuritySchemeNames("firebase")
+            defaultUnauthorizedResponse {
+                description = "認証エラー"
+            }
+        }
+    }
+
+    val swaggerEnabled = EnvConfig["SWAGGER_ENABLED"]?.toBooleanStrictOrNull() == true
+
+    routing {
+        if (swaggerEnabled) {
+            route("api.json") { openApi() }
+            route("swagger") { swaggerUI("/api.json") }
+        }
+
+        route("/api") {
             userRoutes()
             petRoutes()
             feedingRoutes()
@@ -82,10 +106,3 @@ fun Application.module() {
         }
     }
 }
-
-private fun sampleItems(): List<DashboardItem> =
-    listOf(
-        DashboardItem(1, "Server Setup", "Ktor server is running", Status.ACTIVE),
-        DashboardItem(2, "Frontend", "Compose Web (Wasm)", Status.ACTIVE),
-        DashboardItem(3, "Database", "Not yet configured", Status.PENDING),
-    )
