@@ -184,7 +184,9 @@ fun Route.reportRoutes() {
                 body<OverpaymentRedemptionRequest>()
             }
             response {
-                code(HttpStatusCode.OK) { description = "精算成功" }
+                code(HttpStatusCode.OK) {
+                    body<Map<String, String>>()
+                }
                 code(HttpStatusCode.BadRequest) { description = "不正なリクエスト" }
                 code(HttpStatusCode.Conflict) { description = "ロック中" }
             }

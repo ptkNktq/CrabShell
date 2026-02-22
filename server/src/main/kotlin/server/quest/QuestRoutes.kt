@@ -328,7 +328,9 @@ fun Route.questRoutes() {
                 tags = listOf("quest")
                 summary = "AI テキスト生成の利用可否"
                 response {
-                    code(HttpStatusCode.OK) { description = "available: true/false" }
+                    code(HttpStatusCode.OK) {
+                        body<Map<String, Boolean>>()
+                    }
                 }
             }) {
                 call.respond(mapOf("available" to (questTextGenerator != null)))

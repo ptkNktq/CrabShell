@@ -234,7 +234,7 @@ fun Route.feedingRoutes() {
                 }
                 response {
                     code(HttpStatusCode.OK) {
-                        description = "更新後のノート"
+                        body<Map<String, String>>()
                     }
                 }
             }) {
