@@ -39,6 +39,8 @@ fun Route.authenticated(build: Route.() -> Unit): Route {
                     context: RoutingResolveContext,
                     segmentIndex: Int,
                 ) = RouteSelectorEvaluation.Transparent
+
+                override fun toString() = ""
             },
         )
 
@@ -71,6 +73,8 @@ fun Route.adminOnly(build: Route.() -> Unit): Route {
                     context: RoutingResolveContext,
                     segmentIndex: Int,
                 ) = RouteSelectorEvaluation.Transparent
+
+                override fun toString() = ""
             },
         )
 
