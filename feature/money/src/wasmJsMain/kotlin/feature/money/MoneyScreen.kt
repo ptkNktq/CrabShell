@@ -23,6 +23,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
+import core.ui.formatYen
 import model.MoneyItem
 import model.MonthlyMoney
 import model.Payment
@@ -528,7 +529,7 @@ private fun MoneyItemForm(
                             modifier = Modifier.size(16.dp),
                         )
                         Text(
-                            text = "差額: ¥${formatAmount(paymentTotal - amount)}",
+                            text = "差額: ${formatYen(paymentTotal - amount)}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                         )
@@ -653,7 +654,7 @@ private fun SummaryCard(
                         style = MaterialTheme.typography.titleMedium,
                     )
                     Text(
-                        text = "¥${formatAmount(totalAmount)}",
+                        text = formatYen(totalAmount),
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -689,7 +690,7 @@ private fun SummaryCard(
                         modifier = Modifier.size(16.dp),
                     )
                     Text(
-                        text = "差額: ¥${formatAmount(totalAllocated - totalAmount)}",
+                        text = "差額: ${formatYen(totalAllocated - totalAmount)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
@@ -713,7 +714,7 @@ private fun SummaryCard(
                             style = MaterialTheme.typography.bodyMedium,
                         )
                         Text(
-                            text = "¥${formatAmount(paid)} / ¥${formatAmount(allocated)}",
+                            text = "${formatYen(paid)} / ${formatYen(allocated)}",
                             style = MaterialTheme.typography.bodyMedium,
                             color =
                                 if (paid >= allocated) {
@@ -783,7 +784,7 @@ private fun MoneyItemCard(
                         }
                     }
                     Text(
-                        text = "¥${formatAmount(item.amount)}",
+                        text = formatYen(item.amount),
                         style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -845,7 +846,7 @@ private fun MoneyItemCard(
                     ) {
                         Text(text = userName, style = MaterialTheme.typography.bodyMedium)
                         Text(
-                            text = "¥${formatAmount(payment.amount)}",
+                            text = formatYen(payment.amount),
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     }
@@ -864,7 +865,7 @@ private fun MoneyItemCard(
                             modifier = Modifier.size(16.dp),
                         )
                         Text(
-                            text = "差額: ¥${formatAmount(paymentTotal - item.amount)}",
+                            text = "差額: ${formatYen(paymentTotal - item.amount)}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                         )
@@ -873,14 +874,4 @@ private fun MoneyItemCard(
             }
         }
     }
-}
-
-private fun formatAmount(amount: Long): String {
-    val str = amount.toString()
-    val result = StringBuilder()
-    for ((i, c) in str.reversed().withIndex()) {
-        if (i > 0 && i % 3 == 0) result.append(',')
-        result.append(c)
-    }
-    return result.reverse().toString()
 }

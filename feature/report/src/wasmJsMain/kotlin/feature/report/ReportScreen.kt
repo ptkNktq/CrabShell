@@ -87,53 +87,78 @@ internal fun ReportContent(
         )
         Spacer(modifier = Modifier.height(if (isCompact) 8.dp else 16.dp))
 
-        when {
-            isLoading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator()
-                }
+        ReportMainContent(
+            report = report,
+            selectedMonth = selectedMonth,
+            selectedSummary = selectedSummary,
+            averageAmount = averageAmount,
+            previousMonthDiff = previousMonthDiff,
+            isLoading = isLoading,
+            error = error,
+            isCompact = isCompact,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun ReportMainContent(
+    report: ExpenseReport,
+    selectedMonth: String,
+    selectedSummary: MonthlyExpenseSummary?,
+    averageAmount: Long,
+    previousMonthDiff: Long?,
+    isLoading: Boolean,
+    error: String?,
+    isCompact: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    when {
+        isLoading -> {
+            Box(
+                modifier = modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
             }
+        }
 
-            error != null -> {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Text("エラー: $error", color = MaterialTheme.colorScheme.error)
-                }
+        error != null -> {
+            Box(modifier = modifier.fillMaxWidth()) {
+                Text("エラー: $error", color = MaterialTheme.colorScheme.error)
             }
+        }
 
-            else -> {
-                val spacing = if (isCompact) 12.dp else 16.dp
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(spacing),
-                    contentPadding = PaddingValues(bottom = 16.dp),
-                ) {
-                    item(key = "summary") {
-                        ReportSummaryCard(
-                            currentTotal = selectedSummary?.totalAmount ?: 0L,
-                            averageAmount = averageAmount,
-                            previousMonthDiff = previousMonthDiff,
-                            modifier = Modifier.widthIn(max = 600.dp),
-                        )
-                    }
+        else -> {
+            val spacing = if (isCompact) 12.dp else 16.dp
+            LazyColumn(
+                modifier = modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(spacing),
+                contentPadding = PaddingValues(bottom = 16.dp),
+            ) {
+                item(key = "summary") {
+                    ReportSummaryCard(
+                        currentTotal = selectedSummary?.totalAmount ?: 0L,
+                        averageAmount = averageAmount,
+                        previousMonthDiff = previousMonthDiff,
+                        modifier = Modifier.widthIn(max = 600.dp),
+                    )
+                }
 
-                    item(key = "chart") {
-                        MonthlyBarChart(
-                            months = report.months,
-                            selectedMonth = selectedMonth,
-                            modifier = Modifier.widthIn(max = 600.dp),
-                        )
-                    }
+                item(key = "chart") {
+                    MonthlyBarChart(
+                        months = report.months,
+                        selectedMonth = selectedMonth,
+                        modifier = Modifier.widthIn(max = 600.dp),
+                    )
+                }
 
-                    item(key = "breakdown") {
-                        CategoryBreakdown(
-                            items = selectedSummary?.items ?: emptyList(),
-                            totalAmount = selectedSummary?.totalAmount ?: 0L,
-                            modifier = Modifier.widthIn(max = 600.dp),
-                        )
-                    }
+                item(key = "breakdown") {
+                    CategoryBreakdown(
+                        items = selectedSummary?.items ?: emptyList(),
+                        totalAmount = selectedSummary?.totalAmount ?: 0L,
+                        modifier = Modifier.widthIn(max = 600.dp),
+                    )
                 }
             }
         }

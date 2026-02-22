@@ -1,15 +1,28 @@
 package server.report
 
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.cloud.FirestoreClient
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import model.BalanceSummary
 import model.ExpenseItem
 import model.ExpenseReport
 import model.MonthlyExpenseSummary
+import model.OverpaymentRedemptionRequest
+import model.PaymentRecord
+import model.UserBalance
+import server.auth.adminOnly
 import server.auth.authenticated
+import server.money.getMonthlyMoney
 import server.money.parseItems
+import server.money.parsePaymentRecords
+import server.money.saveMonthlyMoney
 import server.util.await
+import java.time.Instant
 import java.time.YearMonth
 
 private val firestore by lazy { FirestoreClient.getFirestore() }
@@ -58,6 +71,115 @@ fun Route.reportRoutes() {
                 }
 
             call.respond(ExpenseReport(months = summaries))
+        }
+    }
+
+    // admin 専用: ユーザーごとの過払い額（月ごとに判定、過払い月のみ合算）
+    adminOnly {
+        get("/report/balances") {
+            val docs =
+                firestore
+                    .collection(MONEY_COLLECTION)
+                    .get()
+                    .await()
+
+            // 月ごとにユーザー別の割当額・支払額を集計
+            val months = mutableListOf<String>()
+            val overpaidByUser = mutableMapOf<String, Long>()
+            val redeemedByUser = mutableMapOf<String, Long>()
+            val allUids = mutableSetOf<String>()
+
+            for (doc in docs.documents) {
+                months.add(doc.id)
+                val items = parseItems(doc.get("items"))
+                val records = parsePaymentRecords(doc.get("paymentRecords"))
+
+                // この月のユーザー別割当額
+                val monthAllocated = mutableMapOf<String, Long>()
+                for (item in items) {
+                    for (payment in item.payments) {
+                        allUids.add(payment.uid)
+                        monthAllocated[payment.uid] =
+                            (monthAllocated[payment.uid] ?: 0L) + payment.amount
+                    }
+                }
+
+                // この月のユーザー別支払額（精算レコードを除外）
+                val monthPaid = mutableMapOf<String, Long>()
+                for (record in records) {
+                    allUids.add(record.uid)
+                    if (record.isRedemption) {
+                        redeemedByUser[record.uid] =
+                            (redeemedByUser[record.uid] ?: 0L) + record.amount
+                    } else {
+                        monthPaid[record.uid] =
+                            (monthPaid[record.uid] ?: 0L) + record.amount
+                    }
+                }
+
+                // 過払い月のみ加算
+                val uidsInMonth = monthAllocated.keys + monthPaid.keys
+                for (uid in uidsInMonth) {
+                    val diff = (monthPaid[uid] ?: 0L) - (monthAllocated[uid] ?: 0L)
+                    if (diff > 0L) {
+                        overpaidByUser[uid] = (overpaidByUser[uid] ?: 0L) + diff
+                    }
+                }
+            }
+
+            val balances =
+                overpaidByUser.mapNotNull { (uid, overpaid) ->
+                    val redeemed = redeemedByUser[uid] ?: 0L
+                    val net = (overpaid - redeemed).coerceAtLeast(0L)
+                    if (net <= 0L) return@mapNotNull null
+                    val displayName =
+                        try {
+                            FirebaseAuth.getInstance().getUser(uid).displayName ?: uid
+                        } catch (_: Exception) {
+                            uid
+                        }
+                    UserBalance(uid, displayName, 0L, 0L, net)
+                }
+
+            months.sort()
+            call.respond(
+                BalanceSummary(
+                    balances = balances,
+                    periodStart = months.firstOrNull() ?: "",
+                    periodEnd = months.lastOrNull() ?: "",
+                ),
+            )
+        }
+
+        post("/report/balances/redeem") {
+            val req = call.receive<OverpaymentRedemptionRequest>()
+
+            if (req.amount <= 0L) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Amount must be positive"))
+                return@post
+            }
+            runCatching { YearMonth.parse(req.month) }.getOrElse {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid month format"))
+                return@post
+            }
+
+            val data = getMonthlyMoney(req.month)
+            if (data.locked) {
+                call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is locked"))
+                return@post
+            }
+            val record =
+                PaymentRecord(
+                    uid = req.uid,
+                    amount = req.amount,
+                    paidAt = Instant.now().toString(),
+                    note = req.note,
+                    isRedemption = true,
+                )
+            val updated = data.copy(paymentRecords = data.paymentRecords + record)
+            saveMonthlyMoney(req.month, updated)
+
+            call.respond(mapOf("status" to "ok"))
         }
     }
 }

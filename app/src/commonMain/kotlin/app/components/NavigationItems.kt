@@ -5,6 +5,7 @@ import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Payment
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Stars
@@ -29,6 +30,7 @@ val primaryNavigationItems =
 val adminNavigationItems =
     listOf(
         NavigationItem(Screen.Money, Icons.Default.AccountBalance, "お金の管理"),
+        NavigationItem(Screen.Overpayment, Icons.Default.Payments, "過払い額"),
     )
 
 val bottomNavigationItems =

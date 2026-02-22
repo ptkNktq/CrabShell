@@ -10,6 +10,7 @@ enum class Screen(
     Payment("お支払い", "/payment"),
     Report("家計レポート", "/report"),
     Money("お金の管理", "/money", adminOnly = true),
+    Overpayment("過払い額", "/overpayment", adminOnly = true),
     Quest("クエスト", "/quest"),
     Settings("設定", "/settings"),
     ;

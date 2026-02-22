@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import core.ui.formatYen
 
 @Composable
 fun ReportSummaryCard(
@@ -39,8 +40,8 @@ fun ReportSummaryCard(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-            SummaryRow(label = "今月の合計", value = "¥${formatAmount(currentTotal)}")
-            SummaryRow(label = "月平均", value = "¥${formatAmount(averageAmount)}")
+            SummaryRow(label = "今月の合計", value = formatYen(currentTotal))
+            SummaryRow(label = "月平均", value = formatYen(averageAmount))
 
             if (previousMonthDiff != null) {
                 val sign = if (previousMonthDiff >= 0) "↑" else "↓"
@@ -54,7 +55,7 @@ fun ReportSummaryCard(
                     }
                 SummaryRow(
                     label = "前月比",
-                    value = "$sign ¥${formatAmount(kotlin.math.abs(previousMonthDiff))}",
+                    value = "$sign ${formatYen(kotlin.math.abs(previousMonthDiff))}",
                     valueColor = color,
                 )
             }
@@ -83,14 +84,4 @@ private fun SummaryRow(
             color = valueColor,
         )
     }
-}
-
-private fun formatAmount(amount: Long): String {
-    val str = amount.toString()
-    val result = StringBuilder()
-    for ((i, c) in str.reversed().withIndex()) {
-        if (i > 0 && i % 3 == 0) result.append(',')
-        result.append(c)
-    }
-    return result.reverse().toString()
 }
