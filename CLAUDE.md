@@ -40,7 +40,8 @@ cp .env.example .env
 
 ```bash
 # Terminal 1: API サーバー（fat JAR をビルドして直接起動）
-./gradlew :server:buildFatJar -PskipFrontend && java -jar server/build/libs/server-all.jar
+# -Dio.ktor.development=true で Swagger UI を有効化（http://localhost:8080/swagger）
+./gradlew :server:buildFatJar -PskipFrontend && java -Dio.ktor.development=true -jar server/build/libs/server-all.jar
 
 # Terminal 2: webpack dev server（フロントエンド開発用）
 ./gradlew :app:wasmJsBrowserDevelopmentRun
@@ -126,6 +127,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - **Kotlin** 2.3.10, **Compose Multiplatform** 1.10.1, **Ktor** 3.4.0
 - **DI**: Koin 4.2.0-RC1（Kotlin 2.3.0 wasmJs 互換の唯一のバージョン）
 - **Serialization**: kotlinx-serialization-json 1.10.0
+- **API Docs**: ktor-openapi-tools 5.5.0（OpenAPI spec + Swagger UI、開発モード時のみ）
 - **Dependency versions**: managed in `gradle/libs.versions.toml` (bundles: `ktor-server`, `ktor-client`, `koin`, `exposed`)
 - **Kotlin code style**: official (set in `gradle.properties`)
 
