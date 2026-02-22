@@ -133,8 +133,7 @@ cp .env.example .env
 # .env を編集して GEMINI_API_KEY 等を設定
 
 # Terminal 1: API サーバー（fat JAR をビルドして直接起動）
-# -Dio.ktor.development=true で Swagger UI を有効化（http://localhost:8080/swagger）
-./gradlew :server:buildFatJar -PskipFrontend && java -Dio.ktor.development=true -jar server/build/libs/server-all.jar
+./gradlew :server:buildFatJar -PskipFrontend && java -jar server/build/libs/server-all.jar
 
 # Terminal 2: webpack dev server（フロントエンド開発用）
 ./gradlew :app:wasmJsBrowserDevelopmentRun
@@ -262,6 +261,7 @@ Firebase Auth + Passkey (WebAuthn) のハイブリッド認証。
 | `PASSKEY_DB_PATH` | | SQLite ファイルパス（デフォルト: `data/passkey.db`） |
 | `GEMINI_API_KEY` | | Google AI Studio の API キー（クエスト AI テキスト生成用。未設定時は AI 生成ボタン非表示） |
 | `GEMINI_MODEL` | | Gemini モデル名（デフォルト: `gemini-2.5-flash`） |
+| `SWAGGER_ENABLED` | | `true` で Swagger UI (`/swagger`) を有効化（本番では設定しない） |
 
 > `WEBAUTHN_RP_ID` / `WEBAUTHN_ORIGIN` が未設定の場合、パスキー機能は無効化されます（メール/パスワード認証のみ動作）。
 

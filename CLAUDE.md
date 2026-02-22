@@ -40,8 +40,7 @@ cp .env.example .env
 
 ```bash
 # Terminal 1: API サーバー（fat JAR をビルドして直接起動）
-# -Dio.ktor.development=true で Swagger UI を有効化（http://localhost:8080/swagger）
-./gradlew :server:buildFatJar -PskipFrontend && java -Dio.ktor.development=true -jar server/build/libs/server-all.jar
+./gradlew :server:buildFatJar -PskipFrontend && java -jar server/build/libs/server-all.jar
 
 # Terminal 2: webpack dev server（フロントエンド開発用）
 ./gradlew :app:wasmJsBrowserDevelopmentRun
@@ -63,6 +62,7 @@ cp .env.example .env
 | `GEMINI_MODEL` | Gemini モデル名（デフォルト: `gemini-2.5-flash`） | いいえ |
 | `FIREBASE_SERVICE_ACCOUNT_PATH` | Firebase サービスアカウント JSON のパス（デフォルト: `firebase-service-account.json`） | いいえ |
 | `PASSKEY_DB_PATH` | Passkey SQLite DB のパス（デフォルト: `data/passkey.db`） | いいえ |
+| `SWAGGER_ENABLED` | `true` で Swagger UI (`/swagger`) を有効化（本番では設定しない） | いいえ |
 
 - webpack dev server (port 3000) が `/api/*` を Ktor サーバー (port 8080) にプロキシ
 - `-PskipFrontend` を付けるとサーバービルド時に WASM フロントエンドのビルドをスキップ

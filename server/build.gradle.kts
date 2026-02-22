@@ -10,10 +10,8 @@ application {
 }
 
 // run タスクの作業ディレクトリをルートプロジェクトに設定（firebase-service-account.json の解決用）
-// 開発モードを有効化（Swagger UI 等）
 tasks.named<JavaExec>("run") {
     workingDir = rootProject.projectDir
-    jvmArgs("-Dio.ktor.development=true")
 }
 
 // fat JAR で gRPC の META-INF/services が正しくマージされるようにする
