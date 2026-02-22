@@ -41,6 +41,7 @@ fun Application.module() {
     install(ContentNegotiation) { json() }
 
     install(OpenApi) {
+        pathFilter = { _, url -> url.firstOrNull() == "api" }
         info {
             title = "CrabShell API"
             version = "1.0.0"
