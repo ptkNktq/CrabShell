@@ -1,6 +1,9 @@
 package server.garbage
 
 import com.google.firebase.cloud.FirestoreClient
+import io.github.smiley4.ktoropenapi.get
+import io.github.smiley4.ktoropenapi.put
+import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -20,7 +23,15 @@ private const val ENTRIES_FIELD = "entries"
 fun Route.garbageRoutes() {
     route("/garbage/schedule") {
         authenticated {
-            get {
+            get({
+                tags = listOf("garbage")
+                summary = "ゴミ出しスケジュール取得"
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<List<GarbageTypeSchedule>>()
+                    }
+                }
+            }) {
                 val doc =
                     firestore
                         .collection(SETTINGS_COLLECTION)
@@ -51,7 +62,18 @@ fun Route.garbageRoutes() {
         }
 
         adminOnly {
-            put {
+            put({
+                tags = listOf("garbage")
+                summary = "ゴミ出しスケジュール更新（admin）"
+                request {
+                    body<List<GarbageTypeSchedule>>()
+                }
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<List<GarbageTypeSchedule>>()
+                    }
+                }
+            }) {
                 val schedules = call.receive<List<GarbageTypeSchedule>>()
 
                 val entries =

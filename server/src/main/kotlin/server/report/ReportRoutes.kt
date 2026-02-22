@@ -2,12 +2,12 @@ package server.report
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.cloud.FirestoreClient
+import io.github.smiley4.ktoropenapi.get
+import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
 import model.BalanceSummary
 import model.ExpenseItem
 import model.ExpenseReport
@@ -31,7 +31,25 @@ private const val MONEY_COLLECTION = "money"
 
 fun Route.reportRoutes() {
     authenticated {
-        get("/report") {
+        get("/report", {
+            tags = listOf("report")
+            summary = "支出レポート取得"
+            request {
+                queryParameter<String>("center") {
+                    description = "中心月（YYYY-MM）"
+                    required = false
+                }
+                queryParameter<Int>("range") {
+                    description = "前後の月数（1-6、デフォルト3）"
+                    required = false
+                }
+            }
+            response {
+                code(HttpStatusCode.OK) {
+                    body<ExpenseReport>()
+                }
+            }
+        }) {
             val centerStr = call.request.queryParameters["center"]
             val range =
                 call.request.queryParameters["range"]
@@ -76,7 +94,15 @@ fun Route.reportRoutes() {
 
     // admin 専用: ユーザーごとの過払い額（月ごとに判定、過払い月のみ合算）
     adminOnly {
-        get("/report/balances") {
+        get("/report/balances", {
+            tags = listOf("report")
+            summary = "過払い額サマリー取得（admin）"
+            response {
+                code(HttpStatusCode.OK) {
+                    body<BalanceSummary>()
+                }
+            }
+        }) {
             val docs =
                 firestore
                     .collection(MONEY_COLLECTION)
@@ -151,7 +177,18 @@ fun Route.reportRoutes() {
             )
         }
 
-        post("/report/balances/redeem") {
+        post("/report/balances/redeem", {
+            tags = listOf("report")
+            summary = "過払い金精算（admin）"
+            request {
+                body<OverpaymentRedemptionRequest>()
+            }
+            response {
+                code(HttpStatusCode.OK) { description = "精算成功" }
+                code(HttpStatusCode.BadRequest) { description = "不正なリクエスト" }
+                code(HttpStatusCode.Conflict) { description = "ロック中" }
+            }
+        }) {
             val req = call.receive<OverpaymentRedemptionRequest>()
 
             if (req.amount <= 0L) {

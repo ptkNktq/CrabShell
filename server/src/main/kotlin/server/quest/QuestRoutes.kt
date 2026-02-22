@@ -2,6 +2,10 @@ package server.quest
 
 import com.google.cloud.firestore.Query
 import com.google.firebase.cloud.FirestoreClient
+import io.github.smiley4.ktoropenapi.delete
+import io.github.smiley4.ktoropenapi.get
+import io.github.smiley4.ktoropenapi.post
+import io.github.smiley4.ktoropenapi.put
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.HttpStatusCode
@@ -9,10 +13,6 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
-import io.ktor.server.routing.delete
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
-import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import model.CreateQuestRequest
 import model.GenerateQuestTextRequest
@@ -48,7 +48,21 @@ private val questTextGenerator: QuestTextGenerator? by lazy {
 fun Route.questRoutes() {
     route("/quests") {
         authenticated {
-            get {
+            get({
+                tags = listOf("quest")
+                summary = "クエスト一覧取得"
+                request {
+                    queryParameter<String>("status") {
+                        description = "ステータスでフィルタ"
+                        required = false
+                    }
+                }
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<List<Quest>>()
+                    }
+                }
+            }) {
                 val statusFilter = call.request.queryParameters["status"]
 
                 var query: Query = questsCollection
@@ -97,7 +111,19 @@ fun Route.questRoutes() {
                 call.respond(quests)
             }
 
-            post {
+            post({
+                tags = listOf("quest")
+                summary = "クエスト作成"
+                request {
+                    body<CreateQuestRequest>()
+                }
+                response {
+                    code(HttpStatusCode.Created) {
+                        body<Quest>()
+                    }
+                    code(HttpStatusCode.Conflict) { description = "同時発行上限" }
+                }
+            }) {
                 val token = call.attributes[FirebaseTokenKey]
                 val request = call.receive<CreateQuestRequest>()
 
@@ -150,7 +176,21 @@ fun Route.questRoutes() {
                 call.respond(HttpStatusCode.Created, created)
             }
 
-            put("/{id}/accept") {
+            put("/{id}/accept", {
+                tags = listOf("quest")
+                summary = "クエスト受注"
+                request {
+                    pathParameter<String>("id") { description = "クエスト ID" }
+                }
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<Quest>()
+                    }
+                    code(HttpStatusCode.NotFound) { description = "クエスト未発見" }
+                    code(HttpStatusCode.Conflict) { description = "受注不可" }
+                    code(HttpStatusCode.Forbidden) { description = "自分のクエストは受注不可" }
+                }
+            }) {
                 val token = call.attributes[FirebaseTokenKey]
                 val id =
                     call.parameters["id"]
@@ -185,7 +225,21 @@ fun Route.questRoutes() {
                 call.respond(buildQuest(id, data, QuestStatus.Accepted, token.uid, token.name))
             }
 
-            put("/{id}/verify") {
+            put("/{id}/verify", {
+                tags = listOf("quest")
+                summary = "クエスト達成承認"
+                request {
+                    pathParameter<String>("id") { description = "クエスト ID" }
+                }
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<Quest>()
+                    }
+                    code(HttpStatusCode.NotFound) { description = "クエスト未発見" }
+                    code(HttpStatusCode.Conflict) { description = "承認不可" }
+                    code(HttpStatusCode.Forbidden) { description = "作成者のみ承認可" }
+                }
+            }) {
                 val token = call.attributes[FirebaseTokenKey]
                 val id =
                     call.parameters["id"]
@@ -231,7 +285,19 @@ fun Route.questRoutes() {
                 call.respond(verifiedQuest)
             }
 
-            delete("/{id}") {
+            delete("/{id}", {
+                tags = listOf("quest")
+                summary = "クエスト削除"
+                request {
+                    pathParameter<String>("id") { description = "クエスト ID" }
+                }
+                response {
+                    code(HttpStatusCode.NoContent) { description = "削除成功" }
+                    code(HttpStatusCode.NotFound) { description = "クエスト未発見" }
+                    code(HttpStatusCode.Conflict) { description = "削除不可" }
+                    code(HttpStatusCode.Forbidden) { description = "作成者のみ削除可" }
+                }
+            }) {
                 val token = call.attributes[FirebaseTokenKey]
                 val id =
                     call.parameters["id"]
@@ -258,12 +324,30 @@ fun Route.questRoutes() {
             }
 
             // AI テキスト生成が利用可能かどうかを返す
-            get("/ai-available") {
+            get("/ai-available", {
+                tags = listOf("quest")
+                summary = "AI テキスト生成の利用可否"
+                response {
+                    code(HttpStatusCode.OK) { description = "available: true/false" }
+                }
+            }) {
                 call.respond(mapOf("available" to (questTextGenerator != null)))
             }
 
             // Gemini でクエスト説明文を AI 生成する
-            post("/generate-text") {
+            post("/generate-text", {
+                tags = listOf("quest")
+                summary = "AI クエストテキスト生成"
+                request {
+                    body<GenerateQuestTextRequest>()
+                }
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<GenerateQuestTextResponse>()
+                    }
+                    code(HttpStatusCode.ServiceUnavailable) { description = "AI 未設定" }
+                }
+            }) {
                 val generator =
                     questTextGenerator
                         ?: return@post call.respond(
