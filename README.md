@@ -243,6 +243,26 @@ docker compose up -d
 docker compose pull && docker compose up -d
 ```
 
+## セキュリティ
+
+### CORS
+
+サーバーはフロントエンド（WASM）を同一オリジンで配信する構成のため、CORS プラグインは不要であり、意図的に設定していない。開発時も webpack dev server がプロキシするため、フロントエンドから見れば同一オリジンとなる。
+
+> **Note:** 過去に CORS プラグインを導入→削除した経緯がある（PR #48）。同一オリジン配信である限り、再導入は不要。
+
+### セキュリティヘッダ
+
+以下のヘッダは本番環境のリバースプロキシ側で設定する。アプリケーション側では設定しない（重複するとヘッダ値が矛盾し、挙動が不定になるため）。
+
+| ヘッダ | 推奨値 |
+|--------|--------|
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` |
+| `X-Frame-Options` | `SAMEORIGIN` |
+| `X-Content-Type-Options` | `nosniff` |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+| `Permissions-Policy` | `geolocation=(), camera=(), microphone=()` |
+
 ## 認証
 
 Firebase Auth + Passkey (WebAuthn) のハイブリッド認証。
