@@ -241,21 +241,35 @@ fun Route.pointRoutes() {
                     firestore
                         .collection("users")
                         .document(token.uid)
-                val pointsDoc = pointsRef.get().await()
-                val currentBalance = if (pointsDoc.exists()) (pointsDoc.data!!["balance"] as? Number)?.toInt() ?: 0 else 0
 
-                if (currentBalance < cost) {
+                // トランザクションで残高チェック＋減算をアトミックに実行（TOCTOU 防止）
+                val success =
+                    firestore
+                        .runTransaction { tx ->
+                            val pointsDoc = tx.get(pointsRef).get()
+                            val currentBalance =
+                                if (pointsDoc.exists()) {
+                                    (pointsDoc.data!!["balance"] as? Number)?.toInt() ?: 0
+                                } else {
+                                    0
+                                }
+                            if (currentBalance < cost) {
+                                false
+                            } else {
+                                tx.set(
+                                    pointsRef,
+                                    mapOf(
+                                        "balance" to (currentBalance - cost),
+                                        "displayName" to (token.name ?: ""),
+                                    ),
+                                )
+                                true
+                            }
+                        }.await()
+
+                if (!success) {
                     return@post call.respond(HttpStatusCode.Conflict, mapOf("error" to "Insufficient points"))
                 }
-
-                // ポイント減算
-                pointsRef
-                    .set(
-                        mapOf(
-                            "balance" to (currentBalance - cost),
-                            "displayName" to (token.name ?: ""),
-                        ),
-                    ).await()
 
                 // 履歴追加
                 val rewardName = rewardData["name"] as? String ?: ""
@@ -291,16 +305,26 @@ suspend fun awardPoints(
         firestore
             .collection("users")
             .document(uid)
-    val doc = pointsRef.get().await()
-    val currentBalance = if (doc.exists()) (doc.data!!["balance"] as? Number)?.toInt() ?: 0 else 0
 
-    pointsRef
-        .set(
-            mapOf(
-                "balance" to (currentBalance + points),
-                "displayName" to displayName,
-            ),
-        ).await()
+    // トランザクションで残高読み取り＋加算をアトミックに実行（TOCTOU 防止）
+    firestore
+        .runTransaction { tx ->
+            val doc = tx.get(pointsRef).get()
+            val currentBalance =
+                if (doc.exists()) {
+                    (doc.data!!["balance"] as? Number)?.toInt() ?: 0
+                } else {
+                    0
+                }
+            tx.set(
+                pointsRef,
+                mapOf(
+                    "balance" to (currentBalance + points),
+                    "displayName" to displayName,
+                ),
+            )
+            null
+        }.await()
 
     val historyData =
         mutableMapOf<String, Any>(
