@@ -133,7 +133,8 @@ cp .env.example .env
 # .env を編集して GEMINI_API_KEY 等を設定
 
 # Terminal 1: API サーバー（fat JAR をビルドして直接起動）
-./gradlew :server:buildFatJar -PskipFrontend && java -jar server/build/libs/server-all.jar
+# -Dio.ktor.development=true で Swagger UI を有効化（http://localhost:8080/swagger）
+./gradlew :server:buildFatJar -PskipFrontend && java -Dio.ktor.development=true -jar server/build/libs/server-all.jar
 
 # Terminal 2: webpack dev server（フロントエンド開発用）
 ./gradlew :app:wasmJsBrowserDevelopmentRun
