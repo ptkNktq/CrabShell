@@ -13,9 +13,9 @@ import model.MoneyItem
 import model.MonthlyMoney
 import model.Payment
 import model.PaymentRecord
-import server.auth.FirebaseTokenKey
 import server.auth.adminOnly
 import server.auth.authenticated
+import server.auth.firebasePrincipal
 import server.util.await
 import java.time.YearMonth
 
@@ -116,7 +116,7 @@ fun Route.moneyRoutes() {
                 }
             }) {
                 val month = call.parameters["month"]!!
-                val uid = call.attributes[FirebaseTokenKey].uid
+                val uid = call.firebasePrincipal.uid
                 val doc =
                     firestore
                         .collection(MONEY_COLLECTION)
@@ -158,7 +158,7 @@ fun Route.moneyRoutes() {
                 }
             }) {
                 val month = call.parameters["month"]!!
-                val uid = call.attributes[FirebaseTokenKey].uid
+                val uid = call.firebasePrincipal.uid
                 val record = call.receive<PaymentRecord>()
                 // uid をサーバー側で上書き（改ざん防止）
                 val safeRecord = record.copy(uid = uid)

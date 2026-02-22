@@ -243,6 +243,11 @@ docker compose pull && docker compose up -d
 - patch 更新は自動マージ、Kotlin & Compose / Ktor / Koin / Exposed はグループ化して1つの PR にまとめる。
 - `gradle/libs.versions.toml` の `[bundles]` セクションで関連ライブラリをグループ化済み。新しいライブラリ追加時は既存 bundle に含められるか確認すること。
 
+## Security
+
+- **CORS は不要。** サーバーがフロントエンドを同一オリジンで配信し、開発時も webpack がプロキシするため。過去に導入→削除した経緯あり（PR #48）。再導入しないこと。
+- **セキュリティヘッダ（HSTS, X-Frame-Options, CSP 等）はリバースプロキシ側で設定する。** アプリケーション側では設定しない（重複するとヘッダ値が矛盾するため）。
+
 ## Notes
 
 - Comments in build files are in Japanese.

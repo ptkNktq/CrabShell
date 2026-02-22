@@ -18,8 +18,8 @@ import model.PasskeyRegisterCompleteRequest
 import model.PasskeyRegisterOptionsResponse
 import model.PasskeyStatusResponse
 import server.auth.FirebaseAdmin
-import server.auth.FirebaseTokenKey
 import server.auth.authenticated
+import server.auth.firebasePrincipal
 import java.util.Base64
 
 fun Route.passkeyRoutes() {
@@ -40,7 +40,7 @@ fun Route.passkeyRoutes() {
                     call.respond(PasskeyStatusResponse(registered = true, credentialCount = 0))
                     return@get
                 }
-                val uid = call.attributes[FirebaseTokenKey].uid
+                val uid = call.firebasePrincipal.uid
                 val registered = PasskeyService.isRegistered(uid)
                 val count = if (registered) PasskeyService.credentialCount(uid) else 0
                 call.respond(PasskeyStatusResponse(registered = registered, credentialCount = count))
@@ -63,11 +63,10 @@ fun Route.passkeyRoutes() {
                         mapOf("error" to "パスキー機能が無効です（WEBAUTHN_RP_ID / WEBAUTHN_ORIGIN を設定してください）"),
                     )
                 }
-                val uid = call.attributes[FirebaseTokenKey].uid
-                val email = call.attributes[FirebaseTokenKey].email ?: ""
-                val displayName =
-                    call.attributes[FirebaseTokenKey].name
-                        ?: email.substringBefore("@")
+                val principal = call.firebasePrincipal
+                val uid = principal.uid
+                val email = principal.email ?: ""
+                val displayName = principal.name ?: email.substringBefore("@")
 
                 val challenge = ChallengeStore.generate(uid)
                 val challengeBase64 = Base64.getUrlEncoder().withoutPadding().encodeToString(challenge)
@@ -118,7 +117,7 @@ fun Route.passkeyRoutes() {
                         mapOf("error" to "パスキー機能が無効です"),
                     )
                 }
-                val uid = call.attributes[FirebaseTokenKey].uid
+                val uid = call.firebasePrincipal.uid
                 val request = call.receive<PasskeyRegisterCompleteRequest>()
 
                 val challenge =

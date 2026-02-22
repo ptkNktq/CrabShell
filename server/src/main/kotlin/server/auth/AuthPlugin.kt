@@ -3,83 +3,55 @@ package server.auth
 import com.google.firebase.auth.FirebaseToken
 import io.ktor.http.*
 import io.ktor.server.application.*
-import io.ktor.server.request.*
+import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.util.*
 
-val FirebaseTokenKey = AttributeKey<FirebaseToken>("FirebaseToken")
+private const val AUTH_PROVIDER_NAME = "firebase"
 
-val FirebaseAuthPlugin =
-    createRouteScopedPlugin("FirebaseAuth") {
-        onCall { call ->
-            val authHeader = call.request.header(HttpHeaders.Authorization)
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Missing or invalid Authorization header"))
-                return@onCall
+/** Firebase ID Token を検証した結果を保持する Principal */
+data class FirebasePrincipal(
+    val firebaseToken: FirebaseToken,
+) : Principal {
+    val uid: String get() = firebaseToken.uid
+    val email: String? get() = firebaseToken.email
+    val name: String? get() = firebaseToken.name
+    val claims: Map<String, Any> get() = firebaseToken.claims
+    val isAdmin: Boolean get() = claims["admin"] == true
+}
+
+/** Ktor Authentication プラグインを設定（Bearer トークンで Firebase ID Token を検証） */
+fun Application.configureAuth() {
+    install(Authentication) {
+        bearer(AUTH_PROVIDER_NAME) {
+            realm = "CrabShell"
+            authenticate { credential ->
+                FirebaseAdmin.verifyIdToken(credential.token)?.let { FirebasePrincipal(it) }
             }
-
-            val token = authHeader.removePrefix("Bearer ")
-            val firebaseToken = FirebaseAdmin.verifyIdToken(token)
-            if (firebaseToken == null) {
-                call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Invalid or expired token"))
-                return@onCall
-            }
-
-            // 検証済みトークンをリクエスト属性に保存
-            call.attributes.put(FirebaseTokenKey, firebaseToken)
         }
     }
-
-fun Route.authenticated(build: Route.() -> Unit): Route {
-    val authenticatedRoute =
-        createChild(
-            object : RouteSelector() {
-                override suspend fun evaluate(
-                    context: RoutingResolveContext,
-                    segmentIndex: Int,
-                ) = RouteSelectorEvaluation.Transparent
-
-                override fun toString() = ""
-            },
-        )
-
-    authenticatedRoute.install(FirebaseAuthPlugin)
-    authenticatedRoute.build()
-    return authenticatedRoute
 }
 
-// FirebaseToken から admin カスタムクレームを確認
-fun ApplicationCall.isAdmin(): Boolean {
-    val token = attributes.getOrNull(FirebaseTokenKey) ?: return false
-    return token.claims["admin"] == true
-}
+/** authenticated / adminOnly ブロック内で FirebasePrincipal を取得する拡張プロパティ */
+val ApplicationCall.firebasePrincipal: FirebasePrincipal
+    get() = principal<FirebasePrincipal>()!!
 
-// admin 限定ルートビルダー（authenticated + admin チェック）
-val AdminAuthPlugin =
-    createRouteScopedPlugin("AdminAuth") {
-        onCall { call ->
-            if (!call.isAdmin()) {
+/** 認証必須ルートビルダー */
+fun Route.authenticated(build: Route.() -> Unit): Route = authenticate(AUTH_PROVIDER_NAME) { build() }
+
+/** admin 認可プラグイン（AuthenticationChecked フックで admin クレームを検証） */
+private val AdminAuthorizationPlugin =
+    createRouteScopedPlugin("AdminAuthorization") {
+        on(AuthenticationChecked) { call ->
+            if (call.principal<FirebasePrincipal>()?.isAdmin != true) {
                 call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Admin access required"))
             }
         }
     }
 
-fun Route.adminOnly(build: Route.() -> Unit): Route {
-    val adminRoute =
-        createChild(
-            object : RouteSelector() {
-                override suspend fun evaluate(
-                    context: RoutingResolveContext,
-                    segmentIndex: Int,
-                ) = RouteSelectorEvaluation.Transparent
-
-                override fun toString() = ""
-            },
-        )
-
-    adminRoute.install(FirebaseAuthPlugin)
-    adminRoute.install(AdminAuthPlugin)
-    adminRoute.build()
-    return adminRoute
-}
+/** admin 限定ルートビルダー（認証 + admin カスタムクレーム検証） */
+fun Route.adminOnly(build: Route.() -> Unit): Route =
+    authenticate(AUTH_PROVIDER_NAME) {
+        install(AdminAuthorizationPlugin)
+        build()
+    }

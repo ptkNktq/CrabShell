@@ -14,6 +14,7 @@ import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.routing.*
 import server.auth.FirebaseAdmin
+import server.auth.configureAuth
 import server.config.EnvConfig
 import server.feeding.feedingRoutes
 import server.garbage.garbageRoutes
@@ -38,6 +39,7 @@ fun Application.module() {
     PasskeyDatabase.initialize()
     seedDefaultPet()
 
+    configureAuth()
     install(ContentNegotiation) { json() }
 
     install(OpenApi) {
