@@ -1,5 +1,7 @@
 package server.passkey
 
+import io.github.smiley4.ktoropenapi.get
+import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -25,7 +27,15 @@ fun Route.passkeyRoutes() {
         // 認証済みエンドポイント
         authenticated {
             // パスキー登録状態の確認
-            get("/status") {
+            get("/status", {
+                tags = listOf("passkey")
+                summary = "パスキー登録状態確認"
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<PasskeyStatusResponse>()
+                    }
+                }
+            }) {
                 if (!PasskeyService.enabled) {
                     call.respond(PasskeyStatusResponse(registered = true, credentialCount = 0))
                     return@get
@@ -37,7 +47,16 @@ fun Route.passkeyRoutes() {
             }
 
             // 登録オプション生成
-            post("/register/options") {
+            post("/register/options", {
+                tags = listOf("passkey")
+                summary = "パスキー登録オプション生成"
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<PasskeyRegisterOptionsResponse>()
+                    }
+                    code(HttpStatusCode.ServiceUnavailable) { description = "パスキー機能無効" }
+                }
+            }) {
                 if (!PasskeyService.enabled) {
                     return@post call.respond(
                         HttpStatusCode.ServiceUnavailable,
@@ -81,7 +100,18 @@ fun Route.passkeyRoutes() {
             }
 
             // 登録完了
-            post("/register/complete") {
+            post("/register/complete", {
+                tags = listOf("passkey")
+                summary = "パスキー登録完了"
+                request {
+                    body<PasskeyRegisterCompleteRequest>()
+                }
+                response {
+                    code(HttpStatusCode.OK) { description = "登録成功" }
+                    code(HttpStatusCode.BadRequest) { description = "登録失敗" }
+                    code(HttpStatusCode.ServiceUnavailable) { description = "パスキー機能無効" }
+                }
+            }) {
                 if (!PasskeyService.enabled) {
                     return@post call.respond(
                         HttpStatusCode.ServiceUnavailable,
@@ -136,7 +166,21 @@ fun Route.passkeyRoutes() {
 
         // 認証なしエンドポイント
         // 認証オプション生成
-        post("/authenticate/options") {
+        post("/authenticate/options", {
+            tags = listOf("passkey")
+            summary = "パスキー認証オプション生成"
+            securitySchemeNames()
+            request {
+                body<PasskeyAuthenticateOptionsRequest>()
+            }
+            response {
+                code(HttpStatusCode.OK) {
+                    body<PasskeyAuthenticateOptionsResponse>()
+                }
+                code(HttpStatusCode.BadRequest) { description = "ユーザー未発見またはパスキー未登録" }
+                code(HttpStatusCode.ServiceUnavailable) { description = "パスキー機能無効" }
+            }
+        }) {
             if (!PasskeyService.enabled) {
                 return@post call.respond(
                     HttpStatusCode.ServiceUnavailable,
@@ -185,7 +229,21 @@ fun Route.passkeyRoutes() {
         }
 
         // 認証完了
-        post("/authenticate/complete") {
+        post("/authenticate/complete", {
+            tags = listOf("passkey")
+            summary = "パスキー認証完了"
+            securitySchemeNames()
+            request {
+                body<PasskeyAuthenticateCompleteRequest>()
+            }
+            response {
+                code(HttpStatusCode.OK) {
+                    body<PasskeyAuthenticateResponse>()
+                }
+                code(HttpStatusCode.BadRequest) { description = "認証失敗" }
+                code(HttpStatusCode.ServiceUnavailable) { description = "パスキー機能無効" }
+            }
+        }) {
             if (!PasskeyService.enabled) {
                 return@post call.respond(
                     HttpStatusCode.ServiceUnavailable,
