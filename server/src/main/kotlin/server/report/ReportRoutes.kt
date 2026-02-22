@@ -28,7 +28,6 @@ import java.time.YearMonth
 private val firestore by lazy { FirestoreClient.getFirestore() }
 
 private const val MONEY_COLLECTION = "money"
-private const val DEFAULT_REDEMPTION_NOTE = "過払い金から支払い"
 
 fun Route.reportRoutes() {
     authenticated {
@@ -174,7 +173,7 @@ fun Route.reportRoutes() {
                     uid = req.uid,
                     amount = req.amount,
                     paidAt = Instant.now().toString(),
-                    note = req.note.ifBlank { DEFAULT_REDEMPTION_NOTE },
+                    note = req.note,
                     isRedemption = true,
                 )
             val updated = data.copy(paymentRecords = data.paymentRecords + record)

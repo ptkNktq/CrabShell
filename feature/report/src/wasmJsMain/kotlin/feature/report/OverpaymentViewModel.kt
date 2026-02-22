@@ -15,11 +15,13 @@ import model.MonthlyMoney
 import model.OverpaymentRedemptionRequest
 import model.UserBalance
 
+private const val DEFAULT_REDEMPTION_NOTE = "過払い金から支払い"
+
 data class RedemptionFormState(
     val selectedUid: String = "",
     val selectedMonth: String = "",
     val amountText: String = "",
-    val noteText: String = "",
+    val noteText: String = DEFAULT_REDEMPTION_NOTE,
     val isSaving: Boolean = false,
     val error: String? = null,
     val monthData: MonthlyMoney? = null,

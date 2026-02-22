@@ -260,7 +260,6 @@ private fun RedemptionInlineCard(
                 value = form.noteText,
                 onValueChange = onNoteChange,
                 label = { Text("備考") },
-                placeholder = { Text("過払い金から支払い") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 enabled = inputEnabled && !locked,
