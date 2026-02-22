@@ -1,5 +1,10 @@
 package server
 
+import io.github.smiley4.ktoropenapi.OpenApi
+import io.github.smiley4.ktoropenapi.get
+import io.github.smiley4.ktoropenapi.openApi
+import io.github.smiley4.ktorswaggerui.SwaggerUI
+import io.github.smiley4.ktorswaggerui.swaggerUI
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -38,10 +43,47 @@ fun Application.module() {
 
     install(ContentNegotiation) { json() }
 
+    install(OpenApi) {
+        info {
+            title = "CrabShell API"
+            version = "1.0.0"
+            description = "CrabShell ダッシュボードアプリケーションの API"
+        }
+        security {
+            securityScheme("firebase") {
+                type = AuthType.HTTP
+                scheme = AuthScheme.BEARER
+                bearerFormat = "Firebase ID Token"
+            }
+            defaultSecuritySchemeNames("firebase")
+            defaultUnauthorizedResponse {
+                description = "認証エラー"
+            }
+        }
+    }
+
+    // 開発モード時のみ Swagger UI を有効化
+    if (developmentMode) {
+        install(SwaggerUI)
+    }
+
     routing {
+        if (developmentMode) {
+            route("api.json") { openApi() }
+            route("swagger") { swaggerUI("/api.json") }
+        }
+
         route("/api") {
             authenticated {
-                get("/items") {
+                get("/items", {
+                    tags = listOf("dashboard")
+                    summary = "ダッシュボード項目一覧"
+                    response {
+                        code(HttpStatusCode.OK) {
+                            body<List<DashboardItem>>()
+                        }
+                    }
+                }) {
                     call.respond(sampleItems())
                 }
             }
