@@ -139,6 +139,7 @@ cp .env.example .env
 ./gradlew :app:wasmJsBrowserDevelopmentRun
 
 # ブラウザ: http://localhost:3000
+# Swagger UI: http://localhost:3000/swagger（SWAGGER_ENABLED=true 時のみ）
 ```
 
 サーバーはプロジェクトルートの `.env` ファイルから環境変数を自動読み込みする（[dotenv-java](https://github.com/cdimascio/dotenv-java) 使用）。`.env` が存在しない場合は無視される。OS の環境変数が `.env` より優先される。

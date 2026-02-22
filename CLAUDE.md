@@ -46,6 +46,7 @@ cp .env.example .env
 ./gradlew :app:wasmJsBrowserDevelopmentRun
 
 # ブラウザ: http://localhost:3000
+# Swagger UI: http://localhost:3000/swagger（SWAGGER_ENABLED=true 時のみ）
 ```
 
 - `./gradlew :server:run` は Gradle のプロジェクトロックを保持し続けるため使用不可。fat JAR で起動すること。
