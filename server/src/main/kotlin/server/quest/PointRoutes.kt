@@ -13,8 +13,8 @@ import model.CreateRewardRequest
 import model.PointHistory
 import model.Reward
 import model.UserPoints
-import server.auth.FirebaseTokenKey
 import server.auth.authenticated
+import server.auth.firebasePrincipal
 import server.util.await
 import java.time.Instant
 
@@ -32,7 +32,7 @@ fun Route.pointRoutes() {
                     }
                 }
             }) {
-                val token = call.attributes[FirebaseTokenKey]
+                val token = call.firebasePrincipal
                 val doc =
                     firestore
                         .collection("users")
@@ -62,7 +62,7 @@ fun Route.pointRoutes() {
                     }
                 }
             }) {
-                val token = call.attributes[FirebaseTokenKey]
+                val token = call.firebasePrincipal
                 val docs =
                     firestore
                         .collection("users")
@@ -134,7 +134,7 @@ fun Route.pointRoutes() {
                     }
                 }
             }) {
-                val token = call.attributes[FirebaseTokenKey]
+                val token = call.firebasePrincipal
                 val request = call.receive<CreateRewardRequest>()
                 val rewardData =
                     mapOf(
@@ -173,7 +173,7 @@ fun Route.pointRoutes() {
                     code(HttpStatusCode.Forbidden) { description = "作成者/admin のみ削除可" }
                 }
             }) {
-                val token = call.attributes[FirebaseTokenKey]
+                val token = call.firebasePrincipal
                 val id =
                     call.parameters["id"]
                         ?: return@delete call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
@@ -216,7 +216,7 @@ fun Route.pointRoutes() {
                     code(HttpStatusCode.Conflict) { description = "ポイント不足または利用不可" }
                 }
             }) {
-                val token = call.attributes[FirebaseTokenKey]
+                val token = call.firebasePrincipal
                 val id =
                     call.parameters["id"]
                         ?: return@post call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))

@@ -20,8 +20,8 @@ import model.GenerateQuestTextResponse
 import model.Quest
 import model.QuestStatus
 import model.WebhookEvent
-import server.auth.FirebaseTokenKey
 import server.auth.authenticated
+import server.auth.firebasePrincipal
 import server.config.EnvConfig
 import server.util.await
 import java.time.Instant
@@ -124,7 +124,7 @@ fun Route.questRoutes() {
                     code(HttpStatusCode.Conflict) { description = "同時発行上限" }
                 }
             }) {
-                val token = call.attributes[FirebaseTokenKey]
+                val token = call.firebasePrincipal
                 val request = call.receive<CreateQuestRequest>()
 
                 // 同時発行数の上限チェック（全ユーザーで最大3件）
@@ -191,7 +191,7 @@ fun Route.questRoutes() {
                     code(HttpStatusCode.Forbidden) { description = "自分のクエストは受注不可" }
                 }
             }) {
-                val token = call.attributes[FirebaseTokenKey]
+                val token = call.firebasePrincipal
                 val id =
                     call.parameters["id"]
                         ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
@@ -240,7 +240,7 @@ fun Route.questRoutes() {
                     code(HttpStatusCode.Forbidden) { description = "作成者のみ承認可" }
                 }
             }) {
-                val token = call.attributes[FirebaseTokenKey]
+                val token = call.firebasePrincipal
                 val id =
                     call.parameters["id"]
                         ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
@@ -298,7 +298,7 @@ fun Route.questRoutes() {
                     code(HttpStatusCode.Forbidden) { description = "作成者のみ削除可" }
                 }
             }) {
-                val token = call.attributes[FirebaseTokenKey]
+                val token = call.firebasePrincipal
                 val id =
                     call.parameters["id"]
                         ?: return@delete call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
