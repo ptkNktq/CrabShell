@@ -1,9 +1,10 @@
 package server
 
 import io.github.smiley4.ktoropenapi.OpenApi
+import io.github.smiley4.ktoropenapi.config.AuthScheme
+import io.github.smiley4.ktoropenapi.config.AuthType
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.openApi
-import io.github.smiley4.ktorswaggerui.SwaggerUI
 import io.github.smiley4.ktorswaggerui.swaggerUI
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
@@ -60,11 +61,6 @@ fun Application.module() {
                 description = "認証エラー"
             }
         }
-    }
-
-    // 開発モード時のみ Swagger UI を有効化
-    if (developmentMode) {
-        install(SwaggerUI)
     }
 
     routing {
