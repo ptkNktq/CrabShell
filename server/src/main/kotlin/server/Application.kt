@@ -3,7 +3,6 @@ package server
 import io.github.smiley4.ktoropenapi.OpenApi
 import io.github.smiley4.ktoropenapi.config.AuthScheme
 import io.github.smiley4.ktoropenapi.config.AuthType
-import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.openApi
 import io.github.smiley4.ktorswaggerui.swaggerUI
 import io.ktor.http.*
@@ -13,12 +12,8 @@ import io.ktor.server.engine.*
 import io.ktor.server.http.content.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
-import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import model.DashboardItem
-import model.Status
 import server.auth.FirebaseAdmin
-import server.auth.authenticated
 import server.config.EnvConfig
 import server.feeding.feedingRoutes
 import server.garbage.garbageRoutes
@@ -73,19 +68,6 @@ fun Application.module() {
         }
 
         route("/api") {
-            authenticated {
-                get("/items", {
-                    tags = listOf("dashboard")
-                    summary = "ダッシュボード項目一覧"
-                    response {
-                        code(HttpStatusCode.OK) {
-                            body<List<DashboardItem>>()
-                        }
-                    }
-                }) {
-                    call.respond(sampleItems())
-                }
-            }
             userRoutes()
             petRoutes()
             feedingRoutes()
@@ -123,10 +105,3 @@ fun Application.module() {
         }
     }
 }
-
-private fun sampleItems(): List<DashboardItem> =
-    listOf(
-        DashboardItem(1, "Server Setup", "Ktor server is running", Status.ACTIVE),
-        DashboardItem(2, "Frontend", "Compose Web (Wasm)", Status.ACTIVE),
-        DashboardItem(3, "Database", "Not yet configured", Status.PENDING),
-    )
