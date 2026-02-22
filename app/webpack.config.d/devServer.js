@@ -7,7 +7,7 @@ if (config.devServer) {
     // webpack 5 では proxy は配列形式が必須
     config.devServer.proxy = [
         {
-            context: ['/api'],
+            context: ['/api', '/swagger', '/api.json'],
             target: 'http://localhost:8080',
             changeOrigin: false,
         }

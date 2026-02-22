@@ -2,6 +2,9 @@ package server.feeding
 
 import com.google.cloud.firestore.SetOptions
 import com.google.firebase.cloud.FirestoreClient
+import io.github.smiley4.ktoropenapi.get
+import io.github.smiley4.ktoropenapi.patch
+import io.github.smiley4.ktoropenapi.put
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -18,7 +21,19 @@ private val firestore by lazy { FirestoreClient.getFirestore() }
 fun Route.feedingRoutes() {
     route("/pets/{petId}/feeding") {
         authenticated {
-            get("/{date}") {
+            get("/{date}", {
+                tags = listOf("feeding")
+                summary = "給餌ログ取得"
+                request {
+                    pathParameter<String>("petId") { description = "ペット ID" }
+                    pathParameter<String>("date") { description = "日付（YYYY-MM-DD）" }
+                }
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<FeedingLog>()
+                    }
+                }
+            }) {
                 val petId =
                     call.parameters["petId"]
                         ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "petId is required"))
@@ -66,7 +81,20 @@ fun Route.feedingRoutes() {
                 )
             }
 
-            put("/{date}/{mealTime}") {
+            put("/{date}/{mealTime}", {
+                tags = listOf("feeding")
+                summary = "給餌記録"
+                request {
+                    pathParameter<String>("petId") { description = "ペット ID" }
+                    pathParameter<String>("date") { description = "日付（YYYY-MM-DD）" }
+                    pathParameter<String>("mealTime") { description = "食事時間（MORNING/NOON/EVENING）" }
+                }
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<Feeding>()
+                    }
+                }
+            }) {
                 val petId =
                     call.parameters["petId"]
                         ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("error" to "petId is required"))
@@ -111,7 +139,21 @@ fun Route.feedingRoutes() {
                 call.respond(Feeding(done = true, timestamp = timestamp))
             }
 
-            patch("/{date}/{mealTime}/timestamp") {
+            patch("/{date}/{mealTime}/timestamp", {
+                tags = listOf("feeding")
+                summary = "給餌タイムスタンプ更新"
+                request {
+                    pathParameter<String>("petId") { description = "ペット ID" }
+                    pathParameter<String>("date") { description = "日付（YYYY-MM-DD）" }
+                    pathParameter<String>("mealTime") { description = "食事時間（MORNING/NOON/EVENING）" }
+                    body<Map<String, String>> { description = "timestamp フィールド" }
+                }
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<Feeding>()
+                    }
+                }
+            }) {
                 val petId =
                     call.parameters["petId"]
                         ?: return@patch call.respond(HttpStatusCode.BadRequest, mapOf("error" to "petId is required"))
@@ -182,7 +224,20 @@ fun Route.feedingRoutes() {
                 call.respond(Feeding(done = true, timestamp = timestamp))
             }
 
-            put("/{date}/note") {
+            put("/{date}/note", {
+                tags = listOf("feeding")
+                summary = "給餌ノート更新"
+                request {
+                    pathParameter<String>("petId") { description = "ペット ID" }
+                    pathParameter<String>("date") { description = "日付（YYYY-MM-DD）" }
+                    body<Map<String, String>> { description = "note フィールド" }
+                }
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<Map<String, String>>()
+                    }
+                }
+            }) {
                 val petId =
                     call.parameters["petId"]
                         ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("error" to "petId is required"))

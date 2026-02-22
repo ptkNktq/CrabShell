@@ -1,6 +1,10 @@
 package server.money
 
 import com.google.firebase.cloud.FirestoreClient
+import io.github.smiley4.ktoropenapi.get
+import io.github.smiley4.ktoropenapi.patch
+import io.github.smiley4.ktoropenapi.post
+import io.github.smiley4.ktoropenapi.put
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -23,7 +27,18 @@ fun Route.moneyRoutes() {
     route("/money/{month}") {
         // 管理者: データ取得・全体保存
         adminOnly {
-            get {
+            get({
+                tags = listOf("money")
+                summary = "月次お金データ取得（admin）"
+                request {
+                    pathParameter<String>("month") { description = "月（YYYY-MM）" }
+                }
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<MonthlyMoney>()
+                    }
+                }
+            }) {
                 val month = call.parameters["month"]!!
                 val doc =
                     firestore
@@ -41,7 +56,20 @@ fun Route.moneyRoutes() {
                 call.respond(parseMonthlyMoney(month, doc))
             }
 
-            put {
+            put({
+                tags = listOf("money")
+                summary = "月次お金データ保存（admin）"
+                request {
+                    pathParameter<String>("month") { description = "月（YYYY-MM）" }
+                    body<MonthlyMoney>()
+                }
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<MonthlyMoney>()
+                    }
+                    code(HttpStatusCode.Conflict) { description = "ロック中" }
+                }
+            }) {
                 val month = call.parameters["month"]!!
                 val existing = getMonthlyMoney(month)
                 if (existing.locked) {
@@ -53,7 +81,18 @@ fun Route.moneyRoutes() {
                 call.respond(body)
             }
 
-            patch("lock") {
+            patch("lock", {
+                tags = listOf("money")
+                summary = "月次ロック切り替え（admin）"
+                request {
+                    pathParameter<String>("month") { description = "月（YYYY-MM）" }
+                }
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<MonthlyMoney>()
+                    }
+                }
+            }) {
                 val month = call.parameters["month"]!!
                 val existing = getMonthlyMoney(month)
                 val updated = existing.copy(locked = !existing.locked)
@@ -64,7 +103,18 @@ fun Route.moneyRoutes() {
 
         // 一般ユーザー: 自分の割当のみ取得
         authenticated {
-            get("my") {
+            get("my", {
+                tags = listOf("money")
+                summary = "自分の月次お金データ取得"
+                request {
+                    pathParameter<String>("month") { description = "月（YYYY-MM）" }
+                }
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<MonthlyMoney>()
+                    }
+                }
+            }) {
                 val month = call.parameters["month"]!!
                 val uid = call.attributes[FirebaseTokenKey].uid
                 val doc =
@@ -92,7 +142,21 @@ fun Route.moneyRoutes() {
 
         // 一般ユーザー: 支払い記録追加
         authenticated {
-            post("pay") {
+            post("pay", {
+                tags = listOf("money")
+                summary = "支払い記録追加"
+                request {
+                    pathParameter<String>("month") { description = "月（YYYY-MM）" }
+                    body<PaymentRecord>()
+                }
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<MonthlyMoney>()
+                    }
+                    code(HttpStatusCode.NotFound) { description = "月データ未作成" }
+                    code(HttpStatusCode.Conflict) { description = "ロック中" }
+                }
+            }) {
                 val month = call.parameters["month"]!!
                 val uid = call.attributes[FirebaseTokenKey].uid
                 val record = call.receive<PaymentRecord>()
