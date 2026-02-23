@@ -7,6 +7,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
@@ -324,7 +325,7 @@ fun Route.passkeyRoutes() {
 }
 
 /** クレデンシャル情報を WebAuthn 仕様の JSON オブジェクトに変換する */
-private fun buildCredentialJsonObject(cred: PasskeyService.CredentialRecord) =
+private fun buildCredentialJsonObject(cred: PasskeyService.CredentialRecord): JsonObject =
     buildJsonObject {
         put("type", "public-key")
         put("id", cred.credentialIdBase64)
