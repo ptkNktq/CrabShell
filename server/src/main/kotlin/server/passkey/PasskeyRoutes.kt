@@ -7,9 +7,14 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.putJsonObject
 import model.PasskeyAuthenticateCompleteRequest
 import model.PasskeyAuthenticateOptionsRequest
 import model.PasskeyAuthenticateOptionsResponse
@@ -72,28 +77,50 @@ fun Route.passkeyRoutes() {
                 val challengeBase64 = Base64.getUrlEncoder().withoutPadding().encodeToString(challenge)
 
                 val existingCredentials = PasskeyService.findCredentialsByUid(uid)
-                val excludeCredentials =
-                    existingCredentials.joinToString(",") { cred ->
-                        val transportsJson =
-                            cred.transports?.split(",")?.joinToString(",") { "\"$it\"" } ?: ""
-                        """{"type":"public-key","id":"${cred.credentialIdBase64}"""" +
-                            if (transportsJson.isNotEmpty()) ""","transports":[$transportsJson]}""" else "}"
-                    }
 
                 val optionsJson =
-                    """{
-                    |"rp":{"name":"CrabShell","id":"${PasskeyService.rpId}"},
-                    |"user":{"id":"${Base64.getUrlEncoder().withoutPadding().encodeToString(
-                        uid.toByteArray(),
-                    )}","name":"$email","displayName":"$displayName"},
-                    |"challenge":"$challengeBase64",
-                    |"pubKeyCredParams":[{"type":"public-key","alg":-7},{"type":"public-key","alg":-257}],
-                    |"timeout":300000,
-                    |"excludeCredentials":[$excludeCredentials],
-                    |"authenticatorSelection":{"residentKey":"preferred","userVerification":"preferred"},
-                    |"attestation":"none"
-                    |}
-                    """.trimMargin().replace("\n", "")
+                    Json.encodeToString(
+                        buildJsonObject {
+                            putJsonObject("rp") {
+                                put("name", "CrabShell")
+                                put("id", PasskeyService.rpId)
+                            }
+                            putJsonObject("user") {
+                                put(
+                                    "id",
+                                    Base64.getUrlEncoder().withoutPadding().encodeToString(uid.toByteArray()),
+                                )
+                                put("name", email)
+                                put("displayName", displayName)
+                            }
+                            put("challenge", challengeBase64)
+                            putJsonArray("pubKeyCredParams") {
+                                add(
+                                    buildJsonObject {
+                                        put("type", "public-key")
+                                        put("alg", -7)
+                                    },
+                                )
+                                add(
+                                    buildJsonObject {
+                                        put("type", "public-key")
+                                        put("alg", -257)
+                                    },
+                                )
+                            }
+                            put("timeout", 300000)
+                            putJsonArray("excludeCredentials") {
+                                existingCredentials.forEach { cred ->
+                                    add(buildCredentialJsonObject(cred))
+                                }
+                            }
+                            putJsonObject("authenticatorSelection") {
+                                put("residentKey", "preferred")
+                                put("userVerification", "preferred")
+                            }
+                            put("attestation", "none")
+                        },
+                    )
 
                 call.respond(PasskeyRegisterOptionsResponse(optionsJson = optionsJson))
             }
@@ -200,23 +227,20 @@ fun Route.passkeyRoutes() {
             val challenge = ChallengeStore.generate(request.email)
             val challengeBase64 = Base64.getUrlEncoder().withoutPadding().encodeToString(challenge)
 
-            val allowCredentials =
-                credentials.joinToString(",") { cred ->
-                    val transportsJson =
-                        cred.transports?.split(",")?.joinToString(",") { "\"$it\"" } ?: ""
-                    """{"type":"public-key","id":"${cred.credentialIdBase64}"""" +
-                        if (transportsJson.isNotEmpty()) ""","transports":[$transportsJson]}""" else "}"
-                }
-
             val optionsJson =
-                """{
-                |"challenge":"$challengeBase64",
-                |"timeout":300000,
-                |"rpId":"${PasskeyService.rpId}",
-                |"allowCredentials":[$allowCredentials],
-                |"userVerification":"preferred"
-                |}
-                """.trimMargin().replace("\n", "")
+                Json.encodeToString(
+                    buildJsonObject {
+                        put("challenge", challengeBase64)
+                        put("timeout", 300000)
+                        put("rpId", PasskeyService.rpId)
+                        putJsonArray("allowCredentials") {
+                            credentials.forEach { cred ->
+                                add(buildCredentialJsonObject(cred))
+                            }
+                        }
+                        put("userVerification", "preferred")
+                    },
+                )
 
             call.respond(PasskeyAuthenticateOptionsResponse(optionsJson = optionsJson))
         }
@@ -298,3 +322,15 @@ fun Route.passkeyRoutes() {
         }
     }
 }
+
+/** クレデンシャル情報を WebAuthn 仕様の JSON オブジェクトに変換する */
+private fun buildCredentialJsonObject(cred: PasskeyService.CredentialRecord) =
+    buildJsonObject {
+        put("type", "public-key")
+        put("id", cred.credentialIdBase64)
+        cred.transports?.split(",")?.let { transports ->
+            putJsonArray("transports") {
+                transports.forEach { add(JsonPrimitive(it)) }
+            }
+        }
+    }
