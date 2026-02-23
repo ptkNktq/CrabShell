@@ -176,7 +176,7 @@ fun Route.passkeyRoutes() {
                 code(HttpStatusCode.OK) {
                     body<PasskeyAuthenticateOptionsResponse>()
                 }
-                code(HttpStatusCode.BadRequest) { description = "ユーザー未発見またはパスキー未登録" }
+                code(HttpStatusCode.BadRequest) { description = "認証不可" }
                 code(HttpStatusCode.ServiceUnavailable) { description = "パスキー機能無効" }
             }
         }) {
@@ -188,18 +188,12 @@ fun Route.passkeyRoutes() {
             }
             val request = call.receive<PasskeyAuthenticateOptionsRequest>()
 
-            val user =
-                FirebaseAdmin.getUserByEmail(request.email)
-                    ?: return@post call.respond(
-                        HttpStatusCode.BadRequest,
-                        mapOf("error" to "ユーザーが見つかりません"),
-                    )
-
-            val credentials = PasskeyService.findCredentialsByUid(user.uid)
+            val user = FirebaseAdmin.getUserByEmail(request.email)
+            val credentials = user?.let { PasskeyService.findCredentialsByUid(it.uid) } ?: emptyList()
             if (credentials.isEmpty()) {
                 return@post call.respond(
                     HttpStatusCode.BadRequest,
-                    mapOf("error" to "パスキーが登録されていません"),
+                    mapOf("error" to "認証できません"),
                 )
             }
 
@@ -251,12 +245,11 @@ fun Route.passkeyRoutes() {
             }
             val request = call.receive<PasskeyAuthenticateCompleteRequest>()
 
+            val authError = mapOf("error" to "認証に失敗しました")
+
             val challenge =
                 ChallengeStore.consume(request.email)
-                    ?: return@post call.respond(
-                        HttpStatusCode.BadRequest,
-                        mapOf("error" to "チャレンジが見つからないか期限切れです"),
-                    )
+                    ?: return@post call.respond(HttpStatusCode.BadRequest, authError)
 
             try {
                 val responseJson =
@@ -280,10 +273,7 @@ fun Route.passkeyRoutes() {
 
                 val credentialRecord =
                     PasskeyService.findCredentialByCredentialId(credentialIdBase64)
-                        ?: return@post call.respond(
-                            HttpStatusCode.BadRequest,
-                            mapOf("error" to "クレデンシャルが見つかりません"),
-                        )
+                        ?: return@post call.respond(HttpStatusCode.BadRequest, authError)
 
                 PasskeyService.verifyAuthentication(
                     credentialIdBytes = credentialIdBytes,
@@ -298,15 +288,12 @@ fun Route.passkeyRoutes() {
                     FirebaseAdmin.createCustomToken(credentialRecord.firebaseUid)
                         ?: return@post call.respond(
                             HttpStatusCode.InternalServerError,
-                            mapOf("error" to "Custom Token の生成に失敗しました"),
+                            mapOf("error" to "認証処理に失敗しました"),
                         )
 
                 call.respond(PasskeyAuthenticateResponse(customToken = customToken))
-            } catch (e: Exception) {
-                call.respond(
-                    HttpStatusCode.BadRequest,
-                    mapOf("error" to (e.message ?: "認証に失敗しました")),
-                )
+            } catch (_: Exception) {
+                call.respond(HttpStatusCode.BadRequest, authError)
             }
         }
     }
