@@ -267,9 +267,56 @@ docker compose pull && docker compose up -d
 
 Firebase Auth + Passkey (WebAuthn) のハイブリッド認証。
 
-### フロー
+### ユーザー登録
 
-1. **初回**: 管理者が Firebase コンソールでユーザー作成 → メール/パスワードでログイン → パスキー登録を案内
+Firebase Authentication でユーザーを管理する。アプリ内にユーザー登録画面はないため、Firebase コンソールで直接作成する。
+
+1. [Firebase コンソール](https://console.firebase.google.com/) → Authentication → Users
+2. 「ユーザーを追加」でメールアドレスとパスワードを設定
+
+### admin 権限の付与
+
+一部の機能（支出管理、レポート閲覧等）は admin カスタムクレームを持つユーザーのみアクセスできる。Firebase コンソールの GUI ではカスタムクレームを設定できないため、Node.js スクリプトで付与する。
+
+```bash
+# プロジェクトルートで実行
+
+# 初回のみ: firebase-admin をインストール
+npm init -y && npm install firebase-admin
+
+# admin クレームを付与（メールアドレスを書き換えて実行）
+GOOGLE_APPLICATION_CREDENTIALS=firebase-service-account.json \
+node -e "
+  const { initializeApp, applicationDefault } = require('firebase-admin/app');
+  const { getAuth } = require('firebase-admin/auth');
+  initializeApp({ credential: applicationDefault() });
+  getAuth().getUserByEmail('user@example.com')
+    .then(u => getAuth().setCustomUserClaims(u.uid, { admin: true }))
+    .then(() => { console.log('Done'); process.exit(); })
+    .catch(console.error);
+"
+```
+
+権限を解除する場合は `{ admin: true }` を `{}` に変更する。
+
+```bash
+GOOGLE_APPLICATION_CREDENTIALS=firebase-service-account.json \
+node -e "
+  const { initializeApp, applicationDefault } = require('firebase-admin/app');
+  const { getAuth } = require('firebase-admin/auth');
+  initializeApp({ credential: applicationDefault() });
+  getAuth().getUserByEmail('user@example.com')
+    .then(u => getAuth().setCustomUserClaims(u.uid, {}))
+    .then(() => { console.log('Done'); process.exit(); })
+    .catch(console.error);
+"
+```
+
+変更後、ユーザーが一度ログアウト→再ログインするとクレームが反映される。
+
+### ログインフロー
+
+1. **初回**: メール/パスワードでログイン → パスキー登録を案内
 2. **以降**: メールアドレス入力 → パスキーでログイン（パスワード不要）
 
 ### 環境変数

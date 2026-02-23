@@ -24,6 +24,9 @@ firebase-service-account.json
 # Local data (SQLite DB etc.)
 data/
 
+# Node.js (admin スクリプト用)
+node_modules/
+
 # OS
 .DS_Store
 Thumbs.db
