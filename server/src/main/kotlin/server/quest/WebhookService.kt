@@ -6,6 +6,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.content.TextContent
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -22,9 +23,10 @@ private val logger = LoggerFactory.getLogger("WebhookService")
 
 class WebhookService(
     private val firestore: Firestore,
+    dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
     private val settingsDoc get() = firestore.collection("settings").document("webhook")
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(dispatcher)
 
     private val client = HttpClient()
     private val json = Json

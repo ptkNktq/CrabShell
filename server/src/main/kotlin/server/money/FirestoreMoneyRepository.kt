@@ -8,6 +8,7 @@ import model.Payment
 import model.PaymentRecord
 import server.util.await
 import java.time.YearMonth
+import java.util.UUID
 
 private const val MONEY_COLLECTION = "money"
 
@@ -70,12 +71,7 @@ class FirestoreMoneyRepository(
         return parseItems(prevDoc.get("items"))
             .filter { it.recurring }
             .map { item ->
-                item.copy(
-                    id =
-                        java.util.UUID
-                            .randomUUID()
-                            .toString(),
-                )
+                item.copy(id = UUID.randomUUID().toString())
             }
     }
 
