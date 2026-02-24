@@ -1,5 +1,5 @@
 plugins {
-    id("crabshell.compose.wasmjs")
+    id("crabshell.feature")
 }
 
 kotlin {
@@ -8,15 +8,6 @@ kotlin {
             implementation(project(":core:network"))
             implementation(project(":core:ui"))
             implementation(project(":shared"))
-
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.material3)
-            implementation(compose.ui)
-            implementation(compose.materialIconsExtended)
-
-            implementation(libs.bundles.koin)
-            implementation(libs.lifecycle.viewmodel.compose)
         }
         wasmJsMain.dependencies {
             implementation(project(":core:auth"))

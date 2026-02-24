@@ -1,5 +1,5 @@
 plugins {
-    id("crabshell.compose.wasmjs")
+    id("crabshell.feature")
 }
 
 kotlin {
@@ -10,17 +10,8 @@ kotlin {
             implementation(project(":core:ui"))
             implementation(project(":shared"))
 
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.material3)
-            implementation(compose.ui)
-            implementation(compose.materialIconsExtended)
-
             implementation(libs.ktor.client.core)
             implementation(libs.kotlinx.serialization.json)
-
-            implementation(libs.bundles.koin)
-            implementation(libs.lifecycle.viewmodel.compose)
         }
     }
 }
