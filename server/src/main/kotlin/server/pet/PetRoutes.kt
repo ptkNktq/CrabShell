@@ -5,9 +5,12 @@ import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import model.Pet
+import org.koin.ktor.ext.inject
 import server.auth.authenticated
 
 fun Route.petRoutes() {
+    val petRepository by inject<PetRepository>()
+
     authenticated {
         get("/pets", {
             tags = listOf("pet")
@@ -18,7 +21,7 @@ fun Route.petRoutes() {
                 }
             }
         }) {
-            call.respond(PetRepository.getPets())
+            call.respond(petRepository.getPets())
         }
     }
 }

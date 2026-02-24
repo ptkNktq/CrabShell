@@ -11,9 +11,11 @@ import model.BalanceSummary
 import model.ExpenseItem
 import model.ExpenseReport
 import model.MonthlyExpenseSummary
+import model.MonthlyMoney
 import model.OverpaymentRedemptionRequest
 import model.PaymentRecord
 import model.UserBalance
+import org.koin.ktor.ext.inject
 import server.auth.adminOnly
 import server.auth.authenticated
 import server.money.MoneyRepository
@@ -21,6 +23,8 @@ import java.time.Instant
 import java.time.YearMonth
 
 fun Route.reportRoutes() {
+    val moneyRepository by inject<MoneyRepository>()
+
     authenticated {
         get("/report", {
             tags = listOf("report")
@@ -57,9 +61,9 @@ fun Route.reportRoutes() {
                 (-range..range).map { offset ->
                     val ym = center.plusMonths(offset.toLong())
                     val monthStr = ym.toString()
-                    val data = MoneyRepository.getMonthlyMoney(monthStr)
+                    val data = moneyRepository.getMonthlyMoney(monthStr)
 
-                    if (data.items.isEmpty() && data.paymentRecords.isEmpty()) {
+                    if (data == null) {
                         MonthlyExpenseSummary(month = monthStr, totalAmount = 0L)
                     } else {
                         val expenseItems =
@@ -88,7 +92,7 @@ fun Route.reportRoutes() {
                 }
             }
         }) {
-            val allMonths = MoneyRepository.getAllMonths()
+            val allMonths = moneyRepository.getAllMonths()
 
             // 月ごとにユーザー別の割当額・支払額を集計
             val months = mutableListOf<String>()
@@ -178,7 +182,7 @@ fun Route.reportRoutes() {
                 return@post
             }
 
-            val data = MoneyRepository.getMonthlyMoney(req.month)
+            val data = moneyRepository.getMonthlyMoney(req.month) ?: MonthlyMoney(month = req.month)
             if (data.locked) {
                 call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is locked"))
                 return@post
@@ -192,7 +196,7 @@ fun Route.reportRoutes() {
                     isRedemption = true,
                 )
             val updated = data.copy(paymentRecords = data.paymentRecords + record)
-            MoneyRepository.saveMonthlyMoney(req.month, updated)
+            moneyRepository.saveMonthlyMoney(req.month, updated)
 
             call.respond(mapOf("status" to "ok"))
         }

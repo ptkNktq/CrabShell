@@ -10,10 +10,13 @@ import io.ktor.server.routing.*
 import model.Feeding
 import model.FeedingLog
 import model.MealTime
+import org.koin.ktor.ext.inject
 import server.auth.authenticated
 import java.time.Instant
 
 fun Route.feedingRoutes() {
+    val feedingRepository by inject<FeedingRepository>()
+
     route("/pets/{petId}/feeding") {
         authenticated {
             get("/{date}", {
@@ -36,7 +39,7 @@ fun Route.feedingRoutes() {
                     call.parameters["date"]
                         ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "date is required"))
 
-                call.respond(FeedingRepository.getFeedingLog(petId, date))
+                call.respond(feedingRepository.getFeedingLog(petId, date))
             }
 
             put("/{date}/{mealTime}", {
@@ -71,7 +74,7 @@ fun Route.feedingRoutes() {
                     }
 
                 val timestamp = Instant.now().toString()
-                FeedingRepository.recordFeeding(petId, date, mealTime, timestamp)
+                feedingRepository.recordFeeding(petId, date, mealTime, timestamp)
                 call.respond(Feeding(done = true, timestamp = timestamp))
             }
 
@@ -118,7 +121,7 @@ fun Route.feedingRoutes() {
                             mapOf("error" to "timestamp is required"),
                         )
 
-                val success = FeedingRepository.updateTimestamp(petId, date, mealTime, timestamp)
+                val success = feedingRepository.updateTimestamp(petId, date, mealTime, timestamp)
                 if (!success) {
                     return@patch call.respond(
                         HttpStatusCode.BadRequest,
@@ -153,7 +156,7 @@ fun Route.feedingRoutes() {
                 val body = call.receive<Map<String, String>>()
                 val note = body["note"] ?: ""
 
-                FeedingRepository.updateNote(petId, date, note)
+                feedingRepository.updateNote(petId, date, note)
                 call.respond(mapOf("note" to note))
             }
         }

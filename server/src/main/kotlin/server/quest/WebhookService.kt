@@ -1,5 +1,6 @@
 package server.quest
 
+import com.google.cloud.firestore.Firestore
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -14,14 +15,14 @@ import kotlinx.serialization.json.Json
 import model.Quest
 import model.WebhookSettings
 import org.slf4j.LoggerFactory
-import server.firestore.FirestoreProvider
 import server.util.await
 import java.time.Instant
 
 private val logger = LoggerFactory.getLogger("WebhookService")
 
-object WebhookService {
-    private val firestore get() = FirestoreProvider.instance
+class WebhookService(
+    private val firestore: Firestore,
+) {
     private val settingsDoc get() = firestore.collection("settings").document("webhook")
     private val scope = CoroutineScope(Dispatchers.IO)
 
@@ -151,7 +152,9 @@ object WebhookService {
     private enum class Service { DISCORD, SLACK, GENERIC }
 
     /** Discord embed カラー (primary: #E8844A) */
-    private const val DISCORD_EMBED_COLOR = 0xE8844A
+    private companion object {
+        const val DISCORD_EMBED_COLOR = 0xE8844A
+    }
 }
 
 // --- Discord ペイロード ---

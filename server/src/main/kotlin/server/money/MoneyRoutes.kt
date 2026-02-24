@@ -10,11 +10,14 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import model.MonthlyMoney
 import model.PaymentRecord
+import org.koin.ktor.ext.inject
 import server.auth.adminOnly
 import server.auth.authenticated
 import server.auth.firebasePrincipal
 
 fun Route.moneyRoutes() {
+    val moneyRepository by inject<MoneyRepository>()
+
     route("/money/{month}") {
         // 管理者: データ取得・全体保存
         adminOnly {
@@ -31,10 +34,10 @@ fun Route.moneyRoutes() {
                 }
             }) {
                 val month = call.parameters["month"]!!
-                val data = MoneyRepository.getMonthlyMoney(month)
+                val data = moneyRepository.getMonthlyMoney(month)
 
-                if (!MoneyRepository.exists(month)) {
-                    val recurringItems = MoneyRepository.getRecurringItemsFromPreviousMonth(month)
+                if (data == null) {
+                    val recurringItems = moneyRepository.getRecurringItemsFromPreviousMonth(month)
                     call.respond(MonthlyMoney(month = month, items = recurringItems))
                     return@get
                 }
@@ -57,13 +60,13 @@ fun Route.moneyRoutes() {
                 }
             }) {
                 val month = call.parameters["month"]!!
-                val existing = MoneyRepository.getMonthlyMoney(month)
+                val existing = moneyRepository.getMonthlyMoney(month) ?: MonthlyMoney(month = month)
                 if (existing.locked) {
                     call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is locked"))
                     return@put
                 }
                 val body = call.receive<MonthlyMoney>()
-                MoneyRepository.saveMonthlyMoney(month, body)
+                moneyRepository.saveMonthlyMoney(month, body)
                 call.respond(body)
             }
 
@@ -80,9 +83,9 @@ fun Route.moneyRoutes() {
                 }
             }) {
                 val month = call.parameters["month"]!!
-                val existing = MoneyRepository.getMonthlyMoney(month)
+                val existing = moneyRepository.getMonthlyMoney(month) ?: MonthlyMoney(month = month)
                 val updated = existing.copy(locked = !existing.locked)
-                MoneyRepository.saveMonthlyMoney(month, updated)
+                moneyRepository.saveMonthlyMoney(month, updated)
                 call.respond(updated)
             }
         }
@@ -104,12 +107,12 @@ fun Route.moneyRoutes() {
                 val month = call.parameters["month"]!!
                 val uid = call.firebasePrincipal.uid
 
-                if (!MoneyRepository.exists(month)) {
+                val data = moneyRepository.getMonthlyMoney(month)
+                if (data == null) {
                     call.respond(MonthlyMoney(month = month))
                     return@get
                 }
 
-                val data = MoneyRepository.getMonthlyMoney(month)
                 // 自分に割当がある項目のみ + 自分の支払い記録のみ
                 val myItems =
                     data.items.filter { item ->
@@ -143,18 +146,18 @@ fun Route.moneyRoutes() {
                 // uid をサーバー側で上書き（改ざん防止）
                 val safeRecord = record.copy(uid = uid)
 
-                if (!MoneyRepository.exists(month)) {
+                val data = moneyRepository.getMonthlyMoney(month)
+                if (data == null) {
                     call.respond(HttpStatusCode.NotFound, mapOf("error" to "Month not found"))
                     return@post
                 }
 
-                val data = MoneyRepository.getMonthlyMoney(month)
                 if (data.locked) {
                     call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is locked"))
                     return@post
                 }
                 val updated = data.copy(paymentRecords = data.paymentRecords + safeRecord)
-                MoneyRepository.saveMonthlyMoney(month, updated)
+                moneyRepository.saveMonthlyMoney(month, updated)
 
                 // 呼び出し元に自分のデータのみ返す
                 val myItems =

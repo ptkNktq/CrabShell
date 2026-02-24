@@ -12,10 +12,13 @@ import model.CreateRewardRequest
 import model.PointHistory
 import model.Reward
 import model.UserPoints
+import org.koin.ktor.ext.inject
 import server.auth.authenticated
 import server.auth.firebasePrincipal
 
 fun Route.pointRoutes() {
+    val pointRepository by inject<PointRepository>()
+
     route("/points") {
         authenticated {
             get({
@@ -28,7 +31,7 @@ fun Route.pointRoutes() {
                 }
             }) {
                 val token = call.firebasePrincipal
-                call.respond(PointRepository.getUserPoints(token.uid, token.name ?: ""))
+                call.respond(pointRepository.getUserPoints(token.uid, token.name ?: ""))
             }
 
             get("/history", {
@@ -41,7 +44,7 @@ fun Route.pointRoutes() {
                 }
             }) {
                 val token = call.firebasePrincipal
-                call.respond(PointRepository.getPointHistory(token.uid))
+                call.respond(pointRepository.getPointHistory(token.uid))
             }
         }
     }
@@ -57,7 +60,7 @@ fun Route.pointRoutes() {
                     }
                 }
             }) {
-                call.respond(PointRepository.getRewards())
+                call.respond(pointRepository.getRewards())
             }
 
             post({
@@ -82,7 +85,7 @@ fun Route.pointRoutes() {
                         "isAvailable" to true,
                         "creatorUid" to token.uid,
                     )
-                val docId = PointRepository.createReward(rewardData)
+                val docId = pointRepository.createReward(rewardData)
                 call.respond(
                     HttpStatusCode.Created,
                     Reward(
@@ -112,7 +115,7 @@ fun Route.pointRoutes() {
                     call.parameters["id"]
                         ?: return@delete call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
 
-                val reward = PointRepository.getReward(id)
+                val reward = pointRepository.getReward(id)
                 if (reward == null) {
                     return@delete call.respond(HttpStatusCode.NotFound, mapOf("error" to "Reward not found"))
                 }
@@ -123,7 +126,7 @@ fun Route.pointRoutes() {
                     return@delete call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only creator or admin can delete"))
                 }
 
-                PointRepository.deleteReward(id)
+                pointRepository.deleteReward(id)
                 call.respond(HttpStatusCode.NoContent)
             }
 
@@ -146,7 +149,7 @@ fun Route.pointRoutes() {
                     call.parameters["id"]
                         ?: return@post call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
 
-                val reward = PointRepository.getReward(id)
+                val reward = pointRepository.getReward(id)
                 if (reward == null) {
                     return@post call.respond(HttpStatusCode.NotFound, mapOf("error" to "Reward not found"))
                 }
@@ -158,7 +161,7 @@ fun Route.pointRoutes() {
                 }
 
                 val rewardName = rewardData["name"] as? String ?: ""
-                val success = PointRepository.exchangeReward(token.uid, token.name ?: "", cost, rewardName, id)
+                val success = pointRepository.exchangeReward(token.uid, token.name ?: "", cost, rewardName, id)
 
                 if (!success) {
                     return@post call.respond(HttpStatusCode.Conflict, mapOf("error" to "Insufficient points"))

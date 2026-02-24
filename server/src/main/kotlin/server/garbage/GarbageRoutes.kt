@@ -7,10 +7,13 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import model.GarbageTypeSchedule
+import org.koin.ktor.ext.inject
 import server.auth.adminOnly
 import server.auth.authenticated
 
 fun Route.garbageRoutes() {
+    val garbageRepository by inject<GarbageRepository>()
+
     route("/garbage/schedule") {
         authenticated {
             get({
@@ -22,7 +25,7 @@ fun Route.garbageRoutes() {
                     }
                 }
             }) {
-                call.respond(GarbageRepository.getSchedules())
+                call.respond(garbageRepository.getSchedules())
             }
         }
 
@@ -40,7 +43,7 @@ fun Route.garbageRoutes() {
                 }
             }) {
                 val schedules = call.receive<List<GarbageTypeSchedule>>()
-                GarbageRepository.saveSchedules(schedules)
+                garbageRepository.saveSchedules(schedules)
                 call.respond(schedules)
             }
         }

@@ -21,7 +21,7 @@ class MoneyParsingTest {
                         ),
                 ),
             )
-        val items = MoneyRepository.parseItems(raw)
+        val items = parseItems(raw)
         assertEquals(1, items.size)
         val item = items[0]
         assertEquals("item1", item.id)
@@ -36,7 +36,7 @@ class MoneyParsingTest {
 
     @Test
     fun parseItemsReturnsEmptyForNull() {
-        assertEquals(emptyList(), MoneyRepository.parseItems(null))
+        assertEquals(emptyList(), parseItems(null))
     }
 
     @Test
@@ -46,7 +46,7 @@ class MoneyParsingTest {
                 mapOf("uid" to "u1", "amount" to 3000L, "paidAt" to "2024-06-01"),
                 mapOf("uid" to "u2", "amount" to 5000L, "paidAt" to "2024-06-02"),
             )
-        val records = MoneyRepository.parsePaymentRecords(raw)
+        val records = parsePaymentRecords(raw)
         assertEquals(2, records.size)
         assertEquals("u1", records[0].uid)
         assertEquals(3000L, records[0].amount)
@@ -55,6 +55,6 @@ class MoneyParsingTest {
 
     @Test
     fun parsePaymentRecordsReturnsEmptyForNull() {
-        assertEquals(emptyList(), MoneyRepository.parsePaymentRecords(null))
+        assertEquals(emptyList(), parsePaymentRecords(null))
     }
 }

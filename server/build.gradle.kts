@@ -31,6 +31,8 @@ dependencies {
     implementation(libs.bundles.exposed)
     implementation(libs.sqlite.jdbc)
     implementation(libs.dotenv.java)
+    implementation(libs.koin.core)
+    implementation(libs.koin.ktor)
     implementation(libs.ktor.openapi)
     implementation(libs.ktor.swagger.ui)
 

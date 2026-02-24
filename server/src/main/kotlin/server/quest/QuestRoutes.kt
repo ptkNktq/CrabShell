@@ -18,6 +18,7 @@ import model.GenerateQuestTextResponse
 import model.Quest
 import model.QuestStatus
 import model.WebhookEvent
+import org.koin.ktor.ext.inject
 import server.auth.authenticated
 import server.auth.firebasePrincipal
 import server.config.EnvConfig
@@ -41,6 +42,10 @@ private val questTextGenerator: QuestTextGenerator? by lazy {
 }
 
 fun Route.questRoutes() {
+    val questRepository by inject<QuestRepository>()
+    val pointRepository by inject<PointRepository>()
+    val webhookService by inject<WebhookService>()
+
     route("/quests") {
         authenticated {
             get({
@@ -59,7 +64,7 @@ fun Route.questRoutes() {
                 }
             }) {
                 val statusFilter = call.request.queryParameters["status"]
-                val rawQuests = QuestRepository.getQuests(statusFilter)
+                val rawQuests = questRepository.getQuests(statusFilter)
                 val now = LocalDate.now()
 
                 val quests =
@@ -74,7 +79,7 @@ fun Route.questRoutes() {
                                 (status == "Open" || status == "Accepted") &&
                                 LocalDate.parse(deadline.take(10)).isBefore(now)
                             ) {
-                                QuestRepository.updateQuest(id, mapOf("status" to "Expired"))
+                                questRepository.updateQuest(id, mapOf("status" to "Expired"))
                                 "Expired"
                             } else {
                                 status
@@ -117,7 +122,7 @@ fun Route.questRoutes() {
                 val request = call.receive<CreateQuestRequest>()
 
                 // 同時発行数の上限チェック（全ユーザーで最大10件）
-                val activeCount = QuestRepository.countActiveQuests()
+                val activeCount = questRepository.countActiveQuests()
                 if (activeCount >= MAX_ACTIVE_QUESTS) {
                     return@post call.respond(
                         HttpStatusCode.Conflict,
@@ -141,7 +146,7 @@ fun Route.questRoutes() {
                         "completedAt" to null,
                     )
 
-                val docId = QuestRepository.createQuest(questData)
+                val docId = questRepository.createQuest(questData)
                 val created =
                     Quest(
                         id = docId,
@@ -156,7 +161,7 @@ fun Route.questRoutes() {
                         createdAt = questData["createdAt"] as String,
                     )
 
-                WebhookService.notify(WebhookEvent.QUEST_CREATED, created)
+                webhookService.notify(WebhookEvent.QUEST_CREATED, created)
                 call.respond(HttpStatusCode.Created, created)
             }
 
@@ -180,7 +185,7 @@ fun Route.questRoutes() {
                     call.parameters["id"]
                         ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
 
-                val quest = QuestRepository.getQuest(id)
+                val quest = questRepository.getQuest(id)
                 if (quest == null) {
                     return@put call.respond(HttpStatusCode.NotFound, mapOf("error" to "Quest not found"))
                 }
@@ -196,7 +201,7 @@ fun Route.questRoutes() {
                     return@put call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Cannot accept own quest"))
                 }
 
-                QuestRepository.updateQuest(
+                questRepository.updateQuest(
                     id,
                     mapOf(
                         "status" to QuestStatus.Accepted.name,
@@ -228,7 +233,7 @@ fun Route.questRoutes() {
                     call.parameters["id"]
                         ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
 
-                val quest = QuestRepository.getQuest(id)
+                val quest = questRepository.getQuest(id)
                 if (quest == null) {
                     return@put call.respond(HttpStatusCode.NotFound, mapOf("error" to "Quest not found"))
                 }
@@ -245,7 +250,7 @@ fun Route.questRoutes() {
                 }
 
                 val now = Instant.now().toString()
-                QuestRepository.updateQuest(
+                questRepository.updateQuest(
                     id,
                     mapOf(
                         "status" to QuestStatus.Verified.name,
@@ -259,11 +264,11 @@ fun Route.questRoutes() {
                 val rewardPoints = (data["rewardPoints"] as? Number)?.toInt() ?: 0
                 val questTitle = data["title"] as? String ?: ""
                 if (assigneeUid != null && rewardPoints > 0) {
-                    PointRepository.awardPoints(assigneeUid, assigneeName, rewardPoints, "クエスト達成: $questTitle", questId = id)
+                    pointRepository.awardPoints(assigneeUid, assigneeName, rewardPoints, "クエスト達成: $questTitle", questId = id)
                 }
 
                 val verifiedQuest = buildQuest(id, data, QuestStatus.Verified)
-                WebhookService.notify(WebhookEvent.QUEST_VERIFIED, verifiedQuest)
+                webhookService.notify(WebhookEvent.QUEST_VERIFIED, verifiedQuest)
                 call.respond(verifiedQuest)
             }
 
@@ -285,7 +290,7 @@ fun Route.questRoutes() {
                     call.parameters["id"]
                         ?: return@delete call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
 
-                val quest = QuestRepository.getQuest(id)
+                val quest = questRepository.getQuest(id)
                 if (quest == null) {
                     return@delete call.respond(HttpStatusCode.NotFound, mapOf("error" to "Quest not found"))
                 }
@@ -301,7 +306,7 @@ fun Route.questRoutes() {
                     return@delete call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only creator can delete"))
                 }
 
-                QuestRepository.deleteQuest(id)
+                questRepository.deleteQuest(id)
                 call.respond(HttpStatusCode.NoContent)
             }
 
