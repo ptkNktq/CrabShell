@@ -11,7 +11,11 @@ import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.http.content.*
 import io.ktor.server.netty.*
+import io.ktor.server.plugins.MissingRequestParameterException
+import io.ktor.server.plugins.ParameterConversionException
 import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
@@ -48,6 +52,15 @@ fun Application.module() {
 
     configureAuth()
     install(ContentNegotiation) { json() }
+
+    install(StatusPages) {
+        exception<MissingRequestParameterException> { call, cause ->
+            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "${cause.parameterName} is required"))
+        }
+        exception<ParameterConversionException> { call, cause ->
+            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid ${cause.parameterName}: ${cause.type}"))
+        }
+    }
 
     install(OpenApi) {
         pathFilter = { _, url -> url.firstOrNull() == "api" }

@@ -8,6 +8,7 @@ import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.util.getOrFail
 import model.UpdateDisplayNameRequest
 import model.User
 import server.auth.adminOnly
@@ -58,7 +59,7 @@ fun Route.userRoutes() {
                 }
             }
         }) {
-            val uid = call.parameters["uid"]!!
+            val uid = call.parameters.getOrFail("uid")
             val request = call.receive<UpdateDisplayNameRequest>()
 
             FirebaseAuth.getInstance().updateUser(

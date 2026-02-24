@@ -8,6 +8,7 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
+import io.ktor.server.util.getOrFail
 import model.CreateRewardRequest
 import model.PointHistory
 import model.Reward
@@ -111,9 +112,7 @@ fun Route.pointRoutes() {
                 }
             }) {
                 val token = call.firebasePrincipal
-                val id =
-                    call.parameters["id"]
-                        ?: return@delete call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
+                val id = call.parameters.getOrFail("id")
 
                 val reward = pointRepository.getReward(id)
                 if (reward == null) {
@@ -145,9 +144,7 @@ fun Route.pointRoutes() {
                 }
             }) {
                 val token = call.firebasePrincipal
-                val id =
-                    call.parameters["id"]
-                        ?: return@post call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
+                val id = call.parameters.getOrFail("id")
 
                 val reward = pointRepository.getReward(id)
                 if (reward == null) {
