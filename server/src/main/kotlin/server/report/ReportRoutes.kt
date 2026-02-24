@@ -1,7 +1,6 @@
 package server.report
 
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.cloud.FirestoreClient
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.HttpStatusCode
@@ -12,24 +11,20 @@ import model.BalanceSummary
 import model.ExpenseItem
 import model.ExpenseReport
 import model.MonthlyExpenseSummary
+import model.MonthlyMoney
 import model.OverpaymentRedemptionRequest
 import model.PaymentRecord
 import model.UserBalance
+import org.koin.ktor.ext.inject
 import server.auth.adminOnly
 import server.auth.authenticated
-import server.money.getMonthlyMoney
-import server.money.parseItems
-import server.money.parsePaymentRecords
-import server.money.saveMonthlyMoney
-import server.util.await
+import server.money.MoneyRepository
 import java.time.Instant
 import java.time.YearMonth
 
-private val firestore by lazy { FirestoreClient.getFirestore() }
-
-private const val MONEY_COLLECTION = "money"
-
 fun Route.reportRoutes() {
+    val moneyRepository by inject<MoneyRepository>()
+
     authenticated {
         get("/report", {
             tags = listOf("report")
@@ -66,20 +61,14 @@ fun Route.reportRoutes() {
                 (-range..range).map { offset ->
                     val ym = center.plusMonths(offset.toLong())
                     val monthStr = ym.toString()
-                    val doc =
-                        firestore
-                            .collection(MONEY_COLLECTION)
-                            .document(monthStr)
-                            .get()
-                            .await()
+                    val data = moneyRepository.getMonthlyMoney(monthStr)
 
-                    if (!doc.exists()) {
+                    if (data == null) {
                         MonthlyExpenseSummary(month = monthStr, totalAmount = 0L)
                     } else {
-                        val items = parseItems(doc.get("items"))
                         val expenseItems =
-                            items.map { ExpenseItem(name = it.name, amount = it.amount, note = it.note) }
-                        val totalAmount = items.sumOf { it.amount }
+                            data.items.map { ExpenseItem(name = it.name, amount = it.amount, note = it.note) }
+                        val totalAmount = data.items.sumOf { it.amount }
                         MonthlyExpenseSummary(
                             month = monthStr,
                             totalAmount = totalAmount,
@@ -103,28 +92,20 @@ fun Route.reportRoutes() {
                 }
             }
         }) {
-            val docs =
-                firestore
-                    .collection(MONEY_COLLECTION)
-                    .get()
-                    .await()
+            val allMonths = moneyRepository.getAllMonths()
 
             // 月ごとにユーザー別の割当額・支払額を集計
             val months = mutableListOf<String>()
             val overpaidByUser = mutableMapOf<String, Long>()
             val redeemedByUser = mutableMapOf<String, Long>()
-            val allUids = mutableSetOf<String>()
 
-            for (doc in docs.documents) {
-                months.add(doc.id)
-                val items = parseItems(doc.get("items"))
-                val records = parsePaymentRecords(doc.get("paymentRecords"))
+            for (monthData in allMonths) {
+                months.add(monthData.month)
 
                 // この月のユーザー別割当額
                 val monthAllocated = mutableMapOf<String, Long>()
-                for (item in items) {
+                for (item in monthData.items) {
                     for (payment in item.payments) {
-                        allUids.add(payment.uid)
                         monthAllocated[payment.uid] =
                             (monthAllocated[payment.uid] ?: 0L) + payment.amount
                     }
@@ -132,8 +113,7 @@ fun Route.reportRoutes() {
 
                 // この月のユーザー別支払額（精算レコードを除外）
                 val monthPaid = mutableMapOf<String, Long>()
-                for (record in records) {
-                    allUids.add(record.uid)
+                for (record in monthData.paymentRecords) {
                     if (record.isRedemption) {
                         redeemedByUser[record.uid] =
                             (redeemedByUser[record.uid] ?: 0L) + record.amount
@@ -202,7 +182,7 @@ fun Route.reportRoutes() {
                 return@post
             }
 
-            val data = getMonthlyMoney(req.month)
+            val data = moneyRepository.getMonthlyMoney(req.month) ?: MonthlyMoney(month = req.month)
             if (data.locked) {
                 call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is locked"))
                 return@post
@@ -216,7 +196,7 @@ fun Route.reportRoutes() {
                     isRedemption = true,
                 )
             val updated = data.copy(paymentRecords = data.paymentRecords + record)
-            saveMonthlyMoney(req.month, updated)
+            moneyRepository.saveMonthlyMoney(req.month, updated)
 
             call.respond(mapOf("status" to "ok"))
         }

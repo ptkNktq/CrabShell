@@ -1,11 +1,12 @@
 package server.quest
 
-import com.google.firebase.cloud.FirestoreClient
+import com.google.cloud.firestore.Firestore
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.content.TextContent
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -20,10 +21,12 @@ import java.time.Instant
 
 private val logger = LoggerFactory.getLogger("WebhookService")
 
-object WebhookService {
-    private val firestore by lazy { FirestoreClient.getFirestore() }
-    private val settingsDoc by lazy { firestore.collection("settings").document("webhook") }
-    private val scope = CoroutineScope(Dispatchers.IO)
+class WebhookService(
+    private val firestore: Firestore,
+    dispatcher: CoroutineDispatcher = Dispatchers.IO,
+) {
+    private val settingsDoc get() = firestore.collection("settings").document("webhook")
+    private val scope = CoroutineScope(dispatcher)
 
     private val client = HttpClient()
     private val json = Json
@@ -151,7 +154,9 @@ object WebhookService {
     private enum class Service { DISCORD, SLACK, GENERIC }
 
     /** Discord embed カラー (primary: #E8844A) */
-    private const val DISCORD_EMBED_COLOR = 0xE8844A
+    private companion object {
+        const val DISCORD_EMBED_COLOR = 0xE8844A
+    }
 }
 
 // --- Discord ペイロード ---

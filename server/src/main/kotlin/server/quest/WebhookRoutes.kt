@@ -8,9 +8,12 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import model.WebhookSettings
+import org.koin.ktor.ext.inject
 import server.auth.adminOnly
 
 fun Route.webhookRoutes() {
+    val webhookService by inject<WebhookService>()
+
     route("/settings/webhook") {
         adminOnly {
             get({
@@ -22,7 +25,7 @@ fun Route.webhookRoutes() {
                     }
                 }
             }) {
-                call.respond(WebhookService.getSettings())
+                call.respond(webhookService.getSettings())
             }
 
             put({
@@ -38,8 +41,8 @@ fun Route.webhookRoutes() {
                 }
             }) {
                 val settings = call.receive<WebhookSettings>()
-                WebhookService.updateSettings(settings)
-                call.respond(WebhookService.getSettings())
+                webhookService.updateSettings(settings)
+                call.respond(webhookService.getSettings())
             }
         }
     }

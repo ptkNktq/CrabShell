@@ -13,16 +13,19 @@ import io.ktor.server.http.content.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.routing.*
+import org.koin.ktor.ext.inject
+import org.koin.ktor.plugin.Koin
 import server.auth.FirebaseAdmin
 import server.auth.configureAuth
 import server.config.EnvConfig
+import server.di.serverModule
 import server.feeding.feedingRoutes
 import server.garbage.garbageRoutes
 import server.money.moneyRoutes
 import server.passkey.PasskeyDatabase
 import server.passkey.passkeyRoutes
+import server.pet.PetRepository
 import server.pet.petRoutes
-import server.pet.seedDefaultPet
 import server.quest.pointRoutes
 import server.quest.questRoutes
 import server.quest.webhookRoutes
@@ -37,7 +40,11 @@ fun main() {
 fun Application.module() {
     FirebaseAdmin.initialize()
     PasskeyDatabase.initialize()
-    seedDefaultPet()
+
+    install(Koin) { modules(serverModule) }
+
+    val petRepository by inject<PetRepository>()
+    petRepository.seedDefaultPet()
 
     configureAuth()
     install(ContentNegotiation) { json() }

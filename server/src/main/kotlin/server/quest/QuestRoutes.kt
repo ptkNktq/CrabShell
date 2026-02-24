@@ -1,7 +1,5 @@
 package server.quest
 
-import com.google.cloud.firestore.Query
-import com.google.firebase.cloud.FirestoreClient
 import io.github.smiley4.ktoropenapi.delete
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.post
@@ -20,16 +18,14 @@ import model.GenerateQuestTextResponse
 import model.Quest
 import model.QuestStatus
 import model.WebhookEvent
+import org.koin.ktor.ext.inject
 import server.auth.authenticated
 import server.auth.firebasePrincipal
 import server.config.EnvConfig
-import server.util.await
 import java.time.Instant
 import java.time.LocalDate
 
 private const val MAX_ACTIVE_QUESTS = 10
-private val firestore by lazy { FirestoreClient.getFirestore() }
-private val questsCollection by lazy { firestore.collection("quests") }
 
 private val geminiApiKey: String? = EnvConfig["GEMINI_API_KEY"]
 
@@ -46,6 +42,10 @@ private val questTextGenerator: QuestTextGenerator? by lazy {
 }
 
 fun Route.questRoutes() {
+    val questRepository by inject<QuestRepository>()
+    val pointRepository by inject<PointRepository>()
+    val webhookService by inject<WebhookService>()
+
     route("/quests") {
         authenticated {
             get({
@@ -64,17 +64,11 @@ fun Route.questRoutes() {
                 }
             }) {
                 val statusFilter = call.request.queryParameters["status"]
-
-                var query: Query = questsCollection
-                if (statusFilter != null) {
-                    query = query.whereEqualTo("status", statusFilter)
-                }
-
-                val docs = query.get().await().documents
+                val rawQuests = questRepository.getQuests(statusFilter)
                 val now = LocalDate.now()
+
                 val quests =
-                    docs.map { doc ->
-                        val data = doc.data
+                    rawQuests.map { (id, data) ->
                         val status = data["status"] as? String ?: "Open"
                         val deadline = data["deadline"] as? String
 
@@ -85,14 +79,14 @@ fun Route.questRoutes() {
                                 (status == "Open" || status == "Accepted") &&
                                 LocalDate.parse(deadline.take(10)).isBefore(now)
                             ) {
-                                doc.reference.update("status", "Expired").await()
+                                questRepository.updateQuest(id, mapOf("status" to "Expired"))
                                 "Expired"
                             } else {
                                 status
                             }
 
                         Quest(
-                            id = doc.id,
+                            id = id,
                             title = data["title"] as? String ?: "",
                             description = data["description"] as? String ?: "",
                             category = parseCategory(data["category"] as? String),
@@ -127,13 +121,8 @@ fun Route.questRoutes() {
                 val token = call.firebasePrincipal
                 val request = call.receive<CreateQuestRequest>()
 
-                // 同時発行数の上限チェック（全ユーザーで最大3件）
-                val activeCount =
-                    questsCollection
-                        .whereIn("status", listOf(QuestStatus.Open.name, QuestStatus.Accepted.name))
-                        .get()
-                        .await()
-                        .size()
+                // 同時発行数の上限チェック（全ユーザーで最大10件）
+                val activeCount = questRepository.countActiveQuests()
                 if (activeCount >= MAX_ACTIVE_QUESTS) {
                     return@post call.respond(
                         HttpStatusCode.Conflict,
@@ -157,10 +146,10 @@ fun Route.questRoutes() {
                         "completedAt" to null,
                     )
 
-                val docRef = questsCollection.add(questData).await()
+                val docId = questRepository.createQuest(questData)
                 val created =
                     Quest(
-                        id = docRef.id,
+                        id = docId,
                         title = request.title,
                         description = request.description,
                         category = request.category,
@@ -172,7 +161,7 @@ fun Route.questRoutes() {
                         createdAt = questData["createdAt"] as String,
                     )
 
-                WebhookService.notify(WebhookEvent.QUEST_CREATED, created)
+                webhookService.notify(WebhookEvent.QUEST_CREATED, created)
                 call.respond(HttpStatusCode.Created, created)
             }
 
@@ -196,12 +185,12 @@ fun Route.questRoutes() {
                     call.parameters["id"]
                         ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
 
-                val doc = questsCollection.document(id).get().await()
-                if (!doc.exists()) {
+                val quest = questRepository.getQuest(id)
+                if (quest == null) {
                     return@put call.respond(HttpStatusCode.NotFound, mapOf("error" to "Quest not found"))
                 }
 
-                val data = doc.data!!
+                val data = quest.second
                 val status = data["status"] as? String ?: ""
                 val creatorUid = data["creatorUid"] as? String ?: ""
 
@@ -212,15 +201,14 @@ fun Route.questRoutes() {
                     return@put call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Cannot accept own quest"))
                 }
 
-                questsCollection
-                    .document(id)
-                    .update(
-                        mapOf(
-                            "status" to QuestStatus.Accepted.name,
-                            "assigneeUid" to token.uid,
-                            "assigneeName" to (token.name ?: ""),
-                        ),
-                    ).await()
+                questRepository.updateQuest(
+                    id,
+                    mapOf(
+                        "status" to QuestStatus.Accepted.name,
+                        "assigneeUid" to token.uid,
+                        "assigneeName" to (token.name ?: ""),
+                    ),
+                )
 
                 call.respond(buildQuest(id, data, QuestStatus.Accepted, token.uid, token.name))
             }
@@ -245,12 +233,12 @@ fun Route.questRoutes() {
                     call.parameters["id"]
                         ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
 
-                val doc = questsCollection.document(id).get().await()
-                if (!doc.exists()) {
+                val quest = questRepository.getQuest(id)
+                if (quest == null) {
                     return@put call.respond(HttpStatusCode.NotFound, mapOf("error" to "Quest not found"))
                 }
 
-                val data = doc.data!!
+                val data = quest.second
                 val status = data["status"] as? String ?: ""
                 val creatorUid = data["creatorUid"] as? String ?: ""
 
@@ -262,14 +250,13 @@ fun Route.questRoutes() {
                 }
 
                 val now = Instant.now().toString()
-                questsCollection
-                    .document(id)
-                    .update(
-                        mapOf(
-                            "status" to QuestStatus.Verified.name,
-                            "completedAt" to now,
-                        ),
-                    ).await()
+                questRepository.updateQuest(
+                    id,
+                    mapOf(
+                        "status" to QuestStatus.Verified.name,
+                        "completedAt" to now,
+                    ),
+                )
 
                 // ポイント付与
                 val assigneeUid = data["assigneeUid"] as? String
@@ -277,11 +264,11 @@ fun Route.questRoutes() {
                 val rewardPoints = (data["rewardPoints"] as? Number)?.toInt() ?: 0
                 val questTitle = data["title"] as? String ?: ""
                 if (assigneeUid != null && rewardPoints > 0) {
-                    awardPoints(assigneeUid, assigneeName, rewardPoints, "クエスト達成: $questTitle", questId = id)
+                    pointRepository.awardPoints(assigneeUid, assigneeName, rewardPoints, "クエスト達成: $questTitle", questId = id)
                 }
 
                 val verifiedQuest = buildQuest(id, data, QuestStatus.Verified)
-                WebhookService.notify(WebhookEvent.QUEST_VERIFIED, verifiedQuest)
+                webhookService.notify(WebhookEvent.QUEST_VERIFIED, verifiedQuest)
                 call.respond(verifiedQuest)
             }
 
@@ -303,12 +290,12 @@ fun Route.questRoutes() {
                     call.parameters["id"]
                         ?: return@delete call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
 
-                val doc = questsCollection.document(id).get().await()
-                if (!doc.exists()) {
+                val quest = questRepository.getQuest(id)
+                if (quest == null) {
                     return@delete call.respond(HttpStatusCode.NotFound, mapOf("error" to "Quest not found"))
                 }
 
-                val data = doc.data!!
+                val data = quest.second
                 val status = data["status"] as? String ?: ""
                 val creatorUid = data["creatorUid"] as? String ?: ""
 
@@ -319,7 +306,7 @@ fun Route.questRoutes() {
                     return@delete call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only creator can delete"))
                 }
 
-                questsCollection.document(id).delete().await()
+                questRepository.deleteQuest(id)
                 call.respond(HttpStatusCode.NoContent)
             }
 

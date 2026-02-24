@@ -93,6 +93,9 @@ server/              → Ktor server (Netty, JVM)
                        Depends on :shared
                        Routes: GET /api/items (JSON), GET / (serves static frontend)
                        Firebase Auth verification
+                       Koin DI でリポジトリ注入（ServerModule）
+                       Repository 層: interface + Firestore 実装 class
+                       ルートハンドラは HTTP 処理 + ビジネスルール判定のみ
 
 core/auth/           → AuthRepository interface + AuthState/AuthStateHolder (commonMain)
                        Firebase/WebAuthn interop + AuthRepositoryImpl (wasmJsMain)
@@ -127,7 +130,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 ## Tech Stack
 
 - **Kotlin** 2.3.10, **Compose Multiplatform** 1.10.1, **Ktor** 3.4.0
-- **DI**: Koin 4.2.0-RC1（Kotlin 2.3.0 wasmJs 互換の唯一のバージョン）
+- **DI**: Koin 4.2.0-RC1（クライアント + サーバー共通。Kotlin 2.3.0 wasmJs 互換の唯一のバージョン）
 - **Serialization**: kotlinx-serialization-json 1.10.0
 - **API Docs**: ktor-openapi-tools 5.5.0（OpenAPI spec + Swagger UI、開発モード時のみ）
 - **Dependency versions**: managed in `gradle/libs.versions.toml` (bundles: `ktor-server`, `ktor-client`, `koin`, `feature`, `exposed`)
@@ -138,6 +141,8 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Convention Plugins: `build-logic/src/main/kotlin/CrabshellComposeWasmJsPlugin.kt`, `CrabshellFeaturePlugin.kt`
 - Shared models: `shared/src/commonMain/kotlin/model/DashboardItem.kt`, `User.kt`
 - Server entry point: `server/src/main/kotlin/server/Application.kt`
+- Server DI: `server/src/main/kotlin/server/di/ServerModule.kt`
+- Server repositories: `server/src/main/kotlin/server/{money,quest,feeding,garbage,pet}/` (interface + Firestore 実装)
 - Core auth (commonMain): `core/auth/src/commonMain/kotlin/core/auth/` (AuthRepository interface, AuthState)
 - Core auth (wasmJsMain): `core/auth/src/wasmJsMain/kotlin/core/auth/` (AuthRepositoryImpl, FirebaseInterop, WebAuthnInterop)
 - Core network (commonMain): `core/network/src/commonMain/kotlin/core/network/` (AuthHttpClient, Repository interfaces/impls)
@@ -227,7 +232,8 @@ docker compose pull && docker compose up -d
 ./gradlew :server:test -PskipFrontend
 ```
 
-- テスト対象は **純粋ロジック** に絞る（Firebase/Firestore 依存のコードは対象外）
+- テスト対象: **純粋ロジック** + **Repository をモックしたビジネスロジック**
+- Repository 層（interface + Koin DI）により、ルートハンドラのビジネスロジック（ステータス遷移、権限チェック、上限判定等）は Repository モックでテスト可能
 - shared: `shared/src/commonTest/kotlin/model/` — `@Serializable` モデルのシリアライズ往復テスト
 - server: `server/src/test/kotlin/server/` — `ChallengeStore`、money パース関数等のユニットテスト
 - wasmJs ブラウザテスト (`allTests`) はヘッドレス Chrome が必要。CI 以外では `jvmTest` を使用する
