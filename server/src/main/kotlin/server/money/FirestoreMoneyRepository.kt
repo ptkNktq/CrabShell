@@ -9,13 +9,20 @@ import model.PaymentRecord
 import server.util.await
 import java.time.YearMonth
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 
 private const val MONEY_COLLECTION = "money"
 
 class FirestoreMoneyRepository(
     private val firestore: Firestore,
 ) : MoneyRepository {
+    private val cache = ConcurrentHashMap<String, MonthlyMoney>()
+    private val allMonthsLoaded = AtomicBoolean(false)
+
     override suspend fun getMonthlyMoney(month: String): MonthlyMoney? {
+        cache[month]?.let { return it }
+
         val doc =
             firestore
                 .collection(MONEY_COLLECTION)
@@ -23,7 +30,10 @@ class FirestoreMoneyRepository(
                 .get()
                 .await()
         if (!doc.exists()) return null
-        return parseMonthlyMoney(month, doc)
+
+        val data = parseMonthlyMoney(month, doc)
+        cache[month] = data
+        return data
     }
 
     override suspend fun saveMonthlyMoney(
@@ -55,20 +65,15 @@ class FirestoreMoneyRepository(
             .document(month)
             .set(mapOf("month" to month, "items" to items, "paymentRecords" to records, "locked" to data.locked))
             .await()
+
+        cache[month] = data
     }
 
     override suspend fun getRecurringItemsFromPreviousMonth(month: String): List<MoneyItem> {
         val previousMonth = YearMonth.parse(month).minusMonths(1).toString()
-        val prevDoc =
-            firestore
-                .collection(MONEY_COLLECTION)
-                .document(previousMonth)
-                .get()
-                .await()
+        val prevData = getMonthlyMoney(previousMonth) ?: return emptyList()
 
-        if (!prevDoc.exists()) return emptyList()
-
-        return parseItems(prevDoc.get("items"))
+        return prevData.items
             .filter { it.recurring }
             .map { item ->
                 item.copy(id = UUID.randomUUID().toString())
@@ -76,13 +81,20 @@ class FirestoreMoneyRepository(
     }
 
     override suspend fun getAllMonths(): List<MonthlyMoney> {
+        if (allMonthsLoaded.get()) {
+            return cache.values.toList()
+        }
+
         val docs =
             firestore
                 .collection(MONEY_COLLECTION)
                 .get()
                 .await()
                 .documents
-        return docs.map { doc -> parseMonthlyMoney(doc.id, doc) }
+        val months = docs.map { doc -> parseMonthlyMoney(doc.id, doc) }
+        months.forEach { cache[it.month] = it }
+        allMonthsLoaded.set(true)
+        return months
     }
 
     private fun parseMonthlyMoney(
