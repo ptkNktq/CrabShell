@@ -83,7 +83,8 @@ cp .env.example .env
 ```
 build-logic/         → Gradle included build (Convention Plugin)
                        crabshell.compose.wasmjs: KMP + Compose + wasmJs { browser() }
-                       core/ と feature/ の全モジュール + app が使用
+                       crabshell.feature: wasmjs を継承 + Compose UI + Koin + ViewModel
+                       core/ と app は wasmjs、feature/ は feature を使用
 
 shared/              → Kotlin Multiplatform library
                        Contains serializable data models (DashboardItem, User, Status)
@@ -129,12 +130,12 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - **DI**: Koin 4.2.0-RC1（Kotlin 2.3.0 wasmJs 互換の唯一のバージョン）
 - **Serialization**: kotlinx-serialization-json 1.10.0
 - **API Docs**: ktor-openapi-tools 5.5.0（OpenAPI spec + Swagger UI、開発モード時のみ）
-- **Dependency versions**: managed in `gradle/libs.versions.toml` (bundles: `ktor-server`, `ktor-client`, `koin`, `exposed`)
+- **Dependency versions**: managed in `gradle/libs.versions.toml` (bundles: `ktor-server`, `ktor-client`, `koin`, `feature`, `exposed`)
 - **Kotlin code style**: official (set in `gradle.properties`)
 
 ## Key Source Locations
 
-- Convention Plugin: `build-logic/src/main/kotlin/CrabshellComposeWasmJsPlugin.kt`
+- Convention Plugins: `build-logic/src/main/kotlin/CrabshellComposeWasmJsPlugin.kt`, `CrabshellFeaturePlugin.kt`
 - Shared models: `shared/src/commonMain/kotlin/model/DashboardItem.kt`, `User.kt`
 - Server entry point: `server/src/main/kotlin/server/Application.kt`
 - Core auth (commonMain): `core/auth/src/commonMain/kotlin/core/auth/` (AuthRepository interface, AuthState)
