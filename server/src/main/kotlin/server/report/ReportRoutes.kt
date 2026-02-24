@@ -93,66 +93,26 @@ fun Route.reportRoutes() {
             }
         }) {
             val allMonths = moneyRepository.getAllMonths()
-
-            // 月ごとにユーザー別の割当額・支払額を集計
-            val months = mutableListOf<String>()
-            val overpaidByUser = mutableMapOf<String, Long>()
-            val redeemedByUser = mutableMapOf<String, Long>()
-
-            for (monthData in allMonths) {
-                months.add(monthData.month)
-
-                // この月のユーザー別割当額
-                val monthAllocated = mutableMapOf<String, Long>()
-                for (item in monthData.items) {
-                    for (payment in item.payments) {
-                        monthAllocated[payment.uid] =
-                            (monthAllocated[payment.uid] ?: 0L) + payment.amount
-                    }
-                }
-
-                // この月のユーザー別支払額（精算レコードを除外）
-                val monthPaid = mutableMapOf<String, Long>()
-                for (record in monthData.paymentRecords) {
-                    if (record.isRedemption) {
-                        redeemedByUser[record.uid] =
-                            (redeemedByUser[record.uid] ?: 0L) + record.amount
-                    } else {
-                        monthPaid[record.uid] =
-                            (monthPaid[record.uid] ?: 0L) + record.amount
-                    }
-                }
-
-                // 過払い月のみ加算
-                val uidsInMonth = monthAllocated.keys + monthPaid.keys
-                for (uid in uidsInMonth) {
-                    val diff = (monthPaid[uid] ?: 0L) - (monthAllocated[uid] ?: 0L)
-                    if (diff > 0L) {
-                        overpaidByUser[uid] = (overpaidByUser[uid] ?: 0L) + diff
-                    }
-                }
-            }
+            val balanceService = BalanceCalculationService()
+            val result = balanceService.calculateOverpayments(allMonths)
 
             val balances =
-                overpaidByUser.mapNotNull { (uid, overpaid) ->
-                    val redeemed = redeemedByUser[uid] ?: 0L
-                    val net = (overpaid - redeemed).coerceAtLeast(0L)
-                    if (net <= 0L) return@mapNotNull null
+                result.overpayments.mapNotNull { overpayment ->
+                    if (overpayment.net <= 0L) return@mapNotNull null
                     val displayName =
                         try {
-                            FirebaseAuth.getInstance().getUser(uid).displayName ?: uid
+                            FirebaseAuth.getInstance().getUser(overpayment.uid).displayName ?: overpayment.uid
                         } catch (_: Exception) {
-                            uid
+                            overpayment.uid
                         }
-                    UserBalance(uid, displayName, 0L, 0L, net)
+                    UserBalance(overpayment.uid, displayName, 0L, 0L, overpayment.net)
                 }
 
-            months.sort()
             call.respond(
                 BalanceSummary(
                     balances = balances,
-                    periodStart = months.firstOrNull() ?: "",
-                    periodEnd = months.lastOrNull() ?: "",
+                    periodStart = result.months.firstOrNull() ?: "",
+                    periodEnd = result.months.lastOrNull() ?: "",
                 ),
             )
         }
