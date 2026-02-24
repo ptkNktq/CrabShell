@@ -15,6 +15,7 @@ import io.ktor.server.plugins.MissingRequestParameterException
 import io.ktor.server.plugins.ParameterConversionException
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
@@ -54,10 +55,10 @@ fun Application.module() {
 
     install(StatusPages) {
         exception<MissingRequestParameterException> { call, cause ->
-            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "${cause.parameterName} is required"))
+            call.respondText("${cause.parameterName} is required", status = HttpStatusCode.BadRequest)
         }
         exception<ParameterConversionException> { call, cause ->
-            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid ${cause.parameterName}: ${cause.forType}"))
+            call.respondText("Invalid ${cause.parameterName}: ${cause.type}", status = HttpStatusCode.BadRequest)
         }
     }
 

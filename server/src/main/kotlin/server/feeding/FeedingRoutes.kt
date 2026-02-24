@@ -4,10 +4,10 @@ import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.patch
 import io.github.smiley4.ktoropenapi.put
 import io.ktor.http.*
-import io.ktor.server.plugins.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.util.getOrFail
 import model.Feeding
 import model.FeedingLog
 import model.MealTime

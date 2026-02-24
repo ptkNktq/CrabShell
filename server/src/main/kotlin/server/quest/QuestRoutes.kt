@@ -8,11 +8,11 @@ import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.plugins.getOrFail
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
+import io.ktor.server.util.getOrFail
 import model.CreateQuestRequest
 import model.GenerateQuestTextRequest
 import model.GenerateQuestTextResponse

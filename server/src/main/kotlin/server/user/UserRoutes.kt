@@ -5,10 +5,10 @@ import com.google.firebase.auth.UserRecord.UpdateRequest
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.put
 import io.ktor.http.*
-import io.ktor.server.plugins.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.util.getOrFail
 import model.UpdateDisplayNameRequest
 import model.User
 import server.auth.adminOnly
