@@ -24,6 +24,7 @@ import java.time.YearMonth
 
 fun Route.reportRoutes() {
     val moneyRepository by inject<MoneyRepository>()
+    val balanceService by inject<BalanceCalculationService>()
 
     authenticated {
         get("/report", {
@@ -93,7 +94,6 @@ fun Route.reportRoutes() {
             }
         }) {
             val allMonths = moneyRepository.getAllMonths()
-            val balanceService = BalanceCalculationService()
             val result = balanceService.calculateOverpayments(allMonths)
 
             val balances =

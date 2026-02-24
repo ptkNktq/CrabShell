@@ -105,7 +105,25 @@ class MoneyFiltersTest {
             )
         val filtered = data.filterForUser("u1")
         assertEquals(1, filtered.items.size)
-        // Item is kept with all payments (not just the user's)
+        // item は全 payments を保持（対象ユーザー分だけでなく全員分）
         assertEquals(2, filtered.items[0].payments.size)
+    }
+
+    @Test
+    fun filterKeepsRedemptionRecordsForUser() {
+        // isRedemption=true の精算レコードも uid ベースで正しくフィルタされる
+        val data =
+            MonthlyMoney(
+                month = "2024-06",
+                paymentRecords =
+                    listOf(
+                        PaymentRecord(uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
+                        PaymentRecord(uid = "u1", amount = 1000L, paidAt = "2024-06-15", isRedemption = true),
+                        PaymentRecord(uid = "u2", amount = 3000L, paidAt = "2024-06-01", isRedemption = true),
+                    ),
+            )
+        val filtered = data.filterForUser("u1")
+        assertEquals(2, filtered.paymentRecords.size)
+        assertEquals(true, filtered.paymentRecords[1].isRedemption)
     }
 }
