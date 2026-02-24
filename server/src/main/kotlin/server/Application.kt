@@ -55,10 +55,10 @@ fun Application.module() {
 
     install(StatusPages) {
         exception<MissingRequestParameterException> { call, cause ->
-            call.respondText("${cause.parameterName} is required", status = HttpStatusCode.BadRequest)
+            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "${cause.parameterName} is required"))
         }
         exception<ParameterConversionException> { call, cause ->
-            call.respondText("Invalid ${cause.parameterName}: ${cause.type}", status = HttpStatusCode.BadRequest)
+            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid ${cause.parameterName}: ${cause.type}"))
         }
     }
 
