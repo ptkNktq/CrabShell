@@ -4,6 +4,7 @@ import io.github.smiley4.ktoropenapi.delete
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.plugins.getOrFail
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -111,9 +112,7 @@ fun Route.pointRoutes() {
                 }
             }) {
                 val token = call.firebasePrincipal
-                val id =
-                    call.parameters["id"]
-                        ?: return@delete call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
+                val id = call.parameters.getOrFail("id")
 
                 val reward = pointRepository.getReward(id)
                 if (reward == null) {
@@ -145,9 +144,7 @@ fun Route.pointRoutes() {
                 }
             }) {
                 val token = call.firebasePrincipal
-                val id =
-                    call.parameters["id"]
-                        ?: return@post call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
+                val id = call.parameters.getOrFail("id")
 
                 val reward = pointRepository.getReward(id)
                 if (reward == null) {

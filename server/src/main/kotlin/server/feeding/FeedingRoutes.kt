@@ -4,6 +4,7 @@ import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.patch
 import io.github.smiley4.ktoropenapi.put
 import io.ktor.http.*
+import io.ktor.server.plugins.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -12,6 +13,7 @@ import model.FeedingLog
 import model.MealTime
 import org.koin.ktor.ext.inject
 import server.auth.authenticated
+import server.util.getEnumOrFail
 import java.time.Instant
 
 fun Route.feedingRoutes() {
@@ -32,12 +34,8 @@ fun Route.feedingRoutes() {
                     }
                 }
             }) {
-                val petId =
-                    call.parameters["petId"]
-                        ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "petId is required"))
-                val date =
-                    call.parameters["date"]
-                        ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "date is required"))
+                val petId = call.parameters.getOrFail("petId")
+                val date = call.parameters.getOrFail("date")
 
                 call.respond(feedingRepository.getFeedingLog(petId, date))
             }
@@ -56,22 +54,9 @@ fun Route.feedingRoutes() {
                     }
                 }
             }) {
-                val petId =
-                    call.parameters["petId"]
-                        ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("error" to "petId is required"))
-                val date =
-                    call.parameters["date"]
-                        ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("error" to "date is required"))
-                val mealTimeStr =
-                    call.parameters["mealTime"]
-                        ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("error" to "mealTime is required"))
-
-                val mealTime =
-                    try {
-                        MealTime.valueOf(mealTimeStr.uppercase())
-                    } catch (_: IllegalArgumentException) {
-                        return@put call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid mealTime: $mealTimeStr"))
-                    }
+                val petId = call.parameters.getOrFail("petId")
+                val date = call.parameters.getOrFail("date")
+                val mealTime = call.parameters.getEnumOrFail<MealTime>("mealTime")
 
                 val timestamp = Instant.now().toString()
                 feedingRepository.recordFeeding(petId, date, mealTime, timestamp)
@@ -93,25 +78,9 @@ fun Route.feedingRoutes() {
                     }
                 }
             }) {
-                val petId =
-                    call.parameters["petId"]
-                        ?: return@patch call.respond(HttpStatusCode.BadRequest, mapOf("error" to "petId is required"))
-                val date =
-                    call.parameters["date"]
-                        ?: return@patch call.respond(HttpStatusCode.BadRequest, mapOf("error" to "date is required"))
-                val mealTimeStr =
-                    call.parameters["mealTime"]
-                        ?: return@patch call.respond(HttpStatusCode.BadRequest, mapOf("error" to "mealTime is required"))
-
-                val mealTime =
-                    try {
-                        MealTime.valueOf(mealTimeStr.uppercase())
-                    } catch (_: IllegalArgumentException) {
-                        return@patch call.respond(
-                            HttpStatusCode.BadRequest,
-                            mapOf("error" to "Invalid mealTime: $mealTimeStr"),
-                        )
-                    }
+                val petId = call.parameters.getOrFail("petId")
+                val date = call.parameters.getOrFail("date")
+                val mealTime = call.parameters.getEnumOrFail<MealTime>("mealTime")
 
                 val body = call.receive<Map<String, String>>()
                 val timestamp =
@@ -146,12 +115,8 @@ fun Route.feedingRoutes() {
                     }
                 }
             }) {
-                val petId =
-                    call.parameters["petId"]
-                        ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("error" to "petId is required"))
-                val date =
-                    call.parameters["date"]
-                        ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("error" to "date is required"))
+                val petId = call.parameters.getOrFail("petId")
+                val date = call.parameters.getOrFail("date")
 
                 val body = call.receive<Map<String, String>>()
                 val note = body["note"] ?: ""

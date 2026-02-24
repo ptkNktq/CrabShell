@@ -8,6 +8,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.plugins.getOrFail
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -181,9 +182,7 @@ fun Route.questRoutes() {
                 }
             }) {
                 val token = call.firebasePrincipal
-                val id =
-                    call.parameters["id"]
-                        ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
+                val id = call.parameters.getOrFail("id")
 
                 val quest = questRepository.getQuest(id)
                 if (quest == null) {
@@ -229,9 +228,7 @@ fun Route.questRoutes() {
                 }
             }) {
                 val token = call.firebasePrincipal
-                val id =
-                    call.parameters["id"]
-                        ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
+                val id = call.parameters.getOrFail("id")
 
                 val quest = questRepository.getQuest(id)
                 if (quest == null) {
@@ -286,9 +283,7 @@ fun Route.questRoutes() {
                 }
             }) {
                 val token = call.firebasePrincipal
-                val id =
-                    call.parameters["id"]
-                        ?: return@delete call.respond(HttpStatusCode.BadRequest, mapOf("error" to "id is required"))
+                val id = call.parameters.getOrFail("id")
 
                 val quest = questRepository.getQuest(id)
                 if (quest == null) {
