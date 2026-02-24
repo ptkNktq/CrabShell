@@ -1,6 +1,5 @@
 package server.quest
 
-import com.google.firebase.cloud.FirestoreClient
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -15,14 +14,15 @@ import kotlinx.serialization.json.Json
 import model.Quest
 import model.WebhookSettings
 import org.slf4j.LoggerFactory
+import server.firestore.FirestoreProvider
 import server.util.await
 import java.time.Instant
 
 private val logger = LoggerFactory.getLogger("WebhookService")
 
 object WebhookService {
-    private val firestore by lazy { FirestoreClient.getFirestore() }
-    private val settingsDoc by lazy { firestore.collection("settings").document("webhook") }
+    private val firestore get() = FirestoreProvider.instance
+    private val settingsDoc get() = firestore.collection("settings").document("webhook")
     private val scope = CoroutineScope(Dispatchers.IO)
 
     private val client = HttpClient()
