@@ -93,6 +93,9 @@ server/              → Ktor server (Netty, JVM)
                        Depends on :shared
                        Routes: GET /api/items (JSON), GET / (serves static frontend)
                        Firebase Auth verification
+                       Repository 層: FirestoreProvider で Firestore 一元管理
+                       各ドメインに Repository object（Money, Quest, Point, Feeding, Garbage, Pet）
+                       ルートハンドラは HTTP 処理 + ビジネスルール判定のみ
 
 core/auth/           → AuthRepository interface + AuthState/AuthStateHolder (commonMain)
                        Firebase/WebAuthn interop + AuthRepositoryImpl (wasmJsMain)
@@ -138,6 +141,8 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Convention Plugins: `build-logic/src/main/kotlin/CrabshellComposeWasmJsPlugin.kt`, `CrabshellFeaturePlugin.kt`
 - Shared models: `shared/src/commonMain/kotlin/model/DashboardItem.kt`, `User.kt`
 - Server entry point: `server/src/main/kotlin/server/Application.kt`
+- Firestore provider: `server/src/main/kotlin/server/firestore/FirestoreProvider.kt`
+- Server repositories: `server/src/main/kotlin/server/{money,quest,feeding,garbage,pet}/...Repository.kt`
 - Core auth (commonMain): `core/auth/src/commonMain/kotlin/core/auth/` (AuthRepository interface, AuthState)
 - Core auth (wasmJsMain): `core/auth/src/wasmJsMain/kotlin/core/auth/` (AuthRepositoryImpl, FirebaseInterop, WebAuthnInterop)
 - Core network (commonMain): `core/network/src/commonMain/kotlin/core/network/` (AuthHttpClient, Repository interfaces/impls)
