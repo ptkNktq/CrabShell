@@ -43,6 +43,13 @@ dependencies {
     implementation(libs.ktor.serialization.kotlinx.json)
 
     testImplementation(kotlin("test"))
+    testImplementation(libs.ktor.server.test.host)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 // Compose Wasm フロントエンドのビルド出力をサーバーの静的リソースにコピー
