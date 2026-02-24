@@ -114,13 +114,7 @@ fun Route.moneyRoutes() {
                     return@get
                 }
 
-                // 自分に割当がある項目のみ + 自分の支払い記録のみ
-                val myItems =
-                    data.items.filter { item ->
-                        item.payments.any { it.uid == uid }
-                    }
-                val myRecords = data.paymentRecords.filter { it.uid == uid }
-                call.respond(MonthlyMoney(month = month, items = myItems, paymentRecords = myRecords, locked = data.locked))
+                call.respond(data.filterForUser(uid))
             }
         }
 
@@ -160,13 +154,7 @@ fun Route.moneyRoutes() {
                 val updated = data.copy(paymentRecords = data.paymentRecords + safeRecord)
                 moneyRepository.saveMonthlyMoney(month, updated)
 
-                // 呼び出し元に自分のデータのみ返す
-                val myItems =
-                    updated.items.filter { item ->
-                        item.payments.any { it.uid == uid }
-                    }
-                val myRecords = updated.paymentRecords.filter { it.uid == uid }
-                call.respond(MonthlyMoney(month = month, items = myItems, paymentRecords = myRecords, locked = updated.locked))
+                call.respond(updated.filterForUser(uid))
             }
         }
     }
