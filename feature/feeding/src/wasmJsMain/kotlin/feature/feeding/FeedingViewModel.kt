@@ -7,8 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import core.network.FeedingRepository
 import core.network.PetRepository
+import core.ui.util.feedingDateJs
 import core.ui.util.shiftDateJs
-import core.ui.util.todayDateJs
 import kotlinx.coroutines.launch
 import model.FeedingLog
 import model.MealTime
@@ -30,8 +30,8 @@ class FeedingViewModel(
 ) : ViewModel() {
     var uiState by mutableStateOf(
         FeedingUiState(
-            log = FeedingLog(date = todayDateJs().toString()),
-            selectedDate = todayDateJs().toString(),
+            log = FeedingLog(date = feedingDateJs().toString()),
+            selectedDate = feedingDateJs().toString(),
         ),
     )
         private set
