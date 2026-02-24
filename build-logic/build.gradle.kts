@@ -14,5 +14,9 @@ gradlePlugin {
             id = "crabshell.compose.wasmjs"
             implementationClass = "CrabshellComposeWasmJsPlugin"
         }
+        register("feature") {
+            id = "crabshell.feature"
+            implementationClass = "CrabshellFeaturePlugin"
+        }
     }
 }
