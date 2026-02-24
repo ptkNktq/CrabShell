@@ -6,6 +6,7 @@ import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -72,28 +73,21 @@ fun Route.passkeyRoutes() {
                 val challengeBase64 = Base64.getUrlEncoder().withoutPadding().encodeToString(challenge)
 
                 val existingCredentials = PasskeyService.findCredentialsByUid(uid)
-                val excludeCredentials =
-                    existingCredentials.joinToString(",") { cred ->
-                        val transportsJson =
-                            cred.transports?.split(",")?.joinToString(",") { "\"$it\"" } ?: ""
-                        """{"type":"public-key","id":"${cred.credentialIdBase64}"""" +
-                            if (transportsJson.isNotEmpty()) ""","transports":[$transportsJson]}""" else "}"
-                    }
 
-                val optionsJson =
-                    """{
-                    |"rp":{"name":"CrabShell","id":"${PasskeyService.rpId}"},
-                    |"user":{"id":"${Base64.getUrlEncoder().withoutPadding().encodeToString(
-                        uid.toByteArray(),
-                    )}","name":"$email","displayName":"$displayName"},
-                    |"challenge":"$challengeBase64",
-                    |"pubKeyCredParams":[{"type":"public-key","alg":-7},{"type":"public-key","alg":-257}],
-                    |"timeout":300000,
-                    |"excludeCredentials":[$excludeCredentials],
-                    |"authenticatorSelection":{"residentKey":"preferred","userVerification":"preferred"},
-                    |"attestation":"none"
-                    |}
-                    """.trimMargin().replace("\n", "")
+                val options =
+                    CreationOptions(
+                        rp = RelyingParty(name = "CrabShell", id = PasskeyService.rpId),
+                        user =
+                            UserEntity(
+                                id = Base64.getUrlEncoder().withoutPadding().encodeToString(uid.toByteArray()),
+                                name = email,
+                                displayName = displayName,
+                            ),
+                        challenge = challengeBase64,
+                        pubKeyCredParams = listOf(PubKeyCredParam(alg = -7), PubKeyCredParam(alg = -257)),
+                        excludeCredentials = existingCredentials.map { it.toDescriptor() },
+                    )
+                val optionsJson = Json.encodeToString(options)
 
                 call.respond(PasskeyRegisterOptionsResponse(optionsJson = optionsJson))
             }
@@ -200,23 +194,13 @@ fun Route.passkeyRoutes() {
             val challenge = ChallengeStore.generate(request.email)
             val challengeBase64 = Base64.getUrlEncoder().withoutPadding().encodeToString(challenge)
 
-            val allowCredentials =
-                credentials.joinToString(",") { cred ->
-                    val transportsJson =
-                        cred.transports?.split(",")?.joinToString(",") { "\"$it\"" } ?: ""
-                    """{"type":"public-key","id":"${cred.credentialIdBase64}"""" +
-                        if (transportsJson.isNotEmpty()) ""","transports":[$transportsJson]}""" else "}"
-                }
-
-            val optionsJson =
-                """{
-                |"challenge":"$challengeBase64",
-                |"timeout":300000,
-                |"rpId":"${PasskeyService.rpId}",
-                |"allowCredentials":[$allowCredentials],
-                |"userVerification":"preferred"
-                |}
-                """.trimMargin().replace("\n", "")
+            val options =
+                RequestOptions(
+                    challenge = challengeBase64,
+                    rpId = PasskeyService.rpId,
+                    allowCredentials = credentials.map { it.toDescriptor() },
+                )
+            val optionsJson = Json.encodeToString(options)
 
             call.respond(PasskeyAuthenticateOptionsResponse(optionsJson = optionsJson))
         }
@@ -298,3 +282,10 @@ fun Route.passkeyRoutes() {
         }
     }
 }
+
+/** CredentialRecord を WebAuthn CredentialDescriptor に変換する */
+private fun PasskeyService.CredentialRecord.toDescriptor(): CredentialDescriptor =
+    CredentialDescriptor(
+        id = credentialIdBase64,
+        transports = transports?.split(","),
+    )
