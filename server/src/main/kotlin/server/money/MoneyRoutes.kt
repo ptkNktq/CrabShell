@@ -5,6 +5,7 @@ import io.github.smiley4.ktoropenapi.patch
 import io.github.smiley4.ktoropenapi.post
 import io.github.smiley4.ktoropenapi.put
 import io.ktor.http.*
+import io.ktor.server.plugins.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -33,7 +34,7 @@ fun Route.moneyRoutes() {
                     }
                 }
             }) {
-                val month = call.parameters["month"]!!
+                val month = call.parameters.getOrFail("month")
                 val data = moneyRepository.getMonthlyMoney(month)
 
                 if (data == null) {
@@ -59,7 +60,7 @@ fun Route.moneyRoutes() {
                     code(HttpStatusCode.Conflict) { description = "ロック中" }
                 }
             }) {
-                val month = call.parameters["month"]!!
+                val month = call.parameters.getOrFail("month")
                 val existing = moneyRepository.getMonthlyMoney(month) ?: MonthlyMoney(month = month)
                 if (existing.locked) {
                     call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is locked"))
@@ -82,7 +83,7 @@ fun Route.moneyRoutes() {
                     }
                 }
             }) {
-                val month = call.parameters["month"]!!
+                val month = call.parameters.getOrFail("month")
                 val existing = moneyRepository.getMonthlyMoney(month) ?: MonthlyMoney(month = month)
                 val updated = existing.copy(locked = !existing.locked)
                 moneyRepository.saveMonthlyMoney(month, updated)
@@ -104,7 +105,7 @@ fun Route.moneyRoutes() {
                     }
                 }
             }) {
-                val month = call.parameters["month"]!!
+                val month = call.parameters.getOrFail("month")
                 val uid = call.firebasePrincipal.uid
 
                 val data = moneyRepository.getMonthlyMoney(month)
@@ -140,7 +141,7 @@ fun Route.moneyRoutes() {
                     code(HttpStatusCode.Conflict) { description = "ロック中" }
                 }
             }) {
-                val month = call.parameters["month"]!!
+                val month = call.parameters.getOrFail("month")
                 val uid = call.firebasePrincipal.uid
                 val record = call.receive<PaymentRecord>()
                 // uid をサーバー側で上書き（改ざん防止）

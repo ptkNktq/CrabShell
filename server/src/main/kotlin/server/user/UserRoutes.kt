@@ -5,6 +5,7 @@ import com.google.firebase.auth.UserRecord.UpdateRequest
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.put
 import io.ktor.http.*
+import io.ktor.server.plugins.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -58,7 +59,7 @@ fun Route.userRoutes() {
                 }
             }
         }) {
-            val uid = call.parameters["uid"]!!
+            val uid = call.parameters.getOrFail("uid")
             val request = call.receive<UpdateDisplayNameRequest>()
 
             FirebaseAuth.getInstance().updateUser(
