@@ -13,6 +13,7 @@ import io.ktor.server.http.content.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.MissingRequestParameterException
 import io.ktor.server.plugins.ParameterConversionException
+import io.ktor.server.plugins.bodylimit.RequestBodyLimit
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
@@ -53,6 +54,7 @@ fun Application.module() {
 
     configureAuth()
     install(ContentNegotiation) { json() }
+    install(RequestBodyLimit) { bodyLimit { 1_000_000L } }
 
     install(StatusPages) {
         exception<MissingRequestParameterException> { call, cause ->
