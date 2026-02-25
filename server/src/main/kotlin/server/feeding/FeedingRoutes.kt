@@ -13,11 +13,14 @@ import model.FeedingLog
 import model.MealTime
 import org.koin.ktor.ext.inject
 import server.auth.authenticated
+import server.pet.PetRepository
+import server.pet.verifyPetMember
 import server.util.getEnumOrFail
 import java.time.Instant
 
 fun Route.feedingRoutes() {
     val feedingRepository by inject<FeedingRepository>()
+    val petRepository by inject<PetRepository>()
 
     route("/pets/{petId}/feeding") {
         authenticated {
@@ -34,6 +37,7 @@ fun Route.feedingRoutes() {
                     }
                 }
             }) {
+                call.verifyPetMember(petRepository)
                 val petId = call.parameters.getOrFail("petId")
                 val date = call.parameters.getOrFail("date")
 
@@ -54,6 +58,7 @@ fun Route.feedingRoutes() {
                     }
                 }
             }) {
+                call.verifyPetMember(petRepository)
                 val petId = call.parameters.getOrFail("petId")
                 val date = call.parameters.getOrFail("date")
                 val mealTime = call.parameters.getEnumOrFail<MealTime>("mealTime")
@@ -78,6 +83,7 @@ fun Route.feedingRoutes() {
                     }
                 }
             }) {
+                call.verifyPetMember(petRepository)
                 val petId = call.parameters.getOrFail("petId")
                 val date = call.parameters.getOrFail("date")
                 val mealTime = call.parameters.getEnumOrFail<MealTime>("mealTime")
@@ -115,6 +121,7 @@ fun Route.feedingRoutes() {
                     }
                 }
             }) {
+                call.verifyPetMember(petRepository)
                 val petId = call.parameters.getOrFail("petId")
                 val date = call.parameters.getOrFail("date")
 
