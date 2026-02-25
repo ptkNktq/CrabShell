@@ -4,6 +4,7 @@ import com.google.cloud.firestore.Firestore
 import model.CollectionFrequency
 import model.GarbageType
 import model.GarbageTypeSchedule
+import server.cache.Cacheable
 import server.util.await
 import java.util.concurrent.ConcurrentHashMap
 
@@ -13,7 +14,14 @@ private const val ENTRIES_FIELD = "entries"
 
 class FirestoreGarbageRepository(
     private val firestore: Firestore,
-) : GarbageRepository {
+) : GarbageRepository,
+    Cacheable {
+    override val cacheName: String = "garbage"
+
+    override fun clearCache() {
+        cache.clear()
+    }
+
     private val cache = ConcurrentHashMap<String, List<GarbageTypeSchedule>>()
 
     @Suppress("UNCHECKED_CAST")

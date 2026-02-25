@@ -2,6 +2,7 @@ package server.pet
 
 import com.google.cloud.firestore.Firestore
 import model.Pet
+import server.cache.Cacheable
 import server.util.await
 import java.util.concurrent.ConcurrentHashMap
 
@@ -10,7 +11,14 @@ private const val DEFAULT_PET_NAME = "ぬい"
 
 class FirestorePetRepository(
     private val firestore: Firestore,
-) : PetRepository {
+) : PetRepository,
+    Cacheable {
+    override val cacheName: String = "pet"
+
+    override fun clearCache() {
+        cache.clear()
+    }
+
     private val cache = ConcurrentHashMap<String, List<Pet>>()
 
     override suspend fun getPets(): List<Pet> {

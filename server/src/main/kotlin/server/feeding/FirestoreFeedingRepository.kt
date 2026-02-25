@@ -5,12 +5,20 @@ import com.google.cloud.firestore.SetOptions
 import model.Feeding
 import model.FeedingLog
 import model.MealTime
+import server.cache.Cacheable
 import server.util.await
 import java.util.concurrent.ConcurrentHashMap
 
 class FirestoreFeedingRepository(
     private val firestore: Firestore,
-) : FeedingRepository {
+) : FeedingRepository,
+    Cacheable {
+    override val cacheName: String = "feeding"
+
+    override fun clearCache() {
+        cache.clear()
+    }
+
     private val cache = ConcurrentHashMap<String, FeedingLog>()
 
     override suspend fun getFeedingLog(

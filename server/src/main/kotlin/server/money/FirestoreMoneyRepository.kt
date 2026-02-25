@@ -6,6 +6,7 @@ import model.MoneyItem
 import model.MonthlyMoney
 import model.Payment
 import model.PaymentRecord
+import server.cache.Cacheable
 import server.util.await
 import java.time.YearMonth
 import java.util.UUID
@@ -16,7 +17,15 @@ private const val MONEY_COLLECTION = "money"
 
 class FirestoreMoneyRepository(
     private val firestore: Firestore,
-) : MoneyRepository {
+) : MoneyRepository,
+    Cacheable {
+    override val cacheName: String = "money"
+
+    override fun clearCache() {
+        cache.clear()
+        allMonthsLoaded.set(false)
+    }
+
     private val cache = ConcurrentHashMap<String, MonthlyMoney>()
     private val allMonthsLoaded = AtomicBoolean(false)
 
