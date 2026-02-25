@@ -4,8 +4,10 @@ services:
       context: .
       args:
         COMMIT_HASH: ${COMMIT_HASH:-unknown}
+    restart: unless-stopped
     ports:
       - "2722:8080"
+    mem_limit: 512m
     environment:
       - FIREBASE_SERVICE_ACCOUNT_PATH=/app/firebase-service-account.json
       - WEBAUTHN_RP_ID=${WEBAUTHN_RP_ID:?WEBAUTHN_RP_ID is required}
@@ -13,3 +15,8 @@ services:
       # - PASSKEY_DB_PATH=/app/data/passkey.db
     volumes:
       - ./firebase-service-account.json:/app/firebase-service-account.json:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
