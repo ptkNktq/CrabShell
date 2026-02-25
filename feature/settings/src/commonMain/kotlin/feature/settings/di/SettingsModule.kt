@@ -1,5 +1,6 @@
 package feature.settings.di
 
+import feature.settings.CacheRefreshViewModel
 import feature.settings.GarbageScheduleViewModel
 import feature.settings.PasskeyManagementViewModel
 import feature.settings.PasswordChangeViewModel
@@ -16,4 +17,5 @@ val settingsModule =
         factory { UserNameViewModel(get()) }
         factory { GarbageScheduleViewModel(get()) }
         factory { WebhookViewModel(get()) }
+        factory { CacheRefreshViewModel(get()) }
     }

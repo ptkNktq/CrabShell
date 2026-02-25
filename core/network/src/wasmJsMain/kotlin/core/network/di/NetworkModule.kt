@@ -1,5 +1,7 @@
 package core.network.di
 
+import core.network.CacheRepository
+import core.network.CacheRepositoryImpl
 import core.network.FeedingRepository
 import core.network.FeedingRepositoryImpl
 import core.network.GarbageScheduleRepository
@@ -40,4 +42,5 @@ val networkModule =
         single<UserRepository> { UserRepositoryImpl(get()) }
         single<PasskeyRepository> { PasskeyRepositoryImpl(get()) }
         single<WebhookRepository> { WebhookRepositoryImpl(get()) }
+        single<CacheRepository> { CacheRepositoryImpl(get()) }
     }
