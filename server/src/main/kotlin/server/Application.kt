@@ -21,6 +21,7 @@ import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
 import server.auth.FirebaseAdmin
 import server.auth.configureAuth
+import server.cache.cacheRoutes
 import server.config.EnvConfig
 import server.di.serverModule
 import server.feeding.feedingRoutes
@@ -100,6 +101,7 @@ fun Application.module() {
             questRoutes()
             pointRoutes()
             webhookRoutes()
+            cacheRoutes()
             passkeyRoutes()
         }
 
