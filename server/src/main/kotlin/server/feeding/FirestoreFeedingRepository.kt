@@ -5,15 +5,29 @@ import com.google.cloud.firestore.SetOptions
 import model.Feeding
 import model.FeedingLog
 import model.MealTime
+import server.cache.Cacheable
 import server.util.await
+import java.util.concurrent.ConcurrentHashMap
 
 class FirestoreFeedingRepository(
     private val firestore: Firestore,
-) : FeedingRepository {
+) : FeedingRepository,
+    Cacheable {
+    override val cacheName: String = "feeding"
+
+    override fun clearCache() {
+        cache.clear()
+    }
+
+    private val cache = ConcurrentHashMap<String, FeedingLog>()
+
     override suspend fun getFeedingLog(
         petId: String,
         date: String,
     ): FeedingLog {
+        val key = "$petId:$date"
+        cache[key]?.let { return it }
+
         val doc =
             firestore
                 .collection("pets")
@@ -23,7 +37,11 @@ class FirestoreFeedingRepository(
                 .get()
                 .await()
 
-        if (!doc.exists()) return FeedingLog(date = date)
+        if (!doc.exists()) {
+            val emptyLog = FeedingLog(date = date)
+            cache[key] = emptyLog
+            return emptyLog
+        }
 
         val data = doc.data!!
 
@@ -42,11 +60,14 @@ class FirestoreFeedingRepository(
                 }
             }
 
-        return FeedingLog(
-            date = date,
-            note = data["note"] as? String ?: "",
-            feedings = feedings,
-        )
+        val log =
+            FeedingLog(
+                date = date,
+                note = data["note"] as? String ?: "",
+                feedings = feedings,
+            )
+        cache[key] = log
+        return log
     }
 
     override suspend fun recordFeeding(
@@ -77,6 +98,8 @@ class FirestoreFeedingRepository(
                 ),
                 SetOptions.mergeFields("date", "feedings.${mealTime.name.lowercase()}"),
             ).await()
+
+        refreshCache(petId, date)
     }
 
     override suspend fun updateTimestamp(
@@ -85,21 +108,16 @@ class FirestoreFeedingRepository(
         mealTime: MealTime,
         timestamp: String,
     ): Boolean {
+        val log = getFeedingLog(petId, date)
+        val feeding = log.feedings[mealTime]
+        if (feeding == null || !feeding.done) return false
+
         val docRef =
             firestore
                 .collection("pets")
                 .document(petId)
                 .collection("feeding_logs")
                 .document(date)
-
-        val doc = docRef.get().await()
-        if (!doc.exists()) return false
-
-        @Suppress("UNCHECKED_CAST")
-        val feedingsRaw = doc.data?.get("feedings") as? Map<String, Map<String, Any?>>
-        val entry = feedingsRaw?.get(mealTime.name.lowercase())
-        val done = entry?.get("done") as? Boolean ?: false
-        if (!done) return false
 
         docRef
             .set(
@@ -113,6 +131,7 @@ class FirestoreFeedingRepository(
                 SetOptions.mergeFields("feedings.${mealTime.name.lowercase()}.timestamp"),
             ).await()
 
+        refreshCache(petId, date)
         return true
     }
 
@@ -133,5 +152,16 @@ class FirestoreFeedingRepository(
                 mapOf("date" to date, "note" to note),
                 SetOptions.mergeFields("date", "note"),
             ).await()
+
+        refreshCache(petId, date)
+    }
+
+    private suspend fun refreshCache(
+        petId: String,
+        date: String,
+    ) {
+        val key = "$petId:$date"
+        cache.remove(key)
+        getFeedingLog(petId, date)
     }
 }

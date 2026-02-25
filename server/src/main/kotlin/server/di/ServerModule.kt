@@ -3,6 +3,8 @@ package server.di
 import com.google.cloud.firestore.Firestore
 import com.google.firebase.cloud.FirestoreClient
 import org.koin.dsl.module
+import server.cache.CacheManager
+import server.cache.Cacheable
 import server.feeding.FeedingRepository
 import server.feeding.FirestoreFeedingRepository
 import server.garbage.FirestoreGarbageRepository
@@ -29,4 +31,14 @@ val serverModule =
         single<PetRepository> { FirestorePetRepository(get()) }
         single { WebhookService(get()) }
         single { BalanceCalculationService() }
+        single {
+            CacheManager(
+                listOf(
+                    get<PetRepository>() as Cacheable,
+                    get<GarbageRepository>() as Cacheable,
+                    get<FeedingRepository>() as Cacheable,
+                    get<MoneyRepository>() as Cacheable,
+                ),
+            )
+        }
     }

@@ -2,24 +2,40 @@ package server.pet
 
 import com.google.cloud.firestore.Firestore
 import model.Pet
+import server.cache.Cacheable
 import server.util.await
+import java.util.concurrent.ConcurrentHashMap
 
 private const val DEFAULT_PET_ID = "default-pet"
 private const val DEFAULT_PET_NAME = "ぬい"
 
 class FirestorePetRepository(
     private val firestore: Firestore,
-) : PetRepository {
+) : PetRepository,
+    Cacheable {
+    override val cacheName: String = "pet"
+
+    override fun clearCache() {
+        cache.clear()
+    }
+
+    private val cache = ConcurrentHashMap<String, List<Pet>>()
+
     override suspend fun getPets(): List<Pet> {
+        cache["all"]?.let { return it }
+
         val docs =
             firestore
                 .collection("pets")
                 .get()
                 .await()
                 .documents
-        return docs.map { doc ->
-            Pet(id = doc.id, name = doc.getString("name") ?: "")
-        }
+        val pets =
+            docs.map { doc ->
+                Pet(id = doc.id, name = doc.getString("name") ?: "")
+            }
+        cache["all"] = pets
+        return pets
     }
 
     override fun seedDefaultPet() {
@@ -30,6 +46,7 @@ class FirestorePetRepository(
                 .set(
                     mapOf("name" to DEFAULT_PET_NAME, "members" to emptyList<String>()),
                 ).get()
+            cache.remove("all")
         }
     }
 }

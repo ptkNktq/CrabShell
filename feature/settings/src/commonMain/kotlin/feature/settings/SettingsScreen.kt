@@ -45,6 +45,7 @@ fun SettingsScreen(
     val userNameVm = remember(isAdmin) { if (isAdmin) koin.get<UserNameViewModel>() else null }
     val garbageVm = remember(isAdmin) { if (isAdmin) koin.get<GarbageScheduleViewModel>() else null }
     val webhookVm = remember(isAdmin) { if (isAdmin) koin.get<WebhookViewModel>() else null }
+    val cacheVm = remember(isAdmin) { if (isAdmin) koin.get<CacheRefreshViewModel>() else null }
     val scrollState = rememberScrollState()
     val windowSizeClass = LocalWindowSizeClass.current
 
@@ -88,6 +89,9 @@ fun SettingsScreen(
         onWebhookEnabledChanged = { webhookVm?.onEnabledChanged(it) },
         onWebhookToggleEvent = { webhookVm?.onToggleEvent(it) },
         onSaveWebhook = { webhookVm?.onSave() },
+        cacheClearing = cacheVm?.uiState?.isClearing ?: false,
+        cacheMessage = cacheVm?.uiState?.message,
+        onClearCache = { cacheVm?.onClearCache() },
         windowSizeClass = windowSizeClass,
     )
 }
@@ -133,6 +137,9 @@ internal fun SettingsContent(
     onWebhookEnabledChanged: (Boolean) -> Unit = {},
     onWebhookToggleEvent: (String) -> Unit = {},
     onSaveWebhook: () -> Unit = {},
+    cacheClearing: Boolean = false,
+    cacheMessage: String? = null,
+    onClearCache: () -> Unit = {},
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
@@ -228,6 +235,18 @@ internal fun SettingsContent(
                             modifier = cardModifier,
                         )
                     }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // サーバーキャッシュセクション（管理者のみ）
+                SettingsSection(title = "サーバーキャッシュ", badge = "管理者") {
+                    CacheRefreshCard(
+                        isClearing = cacheClearing,
+                        message = cacheMessage,
+                        onClearCache = onClearCache,
+                        modifier = cardModifier,
+                    )
                 }
             }
         }
@@ -790,6 +809,57 @@ private fun WebhookSettingsCard(
                     )
                 } else {
                     Text("保存する")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CacheRefreshCard(
+    isClearing: Boolean,
+    message: String?,
+    onClearCache: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier,
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp).fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                text = "データの不整合が疑われる場合に、サーバー側のキャッシュを手動でクリアします。",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            if (message != null) {
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+
+            Button(
+                onClick = onClearCache,
+                modifier = Modifier.height(48.dp),
+                enabled = !isClearing,
+            ) {
+                if (isClearing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                } else {
+                    Text("キャッシュをクリア")
                 }
             }
         }
