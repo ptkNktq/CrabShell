@@ -12,7 +12,7 @@ import server.auth.adminOnly
 fun Route.cacheRoutes() {
     val cacheManager by inject<CacheManager>()
 
-    route("/admin/cache") {
+    route("/admin/cache/clear") {
         adminOnly {
             post({
                 tags = listOf("admin")
