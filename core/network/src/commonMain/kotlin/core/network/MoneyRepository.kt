@@ -50,6 +50,5 @@ class MoneyRepositoryImpl(
 
     override suspend fun toggleLock(month: String): MonthlyMoney = client.patch("/api/money/$month/lock").body()
 
-    override suspend fun importRecurringItems(month: String): MonthlyMoney =
-        client.post("/api/money/$month/import-by-tag").body()
+    override suspend fun importRecurringItems(month: String): MonthlyMoney = client.post("/api/money/$month/import-by-tag").body()
 }
