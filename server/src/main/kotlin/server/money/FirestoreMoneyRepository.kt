@@ -3,6 +3,7 @@ package server.money
 import com.google.cloud.firestore.DocumentSnapshot
 import com.google.cloud.firestore.Firestore
 import model.MoneyItem
+import model.MoneyTags
 import model.MonthlyMoney
 import model.Payment
 import model.PaymentRecord
@@ -132,7 +133,7 @@ internal fun parseItems(raw: Any?): List<MoneyItem> {
         // tags フィールドを読み取り。レガシーデータ対応: recurring=true → tags=["毎月"]
         val tags =
             (entry["tags"] as? List<String>)
-                ?: if (entry["recurring"] as? Boolean == true) listOf("毎月") else emptyList()
+                ?: if (entry["recurring"] as? Boolean == true) listOf(MoneyTags.RECURRING) else emptyList()
         MoneyItem(
             id = entry["id"] as String,
             name = entry["name"] as String,

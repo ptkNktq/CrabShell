@@ -12,6 +12,7 @@ import core.network.MoneyRepository
 import core.network.UserRepository
 import kotlinx.coroutines.launch
 import model.MoneyItem
+import model.MoneyTags
 import model.MonthlyMoney
 import model.Payment
 import model.User
@@ -146,7 +147,8 @@ class MoneyViewModel(
         recurring: Boolean,
     ) {
         val existing = uiState.editingItem
-        val tags = if (recurring) listOf("毎月") else emptyList()
+        val baseTags = existing?.tags?.filter { it != MoneyTags.RECURRING } ?: emptyList()
+        val tags = if (recurring) baseTags + MoneyTags.RECURRING else baseTags
 
         val newItem =
             if (existing != null) {

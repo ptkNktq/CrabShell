@@ -27,6 +27,10 @@ data class MoneyItem(
     val tags: List<String> = emptyList(),
 )
 
+object MoneyTags {
+    const val RECURRING = "毎月"
+}
+
 @Serializable
 data class MonthlyMoney(
     val month: String,

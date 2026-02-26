@@ -42,7 +42,7 @@ class MoneyModelsTest {
                 amount = 8000L,
                 note = "June",
                 payments = listOf(Payment(uid = "u1", amount = 4000L), Payment(uid = "u2", amount = 4000L)),
-                tags = listOf("毎月"),
+                tags = listOf(MoneyTags.RECURRING),
             )
         val encoded = json.encodeToString(MoneyItem.serializer(), item)
         val decoded = json.decodeFromString(MoneyItem.serializer(), encoded)

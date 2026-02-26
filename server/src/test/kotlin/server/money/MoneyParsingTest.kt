@@ -1,5 +1,6 @@
 package server.money
 
+import model.MoneyTags
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -13,7 +14,7 @@ class MoneyParsingTest {
                     "name" to "Rent",
                     "amount" to 100000L,
                     "note" to "Monthly",
-                    "tags" to listOf("毎月"),
+                    "tags" to listOf(MoneyTags.RECURRING),
                     "payments" to
                         listOf(
                             mapOf("uid" to "u1", "amount" to 50000L),
@@ -28,7 +29,7 @@ class MoneyParsingTest {
         assertEquals("Rent", item.name)
         assertEquals(100000L, item.amount)
         assertEquals("Monthly", item.note)
-        assertEquals(listOf("毎月"), item.tags)
+        assertEquals(listOf(MoneyTags.RECURRING), item.tags)
         assertEquals(2, item.payments.size)
         assertEquals("u1", item.payments[0].uid)
         assertEquals(50000L, item.payments[0].amount)
@@ -48,7 +49,7 @@ class MoneyParsingTest {
             )
         val items = parseItems(raw)
         assertEquals(1, items.size)
-        assertEquals(listOf("毎月"), items[0].tags)
+        assertEquals(listOf(MoneyTags.RECURRING), items[0].tags)
     }
 
     @Test
@@ -92,14 +93,14 @@ class MoneyParsingTest {
                     "id" to "item1",
                     "name" to "Rent",
                     "amount" to 100000L,
-                    "tags" to listOf("毎月"),
+                    "tags" to listOf(MoneyTags.RECURRING),
                     "recurring" to true,
                     "payments" to emptyList<Map<String, Any?>>(),
                 ),
             )
         val items = parseItems(raw)
         assertEquals(1, items.size)
-        assertEquals(listOf("毎月"), items[0].tags)
+        assertEquals(listOf(MoneyTags.RECURRING), items[0].tags)
     }
 
     @Test

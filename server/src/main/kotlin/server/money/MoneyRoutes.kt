@@ -9,6 +9,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.util.getOrFail
+import model.MoneyTags
 import model.MonthlyMoney
 import model.PaymentRecord
 import org.koin.ktor.ext.inject
@@ -58,7 +59,7 @@ fun Route.moneyRoutes() {
                     call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is locked"))
                     return@post
                 }
-                val updated = moneyRepository.importItemsByTag(month, "毎月")
+                val updated = moneyRepository.importItemsByTag(month, MoneyTags.RECURRING)
                 call.respond(updated)
             }
 

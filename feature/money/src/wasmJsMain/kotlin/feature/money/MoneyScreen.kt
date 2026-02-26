@@ -25,6 +25,7 @@ import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
 import core.ui.formatYen
 import model.MoneyItem
+import model.MoneyTags
 import model.MonthlyMoney
 import model.Payment
 import model.PaymentRecord
@@ -378,7 +379,7 @@ private fun MoneyItemForm(
     var name by remember(key) { mutableStateOf(item?.name ?: "") }
     var amountText by remember(key) { mutableStateOf(item?.amount?.toString() ?: "") }
     var note by remember(key) { mutableStateOf(item?.note ?: "") }
-    var recurring by remember(key) { mutableStateOf("毎月" in (item?.tags ?: emptyList())) }
+    var recurring by remember(key) { mutableStateOf(MoneyTags.RECURRING in (item?.tags ?: emptyList())) }
     var paymentAmounts by remember(key) {
         mutableStateOf(
             users.associate { user ->
@@ -790,13 +791,13 @@ private fun MoneyItemCard(
                             text = item.name,
                             style = MaterialTheme.typography.titleMedium,
                         )
-                        if (item.tags.isNotEmpty()) {
+                        for (tag in item.tags) {
                             Surface(
                                 color = MaterialTheme.colorScheme.secondaryContainer,
                                 shape = MaterialTheme.shapes.small,
                             ) {
                                 Text(
-                                    text = item.tags.first(),
+                                    text = tag,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer,
