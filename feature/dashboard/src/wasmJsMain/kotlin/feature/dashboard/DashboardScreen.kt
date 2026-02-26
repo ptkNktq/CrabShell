@@ -348,7 +348,7 @@ fun HeaderSection(
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = "今日",
+                text = "毎日 AM 5:00 更新",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
