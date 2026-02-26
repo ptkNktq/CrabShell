@@ -19,12 +19,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
 import core.ui.formatYen
 import model.MoneyItem
+import model.MoneyTags
 import model.MonthlyMoney
 import model.Payment
 import model.PaymentRecord
@@ -52,6 +57,7 @@ fun MoneyScreen(vm: MoneyViewModel = koinViewModel()) {
         onMoveItem = vm::onMoveItem,
         onSaveItem = vm::onSaveItem,
         onToggleLock = vm::onToggleLock,
+        onImportRecurringItems = vm::onImportRecurringItems,
         windowSizeClass = windowSizeClass,
     )
 }
@@ -74,6 +80,7 @@ internal fun MoneyContent(
     onMoveItem: (MoneyItem, Int) -> Unit,
     onSaveItem: (String, Long, String, List<Payment>, Boolean) -> Unit,
     onToggleLock: () -> Unit,
+    onImportRecurringItems: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
     val locked = monthlyMoney.locked
@@ -154,7 +161,7 @@ internal fun MoneyContent(
                     }
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // 追加ボタン
+                    // 追加ボタン + インポートボタン
                     if (!loading && error == null) {
                         Button(
                             onClick = {
@@ -166,6 +173,16 @@ internal fun MoneyContent(
                             Icon(Icons.Default.Add, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("項目を追加")
+                        }
+                        if (!locked) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            OutlinedButton(
+                                onClick = onImportRecurringItems,
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = !saving,
+                            ) {
+                                ImportButtonText()
+                            }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                     }
@@ -221,6 +238,15 @@ internal fun MoneyContent(
                                     MaterialTheme.colorScheme.onSurfaceVariant
                                 },
                         )
+                    }
+                    if (!locked && !loading && error == null) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        OutlinedButton(
+                            onClick = onImportRecurringItems,
+                            enabled = !saving,
+                        ) {
+                            ImportButtonText()
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
@@ -323,7 +349,7 @@ private fun MoneyListContent(
                     }
                 }
 
-                val sortedItems = monthlyMoney.items.sortedByDescending { it.recurring }
+                val sortedItems = monthlyMoney.items.sortedByDescending { it.tags.isNotEmpty() }
                 items(sortedItems, key = { it.id }) { item ->
                     MoneyItemCard(
                         item = item,
@@ -357,7 +383,7 @@ private fun MoneyItemForm(
     var name by remember(key) { mutableStateOf(item?.name ?: "") }
     var amountText by remember(key) { mutableStateOf(item?.amount?.toString() ?: "") }
     var note by remember(key) { mutableStateOf(item?.note ?: "") }
-    var recurring by remember(key) { mutableStateOf(item?.recurring ?: false) }
+    var recurring by remember(key) { mutableStateOf(MoneyTags.RECURRING in (item?.tags ?: emptyList())) }
     var paymentAmounts by remember(key) {
         mutableStateOf(
             users.associate { user ->
@@ -769,13 +795,13 @@ private fun MoneyItemCard(
                             text = item.name,
                             style = MaterialTheme.typography.titleMedium,
                         )
-                        if (item.recurring) {
+                        for (tag in item.tags) {
                             Surface(
                                 color = MaterialTheme.colorScheme.secondaryContainer,
                                 shape = MaterialTheme.shapes.small,
                             ) {
                                 Text(
-                                    text = "毎月",
+                                    text = tag,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -874,4 +900,18 @@ private fun MoneyItemCard(
             }
         }
     }
+}
+
+@Composable
+private fun ImportButtonText() {
+    Text(
+        text =
+            buildAnnotatedString {
+                append("前月の")
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                    append("『毎月』")
+                }
+                append("項目をインポート")
+            },
+    )
 }

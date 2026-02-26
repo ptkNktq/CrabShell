@@ -30,7 +30,7 @@ class MoneyModelsTest {
         assertEquals("m1", decoded.id)
         assertEquals("", decoded.note)
         assertEquals(emptyList(), decoded.payments)
-        assertEquals(false, decoded.recurring)
+        assertEquals(emptyList(), decoded.tags)
     }
 
     @Test
@@ -42,7 +42,7 @@ class MoneyModelsTest {
                 amount = 8000L,
                 note = "June",
                 payments = listOf(Payment(uid = "u1", amount = 4000L), Payment(uid = "u2", amount = 4000L)),
-                recurring = true,
+                tags = listOf(MoneyTags.RECURRING),
             )
         val encoded = json.encodeToString(MoneyItem.serializer(), item)
         val decoded = json.decodeFromString(MoneyItem.serializer(), encoded)

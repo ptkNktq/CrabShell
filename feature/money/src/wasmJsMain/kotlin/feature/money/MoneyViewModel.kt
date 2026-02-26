@@ -12,6 +12,7 @@ import core.network.MoneyRepository
 import core.network.UserRepository
 import kotlinx.coroutines.launch
 import model.MoneyItem
+import model.MoneyTags
 import model.MonthlyMoney
 import model.Payment
 import model.User
@@ -146,10 +147,12 @@ class MoneyViewModel(
         recurring: Boolean,
     ) {
         val existing = uiState.editingItem
+        val baseTags = existing?.tags?.filter { it != MoneyTags.RECURRING } ?: emptyList()
+        val tags = if (recurring) baseTags + MoneyTags.RECURRING else baseTags
 
         val newItem =
             if (existing != null) {
-                existing.copy(name = name, amount = amount, note = note, payments = payments, recurring = recurring)
+                existing.copy(name = name, amount = amount, note = note, payments = payments, tags = tags)
             } else {
                 MoneyItem(
                     id = randomUUID().toString(),
@@ -157,7 +160,7 @@ class MoneyViewModel(
                     amount = amount,
                     note = note,
                     payments = payments,
-                    recurring = recurring,
+                    tags = tags,
                 )
             }
 
@@ -178,6 +181,20 @@ class MoneyViewModel(
         val updatedItems = uiState.monthlyMoney.items.filter { it.id != item.id }
         if (uiState.editingItem?.id == item.id) onClearForm()
         persistAndThen(uiState.monthlyMoney.copy(items = updatedItems)) {}
+    }
+
+    fun onImportRecurringItems() {
+        uiState = uiState.copy(isSaving = true)
+        viewModelScope.launch {
+            try {
+                val updated = moneyRepository.importRecurringItems(uiState.currentMonth)
+                uiState = uiState.copy(monthlyMoney = updated)
+            } catch (e: Exception) {
+                uiState = uiState.copy(error = e.message)
+            } finally {
+                uiState = uiState.copy(isSaving = false)
+            }
+        }
     }
 
     /** 項目を前月または次月に移動する（一時機能） */

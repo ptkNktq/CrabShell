@@ -24,8 +24,12 @@ data class MoneyItem(
     val amount: Long,
     val note: String = "",
     val payments: List<Payment> = emptyList(),
-    val recurring: Boolean = false,
+    val tags: List<String> = emptyList(),
 )
+
+object MoneyTags {
+    const val RECURRING = "毎月"
+}
 
 @Serializable
 data class MonthlyMoney(

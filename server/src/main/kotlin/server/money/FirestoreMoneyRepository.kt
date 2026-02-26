@@ -3,6 +3,7 @@ package server.money
 import com.google.cloud.firestore.DocumentSnapshot
 import com.google.cloud.firestore.Firestore
 import model.MoneyItem
+import model.MoneyTags
 import model.MonthlyMoney
 import model.Payment
 import model.PaymentRecord
@@ -56,7 +57,7 @@ class FirestoreMoneyRepository(
                     "name" to item.name,
                     "amount" to item.amount,
                     "note" to item.note,
-                    "recurring" to item.recurring,
+                    "tags" to item.tags,
                     "payments" to
                         item.payments.map { p ->
                             mapOf("uid" to p.uid, "amount" to p.amount)
@@ -78,15 +79,21 @@ class FirestoreMoneyRepository(
         cache[month] = data
     }
 
-    override suspend fun getRecurringItemsFromPreviousMonth(month: String): List<MoneyItem> {
-        val previousMonth = YearMonth.parse(month).minusMonths(1).toString()
-        val prevData = getMonthlyMoney(previousMonth) ?: return emptyList()
+    override suspend fun importItemsByTag(
+        targetMonth: String,
+        tag: String,
+    ): MonthlyMoney {
+        val previousMonth = YearMonth.parse(targetMonth).minusMonths(1).toString()
+        val prevData = getMonthlyMoney(previousMonth)
+        val taggedItems =
+            (prevData?.items ?: emptyList())
+                .filter { tag in it.tags }
+                .map { item -> item.copy(id = UUID.randomUUID().toString()) }
 
-        return prevData.items
-            .filter { it.recurring }
-            .map { item ->
-                item.copy(id = UUID.randomUUID().toString())
-            }
+        val existing = getMonthlyMoney(targetMonth) ?: MonthlyMoney(month = targetMonth)
+        val merged = existing.copy(items = existing.items + taggedItems)
+        saveMonthlyMoney(targetMonth, merged)
+        return merged
     }
 
     override suspend fun getAllMonths(): List<MonthlyMoney> {
@@ -123,12 +130,16 @@ internal fun parseItems(raw: Any?): List<MoneyItem> {
     val itemsRaw = raw as? List<Map<String, Any?>> ?: return emptyList()
     return itemsRaw.map { entry ->
         val paymentsRaw = entry["payments"] as? List<Map<String, Any?>> ?: emptyList()
+        // tags フィールドを読み取り。レガシーデータ対応: recurring=true → tags=["毎月"]
+        val tags =
+            (entry["tags"] as? List<String>)
+                ?: if (entry["recurring"] as? Boolean == true) listOf(MoneyTags.RECURRING) else emptyList()
         MoneyItem(
             id = entry["id"] as String,
             name = entry["name"] as String,
             amount = (entry["amount"] as Number).toLong(),
             note = entry["note"] as? String ?: "",
-            recurring = entry["recurring"] as? Boolean ?: false,
+            tags = tags,
             payments =
                 paymentsRaw.map { p ->
                     Payment(

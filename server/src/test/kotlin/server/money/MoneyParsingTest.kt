@@ -1,11 +1,12 @@
 package server.money
 
+import model.MoneyTags
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class MoneyParsingTest {
     @Test
-    fun parseItemsFromMapList() {
+    fun parseItemsWithTags() {
         val raw: List<Map<String, Any?>> =
             listOf(
                 mapOf(
@@ -13,7 +14,7 @@ class MoneyParsingTest {
                     "name" to "Rent",
                     "amount" to 100000L,
                     "note" to "Monthly",
-                    "recurring" to true,
+                    "tags" to listOf(MoneyTags.RECURRING),
                     "payments" to
                         listOf(
                             mapOf("uid" to "u1", "amount" to 50000L),
@@ -28,10 +29,78 @@ class MoneyParsingTest {
         assertEquals("Rent", item.name)
         assertEquals(100000L, item.amount)
         assertEquals("Monthly", item.note)
-        assertEquals(true, item.recurring)
+        assertEquals(listOf(MoneyTags.RECURRING), item.tags)
         assertEquals(2, item.payments.size)
         assertEquals("u1", item.payments[0].uid)
         assertEquals(50000L, item.payments[0].amount)
+    }
+
+    @Test
+    fun parseItemsLegacyRecurringTrueConvertedToTag() {
+        val raw: List<Map<String, Any?>> =
+            listOf(
+                mapOf(
+                    "id" to "item1",
+                    "name" to "Rent",
+                    "amount" to 100000L,
+                    "recurring" to true,
+                    "payments" to emptyList<Map<String, Any?>>(),
+                ),
+            )
+        val items = parseItems(raw)
+        assertEquals(1, items.size)
+        assertEquals(listOf(MoneyTags.RECURRING), items[0].tags)
+    }
+
+    @Test
+    fun parseItemsLegacyRecurringFalseResultsInEmptyTags() {
+        val raw: List<Map<String, Any?>> =
+            listOf(
+                mapOf(
+                    "id" to "item1",
+                    "name" to "Groceries",
+                    "amount" to 5000L,
+                    "recurring" to false,
+                    "payments" to emptyList<Map<String, Any?>>(),
+                ),
+            )
+        val items = parseItems(raw)
+        assertEquals(1, items.size)
+        assertEquals(emptyList(), items[0].tags)
+    }
+
+    @Test
+    fun parseItemsNoTagsNoRecurringResultsInEmptyTags() {
+        val raw: List<Map<String, Any?>> =
+            listOf(
+                mapOf(
+                    "id" to "item1",
+                    "name" to "Groceries",
+                    "amount" to 5000L,
+                    "payments" to emptyList<Map<String, Any?>>(),
+                ),
+            )
+        val items = parseItems(raw)
+        assertEquals(1, items.size)
+        assertEquals(emptyList(), items[0].tags)
+    }
+
+    @Test
+    fun parseItemsTagsFieldTakesPrecedenceOverRecurring() {
+        val raw: List<Map<String, Any?>> =
+            listOf(
+                mapOf(
+                    "id" to "item1",
+                    "name" to "Rent",
+                    "amount" to 100000L,
+                    "tags" to listOf(MoneyTags.RECURRING),
+                    "recurring" to true,
+                    "payments" to emptyList<Map<String, Any?>>(),
+                ),
+            )
+        val items = parseItems(raw)
+        assertEquals(1, items.size)
+        assertEquals(listOf(MoneyTags.RECURRING), items[0].tags)
     }
 
     @Test
