@@ -36,14 +36,30 @@ fun Route.moneyRoutes() {
             }) {
                 val month = call.parameters.getOrFail("month")
                 val data = moneyRepository.getMonthlyMoney(month)
+                call.respond(data ?: MonthlyMoney(month = month))
+            }
 
-                if (data == null) {
-                    val recurringItems = moneyRepository.getRecurringItemsFromPreviousMonth(month)
-                    call.respond(MonthlyMoney(month = month, items = recurringItems))
-                    return@get
+            post("import-by-tag", {
+                tags = listOf("money")
+                summary = "前月からタグ付き項目をインポート（admin）"
+                request {
+                    pathParameter<String>("month") { description = "月（YYYY-MM）" }
                 }
-
-                call.respond(data)
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<MonthlyMoney>()
+                    }
+                    code(HttpStatusCode.Conflict) { description = "ロック中" }
+                }
+            }) {
+                val month = call.parameters.getOrFail("month")
+                val existing = moneyRepository.getMonthlyMoney(month)
+                if (existing?.locked == true) {
+                    call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is locked"))
+                    return@post
+                }
+                val updated = moneyRepository.importItemsByTag(month, "毎月")
+                call.respond(updated)
             }
 
             put({

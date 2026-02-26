@@ -1,6 +1,5 @@
 package server.money
 
-import model.MoneyItem
 import model.MonthlyMoney
 
 /** Money データのリポジトリインターフェース */
@@ -13,7 +12,11 @@ interface MoneyRepository {
         data: MonthlyMoney,
     )
 
-    suspend fun getRecurringItemsFromPreviousMonth(month: String): List<MoneyItem>
+    /** 前月から指定タグ付き項目を targetMonth にインポート（マージ）して返す */
+    suspend fun importItemsByTag(
+        targetMonth: String,
+        tag: String,
+    ): MonthlyMoney
 
     /** レポート用: 全月のデータを取得 */
     suspend fun getAllMonths(): List<MonthlyMoney>
