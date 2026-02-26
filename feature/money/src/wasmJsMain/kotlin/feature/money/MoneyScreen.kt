@@ -19,7 +19,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
@@ -177,7 +181,7 @@ internal fun MoneyContent(
                                 modifier = Modifier.fillMaxWidth(),
                                 enabled = !saving,
                             ) {
-                                Text("前月の毎月項目をインポート")
+                                ImportButtonText()
                             }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
@@ -241,7 +245,7 @@ internal fun MoneyContent(
                             onClick = onImportRecurringItems,
                             enabled = !saving,
                         ) {
-                            Text("前月の毎月項目をインポート")
+                            ImportButtonText()
                         }
                     }
                 }
@@ -896,4 +900,18 @@ private fun MoneyItemCard(
             }
         }
     }
+}
+
+@Composable
+private fun ImportButtonText() {
+    Text(
+        text =
+            buildAnnotatedString {
+                append("前月の")
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                    append("『毎月』")
+                }
+                append("項目をインポート")
+            },
+    )
 }

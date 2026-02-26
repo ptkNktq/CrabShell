@@ -12,7 +12,7 @@ interface MoneyRepository {
         data: MonthlyMoney,
     )
 
-    /** 前月から指定タグ付き項目を targetMonth にインポート（マージ）して返す */
+    /** targetMonth の前月から指定タグ付き項目を targetMonth にインポート（マージ）して返す */
     suspend fun importItemsByTag(
         targetMonth: String,
         tag: String,
