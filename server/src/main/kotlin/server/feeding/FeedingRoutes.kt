@@ -37,8 +37,7 @@ fun Route.feedingRoutes() {
                     }
                 }
             }) {
-                call.verifyPetMember(petRepository)
-                val petId = call.parameters.getOrFail("petId")
+                val petId = call.verifyPetMember(petRepository)
                 val date = call.parameters.getOrFail("date")
 
                 call.respond(feedingRepository.getFeedingLog(petId, date))
@@ -58,8 +57,7 @@ fun Route.feedingRoutes() {
                     }
                 }
             }) {
-                call.verifyPetMember(petRepository)
-                val petId = call.parameters.getOrFail("petId")
+                val petId = call.verifyPetMember(petRepository)
                 val date = call.parameters.getOrFail("date")
                 val mealTime = call.parameters.getEnumOrFail<MealTime>("mealTime")
 
@@ -83,8 +81,7 @@ fun Route.feedingRoutes() {
                     }
                 }
             }) {
-                call.verifyPetMember(petRepository)
-                val petId = call.parameters.getOrFail("petId")
+                val petId = call.verifyPetMember(petRepository)
                 val date = call.parameters.getOrFail("date")
                 val mealTime = call.parameters.getEnumOrFail<MealTime>("mealTime")
 
@@ -121,8 +118,7 @@ fun Route.feedingRoutes() {
                     }
                 }
             }) {
-                call.verifyPetMember(petRepository)
-                val petId = call.parameters.getOrFail("petId")
+                val petId = call.verifyPetMember(petRepository)
                 val date = call.parameters.getOrFail("date")
 
                 val body = call.receive<Map<String, String>>()

@@ -30,6 +30,7 @@ import server.garbage.garbageRoutes
 import server.money.moneyRoutes
 import server.passkey.PasskeyDatabase
 import server.passkey.passkeyRoutes
+import server.pet.PetAccessDeniedException
 import server.pet.PetRepository
 import server.pet.petRoutes
 import server.quest.pointRoutes
@@ -54,9 +55,12 @@ fun Application.module() {
 
     configureAuth()
     install(ContentNegotiation) { json() }
-    install(RequestBodyLimit) { bodyLimit { 1_000_000L } }
+    install(RequestBodyLimit) { bodyLimit { 256_000L } }
 
     install(StatusPages) {
+        exception<PetAccessDeniedException> { call, _ ->
+            call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Not a member of this pet"))
+        }
         exception<MissingRequestParameterException> { call, cause ->
             call.respond(HttpStatusCode.BadRequest, mapOf("error" to "${cause.parameterName} is required"))
         }
