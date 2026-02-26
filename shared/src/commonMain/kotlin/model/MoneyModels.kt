@@ -24,7 +24,7 @@ data class MoneyItem(
     val amount: Long,
     val note: String = "",
     val payments: List<Payment> = emptyList(),
-    val recurring: Boolean = false,
+    val tags: List<String> = emptyList(),
 )
 
 @Serializable
