@@ -146,10 +146,11 @@ class MoneyViewModel(
         recurring: Boolean,
     ) {
         val existing = uiState.editingItem
+        val tags = if (recurring) listOf("毎月") else emptyList()
 
         val newItem =
             if (existing != null) {
-                existing.copy(name = name, amount = amount, note = note, payments = payments, recurring = recurring)
+                existing.copy(name = name, amount = amount, note = note, payments = payments, tags = tags)
             } else {
                 MoneyItem(
                     id = randomUUID().toString(),
@@ -157,7 +158,7 @@ class MoneyViewModel(
                     amount = amount,
                     note = note,
                     payments = payments,
-                    recurring = recurring,
+                    tags = tags,
                 )
             }
 
@@ -178,6 +179,20 @@ class MoneyViewModel(
         val updatedItems = uiState.monthlyMoney.items.filter { it.id != item.id }
         if (uiState.editingItem?.id == item.id) onClearForm()
         persistAndThen(uiState.monthlyMoney.copy(items = updatedItems)) {}
+    }
+
+    fun onImportRecurringItems() {
+        uiState = uiState.copy(isSaving = true)
+        viewModelScope.launch {
+            try {
+                val updated = moneyRepository.importRecurringItems(uiState.currentMonth)
+                uiState = uiState.copy(monthlyMoney = updated)
+            } catch (e: Exception) {
+                uiState = uiState.copy(error = e.message)
+            } finally {
+                uiState = uiState.copy(isSaving = false)
+            }
+        }
     }
 
     /** 項目を前月または次月に移動する（一時機能） */

@@ -52,6 +52,7 @@ fun MoneyScreen(vm: MoneyViewModel = koinViewModel()) {
         onMoveItem = vm::onMoveItem,
         onSaveItem = vm::onSaveItem,
         onToggleLock = vm::onToggleLock,
+        onImportRecurringItems = vm::onImportRecurringItems,
         windowSizeClass = windowSizeClass,
     )
 }
@@ -74,6 +75,7 @@ internal fun MoneyContent(
     onMoveItem: (MoneyItem, Int) -> Unit,
     onSaveItem: (String, Long, String, List<Payment>, Boolean) -> Unit,
     onToggleLock: () -> Unit,
+    onImportRecurringItems: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
     val locked = monthlyMoney.locked
@@ -154,7 +156,7 @@ internal fun MoneyContent(
                     }
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // 追加ボタン
+                    // 追加ボタン + インポートボタン
                     if (!loading && error == null) {
                         Button(
                             onClick = {
@@ -166,6 +168,16 @@ internal fun MoneyContent(
                             Icon(Icons.Default.Add, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("項目を追加")
+                        }
+                        if (!locked) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            OutlinedButton(
+                                onClick = onImportRecurringItems,
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = !saving,
+                            ) {
+                                Text("前月の毎月項目をインポート")
+                            }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                     }
@@ -221,6 +233,15 @@ internal fun MoneyContent(
                                     MaterialTheme.colorScheme.onSurfaceVariant
                                 },
                         )
+                    }
+                    if (!locked && !loading && error == null) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        OutlinedButton(
+                            onClick = onImportRecurringItems,
+                            enabled = !saving,
+                        ) {
+                            Text("前月の毎月項目をインポート")
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
@@ -323,7 +344,7 @@ private fun MoneyListContent(
                     }
                 }
 
-                val sortedItems = monthlyMoney.items.sortedByDescending { it.recurring }
+                val sortedItems = monthlyMoney.items.sortedByDescending { it.tags.isNotEmpty() }
                 items(sortedItems, key = { it.id }) { item ->
                     MoneyItemCard(
                         item = item,
@@ -357,7 +378,7 @@ private fun MoneyItemForm(
     var name by remember(key) { mutableStateOf(item?.name ?: "") }
     var amountText by remember(key) { mutableStateOf(item?.amount?.toString() ?: "") }
     var note by remember(key) { mutableStateOf(item?.note ?: "") }
-    var recurring by remember(key) { mutableStateOf(item?.recurring ?: false) }
+    var recurring by remember(key) { mutableStateOf("毎月" in (item?.tags ?: emptyList())) }
     var paymentAmounts by remember(key) {
         mutableStateOf(
             users.associate { user ->
@@ -769,13 +790,13 @@ private fun MoneyItemCard(
                             text = item.name,
                             style = MaterialTheme.typography.titleMedium,
                         )
-                        if (item.recurring) {
+                        if (item.tags.isNotEmpty()) {
                             Surface(
                                 color = MaterialTheme.colorScheme.secondaryContainer,
                                 shape = MaterialTheme.shapes.small,
                             ) {
                                 Text(
-                                    text = "毎月",
+                                    text = item.tags.first(),
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer,

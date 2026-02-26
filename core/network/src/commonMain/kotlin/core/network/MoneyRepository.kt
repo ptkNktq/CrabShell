@@ -20,6 +20,8 @@ interface MoneyRepository {
     ): MonthlyMoney
 
     suspend fun toggleLock(month: String): MonthlyMoney
+
+    suspend fun importRecurringItems(month: String): MonthlyMoney
 }
 
 class MoneyRepositoryImpl(
@@ -47,4 +49,7 @@ class MoneyRepositoryImpl(
             }.body()
 
     override suspend fun toggleLock(month: String): MonthlyMoney = client.patch("/api/money/$month/lock").body()
+
+    override suspend fun importRecurringItems(month: String): MonthlyMoney =
+        client.post("/api/money/$month/import-by-tag").body()
 }
