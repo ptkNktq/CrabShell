@@ -151,53 +151,13 @@ fun DateTimeCard(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .defaultMinSize(minHeight = CardHeaderMinHeight),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "$currentYear $dateWithDay",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-
-                if (garbageTypes.isNotEmpty()) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        for (type in garbageTypes) {
-                            Surface(
-                                color = type.color.copy(alpha = 0.15f),
-                                shape = RoundedCornerShape(12.dp),
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Icon(
-                                        imageVector = type.icon,
-                                        contentDescription = null,
-                                        tint = type.color,
-                                        modifier = Modifier.size(20.dp),
-                                    )
-                                    Text(
-                                        text = type.label,
-                                        style = MaterialTheme.typography.labelLarge,
-                                        color = type.color,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            Text(
+                text = "$currentYear $dateWithDay",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.defaultMinSize(minHeight = CardHeaderMinHeight),
+            )
 
             HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
 
@@ -211,6 +171,39 @@ fun DateTimeCard(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
+            }
+
+            if (garbageTypes.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    for (type in garbageTypes) {
+                        Surface(
+                            color = type.color.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    imageVector = type.icon,
+                                    contentDescription = null,
+                                    tint = type.color,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Text(
+                                    text = type.label,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = type.color,
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
