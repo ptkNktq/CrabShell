@@ -17,9 +17,11 @@ class FirestorePetRepository(
 
     override fun clearCache() {
         cache.clear()
+        membersCache.clear()
     }
 
     private val cache = ConcurrentHashMap<String, List<Pet>>()
+    private val membersCache = ConcurrentHashMap<String, List<String>>()
 
     override suspend fun getPets(): List<Pet> {
         cache["all"]?.let { return it }
@@ -36,6 +38,25 @@ class FirestorePetRepository(
             }
         cache["all"] = pets
         return pets
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    override suspend fun isMember(
+        petId: String,
+        uid: String,
+    ): Boolean {
+        val members =
+            membersCache.getOrPut(petId) {
+                val doc =
+                    firestore
+                        .collection("pets")
+                        .document(petId)
+                        .get()
+                        .await()
+                if (!doc.exists()) return false
+                (doc.get("members") as? List<String>) ?: emptyList()
+            }
+        return uid in members
     }
 
     override fun seedDefaultPet() {

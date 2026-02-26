@@ -38,6 +38,7 @@ ktor-server-cors = { module = "io.ktor:ktor-server-cors-jvm", version.ref = "kto
 ktor-server-auth = { module = "io.ktor:ktor-server-auth-jvm", version.ref = "ktor" }
 ktor-server-host-common = { module = "io.ktor:ktor-server-host-common-jvm", version.ref = "ktor" }
 ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages-jvm", version.ref = "ktor" }
+ktor-server-body-limit = { module = "io.ktor:ktor-server-body-limit-jvm", version.ref = "ktor" }
 ktor-serialization-kotlinx-json-jvm = { module = "io.ktor:ktor-serialization-kotlinx-json-jvm", version.ref = "ktor" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 firebase-admin = { module = "com.google.firebase:firebase-admin", version.ref = "firebase-admin" }
@@ -62,7 +63,7 @@ ktor-client-java = { module = "io.ktor:ktor-client-java", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 
 [bundles]
-ktor-server = ["ktor-server-core", "ktor-server-netty", "ktor-server-content-negotiation", "ktor-server-auth", "ktor-server-cors", "ktor-server-host-common", "ktor-server-status-pages", "ktor-serialization-kotlinx-json-jvm"]
+ktor-server = ["ktor-server-core", "ktor-server-netty", "ktor-server-content-negotiation", "ktor-server-auth", "ktor-server-cors", "ktor-server-host-common", "ktor-server-status-pages", "ktor-server-body-limit", "ktor-serialization-kotlinx-json-jvm"]
 ktor-client = ["ktor-client-core", "ktor-client-content-negotiation", "ktor-serialization-kotlinx-json"]
 koin = ["koin-core", "koin-compose", "koin-compose-viewmodel"]
 feature = ["koin-core", "koin-compose", "koin-compose-viewmodel", "lifecycle-viewmodel-compose"]

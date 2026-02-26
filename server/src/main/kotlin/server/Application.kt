@@ -13,6 +13,7 @@ import io.ktor.server.http.content.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.MissingRequestParameterException
 import io.ktor.server.plugins.ParameterConversionException
+import io.ktor.server.plugins.bodylimit.RequestBodyLimit
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
@@ -29,6 +30,7 @@ import server.garbage.garbageRoutes
 import server.money.moneyRoutes
 import server.passkey.PasskeyDatabase
 import server.passkey.passkeyRoutes
+import server.pet.PetAccessDeniedException
 import server.pet.PetRepository
 import server.pet.petRoutes
 import server.quest.pointRoutes
@@ -53,8 +55,12 @@ fun Application.module() {
 
     configureAuth()
     install(ContentNegotiation) { json() }
+    install(RequestBodyLimit) { bodyLimit { 256_000L } }
 
     install(StatusPages) {
+        exception<PetAccessDeniedException> { call, _ ->
+            call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Not a member of this pet"))
+        }
         exception<MissingRequestParameterException> { call, cause ->
             call.respond(HttpStatusCode.BadRequest, mapOf("error" to "${cause.parameterName} is required"))
         }
