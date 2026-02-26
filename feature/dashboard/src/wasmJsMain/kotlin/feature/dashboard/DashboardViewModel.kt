@@ -25,8 +25,9 @@ import model.MealTime
 
 data class DashboardUiState(
     val feedingLog: FeedingLog = FeedingLog(date = ""),
-    val isLoading: Boolean = true,
-    val error: String? = null,
+    val feedingLoading: Boolean = true,
+    val feedingError: String? = null,
+    val feedingActionError: String? = null,
     val petName: String? = null,
     val todayGarbageTypes: List<GarbageType> = emptyList(),
     val currentTime: String = "",
@@ -63,7 +64,7 @@ class DashboardViewModel(
                 uiState = uiState.copy(petName = pet?.name)
                 loadToday()
             } catch (e: Exception) {
-                uiState = uiState.copy(error = e.message, isLoading = false)
+                uiState = uiState.copy(feedingError = e.message, feedingLoading = false)
             }
         }
         loadGarbageSchedule()
@@ -98,9 +99,9 @@ class DashboardViewModel(
         val id = petId ?: return
         try {
             val log = feedingRepository.getFeedingLog(id, today)
-            uiState = uiState.copy(feedingLog = log, isLoading = false)
+            uiState = uiState.copy(feedingLog = log, feedingLoading = false)
         } catch (e: Exception) {
-            uiState = uiState.copy(error = e.message, isLoading = false)
+            uiState = uiState.copy(feedingError = e.message, feedingLoading = false)
         }
     }
 
@@ -142,7 +143,13 @@ class DashboardViewModel(
         val newDate = feedingDateJs().toString()
         today = newDate
         viewModelScope.launch {
-            uiState = uiState.copy(isLoading = true, error = null, feedingLog = FeedingLog(date = today))
+            uiState =
+                uiState.copy(
+                    feedingLoading = true,
+                    feedingError = null,
+                    feedingActionError = null,
+                    feedingLog = FeedingLog(date = today),
+                )
             loadToday()
         }
     }
@@ -150,6 +157,7 @@ class DashboardViewModel(
     fun onFeed(mealTime: MealTime) {
         val id = petId ?: return
         viewModelScope.launch {
+            uiState = uiState.copy(feedingActionError = null)
             try {
                 val feeding = feedingRepository.feed(id, today, mealTime)
                 uiState =
@@ -160,7 +168,7 @@ class DashboardViewModel(
                             ),
                     )
             } catch (e: Exception) {
-                uiState = uiState.copy(error = e.message)
+                uiState = uiState.copy(feedingActionError = e.message)
             }
         }
     }
