@@ -27,6 +27,9 @@ data/
 # Node.js (admin スクリプト用)
 node_modules/
 
+# Dev process management
+.dev/
+
 # OS
 .DS_Store
 Thumbs.db
