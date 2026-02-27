@@ -46,6 +46,7 @@ class DashboardViewModel(
     private var trackedDate: String = todayDateJs().toString()
     private var trackedFeedingDate: String = today
     private var lastFeedingHalfHour = -1
+    private var garbageRefreshedToday = false
 
     var uiState by mutableStateOf(
         DashboardUiState(
@@ -81,6 +82,7 @@ class DashboardViewModel(
                 val newDate = todayDateJs().toString()
                 if (newDate != trackedDate) {
                     trackedDate = newDate
+                    garbageRefreshedToday = false
                     uiState =
                         uiState.copy(
                             currentYear = currentYearJs().toString(),
@@ -105,6 +107,12 @@ class DashboardViewModel(
                     silentRefreshFeeding()
                 }
                 lastFeedingHalfHour = halfHour
+                // 毎朝10時にゴミ出しスケジュールを再取得
+                val hour = timeStr.substringBefore(":").toIntOrNull() ?: 0
+                if (hour >= 10 && !garbageRefreshedToday) {
+                    garbageRefreshedToday = true
+                    loadGarbageSchedule()
+                }
             }
         }
     }
