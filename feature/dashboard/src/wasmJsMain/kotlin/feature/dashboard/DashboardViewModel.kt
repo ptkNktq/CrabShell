@@ -23,6 +23,8 @@ import model.GarbageType
 import model.GarbageTypeSchedule
 import model.MealTime
 
+private const val FEEDING_REFRESH_TICKS = 180 // 30分 ÷ 10秒
+
 data class DashboardUiState(
     val feedingLog: FeedingLog = FeedingLog(date = ""),
     val feedingLoading: Boolean = true,
@@ -45,6 +47,7 @@ class DashboardViewModel(
     private var cachedSchedules: List<GarbageTypeSchedule> = emptyList()
     private var trackedDate: String = todayDateJs().toString()
     private var trackedFeedingDate: String = today
+    private var feedingRefreshCounter = 0
 
     var uiState by mutableStateOf(
         DashboardUiState(
@@ -90,6 +93,11 @@ class DashboardViewModel(
                 if (newFeedingDate != trackedFeedingDate) {
                     trackedFeedingDate = newFeedingDate
                     onRefreshFeeding()
+                }
+                feedingRefreshCounter++
+                if (feedingRefreshCounter >= FEEDING_REFRESH_TICKS) {
+                    feedingRefreshCounter = 0
+                    silentRefreshFeeding()
                 }
             }
         }
@@ -139,7 +147,18 @@ class DashboardViewModel(
             CollectionFrequency.WEEK_2_4 -> weekOfMonth == 2 || weekOfMonth == 4
         }
 
+    private suspend fun silentRefreshFeeding() {
+        val id = petId ?: return
+        try {
+            val log = feedingRepository.getFeedingLog(id, today)
+            uiState = uiState.copy(feedingLog = log)
+        } catch (_: Exception) {
+            // サイレント更新: 失敗時は古いデータを維持
+        }
+    }
+
     fun onRefreshFeeding() {
+        feedingRefreshCounter = 0
         val newDate = feedingDateJs().toString()
         today = newDate
         viewModelScope.launch {
