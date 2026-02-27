@@ -23,8 +23,6 @@ import model.GarbageType
 import model.GarbageTypeSchedule
 import model.MealTime
 
-private const val FEEDING_REFRESH_TICKS = 180 // 30分 ÷ 10秒
-
 data class DashboardUiState(
     val feedingLog: FeedingLog = FeedingLog(date = ""),
     val feedingLoading: Boolean = true,
@@ -47,7 +45,7 @@ class DashboardViewModel(
     private var cachedSchedules: List<GarbageTypeSchedule> = emptyList()
     private var trackedDate: String = todayDateJs().toString()
     private var trackedFeedingDate: String = today
-    private var feedingRefreshCounter = 0
+    private var lastFeedingHalfHour = -1
 
     var uiState by mutableStateOf(
         DashboardUiState(
@@ -78,7 +76,8 @@ class DashboardViewModel(
         viewModelScope.launch {
             while (true) {
                 delay(10_000)
-                uiState = uiState.copy(currentTime = currentTimeJs().toString())
+                val timeStr = currentTimeJs().toString()
+                uiState = uiState.copy(currentTime = timeStr)
                 val newDate = todayDateJs().toString()
                 if (newDate != trackedDate) {
                     trackedDate = newDate
@@ -94,11 +93,18 @@ class DashboardViewModel(
                     trackedFeedingDate = newFeedingDate
                     onRefreshFeeding()
                 }
-                feedingRefreshCounter++
-                if (feedingRefreshCounter >= FEEDING_REFRESH_TICKS) {
-                    feedingRefreshCounter = 0
+                // 毎時0分・30分に給餌情報をサイレント更新
+                val minute = timeStr.substringAfter(":").toIntOrNull() ?: 0
+                val halfHour =
+                    timeStr
+                        .substringBefore(":")
+                        .toIntOrNull()
+                        ?.times(2)
+                        ?.plus(minute / 30) ?: 0
+                if (lastFeedingHalfHour != -1 && halfHour != lastFeedingHalfHour) {
                     silentRefreshFeeding()
                 }
+                lastFeedingHalfHour = halfHour
             }
         }
     }
@@ -158,7 +164,6 @@ class DashboardViewModel(
     }
 
     fun onRefreshFeeding() {
-        feedingRefreshCounter = 0
         val newDate = feedingDateJs().toString()
         today = newDate
         viewModelScope.launch {
