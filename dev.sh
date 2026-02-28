@@ -324,6 +324,38 @@ USAGE
 # -----------------------------------------------------------------------------
 
 case "${1:-}" in
+    --completions)
+        # シェル補完スクリプトを出力（zsh/bash 両対応）
+        # 使い方: eval "$(./dev.sh --completions)"
+        cat <<'COMPLETIONS'
+if [ -n "$ZSH_VERSION" ]; then
+    _dev_sh() {
+        local -a subcmds=('server' 'frontend' 'start' 'stop' 'restart' 'status' 'help')
+        local -a actions=('start' 'stop' 'restart' 'log' 'status')
+        case $CURRENT in
+            2) _describe 'command' subcmds ;;
+            3) [[ $words[2] == (server|frontend) ]] && _describe 'action' actions ;;
+        esac
+    }
+    compdef _dev_sh dev.sh ./dev.sh
+elif [ -n "$BASH_VERSION" ]; then
+    _dev_sh() {
+        local cur prev
+        cur="${COMP_WORDS[COMP_CWORD]}"
+        prev="${COMP_WORDS[COMP_CWORD-1]}"
+        case $COMP_CWORD in
+            1) COMPREPLY=($(compgen -W "server frontend start stop restart status help" -- "$cur")) ;;
+            2)
+                case "$prev" in
+                    server|frontend) COMPREPLY=($(compgen -W "start stop restart log status" -- "$cur")) ;;
+                esac
+                ;;
+        esac
+    }
+    complete -F _dev_sh dev.sh ./dev.sh
+fi
+COMPLETIONS
+        ;;
     server)
         case "${2:-}" in
             start)   server_start ;;
