@@ -105,6 +105,20 @@ stop_process() {
     return 0
 }
 
+# Wait until a port is listening (max timeout seconds)
+wait_for_port() {
+    local port="$1"
+    local timeout="${2:-120}"
+    local waited=0
+    while ! lsof -ti :"$port" &>/dev/null && (( waited < timeout )); do
+        sleep 2
+        (( waited += 2 ))
+        printf "."
+    done
+    echo ""
+    lsof -ti :"$port" &>/dev/null
+}
+
 # Print status for a service
 show_status() {
     local name="$1"
@@ -157,7 +171,13 @@ server_start() {
         return 1
     fi
 
-    ok "サーバーを起動しました (PID: $pid, http://localhost:$SERVER_PORT)"
+    info "ポート $SERVER_PORT の待ち受け開始を待機中..."
+    if wait_for_port "$SERVER_PORT" 60; then
+        ok "サーバーを起動しました (PID: $pid, http://localhost:$SERVER_PORT)"
+    else
+        warn "サーバープロセスは起動しましたが、ポート $SERVER_PORT がまだ開いていません"
+        warn "ログを確認してください: ./dev.sh server log"
+    fi
 }
 
 server_stop() {
@@ -208,7 +228,13 @@ frontend_start() {
         return 1
     fi
 
-    ok "フロントエンドを起動しました (PID: $pid, http://localhost:$FRONTEND_PORT)"
+    info "ポート $FRONTEND_PORT の待ち受け開始を待機中 (ビルドに数分かかる場合があります)..."
+    if wait_for_port "$FRONTEND_PORT" 300; then
+        ok "フロントエンドを起動しました (PID: $pid, http://localhost:$FRONTEND_PORT)"
+    else
+        warn "フロントエンドプロセスは起動しましたが、ポート $FRONTEND_PORT がまだ開いていません"
+        warn "ログを確認してください: ./dev.sh frontend log"
+    fi
 }
 
 frontend_stop() {
