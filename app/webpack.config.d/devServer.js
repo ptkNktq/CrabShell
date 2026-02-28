@@ -3,6 +3,10 @@
 if (config.devServer) {
     config.devServer.port = 3000;
     config.devServer.historyApiFallback = true;
+    // BROWSER_OPEN=false でブラウザ自動起動を抑制（dev.sh 経由時）
+    if (typeof process !== 'undefined' && process.env.BROWSER_OPEN === 'false') {
+        config.devServer.open = false;
+    }
 
     // webpack 5 では proxy は配列形式が必須
     config.devServer.proxy = [

@@ -215,7 +215,7 @@ frontend_start() {
     fi
 
     info "フロントエンドを起動中..."
-    setsid ./gradlew :app:wasmJsBrowserDevelopmentRun > "$FRONTEND_LOG_FILE" 2>&1 &
+    setsid env BROWSER_OPEN=false ./gradlew :app:wasmJsBrowserDevelopmentRun > "$FRONTEND_LOG_FILE" 2>&1 &
     local pid=$!
     echo "$pid" > "$FRONTEND_PID_FILE"
 
