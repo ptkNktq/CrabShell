@@ -76,7 +76,7 @@ stop_process() {
         local waited=0
         while is_pid_alive "$pid" && (( waited < 10 )); do
             sleep 1
-            (( waited++ ))
+            (( ++waited ))
         done
         if is_pid_alive "$pid"; then
             warn "SIGTERM で停止しなかったため SIGKILL を送信"
