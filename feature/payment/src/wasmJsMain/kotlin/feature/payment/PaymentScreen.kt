@@ -402,6 +402,7 @@ private fun UserSwitcher(
                     } else {
                         null
                     },
+                modifier = Modifier.height(28.dp),
             )
         }
     }
