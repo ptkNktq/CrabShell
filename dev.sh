@@ -132,6 +132,11 @@ server_start() {
         stop_process "サーバー" "$SERVER_PID_FILE" "$SERVER_PORT"
     fi
 
+    # フロントエンド起動中は Gradle ロックが競合する可能性がある
+    if read_pid "$FRONTEND_PID_FILE" >/dev/null 2>&1; then
+        warn "フロントエンドが起動中です。Gradle ロック待ちになる場合は先に './dev.sh frontend stop' してください"
+    fi
+
     info "サーバーをビルド中..."
     if ! ./gradlew :server:buildFatJar -PskipFrontend; then
         err "サーバーのビルドに失敗しました"
@@ -208,6 +213,14 @@ frontend_start() {
 
 frontend_stop() {
     stop_process "フロントエンド" "$FRONTEND_PID_FILE" "$FRONTEND_PORT"
+    # Gradle daemon が webpack を子プロセスとして起動するため、ポートで残留プロセスも停止
+    if command -v lsof &>/dev/null; then
+        local remaining
+        remaining=$(lsof -ti :"$FRONTEND_PORT" 2>/dev/null || true)
+        if [[ -n "$remaining" ]]; then
+            echo "$remaining" | xargs kill 2>/dev/null || true
+        fi
+    fi
 }
 
 frontend_restart() {
