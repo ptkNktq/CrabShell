@@ -140,7 +140,6 @@ internal fun QuestBoardContent(
             Text(
                 text = "クエスト掲示板",
                 style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
             )
             myPoints?.let {

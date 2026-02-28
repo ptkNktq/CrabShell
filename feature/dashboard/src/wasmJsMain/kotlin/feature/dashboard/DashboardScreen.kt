@@ -176,7 +176,7 @@ fun DateTimeCard(
             HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
 
             Text(
-                text = "毎朝 10:00 更新",
+                text = "毎日 10:00 更新",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -373,7 +373,7 @@ fun HeaderSection(
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = "毎日 AM 5:00 更新",
+                text = "毎日 5:00 更新",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
