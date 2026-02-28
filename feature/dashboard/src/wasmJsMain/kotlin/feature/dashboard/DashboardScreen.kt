@@ -36,8 +36,9 @@ fun DashboardScreen(vm: DashboardViewModel = koinViewModel()) {
     val windowSizeClass = LocalWindowSizeClass.current
 
     DashboardContent(
-        loading = vm.uiState.isLoading,
-        error = vm.uiState.error,
+        feedingLoading = vm.uiState.feedingLoading,
+        feedingError = vm.uiState.feedingError,
+        feedingActionError = vm.uiState.feedingActionError,
         feedingLog = vm.uiState.feedingLog,
         petName = vm.uiState.petName,
         todayGarbageTypes = vm.uiState.todayGarbageTypes,
@@ -52,8 +53,9 @@ fun DashboardScreen(vm: DashboardViewModel = koinViewModel()) {
 
 @Composable
 internal fun DashboardContent(
-    loading: Boolean,
-    error: String?,
+    feedingLoading: Boolean,
+    feedingError: String?,
+    feedingActionError: String?,
     feedingLog: FeedingLog,
     petName: String?,
     todayGarbageTypes: List<GarbageType>,
@@ -70,66 +72,58 @@ internal fun DashboardContent(
                 if (windowSizeClass == WindowSizeClass.Compact) 12.dp else 24.dp,
             ),
     ) {
-        when {
-            loading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+        if (windowSizeClass == WindowSizeClass.Expanded) {
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Max)
+                        .padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                DateTimeCard(
+                    garbageTypes = todayGarbageTypes,
+                    currentTime = currentTime,
+                    currentYear = currentYear,
+                    dateWithDay = dateWithDay,
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                )
+                DailyFeedingCard(
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    feedingLog = feedingLog,
+                    petName = petName,
+                    isLoading = feedingLoading,
+                    error = feedingError,
+                    actionError = feedingActionError,
+                    onFeedClick = onFeedClick,
+                    onRefresh = onRefreshFeeding,
+                )
             }
-
-            error != null -> {
-                Text("エラー: $error", color = MaterialTheme.colorScheme.error)
-            }
-
-            else -> {
-                if (windowSizeClass == WindowSizeClass.Expanded) {
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .height(IntrinsicSize.Max)
-                                .padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        DateTimeCard(
-                            garbageTypes = todayGarbageTypes,
-                            currentTime = currentTime,
-                            currentYear = currentYear,
-                            dateWithDay = dateWithDay,
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                        )
-                        DailyFeedingCard(
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            feedingLog = feedingLog,
-                            petName = petName,
-                            onFeedClick = onFeedClick,
-                            onRefresh = onRefreshFeeding,
-                        )
-                    }
-                } else {
-                    Column(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(if (windowSizeClass == WindowSizeClass.Compact) 0.dp else 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(0.dp),
-                    ) {
-                        DateTimeCard(
-                            garbageTypes = todayGarbageTypes,
-                            currentTime = currentTime,
-                            currentYear = currentYear,
-                            dateWithDay = dateWithDay,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        DailyFeedingCard(
-                            modifier = Modifier.fillMaxWidth(),
-                            feedingLog = feedingLog,
-                            petName = petName,
-                            onFeedClick = onFeedClick,
-                            onRefresh = onRefreshFeeding,
-                        )
-                    }
-                }
+        } else {
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(if (windowSizeClass == WindowSizeClass.Compact) 0.dp else 16.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp),
+            ) {
+                DateTimeCard(
+                    garbageTypes = todayGarbageTypes,
+                    currentTime = currentTime,
+                    currentYear = currentYear,
+                    dateWithDay = dateWithDay,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                DailyFeedingCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    feedingLog = feedingLog,
+                    petName = petName,
+                    isLoading = feedingLoading,
+                    error = feedingError,
+                    actionError = feedingActionError,
+                    onFeedClick = onFeedClick,
+                    onRefresh = onRefreshFeeding,
+                )
             }
         }
     }
@@ -157,53 +151,13 @@ fun DateTimeCard(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .defaultMinSize(minHeight = CardHeaderMinHeight),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "$currentYear $dateWithDay",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-
-                if (garbageTypes.isNotEmpty()) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        for (type in garbageTypes) {
-                            Surface(
-                                color = type.color.copy(alpha = 0.15f),
-                                shape = RoundedCornerShape(12.dp),
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Icon(
-                                        imageVector = type.icon,
-                                        contentDescription = null,
-                                        tint = type.color,
-                                        modifier = Modifier.size(20.dp),
-                                    )
-                                    Text(
-                                        text = type.label,
-                                        style = MaterialTheme.typography.labelLarge,
-                                        color = type.color,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            Text(
+                text = "$currentYear $dateWithDay",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.defaultMinSize(minHeight = CardHeaderMinHeight),
+            )
 
             HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
 
@@ -218,6 +172,64 @@ fun DateTimeCard(
                     color = MaterialTheme.colorScheme.onSurface,
                 )
             }
+
+            HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
+            Text(
+                text = "毎朝 10:00 更新",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            if (garbageTypes.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Text(
+                            text = "ゴミ回収なし",
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    for (type in garbageTypes) {
+                        Surface(
+                            color = type.color.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    imageVector = type.icon,
+                                    contentDescription = null,
+                                    tint = type.color,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Text(
+                                    text = type.label,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = type.color,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -226,6 +238,9 @@ fun DateTimeCard(
 fun DailyFeedingCard(
     feedingLog: FeedingLog,
     petName: String?,
+    isLoading: Boolean,
+    error: String?,
+    actionError: String?,
     onFeedClick: (MealTime) -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
@@ -266,31 +281,71 @@ fun DailyFeedingCard(
 
             HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                for (mealTime in MealTime.displayOrder) {
-                    val feeding = feedingLog.feedings[mealTime]
-                    FeedingSection(
-                        label = mealTime.label,
-                        icon = mealTime.icon,
-                        tint = mealTime.color,
-                        isDone = feeding?.done == true,
-                        time = feeding?.timestamp?.let { toJstHHMM(it.toJsString()).toString() },
-                        onClick = { onFeedClick(mealTime) },
-                        modifier = Modifier.weight(1f),
-                    )
+            when {
+                isLoading -> {
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .defaultMinSize(minHeight = 120.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator()
+                    }
                 }
-            }
 
-            if (feedingLog.note.isNotBlank()) {
-                HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
-                Text(
-                    text = feedingLog.note,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                error != null -> {
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .defaultMinSize(minHeight = 120.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "読み込みに失敗しました",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+
+                else -> {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        for (mealTime in MealTime.displayOrder) {
+                            val feeding = feedingLog.feedings[mealTime]
+                            FeedingSection(
+                                label = mealTime.label,
+                                icon = mealTime.icon,
+                                tint = mealTime.color,
+                                isDone = feeding?.done == true,
+                                time = feeding?.timestamp?.let { toJstHHMM(it.toJsString()).toString() },
+                                onClick = { onFeedClick(mealTime) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+
+                    if (actionError != null) {
+                        Text(
+                            text = actionError,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+
+                    if (feedingLog.note.isNotBlank()) {
+                        HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                        Text(
+                            text = feedingLog.note,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
         }
     }
@@ -318,7 +373,7 @@ fun HeaderSection(
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = "今日",
+                text = "毎日 AM 5:00 更新",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

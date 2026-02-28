@@ -25,8 +25,9 @@ import model.MealTime
 
 data class DashboardUiState(
     val feedingLog: FeedingLog = FeedingLog(date = ""),
-    val isLoading: Boolean = true,
-    val error: String? = null,
+    val feedingLoading: Boolean = true,
+    val feedingError: String? = null,
+    val feedingActionError: String? = null,
     val petName: String? = null,
     val todayGarbageTypes: List<GarbageType> = emptyList(),
     val currentTime: String = "",
@@ -44,6 +45,9 @@ class DashboardViewModel(
     private var cachedSchedules: List<GarbageTypeSchedule> = emptyList()
     private var trackedDate: String = todayDateJs().toString()
     private var trackedFeedingDate: String = today
+    private var lastFeedingHalfHour = -1
+    private var garbageRefreshedToday =
+        (currentTimeJs().toString().substringBefore(":").toIntOrNull() ?: 0) >= 10
 
     var uiState by mutableStateOf(
         DashboardUiState(
@@ -63,7 +67,7 @@ class DashboardViewModel(
                 uiState = uiState.copy(petName = pet?.name)
                 loadToday()
             } catch (e: Exception) {
-                uiState = uiState.copy(error = e.message, isLoading = false)
+                uiState = uiState.copy(feedingError = e.message, feedingLoading = false)
             }
         }
         loadGarbageSchedule()
@@ -74,10 +78,12 @@ class DashboardViewModel(
         viewModelScope.launch {
             while (true) {
                 delay(10_000)
-                uiState = uiState.copy(currentTime = currentTimeJs().toString())
+                val timeStr = currentTimeJs().toString()
+                uiState = uiState.copy(currentTime = timeStr)
                 val newDate = todayDateJs().toString()
                 if (newDate != trackedDate) {
                     trackedDate = newDate
+                    garbageRefreshedToday = false
                     uiState =
                         uiState.copy(
                             currentYear = currentYearJs().toString(),
@@ -90,6 +96,24 @@ class DashboardViewModel(
                     trackedFeedingDate = newFeedingDate
                     onRefreshFeeding()
                 }
+                // 毎時0分・30分に給餌情報をサイレント更新
+                val minute = timeStr.substringAfter(":").toIntOrNull() ?: 0
+                val halfHour =
+                    timeStr
+                        .substringBefore(":")
+                        .toIntOrNull()
+                        ?.times(2)
+                        ?.plus(minute / 30) ?: 0
+                if (lastFeedingHalfHour != -1 && halfHour != lastFeedingHalfHour) {
+                    silentRefreshFeeding()
+                }
+                lastFeedingHalfHour = halfHour
+                // 毎朝10時にゴミ出しスケジュールを再取得
+                val hour = timeStr.substringBefore(":").toIntOrNull() ?: 0
+                if (hour >= 10 && !garbageRefreshedToday) {
+                    garbageRefreshedToday = true
+                    loadGarbageSchedule()
+                }
             }
         }
     }
@@ -98,9 +122,9 @@ class DashboardViewModel(
         val id = petId ?: return
         try {
             val log = feedingRepository.getFeedingLog(id, today)
-            uiState = uiState.copy(feedingLog = log, isLoading = false)
+            uiState = uiState.copy(feedingLog = log, feedingLoading = false)
         } catch (e: Exception) {
-            uiState = uiState.copy(error = e.message, isLoading = false)
+            uiState = uiState.copy(feedingError = e.message, feedingLoading = false)
         }
     }
 
@@ -138,11 +162,27 @@ class DashboardViewModel(
             CollectionFrequency.WEEK_2_4 -> weekOfMonth == 2 || weekOfMonth == 4
         }
 
+    private suspend fun silentRefreshFeeding() {
+        val id = petId ?: return
+        try {
+            val log = feedingRepository.getFeedingLog(id, today)
+            uiState = uiState.copy(feedingLog = log)
+        } catch (_: Exception) {
+            // サイレント更新: 失敗時は古いデータを維持
+        }
+    }
+
     fun onRefreshFeeding() {
         val newDate = feedingDateJs().toString()
         today = newDate
         viewModelScope.launch {
-            uiState = uiState.copy(isLoading = true, error = null, feedingLog = FeedingLog(date = today))
+            uiState =
+                uiState.copy(
+                    feedingLoading = true,
+                    feedingError = null,
+                    feedingActionError = null,
+                    feedingLog = FeedingLog(date = today),
+                )
             loadToday()
         }
     }
@@ -150,6 +190,7 @@ class DashboardViewModel(
     fun onFeed(mealTime: MealTime) {
         val id = petId ?: return
         viewModelScope.launch {
+            uiState = uiState.copy(feedingActionError = null)
             try {
                 val feeding = feedingRepository.feed(id, today, mealTime)
                 uiState =
@@ -160,7 +201,7 @@ class DashboardViewModel(
                             ),
                     )
             } catch (e: Exception) {
-                uiState = uiState.copy(error = e.message)
+                uiState = uiState.copy(feedingActionError = e.message)
             }
         }
     }
