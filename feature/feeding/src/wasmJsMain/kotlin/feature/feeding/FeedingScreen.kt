@@ -128,19 +128,10 @@ internal fun FeedingContent(
                 )
             }
         } else {
-            // Medium/Expanded: カレンダー左、詳細右
+            // Medium/Expanded: 詳細左（メイン）、カレンダー右（操作補助）
             Row(
                 modifier = Modifier.fillMaxWidth().weight(1f),
             ) {
-                CalendarView(
-                    selectedDate = selectedDate,
-                    today = today,
-                    onDateSelected = onDateSelected,
-                    modifier = Modifier.width(300.dp),
-                )
-
-                Spacer(modifier = Modifier.width(24.dp))
-
                 Column(modifier = Modifier.weight(1f)) {
                     FeedingDetailSection(
                         selectedDate = selectedDate,
@@ -159,6 +150,15 @@ internal fun FeedingContent(
                         onSaveTimestamp = onSaveTimestamp,
                     )
                 }
+
+                Spacer(modifier = Modifier.width(24.dp))
+
+                CalendarView(
+                    selectedDate = selectedDate,
+                    today = today,
+                    onDateSelected = onDateSelected,
+                    modifier = Modifier.width(300.dp),
+                )
             }
         }
     }
