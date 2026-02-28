@@ -36,7 +36,20 @@ cp .env.example .env
 # .env を編集して GEMINI_API_KEY 等を設定
 ```
 
-### 起動
+### 起動（dev.sh 推奨）
+
+`dev.sh` でサーバー・フロントエンドをバックグラウンド管理できる。PID ファイル（`.dev/`）で状態を追跡し、start / stop / restart / log / status を提供する。
+
+```bash
+./dev.sh start              # サーバー + フロントエンド両方起動
+./dev.sh stop               # 両方停止
+./dev.sh server restart     # サーバーのみ再起動
+./dev.sh frontend restart   # フロントエンドのみ再起動
+./dev.sh status             # 両方の状態を表示
+./dev.sh server log         # サーバーログを tail -f
+```
+
+### 起動（手動）
 
 ```bash
 # Terminal 1: API サーバー（fat JAR をビルドして直接起動）
@@ -70,11 +83,11 @@ cp .env.example .env
 
 ### コード変更時の操作
 
-| 変更箇所 | 操作 |
-|----------|------|
-| feature/ や core/ の Kotlin (UI) | Terminal 2 を **Ctrl+D → 再実行**（インクリメンタルビルド、数十秒） |
-| server/ の Kotlin (API) | Terminal 1 を再ビルド＆再起動 |
-| shared/ のモデル変更 | 両方再起動 |
+| 変更箇所 | dev.sh | 手動 |
+|----------|--------|------|
+| feature/ や core/ の Kotlin (UI) | `./dev.sh frontend restart` | Terminal 2 を **Ctrl+D → 再実行** |
+| server/ の Kotlin (API) | `./dev.sh server restart` | Terminal 1 を再ビルド＆再起動 |
+| shared/ のモデル変更 | `./dev.sh restart` | 両方再起動 |
 
 > **Note:** ネイティブ Linux / macOS 環境では `./gradlew :app:wasmJsBrowserDevelopmentRun -t` の `-t`（continuous build）でファイル変更を自動検知し、リビルド＆リロードが自動化される。WSL2 の `/mnt/`（Windows ファイルシステム）では inotify が機能しないため `-t` は使えない。
 
