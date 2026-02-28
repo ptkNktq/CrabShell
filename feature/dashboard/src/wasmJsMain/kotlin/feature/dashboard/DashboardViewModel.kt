@@ -46,7 +46,8 @@ class DashboardViewModel(
     private var trackedDate: String = todayDateJs().toString()
     private var trackedFeedingDate: String = today
     private var lastFeedingHalfHour = -1
-    private var garbageRefreshedToday = false
+    private var garbageRefreshedToday =
+        (currentTimeJs().toString().substringBefore(":").toIntOrNull() ?: 0) >= 10
 
     var uiState by mutableStateOf(
         DashboardUiState(
