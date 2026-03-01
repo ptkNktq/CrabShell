@@ -15,7 +15,7 @@ sealed class AuthState {
     ) : AuthState()
 }
 
-object AuthStateHolder {
+class AuthStateHolder {
     var state by mutableStateOf<AuthState>(AuthState.Loading)
         private set
 
