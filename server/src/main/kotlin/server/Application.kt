@@ -15,6 +15,9 @@ import io.ktor.server.plugins.MissingRequestParameterException
 import io.ktor.server.plugins.ParameterConversionException
 import io.ktor.server.plugins.bodylimit.RequestBodyLimit
 import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.plugins.forwardedheaders.XForwardedHeaders
+import io.ktor.server.plugins.origin
+import io.ktor.server.plugins.ratelimit.RateLimit
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -36,8 +39,10 @@ import server.pet.petRoutes
 import server.quest.pointRoutes
 import server.quest.questRoutes
 import server.quest.webhookRoutes
+import server.ratelimit.RateLimitNames
 import server.report.reportRoutes
 import server.user.userRoutes
+import kotlin.time.Duration.Companion.seconds
 
 fun main() {
     embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::module)
@@ -57,7 +62,25 @@ fun Application.module() {
     install(ContentNegotiation) { json() }
     install(RequestBodyLimit) { bodyLimit { 256_000L } }
 
+    // リバースプロキシ背後で正しいクライアント IP を取得
+    install(XForwardedHeaders)
+
+    // IP ベースのレートリミット
+    install(RateLimit) {
+        register(RateLimitNames.PASSKEY_AUTH) {
+            rateLimiter(limit = 5, refillPeriod = 60.seconds)
+            requestKey { call -> call.request.origin.remoteAddress }
+        }
+        register(RateLimitNames.AI_GENERATE) {
+            rateLimiter(limit = 5, refillPeriod = 60.seconds)
+            requestKey { call -> call.request.origin.remoteAddress }
+        }
+    }
+
     install(StatusPages) {
+        status(HttpStatusCode.TooManyRequests) { call, status ->
+            call.respond(status, mapOf("error" to "Too many requests"))
+        }
         exception<PetAccessDeniedException> { call, _ ->
             call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Not a member of this pet"))
         }

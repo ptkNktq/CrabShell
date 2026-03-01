@@ -8,6 +8,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -23,6 +24,7 @@ import org.koin.ktor.ext.inject
 import server.auth.authenticated
 import server.auth.firebasePrincipal
 import server.config.EnvConfig
+import server.ratelimit.RateLimitNames
 import java.time.Instant
 import java.time.LocalDate
 
@@ -314,50 +316,52 @@ fun Route.questRoutes() {
                 call.respond(mapOf("available" to (questTextGenerator != null)))
             }
 
-            // Gemini でクエスト説明文を AI 生成する
-            post("/generate-text", {
-                tags = listOf("quest")
-                summary = "AI クエストテキスト生成"
-                request {
-                    body<GenerateQuestTextRequest>()
-                }
-                response {
-                    code(HttpStatusCode.OK) {
-                        body<GenerateQuestTextResponse>()
+            // Gemini でクエスト説明文を AI 生成する（レートリミット適用）
+            rateLimit(RateLimitNames.AI_GENERATE) {
+                post("/generate-text", {
+                    tags = listOf("quest")
+                    summary = "AI クエストテキスト生成"
+                    request {
+                        body<GenerateQuestTextRequest>()
                     }
-                    code(HttpStatusCode.ServiceUnavailable) { description = "AI 未設定" }
-                }
-            }) {
-                val generator =
-                    questTextGenerator
-                        ?: return@post call.respond(
-                            HttpStatusCode.ServiceUnavailable,
-                            mapOf("error" to "AI text generation is not configured"),
+                    response {
+                        code(HttpStatusCode.OK) {
+                            body<GenerateQuestTextResponse>()
+                        }
+                        code(HttpStatusCode.ServiceUnavailable) { description = "AI 未設定" }
+                    }
+                }) {
+                    val generator =
+                        questTextGenerator
+                            ?: return@post call.respond(
+                                HttpStatusCode.ServiceUnavailable,
+                                mapOf("error" to "AI text generation is not configured"),
+                            )
+
+                    val request = call.receive<GenerateQuestTextRequest>()
+                    val input =
+                        QuestTextInput(
+                            title = request.title,
+                            description = request.description,
+                            category = request.category,
+                            rewardPoints = request.rewardPoints,
+                            deadline = request.deadline,
                         )
 
-                val request = call.receive<GenerateQuestTextRequest>()
-                val input =
-                    QuestTextInput(
-                        title = request.title,
-                        description = request.description,
-                        category = request.category,
-                        rewardPoints = request.rewardPoints,
-                        deadline = request.deadline,
-                    )
-
-                try {
-                    val result = generator.generate(input)
-                    call.respond(
-                        GenerateQuestTextResponse(
-                            generatedTitle = result.title,
-                            generatedDescription = result.description,
-                        ),
-                    )
-                } catch (e: Exception) {
-                    call.respond(
-                        HttpStatusCode.InternalServerError,
-                        mapOf("error" to "Text generation failed: ${e.message}"),
-                    )
+                    try {
+                        val result = generator.generate(input)
+                        call.respond(
+                            GenerateQuestTextResponse(
+                                generatedTitle = result.title,
+                                generatedDescription = result.description,
+                            ),
+                        )
+                    } catch (e: Exception) {
+                        call.respond(
+                            HttpStatusCode.InternalServerError,
+                            mapOf("error" to "Text generation failed: ${e.message}"),
+                        )
+                    }
                 }
             }
         }
