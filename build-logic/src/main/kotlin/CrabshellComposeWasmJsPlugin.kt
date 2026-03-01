@@ -10,6 +10,7 @@ class CrabshellComposeWasmJsPlugin : Plugin<Project> {
             pluginManager.apply("org.jetbrains.kotlin.plugin.compose")
 
             extensions.configure<KotlinMultiplatformExtension>("kotlin") {
+                jvm()
                 wasmJs {
                     browser()
                 }
