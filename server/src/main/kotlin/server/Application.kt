@@ -25,6 +25,7 @@ import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
 import server.auth.FirebaseAdmin
 import server.auth.configureAuth
+import server.auth.firebasePrincipal
 import server.cache.cacheRoutes
 import server.config.EnvConfig
 import server.di.serverModule
@@ -63,17 +64,19 @@ fun Application.module() {
     install(RequestBodyLimit) { bodyLimit { 256_000L } }
 
     // リバースプロキシ背後で正しいクライアント IP を取得
+    // リバースプロキシ側で X-Forwarded-For を上書き（クライアント送信値を破棄）していることが前提
     install(XForwardedHeaders)
 
-    // IP ベースのレートリミット
     install(RateLimit) {
+        // 未認証エンドポイント: IP ベース
         register(RateLimitNames.PASSKEY_AUTH) {
             rateLimiter(limit = 5, refillPeriod = 60.seconds)
             requestKey { call -> call.request.origin.remoteAddress }
         }
+        // 認証済みエンドポイント: UID ベース
         register(RateLimitNames.AI_GENERATE) {
             rateLimiter(limit = 5, refillPeriod = 60.seconds)
-            requestKey { call -> call.request.origin.remoteAddress }
+            requestKey { call -> call.firebasePrincipal.uid }
         }
     }
 
