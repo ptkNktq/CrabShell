@@ -23,6 +23,7 @@ fun AuthenticatedApp(authenticatedContent: @Composable () -> Unit) {
     val authStateHolder = koinInject<AuthStateHolder>()
     AuthenticatedAppContent(
         authState = authStateHolder.state,
+        signedInViaPasskey = authStateHolder.signedInViaPasskey,
         authenticatedContent = authenticatedContent,
     )
 }
@@ -30,6 +31,7 @@ fun AuthenticatedApp(authenticatedContent: @Composable () -> Unit) {
 @Composable
 internal fun AuthenticatedAppContent(
     authState: AuthState,
+    signedInViaPasskey: Boolean,
     authenticatedContent: @Composable () -> Unit,
 ) {
     when (authState) {
@@ -52,10 +54,9 @@ internal fun AuthenticatedAppContent(
             LoginScreen()
         }
         is AuthState.Authenticated -> {
-            val authStateHolder = koinInject<AuthStateHolder>()
             var passkeySetupDone by remember {
                 mutableStateOf(
-                    authStateHolder.signedInViaPasskey ||
+                    signedInViaPasskey ||
                         window.localStorage.getItem("passkey_registered") == "true",
                 )
             }

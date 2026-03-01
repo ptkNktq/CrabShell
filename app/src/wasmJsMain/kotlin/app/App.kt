@@ -16,7 +16,6 @@ import androidx.compose.ui.unit.dp
 import app.components.DrawerContent
 import app.components.Sidebar
 import core.auth.AuthRepository
-import core.auth.AuthState
 import core.auth.AuthStateHolder
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
@@ -39,7 +38,7 @@ fun App() {
     val authRepository = koinInject<AuthRepository>()
     val authStateHolder = koinInject<AuthStateHolder>()
     val onSignOut: () -> Unit = { scope.launch { authRepository.signOut() } }
-    val isAdmin = (authStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
+    val isAdmin = authStateHolder.isAdmin
 
     val onNavigate: (Screen) -> Unit = { Navigator.navigateTo(it) }
 
