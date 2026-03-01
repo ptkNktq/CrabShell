@@ -3,6 +3,7 @@ package server.passkey
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.*
+import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -21,6 +22,7 @@ import model.PasskeyStatusResponse
 import server.auth.FirebaseAdmin
 import server.auth.authenticated
 import server.auth.firebasePrincipal
+import server.ratelimit.RateLimitNames
 import java.util.Base64
 
 fun Route.passkeyRoutes() {
@@ -157,127 +159,129 @@ fun Route.passkeyRoutes() {
             }
         }
 
-        // 認証なしエンドポイント
-        // 認証オプション生成
-        post("/authenticate/options", {
-            tags = listOf("passkey")
-            summary = "パスキー認証オプション生成"
-            securitySchemeNames()
-            request {
-                body<PasskeyAuthenticateOptionsRequest>()
-            }
-            response {
-                code(HttpStatusCode.OK) {
-                    body<PasskeyAuthenticateOptionsResponse>()
+        // 認証なしエンドポイント（レートリミット適用）
+        rateLimit(RateLimitNames.PASSKEY_AUTH) {
+            // 認証オプション生成
+            post("/authenticate/options", {
+                tags = listOf("passkey")
+                summary = "パスキー認証オプション生成"
+                securitySchemeNames()
+                request {
+                    body<PasskeyAuthenticateOptionsRequest>()
                 }
-                code(HttpStatusCode.BadRequest) { description = "認証不可" }
-                code(HttpStatusCode.ServiceUnavailable) { description = "パスキー機能無効" }
-            }
-        }) {
-            if (!PasskeyService.enabled) {
-                return@post call.respond(
-                    HttpStatusCode.ServiceUnavailable,
-                    mapOf("error" to "パスキー機能が無効です"),
-                )
-            }
-            val request = call.receive<PasskeyAuthenticateOptionsRequest>()
-
-            val user = FirebaseAdmin.getUserByEmail(request.email)
-            val credentials = user?.let { PasskeyService.findCredentialsByUid(it.uid) } ?: emptyList()
-            if (credentials.isEmpty()) {
-                return@post call.respond(
-                    HttpStatusCode.BadRequest,
-                    mapOf("error" to "認証できません"),
-                )
-            }
-
-            val challenge = ChallengeStore.generate(request.email)
-            val challengeBase64 = Base64.getUrlEncoder().withoutPadding().encodeToString(challenge)
-
-            val options =
-                RequestOptions(
-                    challenge = challengeBase64,
-                    rpId = PasskeyService.rpId,
-                    allowCredentials = credentials.map { it.toDescriptor() },
-                )
-            val optionsJson = Json.encodeToString(options)
-
-            call.respond(PasskeyAuthenticateOptionsResponse(optionsJson = optionsJson))
-        }
-
-        // 認証完了
-        post("/authenticate/complete", {
-            tags = listOf("passkey")
-            summary = "パスキー認証完了"
-            securitySchemeNames()
-            request {
-                body<PasskeyAuthenticateCompleteRequest>()
-            }
-            response {
-                code(HttpStatusCode.OK) {
-                    body<PasskeyAuthenticateResponse>()
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<PasskeyAuthenticateOptionsResponse>()
+                    }
+                    code(HttpStatusCode.BadRequest) { description = "認証不可" }
+                    code(HttpStatusCode.ServiceUnavailable) { description = "パスキー機能無効" }
                 }
-                code(HttpStatusCode.BadRequest) { description = "認証失敗" }
-                code(HttpStatusCode.ServiceUnavailable) { description = "パスキー機能無効" }
+            }) {
+                if (!PasskeyService.enabled) {
+                    return@post call.respond(
+                        HttpStatusCode.ServiceUnavailable,
+                        mapOf("error" to "パスキー機能が無効です"),
+                    )
+                }
+                val request = call.receive<PasskeyAuthenticateOptionsRequest>()
+
+                val user = FirebaseAdmin.getUserByEmail(request.email)
+                val credentials = user?.let { PasskeyService.findCredentialsByUid(it.uid) } ?: emptyList()
+                if (credentials.isEmpty()) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "認証できません"),
+                    )
+                }
+
+                val challenge = ChallengeStore.generate(request.email)
+                val challengeBase64 = Base64.getUrlEncoder().withoutPadding().encodeToString(challenge)
+
+                val options =
+                    RequestOptions(
+                        challenge = challengeBase64,
+                        rpId = PasskeyService.rpId,
+                        allowCredentials = credentials.map { it.toDescriptor() },
+                    )
+                val optionsJson = Json.encodeToString(options)
+
+                call.respond(PasskeyAuthenticateOptionsResponse(optionsJson = optionsJson))
             }
-        }) {
-            if (!PasskeyService.enabled) {
-                return@post call.respond(
-                    HttpStatusCode.ServiceUnavailable,
-                    mapOf("error" to "パスキー機能が無効です"),
-                )
-            }
-            val request = call.receive<PasskeyAuthenticateCompleteRequest>()
 
-            val authError = mapOf("error" to "認証に失敗しました")
-
-            val challenge =
-                ChallengeStore.consume(request.email)
-                    ?: return@post call.respond(HttpStatusCode.BadRequest, authError)
-
-            try {
-                val responseJson =
-                    Json.parseToJsonElement(request.authenticationResponseJSON).jsonObject
-                val credentialIdBase64 = responseJson["id"]!!.jsonPrimitive.content
-                val response = responseJson["response"]!!.jsonObject
-
-                val clientDataJSON =
-                    Base64.getUrlDecoder().decode(
-                        response["clientDataJSON"]!!.jsonPrimitive.content,
+            // 認証完了
+            post("/authenticate/complete", {
+                tags = listOf("passkey")
+                summary = "パスキー認証完了"
+                securitySchemeNames()
+                request {
+                    body<PasskeyAuthenticateCompleteRequest>()
+                }
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<PasskeyAuthenticateResponse>()
+                    }
+                    code(HttpStatusCode.BadRequest) { description = "認証失敗" }
+                    code(HttpStatusCode.ServiceUnavailable) { description = "パスキー機能無効" }
+                }
+            }) {
+                if (!PasskeyService.enabled) {
+                    return@post call.respond(
+                        HttpStatusCode.ServiceUnavailable,
+                        mapOf("error" to "パスキー機能が無効です"),
                     )
-                val authenticatorDataBytes =
-                    Base64.getUrlDecoder().decode(
-                        response["authenticatorData"]!!.jsonPrimitive.content,
-                    )
-                val signature =
-                    Base64.getUrlDecoder().decode(
-                        response["signature"]!!.jsonPrimitive.content,
-                    )
-                val credentialIdBytes = Base64.getUrlDecoder().decode(credentialIdBase64)
+                }
+                val request = call.receive<PasskeyAuthenticateCompleteRequest>()
 
-                val credentialRecord =
-                    PasskeyService.findCredentialByCredentialId(credentialIdBase64)
+                val authError = mapOf("error" to "認証に失敗しました")
+
+                val challenge =
+                    ChallengeStore.consume(request.email)
                         ?: return@post call.respond(HttpStatusCode.BadRequest, authError)
 
-                PasskeyService.verifyAuthentication(
-                    credentialIdBytes = credentialIdBytes,
-                    clientDataJSON = clientDataJSON,
-                    authenticatorData = authenticatorDataBytes,
-                    signature = signature,
-                    challenge = challenge,
-                    credentialRecord = credentialRecord,
-                )
+                try {
+                    val responseJson =
+                        Json.parseToJsonElement(request.authenticationResponseJSON).jsonObject
+                    val credentialIdBase64 = responseJson["id"]!!.jsonPrimitive.content
+                    val response = responseJson["response"]!!.jsonObject
 
-                val customToken =
-                    FirebaseAdmin.createCustomToken(credentialRecord.firebaseUid)
-                        ?: return@post call.respond(
-                            HttpStatusCode.InternalServerError,
-                            mapOf("error" to "認証処理に失敗しました"),
+                    val clientDataJSON =
+                        Base64.getUrlDecoder().decode(
+                            response["clientDataJSON"]!!.jsonPrimitive.content,
                         )
+                    val authenticatorDataBytes =
+                        Base64.getUrlDecoder().decode(
+                            response["authenticatorData"]!!.jsonPrimitive.content,
+                        )
+                    val signature =
+                        Base64.getUrlDecoder().decode(
+                            response["signature"]!!.jsonPrimitive.content,
+                        )
+                    val credentialIdBytes = Base64.getUrlDecoder().decode(credentialIdBase64)
 
-                call.respond(PasskeyAuthenticateResponse(customToken = customToken))
-            } catch (_: Exception) {
-                call.respond(HttpStatusCode.BadRequest, authError)
+                    val credentialRecord =
+                        PasskeyService.findCredentialByCredentialId(credentialIdBase64)
+                            ?: return@post call.respond(HttpStatusCode.BadRequest, authError)
+
+                    PasskeyService.verifyAuthentication(
+                        credentialIdBytes = credentialIdBytes,
+                        clientDataJSON = clientDataJSON,
+                        authenticatorData = authenticatorDataBytes,
+                        signature = signature,
+                        challenge = challenge,
+                        credentialRecord = credentialRecord,
+                    )
+
+                    val customToken =
+                        FirebaseAdmin.createCustomToken(credentialRecord.firebaseUid)
+                            ?: return@post call.respond(
+                                HttpStatusCode.InternalServerError,
+                                mapOf("error" to "認証処理に失敗しました"),
+                            )
+
+                    call.respond(PasskeyAuthenticateResponse(customToken = customToken))
+                } catch (_: Exception) {
+                    call.respond(HttpStatusCode.BadRequest, authError)
+                }
             }
         }
     }
