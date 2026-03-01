@@ -10,6 +10,7 @@ import io.ktor.server.routing.Route
 import model.BalanceSummary
 import model.ExpenseItem
 import model.ExpenseReport
+import model.MoneyTags
 import model.MonthlyExpenseSummary
 import model.MonthlyMoney
 import model.OverpaymentRedemptionRequest
@@ -64,18 +65,7 @@ fun Route.reportRoutes() {
                     val monthStr = ym.toString()
                     val data = moneyRepository.getMonthlyMoney(monthStr)
 
-                    if (data == null) {
-                        MonthlyExpenseSummary(month = monthStr, totalAmount = 0L)
-                    } else {
-                        val expenseItems =
-                            data.items.map { ExpenseItem(name = it.name, amount = it.amount, note = it.note) }
-                        val totalAmount = data.items.sumOf { it.amount }
-                        MonthlyExpenseSummary(
-                            month = monthStr,
-                            totalAmount = totalAmount,
-                            items = expenseItems,
-                        )
-                    }
+                    buildExpenseSummary(monthStr, data)
                 }
 
             call.respond(ExpenseReport(months = summaries))
@@ -161,4 +151,18 @@ fun Route.reportRoutes() {
             call.respond(mapOf("status" to "ok"))
         }
     }
+}
+
+/** MonthlyMoney から繰越タグ付き項目を除外して MonthlyExpenseSummary を構築する */
+internal fun buildExpenseSummary(
+    month: String,
+    data: MonthlyMoney?,
+): MonthlyExpenseSummary {
+    if (data == null) return MonthlyExpenseSummary(month = month, totalAmount = 0L)
+    val reportItems = data.items.filter { MoneyTags.CARRY_OVER !in it.tags }
+    return MonthlyExpenseSummary(
+        month = month,
+        totalAmount = reportItems.sumOf { it.amount },
+        items = reportItems.map { ExpenseItem(name = it.name, amount = it.amount, note = it.note) },
+    )
 }

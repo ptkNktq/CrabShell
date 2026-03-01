@@ -29,6 +29,7 @@ data class MoneyItem(
 
 object MoneyTags {
     const val RECURRING = "毎月"
+    const val CARRY_OVER = "繰越"
 }
 
 @Serializable
