@@ -3,6 +3,8 @@ package core.ui.theme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.font.FontWeight
 import core.ui.generated.Res
+import core.ui.generated.notosansjp_bold
+import core.ui.generated.notosansjp_regular
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.preloadFont
 
