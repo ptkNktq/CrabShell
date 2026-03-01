@@ -4,7 +4,9 @@ import kotlinx.coroutines.await
 import model.User
 
 @OptIn(ExperimentalWasmJsInterop::class)
-class AuthRepositoryImpl : AuthRepository {
+class AuthRepositoryImpl(
+    private val authStateHolder: AuthStateHolder,
+) : AuthRepository {
     private val auth by lazy { firebaseAuth(getFirebase()) }
 
     override fun startListening() {
@@ -22,12 +24,12 @@ class AuthRepositoryImpl : AuthRepository {
                             displayName = displayName.toString().ifEmpty { null },
                             isAdmin = isAdmin,
                         )
-                    AuthStateHolder.setAuthenticated(user, token)
+                    authStateHolder.setAuthenticated(user, token)
                     null
                 }
             },
             onNull = {
-                AuthStateHolder.setUnauthenticated()
+                authStateHolder.setUnauthenticated()
             },
         )
     }
@@ -82,14 +84,14 @@ class AuthRepositoryImpl : AuthRepository {
             val token = resultJs?.let { getTokenFromResult(it).toString() }
             if (token != null) {
                 val isAdmin = getIsAdminFromResult(resultJs).toBoolean()
-                val currentState = AuthStateHolder.state
+                val currentState = authStateHolder.state
                 if (currentState is AuthState.Authenticated) {
-                    AuthStateHolder.setAuthenticated(
+                    authStateHolder.setAuthenticated(
                         currentState.user.copy(isAdmin = isAdmin),
                         token,
                     )
                 } else {
-                    AuthStateHolder.idToken = token
+                    authStateHolder.idToken = token
                 }
             }
             token

@@ -2,9 +2,11 @@ package core.auth.di
 
 import core.auth.AuthRepository
 import core.auth.AuthRepositoryImpl
+import core.auth.AuthStateHolder
 import org.koin.dsl.module
 
 val authModule =
     module {
-        single<AuthRepository> { AuthRepositoryImpl() }
+        single { AuthStateHolder() }
+        single<AuthRepository> { AuthRepositoryImpl(get()) }
     }

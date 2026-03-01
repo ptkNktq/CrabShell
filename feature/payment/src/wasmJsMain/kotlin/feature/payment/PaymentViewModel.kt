@@ -7,7 +7,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import core.auth.AuthState
 import core.auth.AuthStateHolder
 import core.auth.toJsString
 import core.network.MoneyRepository
@@ -64,8 +63,9 @@ data class PaymentUiState(
 class PaymentViewModel(
     private val moneyRepository: MoneyRepository,
     private val userRepository: UserRepository,
+    private val authStateHolder: AuthStateHolder,
 ) : ViewModel() {
-    private val authUser = (AuthStateHolder.state as? AuthState.Authenticated)?.user
+    private val authUser = authStateHolder.currentUser
 
     var uiState by mutableStateOf(
         PaymentUiState(

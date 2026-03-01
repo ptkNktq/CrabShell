@@ -41,13 +41,16 @@ fun createUnauthenticatedClient(): HttpClient =
         }
     }
 
-fun createAuthenticatedClient(authRepository: AuthRepository): HttpClient =
+fun createAuthenticatedClient(
+    authRepository: AuthRepository,
+    authStateHolder: AuthStateHolder,
+): HttpClient =
     HttpClient {
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })
         }
         defaultRequest {
-            val token = AuthStateHolder.idToken
+            val token = authStateHolder.idToken
             if (token != null) {
                 headers.append("Authorization", "Bearer $token")
             }
@@ -62,7 +65,7 @@ fun createAuthenticatedClient(authRepository: AuthRepository): HttpClient =
                 authRepository.refreshToken()
             }
             modifyRequest { request ->
-                val token = AuthStateHolder.idToken
+                val token = authStateHolder.idToken
                 if (token != null) {
                     request.headers.remove("Authorization")
                     request.headers.append("Authorization", "Bearer $token")

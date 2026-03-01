@@ -15,9 +15,15 @@ sealed class AuthState {
     ) : AuthState()
 }
 
-object AuthStateHolder {
+class AuthStateHolder {
     var state by mutableStateOf<AuthState>(AuthState.Loading)
         private set
+
+    val currentUser: User?
+        get() = (state as? AuthState.Authenticated)?.user
+
+    val isAdmin: Boolean
+        get() = currentUser?.isAdmin == true
 
     var idToken by mutableStateOf<String?>(null)
         internal set

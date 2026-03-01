@@ -40,7 +40,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import core.auth.AuthState
 import core.auth.AuthStateHolder
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
@@ -51,15 +50,15 @@ import model.Quest
 import model.QuestCategory
 import model.Reward
 import model.UserPoints
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun QuestScreen(vm: QuestViewModel = koinViewModel()) {
     val windowSizeClass = LocalWindowSizeClass.current
-    val currentUserUid =
-        (AuthStateHolder.state as? AuthState.Authenticated)?.user?.uid ?: ""
-    val isAdmin =
-        (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
+    val authStateHolder = koinInject<AuthStateHolder>()
+    val currentUserUid = authStateHolder.currentUser?.uid ?: ""
+    val isAdmin = authStateHolder.isAdmin
 
     QuestBoardContent(
         quests = vm.uiState.quests,

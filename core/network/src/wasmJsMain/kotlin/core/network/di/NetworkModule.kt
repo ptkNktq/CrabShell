@@ -30,7 +30,7 @@ import org.koin.dsl.module
 
 val networkModule =
     module {
-        single<HttpClient> { createAuthenticatedClient(get()) }
+        single<HttpClient> { createAuthenticatedClient(get(), get()) }
         single<PetRepository> { PetRepositoryImpl(get()) }
         single<FeedingRepository> { FeedingRepositoryImpl(get()) }
         single<GarbageScheduleRepository> { GarbageScheduleRepositoryImpl(get()) }
