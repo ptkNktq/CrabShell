@@ -33,6 +33,35 @@ jobs:
         run: chmod +x gradlew && ./gradlew jvmTest
       - name: Server unit tests
         run: ./gradlew :server:test -PskipFrontend
+      - name: Test summary
+        if: always()
+        run: |
+          echo "## Test Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Module | Tests | Passed | Failed | Skipped |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|------:|-------:|-------:|--------:|" >> "$GITHUB_STEP_SUMMARY"
+          total_tests=0 total_fail=0 total_skip=0
+          for dir in $(find . -path "*/test-results/*" -name "TEST-*.xml" -printf '%h\n' | sort -u); do
+            tests=0 failures=0 skipped=0
+            for f in "$dir"/TEST-*.xml; do
+              t=$(grep -oP 'tests="\K[0-9]+' "$f" | head -1)
+              fl=$(grep -oP 'failures="\K[0-9]+' "$f" | head -1)
+              e=$(grep -oP 'errors="\K[0-9]+' "$f" | head -1)
+              s=$(grep -oP 'skipped="\K[0-9]+' "$f" | head -1)
+              tests=$((tests + ${t:-0}))
+              failures=$((failures + ${fl:-0} + ${e:-0}))
+              skipped=$((skipped + ${s:-0}))
+            done
+            passed=$((tests - failures - skipped))
+            total_tests=$((total_tests + tests))
+            total_fail=$((total_fail + failures))
+            total_skip=$((total_skip + skipped))
+            module=$(echo "$dir" | sed 's|.*\./||; s|/build/test-results/.*||')
+            status=$( [ "$failures" -gt 0 ] && echo "🔴" || echo "🟢" )
+            echo "| $status $module | $tests | $passed | $failures | $skipped |" >> "$GITHUB_STEP_SUMMARY"
+          done
+          total_passed=$((total_tests - total_fail - total_skip))
+          echo "| **Total** | **$total_tests** | **$total_passed** | **$total_fail** | **$total_skip** |" >> "$GITHUB_STEP_SUMMARY"
 
   build:
     runs-on: ubuntu-latest
