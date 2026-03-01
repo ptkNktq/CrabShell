@@ -14,3 +14,24 @@ data class GarbageTypeSchedule(
     val daysOfWeek: List<Int>,
     val frequency: CollectionFrequency = CollectionFrequency.WEEKLY,
 )
+
+/** 指定された曜日・月内週に該当するゴミ種を返す */
+fun resolveGarbageTypes(
+    schedules: List<GarbageTypeSchedule>,
+    dayOfWeek: Int,
+    weekOfMonth: Int,
+): List<GarbageType> =
+    schedules
+        .filter { schedule ->
+            dayOfWeek in schedule.daysOfWeek && matchesFrequency(schedule.frequency, weekOfMonth)
+        }.map { it.garbageType }
+
+private fun matchesFrequency(
+    frequency: CollectionFrequency,
+    weekOfMonth: Int,
+): Boolean =
+    when (frequency) {
+        CollectionFrequency.WEEKLY -> true
+        CollectionFrequency.WEEK_1_3 -> weekOfMonth == 1 || weekOfMonth == 3
+        CollectionFrequency.WEEK_2_4 -> weekOfMonth == 2 || weekOfMonth == 4
+    }
