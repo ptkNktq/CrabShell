@@ -14,14 +14,16 @@ import core.ui.util.dayOfWeekIndexJs
 import core.ui.util.feedingDateJs
 import core.ui.util.formattedTodayJs
 import core.ui.util.todayDateJs
+import core.ui.util.tomorrowDayOfWeekIndexJs
+import core.ui.util.tomorrowWeekOfMonthJs
 import core.ui.util.weekOfMonthJs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import model.CollectionFrequency
 import model.FeedingLog
 import model.GarbageType
 import model.GarbageTypeSchedule
 import model.MealTime
+import model.resolveGarbageTypes
 
 data class DashboardUiState(
     val feedingLog: FeedingLog = FeedingLog(date = ""),
@@ -140,27 +142,12 @@ class DashboardViewModel(
     }
 
     private fun refreshGarbageForToday() {
-        val dayOfWeek = dayOfWeekIndexJs()
-        val weekOfMonth = weekOfMonthJs()
-        uiState =
-            uiState.copy(
-                todayGarbageTypes =
-                    cachedSchedules
-                        .filter { schedule ->
-                            dayOfWeek in schedule.daysOfWeek && matchesFrequency(schedule.frequency, weekOfMonth)
-                        }.map { it.garbageType },
-            )
+        val hour = currentTimeJs().toString().substringBefore(":").toIntOrNull() ?: 0
+        val isAfter10 = hour >= 10
+        val dayOfWeek = if (isAfter10) tomorrowDayOfWeekIndexJs() else dayOfWeekIndexJs()
+        val weekOfMonth = if (isAfter10) tomorrowWeekOfMonthJs() else weekOfMonthJs()
+        uiState = uiState.copy(todayGarbageTypes = resolveGarbageTypes(cachedSchedules, dayOfWeek, weekOfMonth))
     }
-
-    private fun matchesFrequency(
-        frequency: CollectionFrequency,
-        weekOfMonth: Int,
-    ): Boolean =
-        when (frequency) {
-            CollectionFrequency.WEEKLY -> true
-            CollectionFrequency.WEEK_1_3 -> weekOfMonth == 1 || weekOfMonth == 3
-            CollectionFrequency.WEEK_2_4 -> weekOfMonth == 2 || weekOfMonth == 4
-        }
 
     private suspend fun silentRefreshFeeding() {
         val id = petId ?: return

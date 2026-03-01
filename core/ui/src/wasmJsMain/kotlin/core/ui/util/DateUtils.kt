@@ -120,6 +120,26 @@ external fun weekOfMonthJs(): Int
 )
 external fun dayOfWeekIndexJs(): Int
 
+/** 明日の曜日を 0(日)〜6(土) で返す */
+@JsFun(
+    """() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.getDay();
+}""",
+)
+external fun tomorrowDayOfWeekIndexJs(): Int
+
+/** 明日が月内の第何週か返す (1-5)。日曜始まりで計算。 */
+@JsFun(
+    """() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return Math.ceil(d.getDate() / 7);
+}""",
+)
+external fun tomorrowWeekOfMonthJs(): Int
+
 /** ISO タイムスタンプを JST の HH:MM 形式に変換 */
 @JsFun(
     """(iso) => {
