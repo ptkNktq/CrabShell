@@ -29,12 +29,10 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
-      - name: Shared model tests
-        run: chmod +x gradlew && ./gradlew :shared:jvmTest
+      - name: Unit tests (shared + core + feature)
+        run: chmod +x gradlew && ./gradlew jvmTest
       - name: Server unit tests
         run: ./gradlew :server:test -PskipFrontend
-      - name: ViewModel unit tests
-        run: ./gradlew :feature:auth:jvmTest :feature:settings:jvmTest
 
   build:
     runs-on: ubuntu-latest
