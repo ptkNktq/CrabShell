@@ -33,6 +33,8 @@ jobs:
         run: chmod +x gradlew && ./gradlew :shared:jvmTest
       - name: Server unit tests
         run: ./gradlew :server:test -PskipFrontend
+      - name: ViewModel unit tests
+        run: ./gradlew :feature:auth:jvmTest :feature:settings:jvmTest
 
   build:
     runs-on: ubuntu-latest
