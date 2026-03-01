@@ -28,6 +28,7 @@ data class LoginUiState(
 class LoginViewModel(
     private val authRepository: AuthRepository,
     private val passkeyRepository: PasskeyRepository,
+    private val authStateHolder: AuthStateHolder,
 ) : ViewModel() {
     var uiState by mutableStateOf(LoginUiState())
         private set
@@ -89,7 +90,7 @@ class LoginViewModel(
             passkeyRepository
                 .authenticateWithPasskey(uiState.email)
                 .onSuccess { customToken ->
-                    AuthStateHolder.signedInViaPasskey = true
+                    authStateHolder.signedInViaPasskey = true
                     val result = authRepository.signInWithCustomToken(customToken)
                     uiState = uiState.copy(isLoading = false)
                     if (result.isFailure) {

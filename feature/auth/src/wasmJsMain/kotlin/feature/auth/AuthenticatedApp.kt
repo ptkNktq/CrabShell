@@ -16,11 +16,13 @@ import core.auth.AuthState
 import core.auth.AuthStateHolder
 import core.ui.theme.AppColorScheme
 import kotlinx.browser.window
+import org.koin.compose.koinInject
 
 @Composable
 fun AuthenticatedApp(authenticatedContent: @Composable () -> Unit) {
+    val authStateHolder = koinInject<AuthStateHolder>()
     AuthenticatedAppContent(
-        authState = AuthStateHolder.state,
+        authState = authStateHolder.state,
         authenticatedContent = authenticatedContent,
     )
 }
@@ -50,9 +52,10 @@ internal fun AuthenticatedAppContent(
             LoginScreen()
         }
         is AuthState.Authenticated -> {
+            val authStateHolder = koinInject<AuthStateHolder>()
             var passkeySetupDone by remember {
                 mutableStateOf(
-                    AuthStateHolder.signedInViaPasskey ||
+                    authStateHolder.signedInViaPasskey ||
                         window.localStorage.getItem("passkey_registered") == "true",
                 )
             }

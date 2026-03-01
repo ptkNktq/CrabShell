@@ -37,8 +37,9 @@ fun App() {
     val scope = rememberCoroutineScope()
     val currentScreen = Navigator.currentScreen
     val authRepository = koinInject<AuthRepository>()
+    val authStateHolder = koinInject<AuthStateHolder>()
     val onSignOut: () -> Unit = { scope.launch { authRepository.signOut() } }
-    val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
+    val isAdmin = (authStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
 
     val onNavigate: (Screen) -> Unit = { Navigator.navigateTo(it) }
 

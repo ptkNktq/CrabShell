@@ -31,6 +31,7 @@ import model.GarbageTypeSchedule
 import model.User
 import model.WebhookEvent
 import org.koin.compose.getKoin
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 private val dayLabels = listOf("日", "月", "火", "水", "木", "金", "土")
@@ -40,7 +41,8 @@ fun SettingsScreen(
     passwordVm: PasswordChangeViewModel = koinViewModel(),
     passkeyVm: PasskeyManagementViewModel = koinViewModel(),
 ) {
-    val isAdmin = (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
+    val authStateHolder = koinInject<AuthStateHolder>()
+    val isAdmin = (authStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
     val koin = getKoin()
     val userNameVm = remember(isAdmin) { if (isAdmin) koin.get<UserNameViewModel>() else null }
     val garbageVm = remember(isAdmin) { if (isAdmin) koin.get<GarbageScheduleViewModel>() else null }

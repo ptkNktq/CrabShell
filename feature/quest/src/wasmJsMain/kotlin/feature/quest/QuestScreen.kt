@@ -51,15 +51,17 @@ import model.Quest
 import model.QuestCategory
 import model.Reward
 import model.UserPoints
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun QuestScreen(vm: QuestViewModel = koinViewModel()) {
     val windowSizeClass = LocalWindowSizeClass.current
+    val authStateHolder = koinInject<AuthStateHolder>()
     val currentUserUid =
-        (AuthStateHolder.state as? AuthState.Authenticated)?.user?.uid ?: ""
+        (authStateHolder.state as? AuthState.Authenticated)?.user?.uid ?: ""
     val isAdmin =
-        (AuthStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
+        (authStateHolder.state as? AuthState.Authenticated)?.user?.isAdmin == true
 
     QuestBoardContent(
         quests = vm.uiState.quests,

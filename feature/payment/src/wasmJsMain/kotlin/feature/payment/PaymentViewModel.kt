@@ -64,8 +64,9 @@ data class PaymentUiState(
 class PaymentViewModel(
     private val moneyRepository: MoneyRepository,
     private val userRepository: UserRepository,
+    private val authStateHolder: AuthStateHolder,
 ) : ViewModel() {
-    private val authUser = (AuthStateHolder.state as? AuthState.Authenticated)?.user
+    private val authUser = (authStateHolder.state as? AuthState.Authenticated)?.user
 
     var uiState by mutableStateOf(
         PaymentUiState(
