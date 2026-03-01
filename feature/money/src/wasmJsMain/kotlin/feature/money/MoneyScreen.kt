@@ -78,7 +78,7 @@ internal fun MoneyContent(
     onClearForm: () -> Unit,
     onDeleteItem: (MoneyItem) -> Unit,
     onMoveItem: (MoneyItem, Int) -> Unit,
-    onSaveItem: (String, Long, String, List<Payment>, Boolean) -> Unit,
+    onSaveItem: (String, Long, String, List<Payment>, List<String>) -> Unit,
     onToggleLock: () -> Unit,
     onImportRecurringItems: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
@@ -374,7 +374,7 @@ private fun MoneyItemForm(
     users: List<User>,
     saving: Boolean,
     locked: Boolean = false,
-    onSave: (String, Long, String, List<Payment>, Boolean) -> Unit,
+    onSave: (String, Long, String, List<Payment>, List<String>) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -383,7 +383,7 @@ private fun MoneyItemForm(
     var name by remember(key) { mutableStateOf(item?.name ?: "") }
     var amountText by remember(key) { mutableStateOf(item?.amount?.toString() ?: "") }
     var note by remember(key) { mutableStateOf(item?.note ?: "") }
-    var recurring by remember(key) { mutableStateOf(MoneyTags.RECURRING in (item?.tags ?: emptyList())) }
+    var selectedTags by remember(key) { mutableStateOf(item?.tags ?: emptyList()) }
     var paymentAmounts by remember(key) {
         mutableStateOf(
             users.associate { user ->
@@ -457,20 +457,21 @@ private fun MoneyItemForm(
                 enabled = !saving,
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(
-                    text = "毎月繰り返し",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                Switch(
-                    checked = recurring,
-                    onCheckedChange = { recurring = it },
-                    enabled = !saving,
-                )
+                val allTags = listOf(MoneyTags.RECURRING, MoneyTags.CARRY_OVER)
+                allTags.forEach { tag ->
+                    FilterChip(
+                        selected = tag in selectedTags,
+                        onClick = {
+                            selectedTags =
+                                if (tag in selectedTags) selectedTags - tag else selectedTags + tag
+                        },
+                        label = { Text(tag) },
+                        enabled = !saving,
+                    )
+                }
             }
 
             if (users.isNotEmpty()) {
@@ -592,7 +593,7 @@ private fun MoneyItemForm(
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
-                    onClick = { onSave(name, amount, note, payments, recurring) },
+                    onClick = { onSave(name, amount, note, payments, selectedTags) },
                     enabled = name.isNotBlank() && amount != 0L && !saving && !locked,
                 ) {
                     Text(if (isEditing) "保存" else "追加")

@@ -59,6 +59,12 @@ fun ReportSummaryCard(
                     valueColor = color,
                 )
             }
+
+            Text(
+                text = "※繰越分は集計に含まれていません",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

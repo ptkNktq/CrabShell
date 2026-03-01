@@ -69,6 +69,36 @@ class MoneyModelsTest {
     }
 
     @Test
+    fun moneyItemWithCarryOverTagRoundTrip() {
+        val item =
+            MoneyItem(
+                id = "m3",
+                name = "前月不足分",
+                amount = 5000L,
+                tags = listOf(MoneyTags.CARRY_OVER),
+            )
+        val encoded = json.encodeToString(MoneyItem.serializer(), item)
+        val decoded = json.decodeFromString(MoneyItem.serializer(), encoded)
+        assertEquals(item, decoded)
+        assertEquals(listOf(MoneyTags.CARRY_OVER), decoded.tags)
+    }
+
+    @Test
+    fun moneyItemWithMultipleTagsRoundTrip() {
+        val item =
+            MoneyItem(
+                id = "m4",
+                name = "毎月繰越",
+                amount = 3000L,
+                tags = listOf(MoneyTags.RECURRING, MoneyTags.CARRY_OVER),
+            )
+        val encoded = json.encodeToString(MoneyItem.serializer(), item)
+        val decoded = json.decodeFromString(MoneyItem.serializer(), encoded)
+        assertEquals(item, decoded)
+        assertEquals(2, decoded.tags.size)
+    }
+
+    @Test
     fun monthlyMoneyLockedDefault() {
         val jsonStr = """{"month":"2024-07"}"""
         val decoded = json.decodeFromString(MonthlyMoney.serializer(), jsonStr)
