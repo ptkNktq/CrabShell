@@ -24,6 +24,13 @@ class CrabshellFeaturePlugin : Plugin<Project> {
                         implementation(featureBundle)
                     }
                 }
+                sourceSets.getByName("jvmTest") {
+                    dependencies {
+                        implementation(kotlin("test"))
+                        implementation(libs.findLibrary("mockk").get())
+                        implementation(libs.findLibrary("kotlinx-coroutines-test").get())
+                    }
+                }
             }
         }
     }

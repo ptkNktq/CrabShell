@@ -8,17 +8,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import core.ui.generated.*
-import org.jetbrains.compose.resources.ExperimentalResourceApi
-import org.jetbrains.compose.resources.preloadFont
 
-@OptIn(ExperimentalResourceApi::class)
 @Composable
 fun AppTheme(content: @Composable () -> Unit) {
-    val regularFont = preloadFont(Res.font.notosansjp_regular, FontWeight.Normal)
-    val boldFont = preloadFont(Res.font.notosansjp_bold, FontWeight.Bold)
-    val fontsLoaded = regularFont.value != null && boldFont.value != null
+    val fontsLoaded = rememberFontsLoaded()
 
     MaterialTheme(
         colorScheme = AppColorScheme,
@@ -38,3 +31,6 @@ fun AppTheme(content: @Composable () -> Unit) {
         }
     }
 }
+
+@Composable
+internal expect fun rememberFontsLoaded(): Boolean
