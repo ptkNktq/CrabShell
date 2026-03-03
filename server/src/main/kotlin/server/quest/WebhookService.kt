@@ -87,7 +87,7 @@ class WebhookService(
             Service.GENERIC -> json.encodeToString(buildGenericPayload(event, quest))
         }
 
-    private fun detectService(url: String): Service {
+    internal fun detectService(url: String): Service {
         val lower = url.lowercase()
         return when {
             "discord.com/api/webhooks/" in lower || "discordapp.com/api/webhooks/" in lower -> Service.DISCORD
@@ -96,14 +96,14 @@ class WebhookService(
         }
     }
 
-    private fun eventPrefix(event: String): String =
+    internal fun eventPrefix(event: String): String =
         when (event) {
             "quest_created" -> "\uD83C\uDD95 新しいクエスト"
             "quest_verified" -> "\u2705 クエスト達成"
             else -> event
         }
 
-    private fun buildDiscordPayload(
+    internal fun buildDiscordPayload(
         event: String,
         quest: Quest,
     ): DiscordPayload {
@@ -125,7 +125,7 @@ class WebhookService(
         )
     }
 
-    private fun buildSlackPayload(
+    internal fun buildSlackPayload(
         event: String,
         quest: Quest,
     ): SlackPayload {
@@ -135,9 +135,10 @@ class WebhookService(
         )
     }
 
-    private fun buildGenericPayload(
+    internal fun buildGenericPayload(
         event: String,
         quest: Quest,
+        timestamp: String = Instant.now().toString(),
     ): GenericPayload =
         GenericPayload(
             event = event,
@@ -148,13 +149,13 @@ class WebhookService(
                     rewardPoints = quest.rewardPoints,
                     creatorName = quest.creatorName,
                 ),
-            timestamp = Instant.now().toString(),
+            timestamp = timestamp,
         )
 
-    private enum class Service { DISCORD, SLACK, GENERIC }
+    internal enum class Service { DISCORD, SLACK, GENERIC }
 
     /** Discord embed カラー (primary: #E8844A) */
-    private companion object {
+    internal companion object {
         const val DISCORD_EMBED_COLOR = 0xE8844A
     }
 }
@@ -162,12 +163,12 @@ class WebhookService(
 // --- Discord ペイロード ---
 
 @Serializable
-private data class DiscordPayload(
+internal data class DiscordPayload(
     val embeds: List<DiscordEmbed>,
 )
 
 @Serializable
-private data class DiscordEmbed(
+internal data class DiscordEmbed(
     val title: String,
     val description: String,
     val color: Int,
@@ -175,7 +176,7 @@ private data class DiscordEmbed(
 )
 
 @Serializable
-private data class DiscordField(
+internal data class DiscordField(
     val name: String,
     val value: String,
     val inline: Boolean = false,
@@ -184,21 +185,21 @@ private data class DiscordField(
 // --- Slack ペイロード ---
 
 @Serializable
-private data class SlackPayload(
+internal data class SlackPayload(
     val text: String,
 )
 
 // --- 汎用ペイロード (従来互換) ---
 
 @Serializable
-private data class GenericPayload(
+internal data class GenericPayload(
     val event: String,
     val quest: GenericQuestData,
     val timestamp: String,
 )
 
 @Serializable
-private data class GenericQuestData(
+internal data class GenericQuestData(
     val title: String,
     val description: String,
     val rewardPoints: Int,
