@@ -10,6 +10,7 @@ import model.CreateQuestRequest
 import model.Quest
 import model.QuestCategory
 import model.QuestStatus
+import model.WebhookEvent
 import java.time.Instant
 import java.time.LocalDate
 import kotlin.test.Test
@@ -22,26 +23,40 @@ class QuestServiceTest {
     private val webhookService = mockk<WebhookService>(relaxed = true)
     private val service = QuestService(questRepository, pointRepository, webhookService)
 
+    // --- テストデータヘルパー ---
+
+    private fun questData(
+        status: String = "Open",
+        creatorUid: String = "user1",
+        creatorName: String = "太郎",
+        rewardPoints: Int = 50,
+        assigneeUid: String? = null,
+        assigneeName: String? = null,
+        deadline: String? = null,
+    ): Map<String, Any> =
+        buildMap {
+            put("title", "掃除")
+            put("description", "部屋掃除")
+            put("category", "Cleaning")
+            put("rewardPoints", rewardPoints)
+            put("creatorUid", creatorUid)
+            put("creatorName", creatorName)
+            put("status", status)
+            put("createdAt", "2024-07-01T00:00:00Z")
+            if (assigneeUid != null) put("assigneeUid", assigneeUid)
+            if (assigneeName != null) put("assigneeName", assigneeName)
+            if (deadline != null) put("deadline", deadline)
+        }
+
     // --- listQuests ---
 
     @Test
     fun listQuestsExpiredQuestGetsStatusUpdated() =
         runTest {
             val now = LocalDate.of(2024, 7, 15)
-            val questData =
-                mapOf<String, Any>(
-                    "title" to "掃除",
-                    "description" to "部屋掃除",
-                    "category" to "Cleaning",
-                    "rewardPoints" to 50,
-                    "creatorUid" to "user1",
-                    "creatorName" to "太郎",
-                    "status" to "Open",
-                    "deadline" to "2024-07-14",
-                    "createdAt" to "2024-07-01T00:00:00Z",
-                )
+            val data = questData(status = "Open", deadline = "2024-07-14")
 
-            coEvery { questRepository.getQuests(null) } returns listOf("q1" to questData)
+            coEvery { questRepository.getQuests(null) } returns listOf("q1" to data)
             coEvery { questRepository.updateQuest("q1", any()) } just runs
 
             val result = service.listQuests(null, now)
@@ -54,19 +69,9 @@ class QuestServiceTest {
     @Test
     fun listQuestsWithStatusFilter() =
         runTest {
-            val questData =
-                mapOf<String, Any>(
-                    "title" to "掃除",
-                    "description" to "完了済み",
-                    "category" to "Cleaning",
-                    "rewardPoints" to 30,
-                    "creatorUid" to "user1",
-                    "creatorName" to "太郎",
-                    "status" to "Verified",
-                    "createdAt" to "2024-07-01T00:00:00Z",
-                )
+            val data = questData(status = "Verified", rewardPoints = 30)
 
-            coEvery { questRepository.getQuests("Verified") } returns listOf("q1" to questData)
+            coEvery { questRepository.getQuests("Verified") } returns listOf("q1" to data)
 
             val result = service.listQuests("Verified")
 
@@ -100,6 +105,7 @@ class QuestServiceTest {
             assertEquals(QuestCategory.Errand, success.data.category)
             assertEquals(QuestStatus.Open, success.data.status)
             assertEquals("2024-07-15T10:00:00Z", success.data.createdAt)
+            coVerify { webhookService.notify(WebhookEvent.QUEST_CREATED, any()) }
         }
 
     @Test
@@ -125,19 +131,9 @@ class QuestServiceTest {
     @Test
     fun acceptQuestOpenReturnsSuccess() =
         runTest {
-            val questData =
-                mapOf<String, Any>(
-                    "title" to "掃除",
-                    "description" to "部屋掃除",
-                    "category" to "Cleaning",
-                    "rewardPoints" to 50,
-                    "creatorUid" to "user1",
-                    "creatorName" to "太郎",
-                    "status" to "Open",
-                    "createdAt" to "2024-07-01T00:00:00Z",
-                )
+            val data = questData()
 
-            coEvery { questRepository.getQuest("q1") } returns ("q1" to questData)
+            coEvery { questRepository.getQuest("q1") } returns ("q1" to data)
             coEvery { questRepository.updateQuest("q1", any()) } just runs
 
             val result = service.acceptQuest("q1", "user2", "花子")
@@ -151,19 +147,9 @@ class QuestServiceTest {
     @Test
     fun acceptQuestOwnQuestReturnsForbidden() =
         runTest {
-            val questData =
-                mapOf<String, Any>(
-                    "title" to "掃除",
-                    "description" to "部屋掃除",
-                    "category" to "Cleaning",
-                    "rewardPoints" to 50,
-                    "creatorUid" to "user1",
-                    "creatorName" to "太郎",
-                    "status" to "Open",
-                    "createdAt" to "2024-07-01T00:00:00Z",
-                )
+            val data = questData()
 
-            coEvery { questRepository.getQuest("q1") } returns ("q1" to questData)
+            coEvery { questRepository.getQuest("q1") } returns ("q1" to data)
 
             val result = service.acceptQuest("q1", "user1", "太郎")
 
@@ -173,19 +159,9 @@ class QuestServiceTest {
     @Test
     fun acceptQuestNotOpenReturnsConflict() =
         runTest {
-            val questData =
-                mapOf<String, Any>(
-                    "title" to "掃除",
-                    "description" to "部屋掃除",
-                    "category" to "Cleaning",
-                    "rewardPoints" to 50,
-                    "creatorUid" to "user1",
-                    "creatorName" to "太郎",
-                    "status" to "Accepted",
-                    "createdAt" to "2024-07-01T00:00:00Z",
-                )
+            val data = questData(status = "Accepted")
 
-            coEvery { questRepository.getQuest("q1") } returns ("q1" to questData)
+            coEvery { questRepository.getQuest("q1") } returns ("q1" to data)
 
             val result = service.acceptQuest("q1", "user2", "花子")
 
@@ -207,21 +183,9 @@ class QuestServiceTest {
     @Test
     fun verifyQuestAcceptedByCreatorReturnsSuccessAndAwardsPoints() =
         runTest {
-            val questData =
-                mapOf<String, Any>(
-                    "title" to "掃除",
-                    "description" to "部屋掃除",
-                    "category" to "Cleaning",
-                    "rewardPoints" to 50,
-                    "creatorUid" to "user1",
-                    "creatorName" to "太郎",
-                    "assigneeUid" to "user2",
-                    "assigneeName" to "花子",
-                    "status" to "Accepted",
-                    "createdAt" to "2024-07-01T00:00:00Z",
-                )
+            val data = questData(status = "Accepted", assigneeUid = "user2", assigneeName = "花子")
 
-            coEvery { questRepository.getQuest("q1") } returns ("q1" to questData)
+            coEvery { questRepository.getQuest("q1") } returns ("q1" to data)
             coEvery { questRepository.updateQuest("q1", any()) } just runs
             coEvery { pointRepository.awardPoints(any(), any(), any(), any(), any()) } just runs
 
@@ -232,26 +196,30 @@ class QuestServiceTest {
             assertEquals(QuestStatus.Verified, success.data.status)
             assertEquals("2024-07-15T12:00:00Z", success.data.completedAt)
             coVerify { pointRepository.awardPoints("user2", "花子", 50, "クエスト達成: 掃除", questId = "q1") }
+            coVerify { webhookService.notify(WebhookEvent.QUEST_VERIFIED, any()) }
+        }
+
+    @Test
+    fun verifyQuestZeroRewardPointsSkipsAward() =
+        runTest {
+            val data =
+                questData(status = "Accepted", rewardPoints = 0, assigneeUid = "user2", assigneeName = "花子")
+
+            coEvery { questRepository.getQuest("q1") } returns ("q1" to data)
+            coEvery { questRepository.updateQuest("q1", any()) } just runs
+
+            val result = service.verifyQuest("q1", "user1")
+
+            assertIs<QuestResult.Success<Quest>>(result)
+            coVerify(exactly = 0) { pointRepository.awardPoints(any(), any(), any(), any(), any()) }
         }
 
     @Test
     fun verifyQuestNotCreatorReturnsForbidden() =
         runTest {
-            val questData =
-                mapOf<String, Any>(
-                    "title" to "掃除",
-                    "description" to "部屋掃除",
-                    "category" to "Cleaning",
-                    "rewardPoints" to 50,
-                    "creatorUid" to "user1",
-                    "creatorName" to "太郎",
-                    "assigneeUid" to "user2",
-                    "assigneeName" to "花子",
-                    "status" to "Accepted",
-                    "createdAt" to "2024-07-01T00:00:00Z",
-                )
+            val data = questData(status = "Accepted", assigneeUid = "user2", assigneeName = "花子")
 
-            coEvery { questRepository.getQuest("q1") } returns ("q1" to questData)
+            coEvery { questRepository.getQuest("q1") } returns ("q1" to data)
 
             val result = service.verifyQuest("q1", "user2")
 
@@ -261,23 +229,23 @@ class QuestServiceTest {
     @Test
     fun verifyQuestNotAcceptedReturnsConflict() =
         runTest {
-            val questData =
-                mapOf<String, Any>(
-                    "title" to "掃除",
-                    "description" to "部屋掃除",
-                    "category" to "Cleaning",
-                    "rewardPoints" to 50,
-                    "creatorUid" to "user1",
-                    "creatorName" to "太郎",
-                    "status" to "Open",
-                    "createdAt" to "2024-07-01T00:00:00Z",
-                )
+            val data = questData()
 
-            coEvery { questRepository.getQuest("q1") } returns ("q1" to questData)
+            coEvery { questRepository.getQuest("q1") } returns ("q1" to data)
 
             val result = service.verifyQuest("q1", "user1")
 
             assertIs<QuestResult.Conflict>(result)
+        }
+
+    @Test
+    fun verifyQuestNotFoundReturnsNotFound() =
+        runTest {
+            coEvery { questRepository.getQuest("nonexistent") } returns null
+
+            val result = service.verifyQuest("nonexistent", "user1")
+
+            assertIs<QuestResult.NotFound>(result)
         }
 
     // --- deleteQuest ---
@@ -285,19 +253,9 @@ class QuestServiceTest {
     @Test
     fun deleteQuestOpenByCreatorReturnsSuccess() =
         runTest {
-            val questData =
-                mapOf<String, Any>(
-                    "title" to "掃除",
-                    "description" to "部屋掃除",
-                    "category" to "Cleaning",
-                    "rewardPoints" to 50,
-                    "creatorUid" to "user1",
-                    "creatorName" to "太郎",
-                    "status" to "Open",
-                    "createdAt" to "2024-07-01T00:00:00Z",
-                )
+            val data = questData()
 
-            coEvery { questRepository.getQuest("q1") } returns ("q1" to questData)
+            coEvery { questRepository.getQuest("q1") } returns ("q1" to data)
             coEvery { questRepository.deleteQuest("q1") } just runs
 
             val result = service.deleteQuest("q1", "user1")
@@ -309,19 +267,9 @@ class QuestServiceTest {
     @Test
     fun deleteQuestExpiredByCreatorReturnsSuccess() =
         runTest {
-            val questData =
-                mapOf<String, Any>(
-                    "title" to "掃除",
-                    "description" to "部屋掃除",
-                    "category" to "Cleaning",
-                    "rewardPoints" to 50,
-                    "creatorUid" to "user1",
-                    "creatorName" to "太郎",
-                    "status" to "Expired",
-                    "createdAt" to "2024-07-01T00:00:00Z",
-                )
+            val data = questData(status = "Expired")
 
-            coEvery { questRepository.getQuest("q1") } returns ("q1" to questData)
+            coEvery { questRepository.getQuest("q1") } returns ("q1" to data)
             coEvery { questRepository.deleteQuest("q1") } just runs
 
             val result = service.deleteQuest("q1", "user1")
@@ -332,19 +280,9 @@ class QuestServiceTest {
     @Test
     fun deleteQuestAcceptedReturnsConflict() =
         runTest {
-            val questData =
-                mapOf<String, Any>(
-                    "title" to "掃除",
-                    "description" to "部屋掃除",
-                    "category" to "Cleaning",
-                    "rewardPoints" to 50,
-                    "creatorUid" to "user1",
-                    "creatorName" to "太郎",
-                    "status" to "Accepted",
-                    "createdAt" to "2024-07-01T00:00:00Z",
-                )
+            val data = questData(status = "Accepted")
 
-            coEvery { questRepository.getQuest("q1") } returns ("q1" to questData)
+            coEvery { questRepository.getQuest("q1") } returns ("q1" to data)
 
             val result = service.deleteQuest("q1", "user1")
 
@@ -354,22 +292,22 @@ class QuestServiceTest {
     @Test
     fun deleteQuestNotCreatorReturnsForbidden() =
         runTest {
-            val questData =
-                mapOf<String, Any>(
-                    "title" to "掃除",
-                    "description" to "部屋掃除",
-                    "category" to "Cleaning",
-                    "rewardPoints" to 50,
-                    "creatorUid" to "user1",
-                    "creatorName" to "太郎",
-                    "status" to "Open",
-                    "createdAt" to "2024-07-01T00:00:00Z",
-                )
+            val data = questData()
 
-            coEvery { questRepository.getQuest("q1") } returns ("q1" to questData)
+            coEvery { questRepository.getQuest("q1") } returns ("q1" to data)
 
             val result = service.deleteQuest("q1", "user2")
 
             assertIs<QuestResult.Forbidden>(result)
+        }
+
+    @Test
+    fun deleteQuestNotFoundReturnsNotFound() =
+        runTest {
+            coEvery { questRepository.getQuest("nonexistent") } returns null
+
+            val result = service.deleteQuest("nonexistent", "user1")
+
+            assertIs<QuestResult.NotFound>(result)
         }
 }
