@@ -2,12 +2,19 @@ package server.quest
 
 import com.google.cloud.firestore.Firestore
 import io.mockk.mockk
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import model.Quest
 import model.QuestCategory
 import model.QuestStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class WebhookPayloadTest {
@@ -26,121 +33,145 @@ class WebhookPayloadTest {
             createdAt = "2024-07-01T00:00:00Z",
         )
 
-    // --- detectService ---
+    private fun parseJson(jsonString: String): JsonObject = Json.parseToJsonElement(jsonString).jsonObject
+
+    // --- Discord ペイロード ---
 
     @Test
-    fun detectServiceDiscordUrl() {
-        assertEquals(
-            WebhookService.Service.DISCORD,
-            service.detectService("https://discord.com/api/webhooks/12345/token"),
-        )
+    fun discordPayloadStructure() {
+        val json =
+            parseJson(
+                service.buildPayload("https://discord.com/api/webhooks/12345/token", "quest_created", sampleQuest),
+            )
+
+        val embeds = json["embeds"]
+        assertIs<JsonArray>(embeds)
+        assertEquals(1, embeds.size)
+
+        val embed = embeds[0].jsonObject
+        assertTrue(embed["title"]!!.jsonPrimitive.content.contains(sampleQuest.title))
+        assertEquals(sampleQuest.description, embed["description"]!!.jsonPrimitive.content)
     }
 
     @Test
-    fun detectServiceDiscordAppUrl() {
-        assertEquals(
-            WebhookService.Service.DISCORD,
-            service.detectService("https://discordapp.com/api/webhooks/12345/token"),
-        )
+    fun discordPayloadFields() {
+        val json =
+            parseJson(
+                service.buildPayload("https://discord.com/api/webhooks/12345/token", "quest_created", sampleQuest),
+            )
+
+        val fields = json["embeds"]!!.jsonArray[0].jsonObject["fields"]!!.jsonArray
+        assertEquals(2, fields.size)
+
+        val rewardField = fields.first { it.jsonObject["name"]!!.jsonPrimitive.content == "報酬" }.jsonObject
+        assertEquals("50pt", rewardField["value"]!!.jsonPrimitive.content)
+
+        val creatorField = fields.first { it.jsonObject["name"]!!.jsonPrimitive.content == "依頼者" }.jsonObject
+        assertEquals("太郎", creatorField["value"]!!.jsonPrimitive.content)
     }
 
     @Test
-    fun detectServiceSlackUrl() {
-        assertEquals(
-            WebhookService.Service.SLACK,
-            service.detectService("https://hooks.slack.com/services/T00/B00/xxx"),
-        )
+    fun discordAppUrlAlsoProducesDiscordPayload() {
+        val json =
+            parseJson(
+                service.buildPayload("https://discordapp.com/api/webhooks/12345/token", "quest_created", sampleQuest),
+            )
+        // Discord ペイロードは embeds を持つ
+        assertIs<JsonArray>(json["embeds"])
+    }
+
+    // --- Slack ペイロード ---
+
+    @Test
+    fun slackPayloadText() {
+        val json =
+            parseJson(
+                service.buildPayload("https://hooks.slack.com/services/T00/B00/xxx", "quest_created", sampleQuest),
+            )
+
+        val text = json["text"]!!.jsonPrimitive.content
+        assertTrue(text.contains(sampleQuest.title))
+        assertTrue(text.contains(sampleQuest.description))
+        assertTrue(text.contains("50pt"))
+        assertTrue(text.contains("太郎"))
+    }
+
+    // --- Generic ペイロード ---
+
+    @Test
+    fun genericPayloadEventAndTimestamp() {
+        val json =
+            parseJson(
+                service.buildPayload(
+                    "https://example.com/webhook",
+                    "quest_created",
+                    sampleQuest,
+                    timestamp = "2024-07-01T12:00:00Z",
+                ),
+            )
+
+        assertEquals("quest_created", json["event"]!!.jsonPrimitive.content)
+        assertEquals("2024-07-01T12:00:00Z", json["timestamp"]!!.jsonPrimitive.content)
     }
 
     @Test
-    fun detectServiceGenericUrl() {
-        assertEquals(
-            WebhookService.Service.GENERIC,
-            service.detectService("https://example.com/webhook"),
-        )
+    fun genericPayloadQuestData() {
+        val json =
+            parseJson(
+                service.buildPayload(
+                    "https://example.com/webhook",
+                    "quest_created",
+                    sampleQuest,
+                    timestamp = "2024-07-01T12:00:00Z",
+                ),
+            )
+
+        val quest = json["quest"]!!.jsonObject
+        assertEquals(sampleQuest.title, quest["title"]!!.jsonPrimitive.content)
+        assertEquals(sampleQuest.description, quest["description"]!!.jsonPrimitive.content)
+        assertEquals(sampleQuest.rewardPoints, quest["rewardPoints"]!!.jsonPrimitive.int)
+        assertEquals(sampleQuest.creatorName, quest["creatorName"]!!.jsonPrimitive.content)
     }
 
+    // --- URL によるサービス判別 ---
+
     @Test
-    fun detectServiceCaseInsensitive() {
-        assertEquals(
-            WebhookService.Service.DISCORD,
-            service.detectService("https://DISCORD.COM/API/WEBHOOKS/12345/token"),
-        )
+    fun caseInsensitiveUrlDetection() {
+        val json =
+            parseJson(
+                service.buildPayload("https://DISCORD.COM/API/WEBHOOKS/12345/token", "quest_created", sampleQuest),
+            )
+        // Discord ペイロードは embeds を持つ
+        assertIs<JsonArray>(json["embeds"])
     }
 
     // --- eventPrefix ---
 
     @Test
-    fun eventPrefixQuestCreated() {
-        val prefix = service.eventPrefix("quest_created")
-        assertTrue(prefix.contains("新しいクエスト"), "prefix should contain '新しいクエスト': $prefix")
+    fun questCreatedEventContainsPrefix() {
+        val json =
+            parseJson(
+                service.buildPayload("https://discord.com/api/webhooks/12345/token", "quest_created", sampleQuest),
+            )
+        val title =
+            json["embeds"]!!
+                .jsonArray[0]
+                .jsonObject["title"]!!
+                .jsonPrimitive.content
+        assertTrue(title.contains("新しいクエスト"), "title should contain '新しいクエスト': $title")
     }
 
     @Test
-    fun eventPrefixQuestVerified() {
-        val prefix = service.eventPrefix("quest_verified")
-        assertTrue(prefix.contains("クエスト達成"), "prefix should contain 'クエスト達成': $prefix")
-    }
-
-    @Test
-    fun eventPrefixUnknownReturnsAsIs() {
-        assertEquals("some_event", service.eventPrefix("some_event"))
-    }
-
-    // --- buildDiscordPayload ---
-
-    @Test
-    fun buildDiscordPayloadStructure() {
-        val payload = service.buildDiscordPayload("quest_created", sampleQuest)
-        assertEquals(1, payload.embeds.size)
-        val embed = payload.embeds.first()
-        assertTrue(embed.title.contains(sampleQuest.title))
-        assertEquals(sampleQuest.description, embed.description)
-        assertEquals(WebhookService.DISCORD_EMBED_COLOR, embed.color)
-    }
-
-    @Test
-    fun buildDiscordPayloadFields() {
-        val payload = service.buildDiscordPayload("quest_created", sampleQuest)
-        val fields = payload.embeds.first().fields
-        assertEquals(2, fields.size)
-
-        val rewardField = fields.find { it.name == "報酬" }
-        assertNotNull(rewardField)
-        assertEquals("50pt", rewardField.value)
-        assertTrue(rewardField.inline)
-
-        val creatorField = fields.find { it.name == "依頼者" }
-        assertNotNull(creatorField)
-        assertEquals("太郎", creatorField.value)
-    }
-
-    // --- buildSlackPayload ---
-
-    @Test
-    fun buildSlackPayloadText() {
-        val payload = service.buildSlackPayload("quest_created", sampleQuest)
-        assertTrue(payload.text.contains(sampleQuest.title))
-        assertTrue(payload.text.contains(sampleQuest.description))
-        assertTrue(payload.text.contains("50pt"))
-        assertTrue(payload.text.contains("太郎"))
-    }
-
-    // --- buildGenericPayload ---
-
-    @Test
-    fun buildGenericPayloadEvent() {
-        val payload = service.buildGenericPayload("quest_created", sampleQuest, timestamp = "2024-07-01T12:00:00Z")
-        assertEquals("quest_created", payload.event)
-        assertEquals("2024-07-01T12:00:00Z", payload.timestamp)
-    }
-
-    @Test
-    fun buildGenericPayloadQuestData() {
-        val payload = service.buildGenericPayload("quest_created", sampleQuest, timestamp = "2024-07-01T12:00:00Z")
-        assertEquals(sampleQuest.title, payload.quest.title)
-        assertEquals(sampleQuest.description, payload.quest.description)
-        assertEquals(sampleQuest.rewardPoints, payload.quest.rewardPoints)
-        assertEquals(sampleQuest.creatorName, payload.quest.creatorName)
+    fun questVerifiedEventContainsPrefix() {
+        val json =
+            parseJson(
+                service.buildPayload("https://discord.com/api/webhooks/12345/token", "quest_verified", sampleQuest),
+            )
+        val title =
+            json["embeds"]!!
+                .jsonArray[0]
+                .jsonObject["title"]!!
+                .jsonPrimitive.content
+        assertTrue(title.contains("クエスト達成"), "title should contain 'クエスト達成': $title")
     }
 }

@@ -198,35 +198,35 @@ class QuestService(
         questRepository.deleteQuest(id)
         return QuestResult.Success(Unit)
     }
+
+    private fun parseCategory(value: String?): QuestCategory =
+        try {
+            QuestCategory.valueOf(value ?: "Other")
+        } catch (_: IllegalArgumentException) {
+            QuestCategory.Other
+        }
+
+    private fun buildQuest(
+        id: String,
+        data: Map<String, Any>,
+        statusOverride: QuestStatus,
+        assigneeUidOverride: String? = null,
+        assigneeNameOverride: String? = null,
+        completedAtOverride: String? = null,
+    ): Quest =
+        Quest(
+            id = id,
+            title = data["title"] as? String ?: "",
+            description = data["description"] as? String ?: "",
+            category = parseCategory(data["category"] as? String),
+            rewardPoints = (data["rewardPoints"] as? Number)?.toInt() ?: 0,
+            creatorUid = data["creatorUid"] as? String ?: "",
+            creatorName = data["creatorName"] as? String ?: "",
+            assigneeUid = assigneeUidOverride ?: data["assigneeUid"] as? String,
+            assigneeName = assigneeNameOverride ?: data["assigneeName"] as? String,
+            status = statusOverride,
+            deadline = data["deadline"] as? String,
+            createdAt = data["createdAt"] as? String ?: "",
+            completedAt = completedAtOverride ?: data["completedAt"] as? String,
+        )
 }
-
-internal fun parseCategory(value: String?): QuestCategory =
-    try {
-        QuestCategory.valueOf(value ?: "Other")
-    } catch (_: IllegalArgumentException) {
-        QuestCategory.Other
-    }
-
-internal fun buildQuest(
-    id: String,
-    data: Map<String, Any>,
-    statusOverride: QuestStatus,
-    assigneeUidOverride: String? = null,
-    assigneeNameOverride: String? = null,
-    completedAtOverride: String? = null,
-): Quest =
-    Quest(
-        id = id,
-        title = data["title"] as? String ?: "",
-        description = data["description"] as? String ?: "",
-        category = parseCategory(data["category"] as? String),
-        rewardPoints = (data["rewardPoints"] as? Number)?.toInt() ?: 0,
-        creatorUid = data["creatorUid"] as? String ?: "",
-        creatorName = data["creatorName"] as? String ?: "",
-        assigneeUid = assigneeUidOverride ?: data["assigneeUid"] as? String,
-        assigneeName = assigneeNameOverride ?: data["assigneeName"] as? String,
-        status = statusOverride,
-        deadline = data["deadline"] as? String,
-        createdAt = data["createdAt"] as? String ?: "",
-        completedAt = completedAtOverride ?: data["completedAt"] as? String,
-    )
