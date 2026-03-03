@@ -67,6 +67,21 @@ class QuestServiceTest {
         }
 
     @Test
+    fun listQuestsOpenQuestBeforeDeadlineStaysOpen() =
+        runTest {
+            val now = LocalDate.of(2024, 7, 15)
+            val data = questData(status = "Open", deadline = "2024-07-20")
+
+            coEvery { questRepository.getQuests(null) } returns listOf("q1" to data)
+
+            val result = service.listQuests(null, now)
+
+            assertEquals(1, result.size)
+            assertEquals(QuestStatus.Open, result.first().status)
+            coVerify(exactly = 0) { questRepository.updateQuest(any(), any()) }
+        }
+
+    @Test
     fun listQuestsWithStatusFilter() =
         runTest {
             val data = questData(status = "Verified", rewardPoints = 30)

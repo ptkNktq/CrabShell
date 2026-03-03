@@ -51,7 +51,8 @@ class QuestService(
                     status
                 }
 
-            buildQuest(id, data, QuestStatus.valueOf(effectiveStatus))
+            val questStatus = QuestStatus.entries.find { it.name == effectiveStatus } ?: QuestStatus.Open
+            buildQuest(id, data, questStatus)
         }
     }
 
