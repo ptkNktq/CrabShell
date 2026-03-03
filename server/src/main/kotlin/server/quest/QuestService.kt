@@ -153,11 +153,12 @@ class QuestService(
             return QuestResult.Forbidden("Only creator can verify")
         }
 
+        val completedAt = now.toString()
         questRepository.updateQuest(
             id,
             mapOf(
                 "status" to QuestStatus.Verified.name,
-                "completedAt" to now.toString(),
+                "completedAt" to completedAt,
             ),
         )
 
@@ -170,7 +171,7 @@ class QuestService(
             pointRepository.awardPoints(assigneeUid, assigneeName, rewardPoints, "クエスト達成: $questTitle", questId = id)
         }
 
-        val verifiedQuest = buildQuest(id, data, QuestStatus.Verified)
+        val verifiedQuest = buildQuest(id, data, QuestStatus.Verified, completedAtOverride = completedAt)
         webhookService.notify(WebhookEvent.QUEST_VERIFIED, verifiedQuest)
         return QuestResult.Success(verifiedQuest)
     }
@@ -212,6 +213,7 @@ internal fun buildQuest(
     statusOverride: QuestStatus,
     assigneeUidOverride: String? = null,
     assigneeNameOverride: String? = null,
+    completedAtOverride: String? = null,
 ): Quest =
     Quest(
         id = id,
@@ -226,5 +228,5 @@ internal fun buildQuest(
         status = statusOverride,
         deadline = data["deadline"] as? String,
         createdAt = data["createdAt"] as? String ?: "",
-        completedAt = data["completedAt"] as? String,
+        completedAt = completedAtOverride ?: data["completedAt"] as? String,
     )

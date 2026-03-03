@@ -225,10 +225,12 @@ class QuestServiceTest {
             coEvery { questRepository.updateQuest("q1", any()) } just runs
             coEvery { pointRepository.awardPoints(any(), any(), any(), any(), any()) } just runs
 
-            val result = service.verifyQuest("q1", "user1")
+            val now = Instant.parse("2024-07-15T12:00:00Z")
+            val result = service.verifyQuest("q1", "user1", now)
 
             val success = assertIs<QuestResult.Success<Quest>>(result)
             assertEquals(QuestStatus.Verified, success.data.status)
+            assertEquals("2024-07-15T12:00:00Z", success.data.completedAt)
             coVerify { pointRepository.awardPoints("user2", "花子", 50, "クエスト達成: 掃除", questId = "q1") }
         }
 
