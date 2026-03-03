@@ -17,6 +17,7 @@ import server.quest.FirestorePointRepository
 import server.quest.FirestoreQuestRepository
 import server.quest.PointRepository
 import server.quest.QuestRepository
+import server.quest.QuestService
 import server.quest.WebhookService
 import server.report.BalanceCalculationService
 
@@ -30,6 +31,7 @@ val serverModule =
         single<GarbageRepository> { FirestoreGarbageRepository(get()) }
         single<PetRepository> { FirestorePetRepository(get()) }
         single { WebhookService(get()) }
+        single { QuestService(get(), get(), get()) }
         single { BalanceCalculationService() }
         single {
             CacheManager(

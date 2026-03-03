@@ -18,17 +18,11 @@ import model.CreateQuestRequest
 import model.GenerateQuestTextRequest
 import model.GenerateQuestTextResponse
 import model.Quest
-import model.QuestStatus
-import model.WebhookEvent
 import org.koin.ktor.ext.inject
 import server.auth.authenticated
 import server.auth.firebasePrincipal
 import server.config.EnvConfig
 import server.ratelimit.RateLimitNames
-import java.time.Instant
-import java.time.LocalDate
-
-private const val MAX_ACTIVE_QUESTS = 10
 
 private val geminiApiKey: String? = EnvConfig["GEMINI_API_KEY"]
 
@@ -45,9 +39,7 @@ private val questTextGenerator: QuestTextGenerator? by lazy {
 }
 
 fun Route.questRoutes() {
-    val questRepository by inject<QuestRepository>()
-    val pointRepository by inject<PointRepository>()
-    val webhookService by inject<WebhookService>()
+    val questService by inject<QuestService>()
 
     route("/quests") {
         authenticated {
@@ -67,40 +59,7 @@ fun Route.questRoutes() {
                 }
             }) {
                 val statusFilter = call.request.queryParameters["status"]
-                val rawQuests = questRepository.getQuests(statusFilter)
-                val now = LocalDate.now()
-
-                val quests =
-                    rawQuests.map { (id, data) ->
-                        val status = data["status"] as? String ?: "Open"
-                        val deadline = data["deadline"] as? String
-
-                        // 期限切れチェック: Open/Accepted のクエストで期限を過ぎていたら Expired に更新
-                        val effectiveStatus =
-                            if (isQuestExpired(status, deadline, now)) {
-                                questRepository.updateQuest(id, mapOf("status" to "Expired"))
-                                "Expired"
-                            } else {
-                                status
-                            }
-
-                        Quest(
-                            id = id,
-                            title = data["title"] as? String ?: "",
-                            description = data["description"] as? String ?: "",
-                            category = parseCategory(data["category"] as? String),
-                            rewardPoints = (data["rewardPoints"] as? Number)?.toInt() ?: 0,
-                            creatorUid = data["creatorUid"] as? String ?: "",
-                            creatorName = data["creatorName"] as? String ?: "",
-                            assigneeUid = data["assigneeUid"] as? String,
-                            assigneeName = data["assigneeName"] as? String,
-                            status = QuestStatus.valueOf(effectiveStatus),
-                            deadline = deadline,
-                            createdAt = data["createdAt"] as? String ?: "",
-                            completedAt = data["completedAt"] as? String,
-                        )
-                    }
-
+                val quests = questService.listQuests(statusFilter)
                 call.respond(quests)
             }
 
@@ -120,48 +79,12 @@ fun Route.questRoutes() {
                 val token = call.firebasePrincipal
                 val request = call.receive<CreateQuestRequest>()
 
-                // 同時発行数の上限チェック（全ユーザーで最大10件）
-                val activeCount = questRepository.countActiveQuests()
-                if (activeCount >= MAX_ACTIVE_QUESTS) {
-                    return@post call.respond(
-                        HttpStatusCode.Conflict,
-                        mapOf("error" to "同時に発行できるクエストは${MAX_ACTIVE_QUESTS}件までです"),
-                    )
+                when (val result = questService.createQuest(request, token.uid, token.name ?: "")) {
+                    is QuestResult.Success -> call.respond(HttpStatusCode.Created, result.data)
+                    is QuestResult.Conflict -> call.respond(HttpStatusCode.Conflict, mapOf("error" to result.message))
+                    is QuestResult.NotFound -> call.respond(HttpStatusCode.NotFound, mapOf("error" to result.message))
+                    is QuestResult.Forbidden -> call.respond(HttpStatusCode.Forbidden, mapOf("error" to result.message))
                 }
-
-                val questData =
-                    mapOf(
-                        "title" to request.title,
-                        "description" to request.description,
-                        "category" to request.category.name,
-                        "rewardPoints" to request.rewardPoints,
-                        "creatorUid" to token.uid,
-                        "creatorName" to (token.name ?: ""),
-                        "assigneeUid" to null,
-                        "assigneeName" to null,
-                        "status" to QuestStatus.Open.name,
-                        "deadline" to request.deadline,
-                        "createdAt" to Instant.now().toString(),
-                        "completedAt" to null,
-                    )
-
-                val docId = questRepository.createQuest(questData)
-                val created =
-                    Quest(
-                        id = docId,
-                        title = request.title,
-                        description = request.description,
-                        category = request.category,
-                        rewardPoints = request.rewardPoints,
-                        creatorUid = token.uid,
-                        creatorName = token.name ?: "",
-                        status = QuestStatus.Open,
-                        deadline = request.deadline,
-                        createdAt = questData["createdAt"] as String,
-                    )
-
-                webhookService.notify(WebhookEvent.QUEST_CREATED, created)
-                call.respond(HttpStatusCode.Created, created)
             }
 
             put("/{id}/accept", {
@@ -182,32 +105,12 @@ fun Route.questRoutes() {
                 val token = call.firebasePrincipal
                 val id = call.parameters.getOrFail("id")
 
-                val quest = questRepository.getQuest(id)
-                if (quest == null) {
-                    return@put call.respond(HttpStatusCode.NotFound, mapOf("error" to "Quest not found"))
+                when (val result = questService.acceptQuest(id, token.uid, token.name ?: "")) {
+                    is QuestResult.Success -> call.respond(result.data)
+                    is QuestResult.NotFound -> call.respond(HttpStatusCode.NotFound, mapOf("error" to result.message))
+                    is QuestResult.Conflict -> call.respond(HttpStatusCode.Conflict, mapOf("error" to result.message))
+                    is QuestResult.Forbidden -> call.respond(HttpStatusCode.Forbidden, mapOf("error" to result.message))
                 }
-
-                val data = quest.second
-                val status = data["status"] as? String ?: ""
-                val creatorUid = data["creatorUid"] as? String ?: ""
-
-                if (status != QuestStatus.Open.name) {
-                    return@put call.respond(HttpStatusCode.Conflict, mapOf("error" to "Quest is not open"))
-                }
-                if (creatorUid == token.uid) {
-                    return@put call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Cannot accept own quest"))
-                }
-
-                questRepository.updateQuest(
-                    id,
-                    mapOf(
-                        "status" to QuestStatus.Accepted.name,
-                        "assigneeUid" to token.uid,
-                        "assigneeName" to (token.name ?: ""),
-                    ),
-                )
-
-                call.respond(buildQuest(id, data, QuestStatus.Accepted, token.uid, token.name))
             }
 
             put("/{id}/verify", {
@@ -228,43 +131,12 @@ fun Route.questRoutes() {
                 val token = call.firebasePrincipal
                 val id = call.parameters.getOrFail("id")
 
-                val quest = questRepository.getQuest(id)
-                if (quest == null) {
-                    return@put call.respond(HttpStatusCode.NotFound, mapOf("error" to "Quest not found"))
+                when (val result = questService.verifyQuest(id, token.uid)) {
+                    is QuestResult.Success -> call.respond(result.data)
+                    is QuestResult.NotFound -> call.respond(HttpStatusCode.NotFound, mapOf("error" to result.message))
+                    is QuestResult.Conflict -> call.respond(HttpStatusCode.Conflict, mapOf("error" to result.message))
+                    is QuestResult.Forbidden -> call.respond(HttpStatusCode.Forbidden, mapOf("error" to result.message))
                 }
-
-                val data = quest.second
-                val status = data["status"] as? String ?: ""
-                val creatorUid = data["creatorUid"] as? String ?: ""
-
-                if (status != QuestStatus.Accepted.name) {
-                    return@put call.respond(HttpStatusCode.Conflict, mapOf("error" to "Quest is not accepted"))
-                }
-                if (creatorUid != token.uid) {
-                    return@put call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only creator can verify"))
-                }
-
-                val now = Instant.now().toString()
-                questRepository.updateQuest(
-                    id,
-                    mapOf(
-                        "status" to QuestStatus.Verified.name,
-                        "completedAt" to now,
-                    ),
-                )
-
-                // ポイント付与
-                val assigneeUid = data["assigneeUid"] as? String
-                val assigneeName = data["assigneeName"] as? String ?: ""
-                val rewardPoints = (data["rewardPoints"] as? Number)?.toInt() ?: 0
-                val questTitle = data["title"] as? String ?: ""
-                if (assigneeUid != null && rewardPoints > 0) {
-                    pointRepository.awardPoints(assigneeUid, assigneeName, rewardPoints, "クエスト達成: $questTitle", questId = id)
-                }
-
-                val verifiedQuest = buildQuest(id, data, QuestStatus.Verified)
-                webhookService.notify(WebhookEvent.QUEST_VERIFIED, verifiedQuest)
-                call.respond(verifiedQuest)
             }
 
             delete("/{id}", {
@@ -283,24 +155,12 @@ fun Route.questRoutes() {
                 val token = call.firebasePrincipal
                 val id = call.parameters.getOrFail("id")
 
-                val quest = questRepository.getQuest(id)
-                if (quest == null) {
-                    return@delete call.respond(HttpStatusCode.NotFound, mapOf("error" to "Quest not found"))
+                when (val result = questService.deleteQuest(id, token.uid)) {
+                    is QuestResult.Success -> call.respond(HttpStatusCode.NoContent)
+                    is QuestResult.NotFound -> call.respond(HttpStatusCode.NotFound, mapOf("error" to result.message))
+                    is QuestResult.Conflict -> call.respond(HttpStatusCode.Conflict, mapOf("error" to result.message))
+                    is QuestResult.Forbidden -> call.respond(HttpStatusCode.Forbidden, mapOf("error" to result.message))
                 }
-
-                val data = quest.second
-                val status = data["status"] as? String ?: ""
-                val creatorUid = data["creatorUid"] as? String ?: ""
-
-                if (status != QuestStatus.Open.name && status != QuestStatus.Expired.name) {
-                    return@delete call.respond(HttpStatusCode.Conflict, mapOf("error" to "Can only delete open or expired quests"))
-                }
-                if (creatorUid != token.uid) {
-                    return@delete call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only creator can delete"))
-                }
-
-                questRepository.deleteQuest(id)
-                call.respond(HttpStatusCode.NoContent)
             }
 
             // AI テキスト生成が利用可能かどうかを返す
@@ -367,33 +227,3 @@ fun Route.questRoutes() {
         }
     }
 }
-
-private fun parseCategory(value: String?): model.QuestCategory =
-    try {
-        model.QuestCategory.valueOf(value ?: "Other")
-    } catch (_: IllegalArgumentException) {
-        model.QuestCategory.Other
-    }
-
-private fun buildQuest(
-    id: String,
-    data: Map<String, Any>,
-    statusOverride: QuestStatus,
-    assigneeUidOverride: String? = null,
-    assigneeNameOverride: String? = null,
-): Quest =
-    Quest(
-        id = id,
-        title = data["title"] as? String ?: "",
-        description = data["description"] as? String ?: "",
-        category = parseCategory(data["category"] as? String),
-        rewardPoints = (data["rewardPoints"] as? Number)?.toInt() ?: 0,
-        creatorUid = data["creatorUid"] as? String ?: "",
-        creatorName = data["creatorName"] as? String ?: "",
-        assigneeUid = assigneeUidOverride ?: data["assigneeUid"] as? String,
-        assigneeName = assigneeNameOverride ?: data["assigneeName"] as? String,
-        status = statusOverride,
-        deadline = data["deadline"] as? String,
-        createdAt = data["createdAt"] as? String ?: "",
-        completedAt = data["completedAt"] as? String,
-    )
