@@ -76,15 +76,16 @@ class WebhookService(
     }
 
     /** URL パターンからサービスを判別し JSON 文字列を生成 */
-    private fun buildPayload(
+    internal fun buildPayload(
         url: String,
         event: String,
         quest: Quest,
+        timestamp: String = Instant.now().toString(),
     ): String =
         when (detectService(url)) {
             Service.DISCORD -> json.encodeToString(buildDiscordPayload(event, quest))
             Service.SLACK -> json.encodeToString(buildSlackPayload(event, quest))
-            Service.GENERIC -> json.encodeToString(buildGenericPayload(event, quest))
+            Service.GENERIC -> json.encodeToString(buildGenericPayload(event, quest, timestamp))
         }
 
     private fun detectService(url: String): Service {
@@ -138,6 +139,7 @@ class WebhookService(
     private fun buildGenericPayload(
         event: String,
         quest: Quest,
+        timestamp: String,
     ): GenericPayload =
         GenericPayload(
             event = event,
@@ -148,7 +150,7 @@ class WebhookService(
                     rewardPoints = quest.rewardPoints,
                     creatorName = quest.creatorName,
                 ),
-            timestamp = Instant.now().toString(),
+            timestamp = timestamp,
         )
 
     private enum class Service { DISCORD, SLACK, GENERIC }
