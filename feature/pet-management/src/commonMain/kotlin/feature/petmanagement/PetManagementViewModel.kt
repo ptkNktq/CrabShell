@@ -121,7 +121,7 @@ class PetManagementViewModel(
             val parts = time.split(":")
             val hour = (parts.getOrElse(0) { "0" }.toIntOrNull() ?: 0).coerceIn(0, 23)
             val minute = (parts.getOrElse(1) { "0" }.toIntOrNull() ?: 0).coerceIn(0, 59)
-            "%02d:%02d".format(hour, minute)
+            "${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}"
         }
 
     fun onSaveFeedingSettings() {

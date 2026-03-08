@@ -140,6 +140,7 @@ internal fun FeedingContent(
                         loading = loading,
                         error = error,
                         log = log,
+                        mealOrder = mealOrder,
                         noteDraft = noteDraft,
                         editingMealTime = editingMealTime,
                         onPreviousDay = onPreviousDay,
