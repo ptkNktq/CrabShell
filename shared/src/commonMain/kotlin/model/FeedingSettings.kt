@@ -13,5 +13,5 @@ data class FeedingSettings(
         ),
     val reminderEnabled: Boolean = false,
     val reminderDelayMinutes: Int = 30,
-    val reminderPrefix: String = "\uD83C\uDF5A ごはんリマインダー",
+    val reminderPrefix: String = "🍚 ごはんリマインダー",
 )

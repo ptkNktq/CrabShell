@@ -6,23 +6,30 @@ import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.rememberScrollbarAdapter
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
-import core.ui.extensions.icon
 import core.ui.extensions.label
 import model.MealTime
 import model.Pet
 import org.koin.compose.viewmodel.koinViewModel
+
+/** 順序プリセット: 現実的な巡回パターンのみ */
+private val mealOrderPresets =
+    listOf(
+        listOf(MealTime.MORNING, MealTime.LUNCH, MealTime.EVENING) to "朝→昼→晩",
+        listOf(MealTime.LUNCH, MealTime.EVENING, MealTime.MORNING) to "昼→晩→朝",
+        listOf(MealTime.EVENING, MealTime.MORNING, MealTime.LUNCH) to "晩→朝→昼",
+    )
 
 @Composable
 fun PetManagementScreen(viewModel: PetManagementViewModel = koinViewModel()) {
@@ -43,8 +50,7 @@ fun PetManagementScreen(viewModel: PetManagementViewModel = koinViewModel()) {
         message = viewModel.uiState.message,
         onPetNameChanged = viewModel::onPetNameChanged,
         onSavePetName = viewModel::onSavePetName,
-        onMoveMealUp = viewModel::onMoveMealUp,
-        onMoveMealDown = viewModel::onMoveMealDown,
+        onMealOrderChanged = viewModel::onMealOrderChanged,
         onMealTimeChanged = viewModel::onMealTimeChanged,
         onReminderEnabledChanged = viewModel::onReminderEnabledChanged,
         onReminderDelayChanged = viewModel::onReminderDelayChanged,
@@ -69,8 +75,7 @@ internal fun PetManagementContent(
     message: String?,
     onPetNameChanged: (String, String) -> Unit,
     onSavePetName: (String) -> Unit,
-    onMoveMealUp: (Int) -> Unit,
-    onMoveMealDown: (Int) -> Unit,
+    onMealOrderChanged: (List<MealTime>) -> Unit,
     onMealTimeChanged: (MealTime, String) -> Unit,
     onReminderEnabledChanged: (Boolean) -> Unit,
     onReminderDelayChanged: (String) -> Unit,
@@ -111,70 +116,24 @@ internal fun PetManagementContent(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // ごはんの順序セクション
-            SectionTitle("ごはんの順序")
-            MealOrderCard(
+            // ごはん設定セクション
+            SectionTitle("ごはん設定")
+            FeedingSettingsCard(
                 mealOrder = mealOrder,
-                onMoveMealUp = onMoveMealUp,
-                onMoveMealDown = onMoveMealDown,
-                modifier = cardModifier,
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // ごはんの時刻セクション
-            SectionTitle("ごはんの時刻")
-            MealTimesCard(
                 mealTimes = mealTimes,
-                isSaving = isSaving,
-                onMealTimeChanged = onMealTimeChanged,
-                modifier = cardModifier,
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // リマインダー通知セクション
-            SectionTitle("リマインダー通知")
-            ReminderCard(
                 reminderEnabled = reminderEnabled,
                 reminderDelayMinutes = reminderDelayMinutes,
                 reminderPrefix = reminderPrefix,
                 isSaving = isSaving,
+                message = message,
+                onMealOrderChanged = onMealOrderChanged,
+                onMealTimeChanged = onMealTimeChanged,
                 onReminderEnabledChanged = onReminderEnabledChanged,
                 onReminderDelayChanged = onReminderDelayChanged,
                 onReminderPrefixChanged = onReminderPrefixChanged,
+                onSave = onSaveFeedingSettings,
                 modifier = cardModifier,
             )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // メッセージ
-            if (message != null) {
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = cardModifier,
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            // ごはん設定保存ボタン
-            Button(
-                onClick = onSaveFeedingSettings,
-                modifier = cardModifier.height(48.dp),
-                enabled = !isSaving,
-            ) {
-                if (isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    )
-                } else {
-                    Text("ごはん設定を保存")
-                }
-            }
         }
 
         VerticalScrollbar(
@@ -195,12 +154,14 @@ internal fun PetManagementContent(
 
 @Composable
 private fun SectionTitle(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary,
-    )
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+        )
+    }
     Spacer(modifier = Modifier.height(12.dp))
 }
 
@@ -248,10 +209,20 @@ private fun PetNameCard(
 }
 
 @Composable
-private fun MealOrderCard(
+private fun FeedingSettingsCard(
     mealOrder: List<MealTime>,
-    onMoveMealUp: (Int) -> Unit,
-    onMoveMealDown: (Int) -> Unit,
+    mealTimes: Map<MealTime, String>,
+    reminderEnabled: Boolean,
+    reminderDelayMinutes: Int,
+    reminderPrefix: String,
+    isSaving: Boolean,
+    message: String?,
+    onMealOrderChanged: (List<MealTime>) -> Unit,
+    onMealTimeChanged: (MealTime, String) -> Unit,
+    onReminderEnabledChanged: (Boolean) -> Unit,
+    onReminderDelayChanged: (String) -> Unit,
+    onReminderPrefixChanged: (String) -> Unit,
+    onSave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -260,102 +231,83 @@ private fun MealOrderCard(
     ) {
         Column(
             modifier = Modifier.padding(24.dp).fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            // --- 表示順 ---
+            Text("表示順", style = MaterialTheme.typography.titleSmall)
             Text(
                 text = "ごはん画面での表示順を設定します",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            mealOrder.forEachIndexed { index, mealTime ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Icon(
-                        imageVector = mealTime.icon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = mealTime.label,
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.weight(1f),
-                    )
-                    IconButton(
-                        onClick = { onMoveMealUp(index) },
-                        enabled = index > 0,
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                mealOrderPresets.forEachIndexed { index, (order, label) ->
+                    SegmentedButton(
+                        selected = mealOrder == order,
+                        onClick = { onMealOrderChanged(order) },
+                        shape =
+                            SegmentedButtonDefaults.itemShape(
+                                index = index,
+                                count = mealOrderPresets.size,
+                            ),
                     ) {
-                        Icon(Icons.Default.ArrowUpward, contentDescription = "上へ")
-                    }
-                    IconButton(
-                        onClick = { onMoveMealDown(index) },
-                        enabled = index < mealOrder.size - 1,
-                    ) {
-                        Icon(Icons.Default.ArrowDownward, contentDescription = "下へ")
+                        Text(label, style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
-        }
-    }
-}
 
-@Composable
-private fun MealTimesCard(
-    mealTimes: Map<MealTime, String>,
-    isSaving: Boolean,
-    onMealTimeChanged: (MealTime, String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-    ) {
-        Column(
-            modifier = Modifier.padding(24.dp).fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+            // --- 時刻 ---
+            Text("予定時刻", style = MaterialTheme.typography.titleSmall)
             for (mealTime in MealTime.entries) {
-                OutlinedTextField(
-                    value = mealTimes[mealTime] ?: "",
-                    onValueChange = { onMealTimeChanged(mealTime, it) },
-                    label = { Text("${mealTime.label}ごはんの時刻") },
-                    placeholder = { Text("HH:mm") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isSaving,
-                    leadingIcon = {
-                        Icon(
-                            imageVector = mealTime.icon,
-                            contentDescription = null,
-                        )
-                    },
-                )
-            }
-        }
-    }
-}
+                val timeStr = mealTimes[mealTime] ?: "00:00"
+                val parts = timeStr.split(":")
+                val hour = parts.getOrElse(0) { "00" }
+                val minute = parts.getOrElse(1) { "00" }
 
-@Composable
-private fun ReminderCard(
-    reminderEnabled: Boolean,
-    reminderDelayMinutes: Int,
-    reminderPrefix: String,
-    isSaving: Boolean,
-    onReminderEnabledChanged: (Boolean) -> Unit,
-    onReminderDelayChanged: (String) -> Unit,
-    onReminderPrefixChanged: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-    ) {
-        Column(
-            modifier = Modifier.padding(24.dp).fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = "${mealTime.label}ごはん",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.width(80.dp),
+                    )
+                    OutlinedTextField(
+                        value = hour,
+                        onValueChange = { h ->
+                            val filtered = h.filter { it.isDigit() }.take(2)
+                            onMealTimeChanged(mealTime, "$filtered:$minute")
+                        },
+                        label = { Text("時") },
+                        singleLine = true,
+                        modifier = Modifier.width(72.dp),
+                        enabled = !isSaving,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
+                    )
+                    Text(":", style = MaterialTheme.typography.titleMedium)
+                    OutlinedTextField(
+                        value = minute,
+                        onValueChange = { m ->
+                            val filtered = m.filter { it.isDigit() }.take(2)
+                            onMealTimeChanged(mealTime, "$hour:$filtered")
+                        },
+                        label = { Text("分") },
+                        singleLine = true,
+                        modifier = Modifier.width(72.dp),
+                        enabled = !isSaving,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
+                    )
+                }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+            // --- リマインダー ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -381,6 +333,7 @@ private fun ReminderCard(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isSaving,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             )
 
             OutlinedTextField(
@@ -391,6 +344,31 @@ private fun ReminderCard(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isSaving,
             )
+
+            // --- メッセージ＋保存 ---
+            if (message != null) {
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+
+            Button(
+                onClick = onSave,
+                modifier = Modifier.height(48.dp),
+                enabled = !isSaving,
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                } else {
+                    Text("保存する")
+                }
+            }
         }
     }
 }

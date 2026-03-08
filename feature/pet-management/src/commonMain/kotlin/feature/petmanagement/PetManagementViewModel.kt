@@ -91,24 +91,6 @@ class PetManagementViewModel(
         uiState = uiState.copy(mealOrder = order, message = null)
     }
 
-    fun onMoveMealUp(index: Int) {
-        if (index <= 0) return
-        val newOrder = uiState.mealOrder.toMutableList()
-        val temp = newOrder[index]
-        newOrder[index] = newOrder[index - 1]
-        newOrder[index - 1] = temp
-        uiState = uiState.copy(mealOrder = newOrder, message = null)
-    }
-
-    fun onMoveMealDown(index: Int) {
-        if (index >= uiState.mealOrder.size - 1) return
-        val newOrder = uiState.mealOrder.toMutableList()
-        val temp = newOrder[index]
-        newOrder[index] = newOrder[index + 1]
-        newOrder[index + 1] = temp
-        uiState = uiState.copy(mealOrder = newOrder, message = null)
-    }
-
     fun onMealTimeChanged(
         mealTime: MealTime,
         time: String,
