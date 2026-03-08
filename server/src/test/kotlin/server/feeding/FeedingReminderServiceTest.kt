@@ -45,8 +45,8 @@ class FeedingReminderServiceTest {
     private fun instantAt(
         hour: Int,
         minute: Int,
+        date: java.time.LocalDate = java.time.LocalDate.of(2026, 3, 8),
     ): Instant {
-        val date = java.time.LocalDate.of(2026, 3, 8)
         val time = LocalTime.of(hour, minute)
         return date.atTime(time).atZone(FeedingReminderService.ZONE).toInstant()
     }
@@ -156,6 +156,42 @@ class FeedingReminderServiceTest {
                     description = any(),
                 )
             }
+        }
+
+    @Test
+    fun usesFeeding5amBoundary() =
+        runTest {
+            val eveningOnlySettings =
+                defaultSettings.copy(
+                    mealTimes = mapOf(MealTime.EVENING to "18:00"),
+                )
+            coEvery { feedingSettingsRepository.getSettings() } returns eveningOnlySettings
+            coEvery { petRepository.getPets() } returns listOf(testPet)
+            // 3/9 の 2:00 JST → 5時境界により「3/8」の日付でログを参照する
+            coEvery { feedingRepository.getFeedingLog("pet1", "2026-03-08") } returns emptyLog("2026-03-08")
+
+            service.checkAndNotify(instantAt(2, 0, java.time.LocalDate.of(2026, 3, 9)))
+
+            // 18:30 は過ぎているが、currentTime は 2:00 なのでリマインダー時刻に達していない
+            coVerify(exactly = 0) { webhookService.notify(any<String>(), any<String>(), any<String>(), any<String>()) }
+        }
+
+    @Test
+    fun switchesToNewDateAfter5am() =
+        runTest {
+            val lunchOnlySettings =
+                defaultSettings.copy(
+                    mealTimes = mapOf(MealTime.LUNCH to "12:00"),
+                )
+            coEvery { feedingSettingsRepository.getSettings() } returns lunchOnlySettings
+            coEvery { petRepository.getPets() } returns listOf(testPet)
+            // 3/9 の 5:00 → 境界を超えたので「3/9」の日付
+            coEvery { feedingRepository.getFeedingLog("pet1", "2026-03-09") } returns emptyLog("2026-03-09")
+
+            service.checkAndNotify(instantAt(5, 0, java.time.LocalDate.of(2026, 3, 9)))
+
+            // 12:30 にまだ達していないのでリマインダーなし
+            coVerify(exactly = 0) { webhookService.notify(any<String>(), any<String>(), any<String>(), any<String>()) }
         }
 
     @Test

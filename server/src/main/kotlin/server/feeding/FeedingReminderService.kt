@@ -49,7 +49,14 @@ class FeedingReminderService(
         if (!settings.reminderEnabled) return
 
         val zoned = now.atZone(ZONE)
-        val today = zoned.toLocalDate().toString()
+        // 5時を日付境界とする（クライアント側 feedingDateJs と同じ仕様）
+        val feedingDate =
+            if (zoned.toLocalTime() < DAY_BOUNDARY) {
+                zoned.toLocalDate().minusDays(1)
+            } else {
+                zoned.toLocalDate()
+            }
+        val today = feedingDate.toString()
         val currentTime = zoned.toLocalTime()
         val pets = petRepository.getPets()
 
@@ -121,5 +128,6 @@ class FeedingReminderService(
     companion object {
         const val POLL_INTERVAL_MS = 60_000L
         val ZONE: ZoneId = ZoneId.of("Asia/Tokyo")
+        val DAY_BOUNDARY: LocalTime = LocalTime.of(5, 0)
     }
 }
