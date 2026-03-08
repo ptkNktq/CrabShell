@@ -6,7 +6,9 @@ import org.koin.dsl.module
 import server.cache.CacheManager
 import server.cache.Cacheable
 import server.feeding.FeedingRepository
+import server.feeding.FeedingSettingsRepository
 import server.feeding.FirestoreFeedingRepository
+import server.feeding.FirestoreFeedingSettingsRepository
 import server.garbage.FirestoreGarbageRepository
 import server.garbage.GarbageRepository
 import server.money.FirestoreMoneyRepository
@@ -28,6 +30,7 @@ val serverModule =
         single<QuestRepository> { FirestoreQuestRepository(get()) }
         single<PointRepository> { FirestorePointRepository(get()) }
         single<FeedingRepository> { FirestoreFeedingRepository(get()) }
+        single<FeedingSettingsRepository> { FirestoreFeedingSettingsRepository(get()) }
         single<GarbageRepository> { FirestoreGarbageRepository(get()) }
         single<PetRepository> { FirestorePetRepository(get()) }
         single { WebhookService(get()) }
