@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import core.network.FeedingRepository
+import core.network.FeedingSettingsRepository
 import core.network.PetRepository
 import core.ui.util.feedingDateJs
 import core.ui.util.shiftDateJs
@@ -22,11 +23,13 @@ data class FeedingUiState(
     val noteDraft: String = "",
     val pet: Pet? = null,
     val editingMealTime: MealTime? = null,
+    val mealOrder: List<MealTime> = listOf(MealTime.LUNCH, MealTime.EVENING, MealTime.MORNING),
 )
 
 class FeedingViewModel(
     private val petRepository: PetRepository,
     private val feedingRepository: FeedingRepository,
+    private val feedingSettingsRepository: FeedingSettingsRepository,
 ) : ViewModel() {
     var uiState by mutableStateOf(
         FeedingUiState(
@@ -40,7 +43,8 @@ class FeedingViewModel(
         viewModelScope.launch {
             try {
                 val pet = petRepository.getPets().firstOrNull()
-                uiState = uiState.copy(pet = pet)
+                val settings = feedingSettingsRepository.getSettings()
+                uiState = uiState.copy(pet = pet, mealOrder = settings.mealOrder)
                 onLoadLog(uiState.selectedDate)
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message, isLoading = false)
