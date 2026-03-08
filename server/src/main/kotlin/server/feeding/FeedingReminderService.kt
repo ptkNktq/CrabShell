@@ -59,7 +59,13 @@ class FeedingReminderService(
         for (pet in pets) {
             val log = feedingRepository.getFeedingLog(pet.id, today)
             for ((mealTime, scheduledTimeStr) in settings.mealTimes) {
-                val scheduledTime = LocalTime.parse(scheduledTimeStr)
+                val scheduledTime =
+                    try {
+                        LocalTime.parse(scheduledTimeStr)
+                    } catch (e: Exception) {
+                        logger.warn("Invalid meal time format for $mealTime: '$scheduledTimeStr', skipping")
+                        continue
+                    }
                 val reminderTime = scheduledTime.plusMinutes(settings.reminderDelayMinutes.toLong())
 
                 if (currentTime >= reminderTime && log.feedings[mealTime]?.done != true) {

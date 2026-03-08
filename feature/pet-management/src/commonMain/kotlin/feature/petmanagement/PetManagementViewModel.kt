@@ -107,7 +107,8 @@ class PetManagementViewModel(
     }
 
     fun onReminderDelayChanged(minutes: String) {
-        val value = minutes.toIntOrNull() ?: return
+        val filtered = minutes.filter { it.isDigit() }
+        val value = filtered.toIntOrNull() ?: 0
         uiState = uiState.copy(reminderDelayMinutes = value, message = null)
     }
 
@@ -115,14 +116,23 @@ class PetManagementViewModel(
         uiState = uiState.copy(reminderPrefix = prefix, message = null)
     }
 
+    private fun validateMealTimes(mealTimes: Map<MealTime, String>): Map<MealTime, String> =
+        mealTimes.mapValues { (_, time) ->
+            val parts = time.split(":")
+            val hour = (parts.getOrElse(0) { "0" }.toIntOrNull() ?: 0).coerceIn(0, 23)
+            val minute = (parts.getOrElse(1) { "0" }.toIntOrNull() ?: 0).coerceIn(0, 59)
+            "%02d:%02d".format(hour, minute)
+        }
+
     fun onSaveFeedingSettings() {
-        uiState = uiState.copy(isSaving = true, message = null)
+        val validatedMealTimes = validateMealTimes(uiState.mealTimes)
+        uiState = uiState.copy(isSaving = true, message = null, mealTimes = validatedMealTimes)
         viewModelScope.launch {
             try {
                 val settings =
                     FeedingSettings(
                         mealOrder = uiState.mealOrder,
-                        mealTimes = uiState.mealTimes,
+                        mealTimes = validatedMealTimes,
                         reminderEnabled = uiState.reminderEnabled,
                         reminderDelayMinutes = uiState.reminderDelayMinutes,
                         reminderPrefix = uiState.reminderPrefix,

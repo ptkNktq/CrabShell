@@ -158,6 +158,23 @@ fun Route.feedingRoutes() {
             }
         }) {
             val settings = call.receive<FeedingSettings>()
+            for ((mealTime, timeStr) in settings.mealTimes) {
+                val parts = timeStr.split(":")
+                if (parts.size != 2) {
+                    return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Invalid time format for $mealTime: '$timeStr' (expected HH:mm)"),
+                    )
+                }
+                val hour = parts[0].toIntOrNull()
+                val minute = parts[1].toIntOrNull()
+                if (hour == null || hour !in 0..23 || minute == null || minute !in 0..59) {
+                    return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Invalid time value for $mealTime: '$timeStr' (hour: 0-23, minute: 0-59)"),
+                    )
+                }
+            }
             feedingSettingsRepository.updateSettings(settings)
             call.respond(settings)
         }
