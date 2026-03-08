@@ -1,6 +1,7 @@
 package feature.petmanagement
 
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.ScrollbarStyle
 import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
