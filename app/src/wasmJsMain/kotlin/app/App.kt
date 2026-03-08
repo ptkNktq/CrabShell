@@ -24,6 +24,7 @@ import feature.dashboard.DashboardScreen
 import feature.feeding.FeedingScreen
 import feature.money.MoneyScreen
 import feature.payment.PaymentScreen
+import feature.petmanagement.PetManagementScreen
 import feature.quest.QuestScreen
 import feature.report.OverpaymentScreen
 import feature.report.ReportScreen
@@ -107,6 +108,7 @@ private fun ScreenContent(
         Screen.Money -> MoneyScreen()
         Screen.Overpayment -> OverpaymentScreen()
         Screen.Quest -> QuestScreen()
+        Screen.PetManagement -> PetManagementScreen()
         Screen.Settings -> SettingsScreen()
     }
 }
