@@ -54,7 +54,7 @@ class WebhookService(
             ).await()
     }
 
-    /** fire-and-forget でイベントを送信 */
+    /** fire-and-forget でクエストイベントを送信 */
     fun notify(
         event: String,
         quest: Quest,
@@ -65,6 +65,28 @@ class WebhookService(
                 if (!settings.enabled || settings.url.isBlank() || event !in settings.events) return@launch
 
                 val payload = buildPayload(settings.url, event, quest)
+
+                client.post(settings.url) {
+                    setBody(TextContent(payload, ContentType.Application.Json))
+                }
+            } catch (e: Exception) {
+                logger.warn("Webhook delivery failed for event=$event: ${e.message}")
+            }
+        }
+    }
+
+    /** fire-and-forget で汎用イベントを送信 */
+    fun notify(
+        event: String,
+        title: String,
+        description: String,
+    ) {
+        scope.launch {
+            try {
+                val settings = getSettings()
+                if (!settings.enabled || settings.url.isBlank() || event !in settings.events) return@launch
+
+                val payload = buildSimplePayload(settings.url, event, title, description)
 
                 client.post(settings.url) {
                     setBody(TextContent(payload, ContentType.Application.Json))
@@ -86,6 +108,41 @@ class WebhookService(
             Service.DISCORD -> json.encodeToString(buildDiscordPayload(event, quest))
             Service.SLACK -> json.encodeToString(buildSlackPayload(event, quest))
             Service.GENERIC -> json.encodeToString(buildGenericPayload(event, quest, timestamp))
+        }
+
+    internal fun buildSimplePayload(
+        url: String,
+        event: String,
+        title: String,
+        description: String,
+        timestamp: String = Instant.now().toString(),
+    ): String =
+        when (detectService(url)) {
+            Service.DISCORD ->
+                json.encodeToString(
+                    DiscordPayload(
+                        embeds =
+                            listOf(
+                                DiscordEmbed(
+                                    title = title,
+                                    description = description,
+                                    color = DISCORD_EMBED_COLOR,
+                                    fields = emptyList(),
+                                ),
+                            ),
+                    ),
+                )
+            Service.SLACK ->
+                json.encodeToString(SlackPayload(text = "$title\n$description"))
+            Service.GENERIC ->
+                json.encodeToString(
+                    GenericSimplePayload(
+                        event = event,
+                        title = title,
+                        description = description,
+                        timestamp = timestamp,
+                    ),
+                )
         }
 
     private fun detectService(url: String): Service {
@@ -205,4 +262,12 @@ private data class GenericQuestData(
     val description: String,
     val rewardPoints: Int,
     val creatorName: String,
+)
+
+@Serializable
+private data class GenericSimplePayload(
+    val event: String,
+    val title: String,
+    val description: String,
+    val timestamp: String,
 )

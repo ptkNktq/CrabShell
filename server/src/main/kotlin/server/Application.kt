@@ -29,6 +29,7 @@ import server.auth.firebasePrincipal
 import server.cache.cacheRoutes
 import server.config.EnvConfig
 import server.di.serverModule
+import server.feeding.FeedingReminderService
 import server.feeding.feedingRoutes
 import server.garbage.garbageRoutes
 import server.money.moneyRoutes
@@ -58,6 +59,9 @@ fun Application.module() {
 
     val petRepository by inject<PetRepository>()
     petRepository.seedDefaultPet()
+
+    val feedingReminderService by inject<FeedingReminderService>()
+    feedingReminderService.start()
 
     configureAuth()
     install(ContentNegotiation) { json() }
