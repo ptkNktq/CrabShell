@@ -75,9 +75,13 @@ class WebhookService(
         }
     }
 
-    /** fire-and-forget で汎用イベントを送信 */
+    /**
+     * fire-and-forget で汎用イベントを送信。
+     * [content] は embed 外のテキスト（Discord ではメンション可能）。
+     */
     fun notify(
         event: String,
+        content: String,
         title: String,
         description: String,
     ) {
@@ -86,7 +90,7 @@ class WebhookService(
                 val settings = getSettings()
                 if (!settings.enabled || settings.url.isBlank() || event !in settings.events) return@launch
 
-                val payload = buildSimplePayload(settings.url, event, title, description)
+                val payload = buildSimplePayload(settings.url, event, content, title, description)
 
                 client.post(settings.url) {
                     setBody(TextContent(payload, ContentType.Application.Json))
@@ -113,6 +117,7 @@ class WebhookService(
     internal fun buildSimplePayload(
         url: String,
         event: String,
+        content: String,
         title: String,
         description: String,
         timestamp: String = Instant.now().toString(),
@@ -121,6 +126,7 @@ class WebhookService(
             Service.DISCORD ->
                 json.encodeToString(
                     DiscordPayload(
+                        content = content.ifBlank { null },
                         embeds =
                             listOf(
                                 DiscordEmbed(
@@ -132,12 +138,20 @@ class WebhookService(
                             ),
                     ),
                 )
-            Service.SLACK ->
-                json.encodeToString(SlackPayload(text = "$title\n$description"))
+            Service.SLACK -> {
+                val text =
+                    if (content.isBlank()) {
+                        "$title\n$description"
+                    } else {
+                        "$content\n$title\n$description"
+                    }
+                json.encodeToString(SlackPayload(text = text))
+            }
             Service.GENERIC ->
                 json.encodeToString(
                     GenericSimplePayload(
                         event = event,
+                        content = content,
                         title = title,
                         description = description,
                         timestamp = timestamp,
@@ -222,6 +236,7 @@ class WebhookService(
 
 @Serializable
 private data class DiscordPayload(
+    val content: String? = null,
     val embeds: List<DiscordEmbed>,
 )
 
@@ -267,6 +282,7 @@ private data class GenericQuestData(
 @Serializable
 private data class GenericSimplePayload(
     val event: String,
+    val content: String,
     val title: String,
     val description: String,
     val timestamp: String,

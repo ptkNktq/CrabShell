@@ -339,7 +339,9 @@ private fun FeedingSettingsCard(
             OutlinedTextField(
                 value = reminderPrefix,
                 onValueChange = onReminderPrefixChanged,
-                label = { Text("通知プレフィックス") },
+                label = { Text("通知テキスト（メンション等）") },
+                placeholder = { Text("@everyone") },
+                supportingText = { Text("embed の前に表示されるテキスト") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isSaving,

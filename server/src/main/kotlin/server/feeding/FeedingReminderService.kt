@@ -67,8 +67,9 @@ class FeedingReminderService(
                         val mealLabel = mealTimeLabel(mealTime)
                         webhookService.notify(
                             event = WebhookEvent.FEEDING_REMINDER,
-                            title = "${settings.reminderPrefix}: ${pet.name}",
-                            description = "${mealLabel}ごはん（予定: $scheduledTimeStr）がまだ記録されていません",
+                            content = settings.reminderPrefix,
+                            title = "${pet.name} - ${mealLabel}ごはん",
+                            description = "予定時刻 $scheduledTimeStr から${settings.reminderDelayMinutes}分経過しましたが、まだ記録されていません",
                         )
                         markNotified(pet.id, today, mealTime)
                         logger.info("Sent reminder for pet=${pet.name} meal=$mealTime")
