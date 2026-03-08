@@ -52,33 +52,20 @@ fun Sidebar(
                 Spacer(modifier = Modifier.height(56.dp))
             }
 
-            for (item in primaryNavigationItems) {
-                SidebarItem(
-                    icon = item.icon,
-                    label = item.label,
+            SidebarSections(
+                sections = navigationSections,
+                currentScreen = currentScreen,
+                expanded = effectiveExpanded,
+                onNavigate = onNavigate,
+            )
+
+            if (isAdmin) {
+                SidebarSections(
+                    sections = listOf(adminSection),
+                    currentScreen = currentScreen,
                     expanded = effectiveExpanded,
-                    selected = currentScreen == item.screen,
-                    onClick = { onNavigate(item.screen) },
+                    onNavigate = onNavigate,
                 )
-            }
-
-            if (isAdmin && adminNavigationItems.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                for (item in adminNavigationItems) {
-                    SidebarItem(
-                        icon = item.icon,
-                        label = item.label,
-                        expanded = effectiveExpanded,
-                        selected = currentScreen == item.screen,
-                        onClick = { onNavigate(item.screen) },
-                    )
-                }
             }
 
             Spacer(modifier = Modifier.weight(1f))
@@ -108,6 +95,43 @@ fun Sidebar(
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center,
                 maxLines = 1,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SidebarSections(
+    sections: List<NavigationSection>,
+    currentScreen: Screen,
+    expanded: Boolean,
+    onNavigate: (Screen) -> Unit,
+) {
+    for (section in sections) {
+        if (section.label != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            if (expanded) {
+                Text(
+                    text = section.label,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                )
+            }
+        }
+
+        for (item in section.items) {
+            SidebarItem(
+                icon = item.icon,
+                label = item.label,
+                expanded = expanded,
+                selected = currentScreen == item.screen,
+                onClick = { onNavigate(item.screen) },
             )
         }
     }

@@ -35,31 +35,18 @@ fun DrawerContent(
         Column(modifier = Modifier.fillMaxHeight().padding(vertical = 8.dp)) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            for (item in primaryNavigationItems) {
-                DrawerItem(
-                    icon = item.icon,
-                    label = item.label,
-                    selected = currentScreen == item.screen,
-                    onClick = { onNavigate(item.screen) },
-                )
-            }
+            DrawerSections(
+                sections = navigationSections,
+                currentScreen = currentScreen,
+                onNavigate = onNavigate,
+            )
 
-            if (isAdmin && adminNavigationItems.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+            if (isAdmin) {
+                DrawerSections(
+                    sections = listOf(adminSection),
+                    currentScreen = currentScreen,
+                    onNavigate = onNavigate,
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                for (item in adminNavigationItems) {
-                    DrawerItem(
-                        icon = item.icon,
-                        label = item.label,
-                        selected = currentScreen == item.screen,
-                        onClick = { onNavigate(item.screen) },
-                    )
-                }
             }
 
             Spacer(modifier = Modifier.weight(1f))
@@ -86,6 +73,34 @@ fun DrawerContent(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DrawerSections(
+    sections: List<NavigationSection>,
+    currentScreen: Screen,
+    onNavigate: (Screen) -> Unit,
+) {
+    for (section in sections) {
+        if (section.label != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = section.label,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        for (item in section.items) {
+            DrawerItem(
+                icon = item.icon,
+                label = item.label,
+                selected = currentScreen == item.screen,
+                onClick = { onNavigate(item.screen) },
             )
         }
     }

@@ -12,6 +12,7 @@ enum class Screen(
     Money("お金の管理", "/money", adminOnly = true),
     Overpayment("過払い額", "/overpayment", adminOnly = true),
     Quest("クエスト", "/quest"),
+    PetManagement("ペット管理", "/pet-management"),
     Settings("設定", "/settings"),
     ;
 

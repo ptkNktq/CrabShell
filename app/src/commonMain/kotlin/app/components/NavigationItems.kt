@@ -18,19 +18,48 @@ data class NavigationItem(
     val label: String,
 )
 
-val primaryNavigationItems =
+data class NavigationSection(
+    val label: String?,
+    val items: List<NavigationItem>,
+)
+
+val navigationSections =
     listOf(
-        NavigationItem(Screen.Dashboard, Icons.Default.Home, "ダッシュボード"),
-        NavigationItem(Screen.Feeding, Icons.Default.Pets, "ごはん"),
-        NavigationItem(Screen.Payment, Icons.Default.Payment, "支払い"),
-        NavigationItem(Screen.Report, Icons.Default.BarChart, "家計レポート"),
-        NavigationItem(Screen.Quest, Icons.Default.Stars, "クエスト"),
+        NavigationSection(
+            null,
+            listOf(
+                NavigationItem(Screen.Dashboard, Icons.Default.Home, "ダッシュボード"),
+            ),
+        ),
+        NavigationSection(
+            "ペット",
+            listOf(
+                NavigationItem(Screen.Feeding, Icons.Default.Pets, "ごはん"),
+                NavigationItem(Screen.PetManagement, Icons.Default.Settings, "ペット管理"),
+            ),
+        ),
+        NavigationSection(
+            "お金",
+            listOf(
+                NavigationItem(Screen.Payment, Icons.Default.Payment, "支払い"),
+                NavigationItem(Screen.Report, Icons.Default.BarChart, "家計レポート"),
+            ),
+        ),
+        NavigationSection(
+            "その他",
+            listOf(
+                NavigationItem(Screen.Quest, Icons.Default.Stars, "クエスト"),
+            ),
+        ),
     )
 
-val adminNavigationItems =
-    listOf(
-        NavigationItem(Screen.Money, Icons.Default.AccountBalance, "お金の管理"),
-        NavigationItem(Screen.Overpayment, Icons.Default.Payments, "過払い額"),
+val adminSection =
+    NavigationSection(
+        "管理者",
+        listOf(
+            NavigationItem(Screen.Money, Icons.Default.AccountBalance, "お金の管理"),
+            NavigationItem(Screen.Overpayment, Icons.Default.Payments, "過払い額"),
+        ),
     )
 
 val bottomNavigationItems =
