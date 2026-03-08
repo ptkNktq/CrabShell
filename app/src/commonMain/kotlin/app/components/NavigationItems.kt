@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Pets
@@ -35,7 +36,7 @@ val navigationSections =
             "ペット",
             listOf(
                 NavigationItem(Screen.Feeding, Icons.Default.Pets, "ごはん"),
-                NavigationItem(Screen.PetManagement, Icons.Default.Settings, "ペット管理"),
+                NavigationItem(Screen.PetManagement, Icons.Default.MenuBook, "管理"),
             ),
         ),
         NavigationSection(
