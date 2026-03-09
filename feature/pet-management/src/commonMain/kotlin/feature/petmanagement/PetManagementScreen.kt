@@ -349,7 +349,6 @@ private fun FeedingSettingsCard(
                 onValueChange = onReminderWebhookUrlChanged,
                 label = { Text("Webhook URL") },
                 placeholder = { Text("https://discord.com/api/webhooks/...") },
-                supportingText = { Text("設定画面の Webhook とは独立") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isSaving,
