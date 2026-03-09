@@ -13,16 +13,13 @@ object WebhookEvent {
     const val QUEST_CREATED = "quest_created"
     const val QUEST_COMPLETED = "quest_completed"
     const val QUEST_VERIFIED = "quest_verified"
-    const val FEEDING_REMINDER = "feeding_reminder"
-
-    val all = listOf(QUEST_CREATED, QUEST_COMPLETED, QUEST_VERIFIED, FEEDING_REMINDER)
+    val all = listOf(QUEST_CREATED, QUEST_COMPLETED, QUEST_VERIFIED)
 
     fun label(event: String): String =
         when (event) {
             QUEST_CREATED -> "クエスト作成"
             QUEST_COMPLETED -> "クエスト達成"
             QUEST_VERIFIED -> "クエスト承認"
-            FEEDING_REMINDER -> "ごはんリマインダー"
             else -> event
         }
 }
