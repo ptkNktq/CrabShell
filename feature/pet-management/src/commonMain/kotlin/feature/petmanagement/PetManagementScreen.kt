@@ -45,6 +45,7 @@ fun PetManagementScreen(viewModel: PetManagementViewModel = koinViewModel()) {
         reminderEnabled = viewModel.uiState.reminderEnabled,
         reminderDelayMinutes = viewModel.uiState.reminderDelayMinutes,
         reminderPrefix = viewModel.uiState.reminderPrefix,
+        reminderWebhookUrl = viewModel.uiState.reminderWebhookUrl,
         isLoading = viewModel.uiState.isLoading,
         isSaving = viewModel.uiState.isSaving,
         message = viewModel.uiState.message,
@@ -55,6 +56,7 @@ fun PetManagementScreen(viewModel: PetManagementViewModel = koinViewModel()) {
         onReminderEnabledChanged = viewModel::onReminderEnabledChanged,
         onReminderDelayChanged = viewModel::onReminderDelayChanged,
         onReminderPrefixChanged = viewModel::onReminderPrefixChanged,
+        onReminderWebhookUrlChanged = viewModel::onReminderWebhookUrlChanged,
         onSaveFeedingSettings = viewModel::onSaveFeedingSettings,
         windowSizeClass = windowSizeClass,
     )
@@ -70,6 +72,7 @@ internal fun PetManagementContent(
     reminderEnabled: Boolean,
     reminderDelayMinutes: Int,
     reminderPrefix: String,
+    reminderWebhookUrl: String,
     isLoading: Boolean,
     isSaving: Boolean,
     message: String?,
@@ -80,6 +83,7 @@ internal fun PetManagementContent(
     onReminderEnabledChanged: (Boolean) -> Unit,
     onReminderDelayChanged: (String) -> Unit,
     onReminderPrefixChanged: (String) -> Unit,
+    onReminderWebhookUrlChanged: (String) -> Unit,
     onSaveFeedingSettings: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
@@ -124,6 +128,7 @@ internal fun PetManagementContent(
                 reminderEnabled = reminderEnabled,
                 reminderDelayMinutes = reminderDelayMinutes,
                 reminderPrefix = reminderPrefix,
+                reminderWebhookUrl = reminderWebhookUrl,
                 isSaving = isSaving,
                 message = message,
                 onMealOrderChanged = onMealOrderChanged,
@@ -131,6 +136,7 @@ internal fun PetManagementContent(
                 onReminderEnabledChanged = onReminderEnabledChanged,
                 onReminderDelayChanged = onReminderDelayChanged,
                 onReminderPrefixChanged = onReminderPrefixChanged,
+                onReminderWebhookUrlChanged = onReminderWebhookUrlChanged,
                 onSave = onSaveFeedingSettings,
                 modifier = cardModifier,
             )
@@ -215,6 +221,7 @@ private fun FeedingSettingsCard(
     reminderEnabled: Boolean,
     reminderDelayMinutes: Int,
     reminderPrefix: String,
+    reminderWebhookUrl: String,
     isSaving: Boolean,
     message: String?,
     onMealOrderChanged: (List<MealTime>) -> Unit,
@@ -222,6 +229,7 @@ private fun FeedingSettingsCard(
     onReminderEnabledChanged: (Boolean) -> Unit,
     onReminderDelayChanged: (String) -> Unit,
     onReminderPrefixChanged: (String) -> Unit,
+    onReminderWebhookUrlChanged: (String) -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -334,6 +342,17 @@ private fun FeedingSettingsCard(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isSaving,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
+
+            OutlinedTextField(
+                value = reminderWebhookUrl,
+                onValueChange = onReminderWebhookUrlChanged,
+                label = { Text("Webhook URL") },
+                placeholder = { Text("https://discord.com/api/webhooks/...") },
+                supportingText = { Text("設定画面の Webhook とは独立") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isSaving,
             )
 
             OutlinedTextField(

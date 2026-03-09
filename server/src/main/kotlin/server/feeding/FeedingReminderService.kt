@@ -8,7 +8,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import model.MealTime
-import model.WebhookEvent
 import org.slf4j.LoggerFactory
 import server.pet.PetRepository
 import server.quest.WebhookService
@@ -46,7 +45,7 @@ class FeedingReminderService(
 
     internal suspend fun checkAndNotify(now: Instant = Instant.now()) {
         val settings = feedingSettingsRepository.getSettings()
-        if (!settings.reminderEnabled) return
+        if (!settings.reminderEnabled || settings.reminderWebhookUrl.isBlank()) return
 
         val zoned = now.atZone(ZONE)
         // 5時を日付境界とする（クライアント側 feedingDateJs と同じ仕様）
@@ -78,8 +77,8 @@ class FeedingReminderService(
                 if (currentTime >= reminderTime && log.feedings[mealTime]?.done != true) {
                     if (!alreadyNotified(pet.id, today, mealTime)) {
                         val mealLabel = mealTimeLabel(mealTime)
-                        webhookService.notify(
-                            event = WebhookEvent.FEEDING_REMINDER,
+                        webhookService.sendTo(
+                            url = settings.reminderWebhookUrl,
                             content = settings.reminderPrefix,
                             title = "${pet.name} - ${mealLabel}ごはん",
                             description = "予定時刻 $scheduledTimeStr から${settings.reminderDelayMinutes}分経過しましたが、まだ記録されていません",

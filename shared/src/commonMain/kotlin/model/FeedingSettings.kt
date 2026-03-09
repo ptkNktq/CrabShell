@@ -13,5 +13,6 @@ data class FeedingSettings(
         ),
     val reminderEnabled: Boolean = false,
     val reminderDelayMinutes: Int = 30,
-    val reminderPrefix: String = "ごはんリマインダー",
+    val reminderPrefix: String = "",
+    val reminderWebhookUrl: String = "",
 )

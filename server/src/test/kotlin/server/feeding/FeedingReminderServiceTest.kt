@@ -9,7 +9,6 @@ import model.FeedingLog
 import model.FeedingSettings
 import model.MealTime
 import model.Pet
-import model.WebhookEvent
 import server.pet.PetRepository
 import server.quest.WebhookService
 import java.time.Instant
@@ -40,6 +39,7 @@ class FeedingReminderServiceTest {
                     MealTime.EVENING to "18:00",
                 ),
             reminderDelayMinutes = 30,
+            reminderWebhookUrl = "https://discord.com/api/webhooks/test/token",
         )
 
     private fun instantAt(
@@ -73,7 +73,18 @@ class FeedingReminderServiceTest {
 
             service.checkAndNotify(instantAt(20, 0))
 
-            coVerify(exactly = 0) { webhookService.notify(any<String>(), any<String>(), any<String>(), any<String>()) }
+            coVerify(exactly = 0) { webhookService.sendTo(any<String>(), any<String>(), any<String>(), any<String>()) }
+        }
+
+    @Test
+    fun skipsWhenWebhookUrlBlank() =
+        runTest {
+            coEvery { feedingSettingsRepository.getSettings() } returns
+                defaultSettings.copy(reminderWebhookUrl = "")
+
+            service.checkAndNotify(instantAt(20, 0))
+
+            coVerify(exactly = 0) { webhookService.sendTo(any<String>(), any<String>(), any<String>(), any<String>()) }
         }
 
     @Test
@@ -87,8 +98,8 @@ class FeedingReminderServiceTest {
             service.checkAndNotify(instantAt(12, 30))
 
             coVerify {
-                webhookService.notify(
-                    event = WebhookEvent.FEEDING_REMINDER,
+                webhookService.sendTo(
+                    url = any(),
                     content = any(),
                     title = match { it.contains("昼") },
                     description = any(),
@@ -110,7 +121,7 @@ class FeedingReminderServiceTest {
             // 12:29 → まだリマインダー時刻（12:30）に達していない
             service.checkAndNotify(instantAt(12, 29))
 
-            coVerify(exactly = 0) { webhookService.notify(any<String>(), any<String>(), any<String>(), any<String>()) }
+            coVerify(exactly = 0) { webhookService.sendTo(any<String>(), any<String>(), any<String>(), any<String>()) }
         }
 
     @Test
@@ -124,10 +135,10 @@ class FeedingReminderServiceTest {
             service.checkAndNotify(instantAt(13, 0))
 
             // LUNCH は done なのでリマインダーなし。MORNING は 07:30 を過ぎているので送信。
-            coVerify(exactly = 1) { webhookService.notify(any<String>(), any<String>(), any<String>(), any<String>()) }
+            coVerify(exactly = 1) { webhookService.sendTo(any<String>(), any<String>(), any<String>(), any<String>()) }
             coVerify {
-                webhookService.notify(
-                    event = WebhookEvent.FEEDING_REMINDER,
+                webhookService.sendTo(
+                    url = any(),
                     content = any(),
                     title = match { it.contains("朝") },
                     description = any(),
@@ -149,8 +160,8 @@ class FeedingReminderServiceTest {
 
             // LUNCH のリマインダーは1回だけ（MORNING は 07:30 で2回チェックだが1回のみ送信）
             coVerify(exactly = 1) {
-                webhookService.notify(
-                    event = WebhookEvent.FEEDING_REMINDER,
+                webhookService.sendTo(
+                    url = any(),
                     content = any(),
                     title = match { it.contains("昼") },
                     description = any(),
@@ -173,7 +184,7 @@ class FeedingReminderServiceTest {
             service.checkAndNotify(instantAt(2, 0, java.time.LocalDate.of(2026, 3, 9)))
 
             // 18:30 は過ぎているが、currentTime は 2:00 なのでリマインダー時刻に達していない
-            coVerify(exactly = 0) { webhookService.notify(any<String>(), any<String>(), any<String>(), any<String>()) }
+            coVerify(exactly = 0) { webhookService.sendTo(any<String>(), any<String>(), any<String>(), any<String>()) }
         }
 
     @Test
@@ -191,7 +202,7 @@ class FeedingReminderServiceTest {
             service.checkAndNotify(instantAt(5, 0, java.time.LocalDate.of(2026, 3, 9)))
 
             // 12:30 にまだ達していないのでリマインダーなし
-            coVerify(exactly = 0) { webhookService.notify(any<String>(), any<String>(), any<String>(), any<String>()) }
+            coVerify(exactly = 0) { webhookService.sendTo(any<String>(), any<String>(), any<String>(), any<String>()) }
         }
 
     @Test
@@ -208,6 +219,6 @@ class FeedingReminderServiceTest {
 
             service.checkAndNotify(instantAt(12, 30))
 
-            coVerify(exactly = 2) { webhookService.notify(any<String>(), any<String>(), any<String>(), any<String>()) }
+            coVerify(exactly = 2) { webhookService.sendTo(any<String>(), any<String>(), any<String>(), any<String>()) }
         }
 }

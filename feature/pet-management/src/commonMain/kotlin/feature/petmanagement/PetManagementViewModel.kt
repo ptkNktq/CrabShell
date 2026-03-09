@@ -21,6 +21,7 @@ data class PetManagementUiState(
     val reminderEnabled: Boolean = false,
     val reminderDelayMinutes: Int = 30,
     val reminderPrefix: String = "",
+    val reminderWebhookUrl: String = "",
     val isSaving: Boolean = false,
     val message: String? = null,
 )
@@ -51,6 +52,7 @@ class PetManagementViewModel(
                         reminderEnabled = settings.reminderEnabled,
                         reminderDelayMinutes = settings.reminderDelayMinutes,
                         reminderPrefix = settings.reminderPrefix,
+                        reminderWebhookUrl = settings.reminderWebhookUrl,
                     )
             } catch (e: Exception) {
                 uiState = uiState.copy(isLoading = false, message = "読み込み失敗: ${e.message}")
@@ -116,6 +118,10 @@ class PetManagementViewModel(
         uiState = uiState.copy(reminderPrefix = prefix, message = null)
     }
 
+    fun onReminderWebhookUrlChanged(url: String) {
+        uiState = uiState.copy(reminderWebhookUrl = url, message = null)
+    }
+
     private fun validateMealTimes(mealTimes: Map<MealTime, String>): Map<MealTime, String> =
         mealTimes.mapValues { (_, time) ->
             val parts = time.split(":")
@@ -136,6 +142,7 @@ class PetManagementViewModel(
                         reminderEnabled = uiState.reminderEnabled,
                         reminderDelayMinutes = uiState.reminderDelayMinutes,
                         reminderPrefix = uiState.reminderPrefix,
+                        reminderWebhookUrl = uiState.reminderWebhookUrl,
                     )
                 feedingSettingsRepository.updateSettings(settings)
                 uiState = uiState.copy(isSaving = false, message = "設定を保存しました")

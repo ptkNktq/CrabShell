@@ -101,6 +101,25 @@ class WebhookService(
         }
     }
 
+    /** 指定 URL に直接送信（共有 webhook 設定を使わない） */
+    fun sendTo(
+        url: String,
+        content: String,
+        title: String,
+        description: String,
+    ) {
+        scope.launch {
+            try {
+                val payload = buildSimplePayload(url, "", content, title, description)
+                client.post(url) {
+                    setBody(TextContent(payload, ContentType.Application.Json))
+                }
+            } catch (e: Exception) {
+                logger.warn("Webhook delivery to $url failed: ${e.message}")
+            }
+        }
+    }
+
     /** URL パターンからサービスを判別し JSON 文字列を生成 */
     internal fun buildPayload(
         url: String,
