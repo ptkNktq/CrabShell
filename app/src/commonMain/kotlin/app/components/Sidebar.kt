@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.Screen
+import core.ui.components.AdminBadge
 
 @Composable
 fun Sidebar(

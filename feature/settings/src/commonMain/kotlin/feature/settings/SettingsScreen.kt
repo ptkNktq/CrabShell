@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import core.auth.AuthStateHolder
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
+import core.ui.components.AdminBadge
 import core.ui.extensions.color
 import core.ui.extensions.icon
 import core.ui.extensions.label
@@ -187,7 +188,7 @@ internal fun SettingsContent(
                 Spacer(modifier = Modifier.height(32.dp))
 
                 // ユーザー名管理セクション（管理者のみ）
-                SettingsSection(title = "ユーザー名管理", badge = "管理者") {
+                SettingsSection(title = "ユーザー名管理", showAdminBadge = true) {
                     UserNameManagementCard(
                         users = users,
                         usersSaving = usersSaving,
@@ -200,7 +201,7 @@ internal fun SettingsContent(
                 Spacer(modifier = Modifier.height(32.dp))
 
                 // ゴミ出しセクション（管理者のみ）
-                SettingsSection(title = "ゴミ出し", badge = "管理者") {
+                SettingsSection(title = "ゴミ出し", showAdminBadge = true) {
                     if (garbageLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp))
                     } else {
@@ -219,7 +220,7 @@ internal fun SettingsContent(
                 Spacer(modifier = Modifier.height(32.dp))
 
                 // Webhook 設定セクション（管理者のみ）
-                SettingsSection(title = "Webhook 通知", badge = "管理者") {
+                SettingsSection(title = "Webhook 通知", showAdminBadge = true) {
                     if (webhookLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp))
                     } else {
@@ -241,7 +242,7 @@ internal fun SettingsContent(
                 Spacer(modifier = Modifier.height(32.dp))
 
                 // サーバーキャッシュセクション（管理者のみ）
-                SettingsSection(title = "サーバーキャッシュ", badge = "管理者") {
+                SettingsSection(title = "サーバーキャッシュ", showAdminBadge = true) {
                     CacheRefreshCard(
                         isClearing = cacheClearing,
                         message = cacheMessage,
@@ -271,7 +272,7 @@ internal fun SettingsContent(
 @Composable
 private fun SettingsSection(
     title: String,
-    badge: String? = null,
+    showAdminBadge: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -285,18 +286,8 @@ private fun SettingsSection(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
             )
-            if (badge != null) {
-                Surface(
-                    shape = MaterialTheme.shapes.small,
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                ) {
-                    Text(
-                        text = badge,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    )
-                }
+            if (showAdminBadge) {
+                AdminBadge()
             }
         }
         content()
