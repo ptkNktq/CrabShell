@@ -23,6 +23,7 @@ class FeedingReminderService(
     private val feedingSettingsRepository: FeedingSettingsRepository,
     private val petRepository: PetRepository,
     private val webhookService: WebhookService,
+    private val quickFeedService: QuickFeedService,
     dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
     private val scope = CoroutineScope(dispatcher + SupervisorJob())
@@ -77,12 +78,30 @@ class FeedingReminderService(
                 if (currentTime >= reminderTime && log.feedings[mealTime]?.done != true) {
                     if (!alreadyNotified(pet.id, today, mealTime)) {
                         val mealLabel = mealTimeLabel(mealTime)
-                        webhookService.sendTo(
-                            url = settings.reminderWebhookUrl,
-                            content = settings.reminderPrefix,
-                            title = "${pet.name} - ${mealLabel}ごはん",
-                            description = "予定時刻 $scheduledTimeStr から${settings.reminderDelayMinutes}分経過しましたが、まだ記録されていません",
-                        )
+                        val title = "${pet.name} - ${mealLabel}ごはん"
+                        val description =
+                            "予定時刻 $scheduledTimeStr から${settings.reminderDelayMinutes}分経過しましたが、まだ記録されていません"
+                        val token = quickFeedService.generateToken(pet.id, today, mealTime)
+                        if (token != null && settings.reminderBaseUrl.isNotBlank()) {
+                            val buttonUrl =
+                                "${settings.reminderBaseUrl.trimEnd('/')}/api/feeding/quick-done" +
+                                    "?pet=${pet.id}&date=$today&meal=${mealTime.name}&token=$token"
+                            webhookService.sendToWithButton(
+                                url = settings.reminderWebhookUrl,
+                                content = settings.reminderPrefix,
+                                title = title,
+                                description = description,
+                                buttonLabel = "${mealLabel}ごはん完了",
+                                buttonUrl = buttonUrl,
+                            )
+                        } else {
+                            webhookService.sendTo(
+                                url = settings.reminderWebhookUrl,
+                                content = settings.reminderPrefix,
+                                title = title,
+                                description = description,
+                            )
+                        }
                         markNotified(pet.id, today, mealTime)
                         logger.info("Sent reminder for pet=${pet.name} meal=$mealTime")
                     }

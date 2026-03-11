@@ -20,12 +20,14 @@ class FeedingReminderServiceTest {
     private val feedingSettingsRepository = mockk<FeedingSettingsRepository>()
     private val petRepository = mockk<PetRepository>()
     private val webhookService = mockk<WebhookService>(relaxed = true)
+    private val quickFeedService = mockk<QuickFeedService>(relaxed = true)
     private val service =
         FeedingReminderService(
             feedingRepository,
             feedingSettingsRepository,
             petRepository,
             webhookService,
+            quickFeedService,
         )
 
     private val testPet = Pet(id = "pet1", name = "ぬい")

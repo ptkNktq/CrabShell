@@ -24,6 +24,9 @@ fun Route.feedingRoutes() {
     val feedingSettingsRepository by inject<FeedingSettingsRepository>()
     val petRepository by inject<PetRepository>()
 
+    // 認証不要: Discord ボタンからのワンクリック餌付け完了
+    quickFeedRoutes()
+
     route("/pets/{petId}/feeding") {
         authenticated {
             get("/{date}", {

@@ -120,6 +120,57 @@ class WebhookService(
         }
     }
 
+    /** 指定 URL に直接送信（Discord のみリンクボタン付き） */
+    fun sendToWithButton(
+        url: String,
+        content: String,
+        title: String,
+        description: String,
+        buttonLabel: String,
+        buttonUrl: String,
+    ) {
+        scope.launch {
+            try {
+                val payload =
+                    if (detectService(url) == Service.DISCORD) {
+                        json.encodeToString(
+                            DiscordPayload(
+                                content = content.ifBlank { null },
+                                embeds =
+                                    listOf(
+                                        DiscordEmbed(
+                                            title = title,
+                                            description = description,
+                                            color = DISCORD_EMBED_COLOR,
+                                            fields = emptyList(),
+                                        ),
+                                    ),
+                                components =
+                                    listOf(
+                                        DiscordActionRow(
+                                            components =
+                                                listOf(
+                                                    DiscordButton(
+                                                        label = buttonLabel,
+                                                        url = buttonUrl,
+                                                    ),
+                                                ),
+                                        ),
+                                    ),
+                            ),
+                        )
+                    } else {
+                        buildSimplePayload(url, "", content, title, description)
+                    }
+                client.post(url) {
+                    setBody(TextContent(payload, ContentType.Application.Json))
+                }
+            } catch (e: Exception) {
+                logger.warn("Webhook delivery to $url failed: ${e.message}")
+            }
+        }
+    }
+
     /** URL パターンからサービスを判別し JSON 文字列を生成 */
     internal fun buildPayload(
         url: String,
@@ -257,6 +308,23 @@ class WebhookService(
 private data class DiscordPayload(
     val content: String? = null,
     val embeds: List<DiscordEmbed>,
+    val components: List<DiscordActionRow>? = null,
+)
+
+/** Discord Action Row (type=1) */
+@Serializable
+private data class DiscordActionRow(
+    val type: Int = 1,
+    val components: List<DiscordButton>,
+)
+
+/** Discord Link Button (type=2, style=5) */
+@Serializable
+private data class DiscordButton(
+    val type: Int = 2,
+    val style: Int = 5,
+    val label: String,
+    val url: String,
 )
 
 @Serializable

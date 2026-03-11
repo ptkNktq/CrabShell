@@ -10,6 +10,7 @@ import server.feeding.FeedingRepository
 import server.feeding.FeedingSettingsRepository
 import server.feeding.FirestoreFeedingRepository
 import server.feeding.FirestoreFeedingSettingsRepository
+import server.feeding.QuickFeedService
 import server.garbage.FirestoreGarbageRepository
 import server.garbage.GarbageRepository
 import server.money.FirestoreMoneyRepository
@@ -35,7 +36,8 @@ val serverModule =
         single<GarbageRepository> { FirestoreGarbageRepository(get()) }
         single<PetRepository> { FirestorePetRepository(get()) }
         single { WebhookService(get()) }
-        single { FeedingReminderService(get(), get(), get(), get()) }
+        single { QuickFeedService(get()) }
+        single { FeedingReminderService(get(), get(), get(), get(), get()) }
         single { QuestService(get(), get(), get()) }
         single { BalanceCalculationService() }
         single {
