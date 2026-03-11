@@ -87,6 +87,7 @@ internal fun PetManagementContent(
     onReminderDelayChanged: (String) -> Unit,
     onReminderPrefixChanged: (String) -> Unit,
     onReminderWebhookUrlChanged: (String) -> Unit,
+    onReminderBaseUrlChanged: (String) -> Unit,
     onSaveFeedingSettings: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
