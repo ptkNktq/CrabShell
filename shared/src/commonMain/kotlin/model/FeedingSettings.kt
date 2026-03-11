@@ -15,4 +15,5 @@ data class FeedingSettings(
     val reminderDelayMinutes: Int = 30,
     val reminderPrefix: String = "",
     val reminderWebhookUrl: String = "",
+    val reminderBaseUrl: String = "",
 )

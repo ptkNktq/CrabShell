@@ -37,6 +37,8 @@ class FirestoreFeedingSettingsRepository(
             reminderEnabled = data["reminderEnabled"] as? Boolean ?: false,
             reminderDelayMinutes = (data["reminderDelayMinutes"] as? Long)?.toInt() ?: 30,
             reminderPrefix = data["reminderPrefix"] as? String ?: FeedingSettings().reminderPrefix,
+            reminderWebhookUrl = data["reminderWebhookUrl"] as? String ?: FeedingSettings().reminderWebhookUrl,
+            reminderBaseUrl = data["reminderBaseUrl"] as? String ?: FeedingSettings().reminderBaseUrl,
         )
     }
 
@@ -49,6 +51,8 @@ class FirestoreFeedingSettingsRepository(
                     "reminderEnabled" to settings.reminderEnabled,
                     "reminderDelayMinutes" to settings.reminderDelayMinutes,
                     "reminderPrefix" to settings.reminderPrefix,
+                    "reminderWebhookUrl" to settings.reminderWebhookUrl,
+                    "reminderBaseUrl" to settings.reminderBaseUrl,
                 ),
             ).await()
     }
