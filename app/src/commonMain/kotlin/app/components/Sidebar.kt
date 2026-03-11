@@ -170,18 +170,3 @@ private fun SidebarItem(
         }
     }
 }
-
-@Composable
-private fun AdminBadge() {
-    Surface(
-        color = MaterialTheme.colorScheme.tertiary,
-        shape = MaterialTheme.shapes.extraSmall,
-    ) {
-        Text(
-            text = "管理者",
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onTertiary,
-        )
-    }
-}
