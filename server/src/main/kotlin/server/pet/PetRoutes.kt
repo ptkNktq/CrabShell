@@ -8,6 +8,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import model.Pet
 import org.koin.ktor.ext.inject
+import server.auth.adminOnly
 import server.auth.authenticated
 
 fun Route.petRoutes() {
@@ -25,10 +26,12 @@ fun Route.petRoutes() {
         }) {
             call.respond(petRepository.getPets())
         }
+    }
 
+    adminOnly {
         put("/pets/{petId}", {
             tags = listOf("pet")
-            summary = "ペット名更新"
+            summary = "ペット名更新（admin）"
             request {
                 pathParameter<String>("petId") { description = "ペット ID" }
                 body<Map<String, String>> { description = "name フィールド" }

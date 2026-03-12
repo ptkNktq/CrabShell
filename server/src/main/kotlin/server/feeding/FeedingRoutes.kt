@@ -13,6 +13,7 @@ import model.FeedingLog
 import model.FeedingSettings
 import model.MealTime
 import org.koin.ktor.ext.inject
+import server.auth.adminOnly
 import server.auth.authenticated
 import server.pet.PetRepository
 import server.pet.verifyPetMember
@@ -132,10 +133,10 @@ fun Route.feedingRoutes() {
         }
     }
 
-    authenticated {
+    adminOnly {
         get("/feeding/settings", {
             tags = listOf("feeding")
-            summary = "給餌設定取得"
+            summary = "給餌設定取得（admin）"
             response {
                 code(HttpStatusCode.OK) {
                     body<FeedingSettings>()
@@ -147,7 +148,7 @@ fun Route.feedingRoutes() {
 
         put("/feeding/settings", {
             tags = listOf("feeding")
-            summary = "給餌設定更新"
+            summary = "給餌設定更新（admin）"
             request {
                 body<FeedingSettings>()
             }
