@@ -59,6 +59,18 @@ class FirestorePetRepository(
         return uid in members
     }
 
+    override suspend fun updatePetName(
+        petId: String,
+        name: String,
+    ) {
+        firestore
+            .collection("pets")
+            .document(petId)
+            .update("name", name)
+            .await()
+        cache.remove("all")
+    }
+
     override fun seedDefaultPet() {
         val docRef = firestore.collection("pets").document(DEFAULT_PET_ID)
         val doc = docRef.get().get()

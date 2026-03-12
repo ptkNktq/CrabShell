@@ -128,6 +128,8 @@ feature/dashboard/   → DashboardViewModel + DashboardScreen (wasmJsMain)
 feature/report/      → ReportSummaryCard + MonthlyBarChart + CategoryBreakdown (commonMain)
                        ReportViewModel + ReportScreen (wasmJsMain)
                        Depends on :core:network, :core:ui, :shared
+feature/pet-management/ → PetManagementViewModel + PetManagementScreen (commonMain)
+                       Depends on :core:network, :core:ui, :shared
 feature/settings/    → 全ファイル commonMain (wasmJs 固有 API 不使用)
                        Depends on :core:auth, :core:network, :core:ui, :shared
 
@@ -164,6 +166,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Core UI (wasmJsMain): `core/ui/src/wasmJsMain/kotlin/core/ui/` (DateUtils.kt, CalendarView.kt)
 - Feature auth (commonMain): `feature/auth/src/commonMain/kotlin/feature/auth/` (LoginViewModel, LoginScreen)
 - Feature auth (wasmJsMain): `feature/auth/src/wasmJsMain/kotlin/feature/auth/` (AuthenticatedApp, PasskeySetupViewModel)
+- Feature pet-management (commonMain): `feature/pet-management/src/commonMain/kotlin/feature/petmanagement/` (PetManagementViewModel, PetManagementScreen)
 - Feature settings (commonMain): `feature/settings/src/commonMain/kotlin/feature/settings/` (全ファイル)
 - Feature dashboard: `feature/dashboard/src/wasmJsMain/kotlin/feature/dashboard/` (DashboardViewModel, DashboardScreen)
 - Feature report (commonMain): `feature/report/src/commonMain/kotlin/feature/report/components/` (UI コンポーネント)

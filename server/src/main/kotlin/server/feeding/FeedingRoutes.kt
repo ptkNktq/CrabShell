@@ -10,8 +10,10 @@ import io.ktor.server.routing.*
 import io.ktor.server.util.getOrFail
 import model.Feeding
 import model.FeedingLog
+import model.FeedingSettings
 import model.MealTime
 import org.koin.ktor.ext.inject
+import server.auth.adminOnly
 import server.auth.authenticated
 import server.pet.PetRepository
 import server.pet.verifyPetMember
@@ -20,6 +22,7 @@ import java.time.Instant
 
 fun Route.feedingRoutes() {
     val feedingRepository by inject<FeedingRepository>()
+    val feedingSettingsRepository by inject<FeedingSettingsRepository>()
     val petRepository by inject<PetRepository>()
 
     route("/pets/{petId}/feeding") {
@@ -127,6 +130,54 @@ fun Route.feedingRoutes() {
                 feedingRepository.updateNote(petId, date, note)
                 call.respond(mapOf("note" to note))
             }
+        }
+    }
+
+    adminOnly {
+        get("/feeding/settings", {
+            tags = listOf("feeding")
+            summary = "給餌設定取得（admin）"
+            response {
+                code(HttpStatusCode.OK) {
+                    body<FeedingSettings>()
+                }
+            }
+        }) {
+            call.respond(feedingSettingsRepository.getSettings())
+        }
+
+        put("/feeding/settings", {
+            tags = listOf("feeding")
+            summary = "給餌設定更新（admin）"
+            request {
+                body<FeedingSettings>()
+            }
+            response {
+                code(HttpStatusCode.OK) {
+                    body<FeedingSettings>()
+                }
+            }
+        }) {
+            val settings = call.receive<FeedingSettings>()
+            for ((mealTime, timeStr) in settings.mealTimes) {
+                val parts = timeStr.split(":")
+                if (parts.size != 2) {
+                    return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Invalid time format for $mealTime: '$timeStr' (expected HH:mm)"),
+                    )
+                }
+                val hour = parts[0].toIntOrNull()
+                val minute = parts[1].toIntOrNull()
+                if (hour == null || hour !in 0..23 || minute == null || minute !in 0..59) {
+                    return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Invalid time value for $mealTime: '$timeStr' (hour: 0-23, minute: 0-59)"),
+                    )
+                }
+            }
+            feedingSettingsRepository.updateSettings(settings)
+            call.respond(settings)
         }
     }
 }
