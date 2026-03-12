@@ -12,6 +12,11 @@ interface PetRepository {
         uid: String,
     ): Boolean
 
+    suspend fun updatePetName(
+        petId: String,
+        name: String,
+    )
+
     /** pets コレクションにデフォルトペットが存在しなければ作成する（ブロッキング: Application 初期化時用） */
     fun seedDefaultPet()
 }
