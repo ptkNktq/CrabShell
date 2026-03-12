@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.Screen
+import core.ui.components.AdminBadge
 
 @Composable
 fun DrawerContent(
@@ -35,29 +36,25 @@ fun DrawerContent(
         Column(modifier = Modifier.fillMaxHeight().padding(vertical = 8.dp)) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            for (item in primaryNavigationItems) {
-                DrawerItem(
-                    icon = item.icon,
-                    label = item.label,
-                    selected = currentScreen == item.screen,
-                    onClick = { onNavigate(item.screen) },
-                )
-            }
+            for (section in navigationSections) {
+                if (section.label != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = section.label,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
 
-            if (isAdmin && adminNavigationItems.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                for (item in adminNavigationItems) {
+                for (item in section.items) {
+                    if (item.screen.adminOnly && !isAdmin) continue
                     DrawerItem(
                         icon = item.icon,
                         label = item.label,
                         selected = currentScreen == item.screen,
                         onClick = { onNavigate(item.screen) },
+                        isAdminOnly = item.screen.adminOnly,
                     )
                 }
             }
@@ -97,6 +94,7 @@ private fun DrawerItem(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
+    isAdminOnly: Boolean = false,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isHovered by interactionSource.collectIsHoveredAsState()
@@ -135,5 +133,9 @@ private fun DrawerItem(
             color = contentColor,
             maxLines = 1,
         )
+        if (isAdminOnly) {
+            Spacer(modifier = Modifier.weight(1f))
+            AdminBadge()
+        }
     }
 }

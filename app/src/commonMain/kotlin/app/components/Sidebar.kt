@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.Screen
+import core.ui.components.AdminBadge
 
 @Composable
 fun Sidebar(
@@ -52,31 +53,34 @@ fun Sidebar(
                 Spacer(modifier = Modifier.height(56.dp))
             }
 
-            for (item in primaryNavigationItems) {
-                SidebarItem(
-                    icon = item.icon,
-                    label = item.label,
-                    expanded = effectiveExpanded,
-                    selected = currentScreen == item.screen,
-                    onClick = { onNavigate(item.screen) },
-                )
-            }
+            for (section in navigationSections) {
+                // セクションヘッダー
+                if (section.label != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    if (effectiveExpanded) {
+                        Text(
+                            text = section.label,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                        )
+                    }
+                }
 
-            if (isAdmin && adminNavigationItems.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                for (item in adminNavigationItems) {
+                for (item in section.items) {
+                    if (item.screen.adminOnly && !isAdmin) continue
                     SidebarItem(
                         icon = item.icon,
                         label = item.label,
                         expanded = effectiveExpanded,
                         selected = currentScreen == item.screen,
                         onClick = { onNavigate(item.screen) },
+                        isAdminOnly = item.screen.adminOnly,
                     )
                 }
             }
@@ -120,6 +124,7 @@ private fun SidebarItem(
     expanded: Boolean,
     selected: Boolean = false,
     onClick: () -> Unit = {},
+    isAdminOnly: Boolean = false,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isHovered by interactionSource.collectIsHoveredAsState()
@@ -159,6 +164,10 @@ private fun SidebarItem(
                 color = contentColor,
                 maxLines = 1,
             )
+            if (isAdminOnly) {
+                Spacer(modifier = Modifier.weight(1f))
+                AdminBadge()
+            }
         }
     }
 }
