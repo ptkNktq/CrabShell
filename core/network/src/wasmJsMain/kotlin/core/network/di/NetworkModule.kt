@@ -4,6 +4,8 @@ import core.network.CacheRepository
 import core.network.CacheRepositoryImpl
 import core.network.FeedingRepository
 import core.network.FeedingRepositoryImpl
+import core.network.FeedingSettingsRepository
+import core.network.FeedingSettingsRepositoryImpl
 import core.network.GarbageScheduleRepository
 import core.network.GarbageScheduleRepositoryImpl
 import core.network.MoneyRepository
@@ -33,6 +35,7 @@ val networkModule =
         single<HttpClient> { createAuthenticatedClient(get(), get()) }
         single<PetRepository> { PetRepositoryImpl(get()) }
         single<FeedingRepository> { FeedingRepositoryImpl(get()) }
+        single<FeedingSettingsRepository> { FeedingSettingsRepositoryImpl(get()) }
         single<GarbageScheduleRepository> { GarbageScheduleRepositoryImpl(get()) }
         single<MoneyRepository> { MoneyRepositoryImpl(get()) }
         single<ReportRepository> { ReportRepositoryImpl(get()) }
