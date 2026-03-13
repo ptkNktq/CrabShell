@@ -1,4 +1,4 @@
-FROM gradle:9.3.1-jdk21 AS build
+FROM gradle:9.4.0-jdk21 AS build
 RUN apt-get update && apt-get install -y libatomic1 && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
