@@ -21,6 +21,7 @@ import io.ktor.server.plugins.ratelimit.RateLimit
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.coroutines.launch
 import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
 import server.auth.FirebaseAdmin
@@ -61,7 +62,7 @@ fun Application.module() {
     petRepository.seedDefaultPet()
 
     val feedingReminderService by inject<FeedingReminderService>()
-    feedingReminderService.start()
+    launch { feedingReminderService.runPollingLoop() }
 
     configureAuth()
     install(ContentNegotiation) { json() }

@@ -5,23 +5,20 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.content.TextContent
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import model.MealTime
 import org.slf4j.LoggerFactory
 import server.pet.PetRepository
+import server.util.DISCORD_EMBED_COLOR
+import server.util.WebhookServiceType
+import server.util.detectWebhookService
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
-import java.util.concurrent.ConcurrentHashMap
 
 private val logger = LoggerFactory.getLogger("FeedingReminderService")
 private val JST = ZoneId.of("Asia/Tokyo")
@@ -30,26 +27,23 @@ class FeedingReminderService(
     private val feedingRepository: FeedingRepository,
     private val feedingSettingsRepository: FeedingSettingsRepository,
     private val petRepository: PetRepository,
-    dispatcher: CoroutineDispatcher = Dispatchers.IO,
-    internal var clientFactory: () -> HttpClient = { HttpClient() },
+    private val client: HttpClient = HttpClient(),
 ) {
-    private val scope = CoroutineScope(dispatcher + SupervisorJob())
     private val json = Json
 
+    // 単一コルーチンからのみアクセスされるため通常の HashMap で十分
     // key: "petId:date", value: 通知済みの MealTime セット
-    internal val notifiedMap = ConcurrentHashMap<String, MutableSet<MealTime>>()
-    private var lastDate: String? = null
+    internal val notifiedMap = HashMap<String, MutableSet<MealTime>>()
 
-    fun start() {
-        scope.launch {
-            while (true) {
-                try {
-                    checkAndNotify()
-                } catch (e: Exception) {
-                    logger.warn("Feeding reminder check failed: ${e.message}")
-                }
-                delay(60_000L)
+    /** Application のコルーチンスコープから呼び出す。キャンセルで停止する。 */
+    suspend fun runPollingLoop() {
+        while (true) {
+            try {
+                checkAndNotify()
+            } catch (e: Exception) {
+                logger.warn("Feeding reminder check failed: ${e.message}")
             }
+            delay(60_000L)
         }
     }
 
@@ -61,11 +55,8 @@ class FeedingReminderService(
         val feedingDate = feedingDate(jstNow)
         val currentTime = jstNow.toLocalTime()
 
-        // 日付変更時にクリーンアップ
-        if (lastDate != null && lastDate != feedingDate) {
-            notifiedMap.keys.removeAll { it.endsWith(":$lastDate") }
-        }
-        lastDate = feedingDate
+        // 現在の feedingDate 以外のエントリを全て削除（数日停止後の再起動にも対応）
+        notifiedMap.keys.removeAll { !it.endsWith(":$feedingDate") }
 
         val pets = petRepository.getPets()
 
@@ -112,11 +103,8 @@ class FeedingReminderService(
         val mealLabel = mealTimeLabel(mealTime)
         val payload = buildPayload(url, prefix, petName, mealLabel, scheduledTime)
         try {
-            val client = clientFactory()
-            client.use {
-                it.post(url) {
-                    setBody(TextContent(payload, ContentType.Application.Json))
-                }
+            client.post(url) {
+                setBody(TextContent(payload, ContentType.Application.Json))
             }
         } catch (e: Exception) {
             logger.warn("Feeding reminder webhook failed: ${e.message}")
@@ -131,8 +119,8 @@ class FeedingReminderService(
         scheduledTime: String,
     ): String {
         val message = "${petName}の${mealLabel}ごはん（予定: $scheduledTime）がまだ記録されていません"
-        return when (detectService(url)) {
-            Service.DISCORD -> {
+        return when (detectWebhookService(url)) {
+            WebhookServiceType.DISCORD -> {
                 val discord =
                     DiscordReminderPayload(
                         content = prefix.ifBlank { null },
@@ -153,11 +141,11 @@ class FeedingReminderService(
                     )
                 json.encodeToString(discord)
             }
-            Service.SLACK -> {
+            WebhookServiceType.SLACK -> {
                 val text = if (prefix.isBlank()) message else "$prefix $message"
                 json.encodeToString(SlackReminderPayload(text = text))
             }
-            Service.GENERIC -> {
+            WebhookServiceType.GENERIC -> {
                 json.encodeToString(
                     GenericReminderPayload(
                         event = "feeding_reminder",
@@ -171,15 +159,6 @@ class FeedingReminderService(
         }
     }
 
-    private fun detectService(url: String): Service {
-        val lower = url.lowercase()
-        return when {
-            "discord.com/api/webhooks/" in lower || "discordapp.com/api/webhooks/" in lower -> Service.DISCORD
-            "hooks.slack.com/services/" in lower -> Service.SLACK
-            else -> Service.GENERIC
-        }
-    }
-
     private fun mealTimeLabel(mealTime: MealTime): String =
         when (mealTime) {
             MealTime.MORNING -> "朝"
@@ -187,11 +166,7 @@ class FeedingReminderService(
             MealTime.EVENING -> "晩"
         }
 
-    private enum class Service { DISCORD, SLACK, GENERIC }
-
     companion object {
-        private const val DISCORD_EMBED_COLOR = 0xE8844A
-
         /** JST 5:00 AM を日付境界とする給餌日付を算出 */
         internal fun feedingDate(jstNow: ZonedDateTime): String {
             val adjusted = if (jstNow.hour < 5) jstNow.minusDays(1) else jstNow

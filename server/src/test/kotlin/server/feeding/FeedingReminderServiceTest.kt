@@ -28,25 +28,23 @@ class FeedingReminderServiceTest {
     private val petRepository = mockk<PetRepository>()
     private val webhookRequests = mutableListOf<String>()
 
-    private fun createService(): FeedingReminderService {
-        val service =
-            FeedingReminderService(
-                feedingRepository = feedingRepository,
-                feedingSettingsRepository = feedingSettingsRepository,
-                petRepository = petRepository,
-            )
-        service.clientFactory = {
-            HttpClient(MockEngine) {
-                engine {
-                    addHandler { request ->
-                        webhookRequests.add(request.url.toString())
-                        respond("ok", HttpStatusCode.OK)
-                    }
+    private val mockClient =
+        HttpClient(MockEngine) {
+            engine {
+                addHandler { request ->
+                    webhookRequests.add(request.url.toString())
+                    respond("ok", HttpStatusCode.OK)
                 }
             }
         }
-        return service
-    }
+
+    private fun createService(): FeedingReminderService =
+        FeedingReminderService(
+            feedingRepository = feedingRepository,
+            feedingSettingsRepository = feedingSettingsRepository,
+            petRepository = petRepository,
+            client = mockClient,
+        )
 
     private fun jstInstant(
         hour: Int,
