@@ -42,6 +42,10 @@ fun PetManagementScreen(viewModel: PetManagementViewModel = koinViewModel()) {
         editingPetNames = viewModel.uiState.editingPetNames,
         mealOrder = viewModel.uiState.mealOrder,
         mealTimes = viewModel.uiState.mealTimes,
+        reminderEnabled = viewModel.uiState.reminderEnabled,
+        reminderWebhookUrl = viewModel.uiState.reminderWebhookUrl,
+        reminderDelayMinutes = viewModel.uiState.reminderDelayMinutes,
+        reminderPrefix = viewModel.uiState.reminderPrefix,
         isLoading = viewModel.uiState.isLoading,
         isSaving = viewModel.uiState.isSaving,
         message = viewModel.uiState.message,
@@ -49,6 +53,10 @@ fun PetManagementScreen(viewModel: PetManagementViewModel = koinViewModel()) {
         onSavePetName = viewModel::onSavePetName,
         onMealOrderChanged = viewModel::onMealOrderChanged,
         onMealTimeChanged = viewModel::onMealTimeChanged,
+        onReminderEnabledChanged = viewModel::onReminderEnabledChanged,
+        onReminderWebhookUrlChanged = viewModel::onReminderWebhookUrlChanged,
+        onReminderDelayMinutesChanged = viewModel::onReminderDelayMinutesChanged,
+        onReminderPrefixChanged = viewModel::onReminderPrefixChanged,
         onSaveFeedingSettings = viewModel::onSaveFeedingSettings,
         windowSizeClass = windowSizeClass,
     )
@@ -61,6 +69,10 @@ internal fun PetManagementContent(
     editingPetNames: Map<String, String>,
     mealOrder: List<MealTime>,
     mealTimes: Map<MealTime, String>,
+    reminderEnabled: Boolean,
+    reminderWebhookUrl: String,
+    reminderDelayMinutes: Int,
+    reminderPrefix: String,
     isLoading: Boolean,
     isSaving: Boolean,
     message: String?,
@@ -68,6 +80,10 @@ internal fun PetManagementContent(
     onSavePetName: (String) -> Unit,
     onMealOrderChanged: (List<MealTime>) -> Unit,
     onMealTimeChanged: (MealTime, String) -> Unit,
+    onReminderEnabledChanged: (Boolean) -> Unit,
+    onReminderWebhookUrlChanged: (String) -> Unit,
+    onReminderDelayMinutesChanged: (Int) -> Unit,
+    onReminderPrefixChanged: (String) -> Unit,
     onSaveFeedingSettings: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
@@ -109,10 +125,18 @@ internal fun PetManagementContent(
             FeedingSettingsCard(
                 mealOrder = mealOrder,
                 mealTimes = mealTimes,
+                reminderEnabled = reminderEnabled,
+                reminderWebhookUrl = reminderWebhookUrl,
+                reminderDelayMinutes = reminderDelayMinutes,
+                reminderPrefix = reminderPrefix,
                 isSaving = isSaving,
                 message = message,
                 onMealOrderChanged = onMealOrderChanged,
                 onMealTimeChanged = onMealTimeChanged,
+                onReminderEnabledChanged = onReminderEnabledChanged,
+                onReminderWebhookUrlChanged = onReminderWebhookUrlChanged,
+                onReminderDelayMinutesChanged = onReminderDelayMinutesChanged,
+                onReminderPrefixChanged = onReminderPrefixChanged,
                 onSave = onSaveFeedingSettings,
                 modifier = cardModifier,
             )
@@ -194,10 +218,18 @@ private fun PetNameCard(
 private fun FeedingSettingsCard(
     mealOrder: List<MealTime>,
     mealTimes: Map<MealTime, String>,
+    reminderEnabled: Boolean,
+    reminderWebhookUrl: String,
+    reminderDelayMinutes: Int,
+    reminderPrefix: String,
     isSaving: Boolean,
     message: String?,
     onMealOrderChanged: (List<MealTime>) -> Unit,
     onMealTimeChanged: (MealTime, String) -> Unit,
+    onReminderEnabledChanged: (Boolean) -> Unit,
+    onReminderWebhookUrlChanged: (String) -> Unit,
+    onReminderDelayMinutesChanged: (Int) -> Unit,
+    onReminderPrefixChanged: (String) -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -279,6 +311,62 @@ private fun FeedingSettingsCard(
                         textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
                     )
                 }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+            // --- リマインダー通知 ---
+            Text("リマインダー通知", style = MaterialTheme.typography.titleSmall)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("有効", style = MaterialTheme.typography.bodyMedium)
+                Switch(
+                    checked = reminderEnabled,
+                    onCheckedChange = onReminderEnabledChanged,
+                    enabled = !isSaving,
+                )
+            }
+            OutlinedTextField(
+                value = reminderWebhookUrl,
+                onValueChange = onReminderWebhookUrlChanged,
+                label = { Text("Webhook URL") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isSaving && reminderEnabled,
+            )
+            OutlinedTextField(
+                value = reminderPrefix,
+                onValueChange = onReminderPrefixChanged,
+                label = { Text("通知テキスト") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isSaving && reminderEnabled,
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = "遅延（分）",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.width(80.dp),
+                )
+                OutlinedTextField(
+                    value = reminderDelayMinutes.toString(),
+                    onValueChange = { v ->
+                        val filtered = v.filter { it.isDigit() }.take(3)
+                        val minutes = filtered.toIntOrNull() ?: 30
+                        onReminderDelayMinutesChanged(minutes)
+                    },
+                    singleLine = true,
+                    modifier = Modifier.width(100.dp),
+                    enabled = !isSaving && reminderEnabled,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
+                )
             }
 
             // --- メッセージ＋保存 ---

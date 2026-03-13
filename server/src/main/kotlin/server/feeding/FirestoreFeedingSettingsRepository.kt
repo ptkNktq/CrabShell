@@ -34,6 +34,10 @@ class FirestoreFeedingSettingsRepository(
         return FeedingSettings(
             mealOrder = mealOrder,
             mealTimes = mealTimes,
+            reminderEnabled = data["reminderEnabled"] as? Boolean ?: false,
+            reminderWebhookUrl = data["reminderWebhookUrl"] as? String ?: "",
+            reminderDelayMinutes = (data["reminderDelayMinutes"] as? Number)?.toInt() ?: 30,
+            reminderPrefix = data["reminderPrefix"] as? String ?: "",
         )
     }
 
@@ -43,6 +47,10 @@ class FirestoreFeedingSettingsRepository(
                 mapOf(
                     "mealOrder" to settings.mealOrder.map { it.name },
                     "mealTimes" to settings.mealTimes.map { (k, v) -> k.name to v }.toMap(),
+                    "reminderEnabled" to settings.reminderEnabled,
+                    "reminderWebhookUrl" to settings.reminderWebhookUrl,
+                    "reminderDelayMinutes" to settings.reminderDelayMinutes,
+                    "reminderPrefix" to settings.reminderPrefix,
                 ),
             ).await()
     }
