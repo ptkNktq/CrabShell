@@ -16,7 +16,10 @@ import kotlinx.serialization.json.Json
 import model.Quest
 import model.WebhookSettings
 import org.slf4j.LoggerFactory
+import server.util.DISCORD_EMBED_COLOR
+import server.util.WebhookServiceType
 import server.util.await
+import server.util.detectWebhookService
 import java.time.Instant
 
 private val logger = LoggerFactory.getLogger("WebhookService")
@@ -82,20 +85,11 @@ class WebhookService(
         quest: Quest,
         timestamp: String = Instant.now().toString(),
     ): String =
-        when (detectService(url)) {
-            Service.DISCORD -> json.encodeToString(buildDiscordPayload(event, quest))
-            Service.SLACK -> json.encodeToString(buildSlackPayload(event, quest))
-            Service.GENERIC -> json.encodeToString(buildGenericPayload(event, quest, timestamp))
+        when (detectWebhookService(url)) {
+            WebhookServiceType.DISCORD -> json.encodeToString(buildDiscordPayload(event, quest))
+            WebhookServiceType.SLACK -> json.encodeToString(buildSlackPayload(event, quest))
+            WebhookServiceType.GENERIC -> json.encodeToString(buildGenericPayload(event, quest, timestamp))
         }
-
-    private fun detectService(url: String): Service {
-        val lower = url.lowercase()
-        return when {
-            "discord.com/api/webhooks/" in lower || "discordapp.com/api/webhooks/" in lower -> Service.DISCORD
-            "hooks.slack.com/services/" in lower -> Service.SLACK
-            else -> Service.GENERIC
-        }
-    }
 
     private fun eventPrefix(event: String): String =
         when (event) {
@@ -152,13 +146,6 @@ class WebhookService(
                 ),
             timestamp = timestamp,
         )
-
-    private enum class Service { DISCORD, SLACK, GENERIC }
-
-    /** Discord embed カラー (primary: #E8844A) */
-    private companion object {
-        const val DISCORD_EMBED_COLOR = 0xE8844A
-    }
 }
 
 // --- Discord ペイロード ---

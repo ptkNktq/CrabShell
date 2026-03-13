@@ -21,6 +21,7 @@ import io.ktor.server.plugins.ratelimit.RateLimit
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.coroutines.launch
 import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
 import server.auth.FirebaseAdmin
@@ -29,6 +30,7 @@ import server.auth.firebasePrincipal
 import server.cache.cacheRoutes
 import server.config.EnvConfig
 import server.di.serverModule
+import server.feeding.FeedingReminderService
 import server.feeding.feedingRoutes
 import server.garbage.garbageRoutes
 import server.money.moneyRoutes
@@ -58,6 +60,9 @@ fun Application.module() {
 
     val petRepository by inject<PetRepository>()
     petRepository.seedDefaultPet()
+
+    val feedingReminderService by inject<FeedingReminderService>()
+    launch { feedingReminderService.runPollingLoop() }
 
     configureAuth()
     install(ContentNegotiation) { json() }

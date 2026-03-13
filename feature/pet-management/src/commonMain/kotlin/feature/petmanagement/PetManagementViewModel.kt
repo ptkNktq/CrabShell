@@ -18,6 +18,10 @@ data class PetManagementUiState(
     val editingPetNames: Map<String, String> = emptyMap(),
     val mealOrder: List<MealTime> = MealTime.entries.toList(),
     val mealTimes: Map<MealTime, String> = emptyMap(),
+    val reminderEnabled: Boolean = false,
+    val reminderWebhookUrl: String = "",
+    val reminderDelayMinutes: Int = 30,
+    val reminderPrefix: String = "",
     val isSaving: Boolean = false,
     val message: String? = null,
 )
@@ -45,6 +49,10 @@ class PetManagementViewModel(
                         editingPetNames = pets.associate { it.id to it.name },
                         mealOrder = settings.mealOrder,
                         mealTimes = settings.mealTimes,
+                        reminderEnabled = settings.reminderEnabled,
+                        reminderWebhookUrl = settings.reminderWebhookUrl,
+                        reminderDelayMinutes = settings.reminderDelayMinutes,
+                        reminderPrefix = settings.reminderPrefix,
                     )
             } catch (e: Exception) {
                 uiState = uiState.copy(isLoading = false, message = "読み込み失敗: ${e.message}")
@@ -96,6 +104,22 @@ class PetManagementViewModel(
             )
     }
 
+    fun onReminderEnabledChanged(enabled: Boolean) {
+        uiState = uiState.copy(reminderEnabled = enabled, message = null)
+    }
+
+    fun onReminderWebhookUrlChanged(url: String) {
+        uiState = uiState.copy(reminderWebhookUrl = url, message = null)
+    }
+
+    fun onReminderDelayMinutesChanged(minutes: Int) {
+        uiState = uiState.copy(reminderDelayMinutes = minutes.coerceIn(1, 180), message = null)
+    }
+
+    fun onReminderPrefixChanged(prefix: String) {
+        uiState = uiState.copy(reminderPrefix = prefix, message = null)
+    }
+
     private fun validateMealTimes(mealTimes: Map<MealTime, String>): Map<MealTime, String> =
         mealTimes.mapValues { (_, time) ->
             val parts = time.split(":")
@@ -113,6 +137,10 @@ class PetManagementViewModel(
                     FeedingSettings(
                         mealOrder = uiState.mealOrder,
                         mealTimes = validatedMealTimes,
+                        reminderEnabled = uiState.reminderEnabled,
+                        reminderWebhookUrl = uiState.reminderWebhookUrl,
+                        reminderDelayMinutes = uiState.reminderDelayMinutes,
+                        reminderPrefix = uiState.reminderPrefix,
                     )
                 feedingSettingsRepository.updateSettings(settings)
                 uiState = uiState.copy(isSaving = false, message = "設定を保存しました")

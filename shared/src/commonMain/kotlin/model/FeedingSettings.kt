@@ -11,4 +11,8 @@ data class FeedingSettings(
             MealTime.LUNCH to "12:00",
             MealTime.EVENING to "18:00",
         ),
+    val reminderEnabled: Boolean = false,
+    val reminderWebhookUrl: String = "",
+    val reminderDelayMinutes: Int = 30,
+    val reminderPrefix: String = "",
 )

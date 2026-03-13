@@ -5,6 +5,7 @@ import com.google.firebase.cloud.FirestoreClient
 import org.koin.dsl.module
 import server.cache.CacheManager
 import server.cache.Cacheable
+import server.feeding.FeedingReminderService
 import server.feeding.FeedingRepository
 import server.feeding.FeedingSettingsRepository
 import server.feeding.FirestoreFeedingRepository
@@ -35,6 +36,7 @@ val serverModule =
         single<PetRepository> { FirestorePetRepository(get()) }
         single { WebhookService(get()) }
         single { QuestService(get(), get(), get()) }
+        single { FeedingReminderService(get(), get(), get()) }
         single { BalanceCalculationService() }
         single {
             CacheManager(
