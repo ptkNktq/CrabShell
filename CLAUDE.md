@@ -76,6 +76,7 @@ cp .env.example .env
 | `GEMINI_MODEL` | Gemini モデル名（デフォルト: `gemini-2.5-flash`） | いいえ |
 | `FIREBASE_SERVICE_ACCOUNT_PATH` | Firebase サービスアカウント JSON のパス（デフォルト: `firebase-service-account.json`） | いいえ |
 | `PASSKEY_DB_PATH` | Passkey SQLite DB のパス（デフォルト: `data/passkey.db`） | いいえ |
+| `APP_URL` | アプリケーションの公開 URL（給餌リマインダー Webhook のリンクに使用） | いいえ（未設定時はリンクなし） |
 | `SWAGGER_ENABLED` | `true` で Swagger UI (`/swagger`) を有効化（本番では設定しない） | いいえ |
 
 - webpack dev server (port 3000) が `/api/*` を Ktor サーバー (port 8080) にプロキシ
