@@ -51,7 +51,6 @@ fun ColumnScope.NavigationContent(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
-                    softWrap = false,
                 )
             } else {
                 HorizontalDivider(
@@ -146,7 +145,6 @@ fun NavigationItemRow(
             modifier = Modifier.padding(start = 16.dp).weight(1f),
             style = MaterialTheme.typography.labelLarge,
             color = contentColor,
-            maxLines = 1,
             softWrap = false,
         )
         if (isAdminOnly && showBadge) {
