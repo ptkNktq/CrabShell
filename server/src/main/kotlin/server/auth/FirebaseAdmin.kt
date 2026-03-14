@@ -56,6 +56,7 @@ object FirebaseAdmin {
         return try {
             FirebaseAuth.getInstance().createCustomToken(uid)
         } catch (e: Exception) {
+            logger.warn("Failed to create custom token for uid={}", uid, e)
             null
         }
     }
@@ -65,6 +66,7 @@ object FirebaseAdmin {
         return try {
             FirebaseAuth.getInstance().getUserByEmail(email)
         } catch (e: Exception) {
+            logger.warn("Failed to get user by email", e)
             null
         }
     }
