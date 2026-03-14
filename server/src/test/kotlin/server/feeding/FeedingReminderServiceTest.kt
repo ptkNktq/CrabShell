@@ -231,14 +231,18 @@ class FeedingReminderServiceTest {
                 petName = "ポチ",
                 mealLabel = "昼",
                 scheduledTime = "12:00",
+                feedingPageUrl = "https://example.com/feeding",
             )
         assertTrue(payload.contains("embeds"))
         assertTrue(payload.contains("@everyone"))
         assertTrue(payload.contains("ポチ"))
+        assertTrue(payload.contains("https://example.com/feeding"))
+        // fields が含まれていないこと
+        assertFalse(payload.contains("fields"))
     }
 
     @Test
-    fun slackPayloadContainsText() {
+    fun slackPayloadContainsLink() {
         val service = createService()
         val payload =
             service.buildPayload(
@@ -247,13 +251,15 @@ class FeedingReminderServiceTest {
                 petName = "ポチ",
                 mealLabel = "朝",
                 scheduledTime = "07:00",
+                feedingPageUrl = "https://example.com/feeding",
             )
         assertTrue(payload.contains("\"text\""))
         assertTrue(payload.contains("ポチ"))
+        assertTrue(payload.contains("<https://example.com/feeding|"))
     }
 
     @Test
-    fun genericPayloadContainsEvent() {
+    fun genericPayloadContainsUrl() {
         val service = createService()
         val payload =
             service.buildPayload(
@@ -262,8 +268,27 @@ class FeedingReminderServiceTest {
                 petName = "ポチ",
                 mealLabel = "晩",
                 scheduledTime = "18:00",
+                feedingPageUrl = "https://example.com/feeding",
             )
         assertTrue(payload.contains("feeding_reminder"))
         assertTrue(payload.contains("ポチ"))
+        assertTrue(payload.contains("https://example.com/feeding"))
+    }
+
+    @Test
+    fun payloadWithoutAppUrl() {
+        val service = createService()
+        val payload =
+            service.buildPayload(
+                url = "https://discord.com/api/webhooks/x/y",
+                prefix = "",
+                petName = "ポチ",
+                mealLabel = "昼",
+                scheduledTime = "12:00",
+                feedingPageUrl = null,
+            )
+        assertTrue(payload.contains("embeds"))
+        // url フィールドが null なので含まれない
+        assertFalse(payload.contains("feeding"))
     }
 }

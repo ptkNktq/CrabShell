@@ -11,6 +11,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import model.MealTime
 import org.slf4j.LoggerFactory
+import server.config.EnvConfig
 import server.pet.PetRepository
 import server.util.DISCORD_EMBED_COLOR
 import server.util.WebhookServiceType
@@ -117,6 +118,7 @@ class FeedingReminderService(
         petName: String,
         mealLabel: String,
         scheduledTime: String,
+        feedingPageUrl: String? = appUrl?.let { "${it.trimEnd('/')}/feeding" },
     ): String {
         val message = "${petName}の${mealLabel}ごはん（予定: $scheduledTime）がまだ記録されていません"
         return when (detectWebhookService(url)) {
@@ -130,12 +132,7 @@ class FeedingReminderService(
                                     title = "給餌リマインダー",
                                     description = message,
                                     color = DISCORD_EMBED_COLOR,
-                                    fields =
-                                        listOf(
-                                            DiscordReminderField(name = "ペット", value = petName, inline = true),
-                                            DiscordReminderField(name = "食事", value = mealLabel, inline = true),
-                                            DiscordReminderField(name = "予定時刻", value = scheduledTime, inline = true),
-                                        ),
+                                    url = feedingPageUrl,
                                 ),
                             ),
                     )
@@ -143,7 +140,9 @@ class FeedingReminderService(
             }
             WebhookServiceType.SLACK -> {
                 val text = if (prefix.isBlank()) message else "$prefix $message"
-                json.encodeToString(SlackReminderPayload(text = text))
+                val withLink =
+                    if (feedingPageUrl != null) "$text\n<$feedingPageUrl|ごはんページを開く>" else text
+                json.encodeToString(SlackReminderPayload(text = withLink))
             }
             WebhookServiceType.GENERIC -> {
                 json.encodeToString(
@@ -153,6 +152,7 @@ class FeedingReminderService(
                         mealTime = mealLabel,
                         scheduledTime = scheduledTime,
                         message = message,
+                        feedingPageUrl = feedingPageUrl,
                     ),
                 )
             }
@@ -167,6 +167,8 @@ class FeedingReminderService(
         }
 
     companion object {
+        private val appUrl: String? = EnvConfig["APP_URL"]
+
         /** JST 5:00 AM を日付境界とする給餌日付を算出 */
         internal fun feedingDate(jstNow: ZonedDateTime): String {
             val adjusted = if (jstNow.hour < 5) jstNow.minusDays(1) else jstNow
@@ -213,14 +215,7 @@ internal data class DiscordReminderEmbed(
     val title: String,
     val description: String,
     val color: Int,
-    val fields: List<DiscordReminderField>,
-)
-
-@Serializable
-internal data class DiscordReminderField(
-    val name: String,
-    val value: String,
-    val inline: Boolean = false,
+    val url: String? = null,
 )
 
 // --- Slack ペイロード ---
@@ -239,4 +234,5 @@ internal data class GenericReminderPayload(
     val mealTime: String,
     val scheduledTime: String,
     val message: String,
+    val feedingPageUrl: String? = null,
 )
