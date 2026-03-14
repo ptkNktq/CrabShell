@@ -50,6 +50,8 @@ fun ColumnScope.NavigationContent(
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    softWrap = false,
                 )
             } else {
                 HorizontalDivider(
@@ -147,6 +149,7 @@ fun NavigationItemRow(
                 style = MaterialTheme.typography.labelLarge,
                 color = contentColor,
                 maxLines = 1,
+                softWrap = false,
             )
             if (isAdminOnly) {
                 Spacer(modifier = Modifier.weight(1f))

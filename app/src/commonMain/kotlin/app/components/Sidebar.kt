@@ -55,13 +55,16 @@ fun Sidebar(
                 Spacer(modifier = Modifier.height(56.dp))
             }
 
+            // 幅が完全に展開してからラベル・バッジを表示し、レイアウト崩れを防ぐ
+            val showLabels = sidebarWidth >= 240.dp
+
             NavigationContent(
                 currentScreen = currentScreen,
                 onNavigate = onNavigate,
                 onSignOut = onSignOut,
                 version = version,
                 isAdmin = isAdmin,
-                expanded = effectiveExpanded,
+                expanded = showLabels,
             )
         }
     }
