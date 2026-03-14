@@ -19,11 +19,14 @@ import model.PasskeyAuthenticateResponse
 import model.PasskeyRegisterCompleteRequest
 import model.PasskeyRegisterOptionsResponse
 import model.PasskeyStatusResponse
+import org.slf4j.LoggerFactory
 import server.auth.FirebaseAdmin
 import server.auth.authenticated
 import server.auth.firebasePrincipal
 import server.ratelimit.RateLimitNames
 import java.util.Base64
+
+private val logger = LoggerFactory.getLogger("PasskeyRoutes")
 
 fun Route.passkeyRoutes() {
     route("/passkey") {
@@ -151,6 +154,7 @@ fun Route.passkeyRoutes() {
 
                     call.respond(mapOf("status" to "ok"))
                 } catch (e: Exception) {
+                    logger.warn("Passkey registration failed for uid={}", uid, e)
                     call.respond(
                         HttpStatusCode.BadRequest,
                         mapOf("error" to (e.message ?: "登録に失敗しました")),
@@ -279,7 +283,8 @@ fun Route.passkeyRoutes() {
                             )
 
                     call.respond(PasskeyAuthenticateResponse(customToken = customToken))
-                } catch (_: Exception) {
+                } catch (e: Exception) {
+                    logger.warn("Passkey authentication failed", e)
                     call.respond(HttpStatusCode.BadRequest, authError)
                 }
             }

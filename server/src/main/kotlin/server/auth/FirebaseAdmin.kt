@@ -5,9 +5,12 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseToken
+import org.slf4j.LoggerFactory
 import server.config.EnvConfig
 import java.io.File
 import java.io.FileInputStream
+
+private val logger = LoggerFactory.getLogger("FirebaseAdmin")
 
 object FirebaseAdmin {
     private var initialized = false
@@ -24,7 +27,7 @@ object FirebaseAdmin {
 
         val file = File(serviceAccountPath)
         if (!file.exists() || !file.isFile) {
-            println("WARNING: Firebase service account file not found at '$serviceAccountPath'. Authentication will reject all requests.")
+            logger.warn("Firebase service account file not found at '{}'. Authentication will reject all requests.", serviceAccountPath)
             return
         }
 
@@ -43,6 +46,7 @@ object FirebaseAdmin {
         return try {
             FirebaseAuth.getInstance().verifyIdToken(idToken)
         } catch (e: Exception) {
+            logger.warn("Firebase token verification failed", e)
             null
         }
     }
@@ -52,6 +56,7 @@ object FirebaseAdmin {
         return try {
             FirebaseAuth.getInstance().createCustomToken(uid)
         } catch (e: Exception) {
+            logger.warn("Failed to create custom token for uid={}", uid, e)
             null
         }
     }
@@ -61,6 +66,7 @@ object FirebaseAdmin {
         return try {
             FirebaseAuth.getInstance().getUserByEmail(email)
         } catch (e: Exception) {
+            logger.warn("Failed to get user by email", e)
             null
         }
     }
