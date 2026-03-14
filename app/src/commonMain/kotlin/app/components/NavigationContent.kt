@@ -66,10 +66,10 @@ fun ColumnScope.NavigationContent(
             NavigationItemRow(
                 icon = item.icon,
                 label = item.label,
-                expanded = expanded,
                 selected = currentScreen == item.screen,
                 onClick = { onNavigate(item.screen) },
                 isAdminOnly = item.screen.adminOnly,
+                showBadge = expanded,
             )
         }
     }
@@ -80,7 +80,6 @@ fun ColumnScope.NavigationContent(
         NavigationItemRow(
             icon = item.icon,
             label = item.label,
-            expanded = expanded,
             selected = currentScreen == item.screen,
             onClick = { onNavigate(item.screen) },
         )
@@ -89,7 +88,6 @@ fun ColumnScope.NavigationContent(
     NavigationItemRow(
         icon = Icons.AutoMirrored.Filled.Logout,
         label = "ログアウト",
-        expanded = expanded,
         onClick = onSignOut,
     )
 
@@ -107,10 +105,10 @@ fun ColumnScope.NavigationContent(
 fun NavigationItemRow(
     icon: ImageVector,
     label: String,
-    expanded: Boolean = true,
     selected: Boolean = false,
     onClick: () -> Unit = {},
     isAdminOnly: Boolean = false,
+    showBadge: Boolean = true,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isHovered by interactionSource.collectIsHoveredAsState()
@@ -131,6 +129,7 @@ fun NavigationItemRow(
         modifier =
             Modifier
                 .fillMaxWidth()
+                .height(48.dp)
                 .padding(horizontal = 8.dp, vertical = 2.dp)
                 .background(backgroundColor, MaterialTheme.shapes.medium)
                 .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
@@ -142,19 +141,16 @@ fun NavigationItemRow(
             contentDescription = label,
             tint = contentColor,
         )
-        if (expanded) {
-            Text(
-                text = label,
-                modifier = Modifier.padding(start = 16.dp),
-                style = MaterialTheme.typography.labelLarge,
-                color = contentColor,
-                maxLines = 1,
-                softWrap = false,
-            )
-            if (isAdminOnly) {
-                Spacer(modifier = Modifier.weight(1f))
-                AdminBadge()
-            }
+        Text(
+            text = label,
+            modifier = Modifier.padding(start = 16.dp).weight(1f),
+            style = MaterialTheme.typography.labelLarge,
+            color = contentColor,
+            maxLines = 1,
+            softWrap = false,
+        )
+        if (isAdminOnly && showBadge) {
+            AdminBadge()
         }
     }
 }
