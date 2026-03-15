@@ -28,6 +28,9 @@ import java.util.Base64
 
 private val logger = LoggerFactory.getLogger("PasskeyRoutes")
 
+/** WebAuthn オプション JSON 用。デフォルト値（type="public-key" 等）もシリアライズする */
+private val webAuthnJson = Json { encodeDefaults = true }
+
 fun Route.passkeyRoutes() {
     route("/passkey") {
         // 認証済みエンドポイント
@@ -92,7 +95,7 @@ fun Route.passkeyRoutes() {
                         pubKeyCredParams = listOf(PubKeyCredParam(alg = -7), PubKeyCredParam(alg = -257)),
                         excludeCredentials = existingCredentials.map { it.toDescriptor() },
                     )
-                val optionsJson = Json.encodeToString(options)
+                val optionsJson = webAuthnJson.encodeToString(options)
 
                 call.respond(PasskeyRegisterOptionsResponse(optionsJson = optionsJson))
             }
@@ -207,7 +210,7 @@ fun Route.passkeyRoutes() {
                         rpId = PasskeyService.rpId,
                         allowCredentials = credentials.map { it.toDescriptor() },
                     )
-                val optionsJson = Json.encodeToString(options)
+                val optionsJson = webAuthnJson.encodeToString(options)
 
                 call.respond(PasskeyAuthenticateOptionsResponse(optionsJson = optionsJson))
             }
