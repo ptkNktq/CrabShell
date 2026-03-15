@@ -13,7 +13,7 @@ webauthn4j = "0.31.0.RELEASE"
 exposed = "0.61.0"
 sqlite-jdbc = "3.51.2.0"
 dotenv-java = "3.2.0"
-ktor-openapi-tools = "5.5.0"
+ktor-openapi-tools = "5.6.0"
 mockk = "1.14.9"
 kotlinx-coroutines = "1.10.2"
 
