@@ -1,6 +1,6 @@
 package server.passkey
 
-import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.v1.core.Table
 
 object PasskeyCredentials : Table("passkey_credentials") {
     val id = long("id").autoIncrement()
