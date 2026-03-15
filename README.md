@@ -12,7 +12,7 @@ Kotlin Multiplatform のダッシュボードアプリケーション。Ktor サ
 | DI | Koin | 4.2.0-RC1 |
 | 認証 | Firebase Admin / Firebase JS SDK + WebAuthn (Passkey) | 9.4.3 |
 | WebAuthn | webauthn4j | 0.28.5 |
-| DB (Passkey) | Exposed + SQLite | 0.58.0 / 3.47.1 |
+| DB (Passkey) | Exposed + SQLite | 1.1.1 / 3.51.2.0 |
 | ViewModel | Lifecycle ViewModel Compose | 2.9.6 |
 | シリアライゼーション | kotlinx-serialization-json | 1.8.1 |
 | JDK | Eclipse Temurin | 21 |
