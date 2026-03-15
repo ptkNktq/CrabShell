@@ -7,7 +7,7 @@ logback = "1.5.32"
 firebase-admin = "9.8.0"
 ktlint-gradle = "14.0.1"
 # RC だが Kotlin 2.3.0 wasmJs の KClass.simpleName→FQN 変更に対応した唯一のバージョン (koin#2312)
-koin = "4.2.0-RC1"
+koin = "4.2.0-RC2"
 lifecycle = "2.9.6"
 webauthn4j = "0.31.1.RELEASE"
 exposed = "0.61.0"
