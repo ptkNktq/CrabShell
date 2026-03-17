@@ -95,7 +95,7 @@ class FirestoreGarbageRepository(
         return GarbageNotificationSettings(
             enabled = doc.getBoolean("enabled") ?: false,
             webhookUrl = doc.getString("webhookUrl") ?: "",
-            notifyTime = doc.getString("notifyTime") ?: "10:00",
+            notifyHour = (doc.getLong("notifyHour") ?: 10L).toInt(),
             prefix = doc.getString("prefix") ?: "",
         )
     }
@@ -108,7 +108,7 @@ class FirestoreGarbageRepository(
                 mapOf(
                     "enabled" to settings.enabled,
                     "webhookUrl" to settings.webhookUrl,
-                    "notifyTime" to settings.notifyTime,
+                    "notifyHour" to settings.notifyHour,
                     "prefix" to settings.prefix,
                 ),
             ).await()

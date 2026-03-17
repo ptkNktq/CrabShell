@@ -17,7 +17,6 @@ import server.util.DISCORD_EMBED_COLOR
 import server.util.WebhookServiceType
 import server.util.detectWebhookService
 import java.time.Instant
-import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
@@ -50,8 +49,7 @@ class GarbageNotificationService(
 
         val jstNow = now.atZone(JST)
         val today = jstNow.toLocalDate().toString()
-        val currentTime = jstNow.toLocalTime()
-        val notifyTime = parseTime(settings.notifyTime) ?: return
+        val currentHour = jstNow.hour
 
         // 日付が変わったらリセット
         if (notifiedDate != null && notifiedDate != today) {
@@ -62,7 +60,7 @@ class GarbageNotificationService(
         if (notifiedDate == today) return
 
         // 通知時刻に達していない
-        if (currentTime < notifyTime) return
+        if (currentHour < settings.notifyHour) return
 
         // 翌日のゴミ種を解決
         val tomorrow = jstNow.plusDays(1)
@@ -147,13 +145,6 @@ class GarbageNotificationService(
 
     companion object {
         private val appUrl: String? = EnvConfig["APP_URL"]
-
-        internal fun parseTime(timeStr: String): LocalTime? =
-            try {
-                LocalTime.parse(timeStr)
-            } catch (_: Exception) {
-                null
-            }
 
         /** ZonedDateTime から月内の週番号を算出（1始まり） */
         internal fun weekOfMonth(date: ZonedDateTime): Int {

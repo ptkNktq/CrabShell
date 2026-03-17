@@ -101,7 +101,7 @@ class GarbageNotificationServiceTest {
                 GarbageNotificationSettings(
                     enabled = true,
                     webhookUrl = "https://discord.com/api/webhooks/x/y",
-                    notifyTime = "10:00",
+                    notifyHour = 10,
                 )
 
             val service = createService()
@@ -119,7 +119,7 @@ class GarbageNotificationServiceTest {
                 GarbageNotificationSettings(
                     enabled = true,
                     webhookUrl = "https://discord.com/api/webhooks/x/y",
-                    notifyTime = "10:00",
+                    notifyHour = 10,
                 )
             // 2026-03-18 (水) → 翌日 2026-03-19 (木), dayOfWeek=4
             coEvery { garbageRepository.getSchedules() } returns defaultSchedules
@@ -139,7 +139,7 @@ class GarbageNotificationServiceTest {
                 GarbageNotificationSettings(
                     enabled = true,
                     webhookUrl = "https://discord.com/api/webhooks/x/y",
-                    notifyTime = "10:00",
+                    notifyHour = 10,
                 )
             // 2026-03-20 (金) → 翌日 2026-03-21 (土), dayOfWeek=6 → ゴミなし
             coEvery { garbageRepository.getSchedules() } returns defaultSchedules
@@ -159,7 +159,7 @@ class GarbageNotificationServiceTest {
                 GarbageNotificationSettings(
                     enabled = true,
                     webhookUrl = "https://discord.com/api/webhooks/x/y",
-                    notifyTime = "10:00",
+                    notifyHour = 10,
                 )
             coEvery { garbageRepository.getSchedules() } returns defaultSchedules
 
@@ -182,7 +182,7 @@ class GarbageNotificationServiceTest {
                 GarbageNotificationSettings(
                     enabled = true,
                     webhookUrl = "https://discord.com/api/webhooks/x/y",
-                    notifyTime = "10:00",
+                    notifyHour = 10,
                 )
             coEvery { garbageRepository.getSchedules() } returns defaultSchedules
 

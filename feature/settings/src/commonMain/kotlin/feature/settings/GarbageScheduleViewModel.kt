@@ -20,21 +20,16 @@ data class GarbageScheduleUiState(
     val message: String? = null,
     val notificationEnabled: Boolean = false,
     val notificationWebhookUrl: String = "",
-    val notificationTime: String = "10:00",
+    val notificationHour: String = "10",
     val notificationPrefix: String = "",
     val notificationLoading: Boolean = true,
     val notificationSaving: Boolean = false,
     val notificationMessage: String? = null,
 ) {
-    private val timeRegex = Regex("""\d{2}:\d{2}""")
-
-    val isNotificationTimeValid: Boolean
+    val isNotificationHourValid: Boolean
         get() {
-            if (!timeRegex.matches(notificationTime)) return false
-            val parts = notificationTime.split(":")
-            val h = parts[0].toIntOrNull() ?: return false
-            val m = parts[1].toIntOrNull() ?: return false
-            return h in 0..23 && m in 0..59
+            val h = notificationHour.toIntOrNull() ?: return false
+            return h in 0..23
         }
 }
 
@@ -76,7 +71,7 @@ class GarbageScheduleViewModel(
                     uiState.copy(
                         notificationEnabled = settings.enabled,
                         notificationWebhookUrl = settings.webhookUrl,
-                        notificationTime = settings.notifyTime,
+                        notificationHour = settings.notifyHour.toString(),
                         notificationPrefix = settings.prefix,
                         notificationLoading = false,
                     )
@@ -148,8 +143,8 @@ class GarbageScheduleViewModel(
         uiState = uiState.copy(notificationWebhookUrl = url, notificationMessage = null)
     }
 
-    fun onNotificationTimeChanged(time: String) {
-        uiState = uiState.copy(notificationTime = time, notificationMessage = null)
+    fun onNotificationHourChanged(hour: String) {
+        uiState = uiState.copy(notificationHour = hour, notificationMessage = null)
     }
 
     fun onNotificationPrefixChanged(prefix: String) {
@@ -157,6 +152,7 @@ class GarbageScheduleViewModel(
     }
 
     fun onSaveNotificationSettings() {
+        val hour = uiState.notificationHour.toIntOrNull() ?: return
         uiState = uiState.copy(notificationSaving = true, notificationMessage = null)
         viewModelScope.launch {
             try {
@@ -164,7 +160,7 @@ class GarbageScheduleViewModel(
                     GarbageNotificationSettings(
                         enabled = uiState.notificationEnabled,
                         webhookUrl = uiState.notificationWebhookUrl,
-                        notifyTime = uiState.notificationTime,
+                        notifyHour = hour,
                         prefix = uiState.notificationPrefix,
                     ),
                 )

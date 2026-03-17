@@ -140,11 +140,10 @@ class DashboardViewModel(
                 // ゴミ出し情報取得失敗は無視
             }
             try {
-                val notifyTime = garbageScheduleRepository.getNotificationSettings().notifyTime
-                val hour = notifyTime.substringBefore(":").toIntOrNull()
-                if (hour != null && hour in 0..23) {
+                val hour = garbageScheduleRepository.getNotificationSettings().notifyHour
+                if (hour in 0..23) {
                     garbageSwitchHour = hour
-                    uiState = uiState.copy(garbageUpdateLabel = "毎日 $notifyTime 更新")
+                    uiState = uiState.copy(garbageUpdateLabel = "毎日 $hour:00 更新")
                 }
             } catch (_: Exception) {
                 // 通知設定取得失敗はデフォルト値で続行

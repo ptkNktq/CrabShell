@@ -84,14 +84,14 @@ fun SettingsScreen(
         garbageNotificationLoading = garbageVm?.uiState?.notificationLoading ?: false,
         garbageNotificationEnabled = garbageVm?.uiState?.notificationEnabled ?: false,
         garbageNotificationWebhookUrl = garbageVm?.uiState?.notificationWebhookUrl ?: "",
-        garbageNotificationTime = garbageVm?.uiState?.notificationTime ?: "10:00",
+        garbageNotificationHour = garbageVm?.uiState?.notificationHour ?: "10",
         garbageNotificationPrefix = garbageVm?.uiState?.notificationPrefix ?: "",
         garbageNotificationSaving = garbageVm?.uiState?.notificationSaving ?: false,
-        garbageNotificationTimeValid = garbageVm?.uiState?.isNotificationTimeValid ?: true,
+        garbageNotificationHourValid = garbageVm?.uiState?.isNotificationHourValid ?: true,
         garbageNotificationMessage = garbageVm?.uiState?.notificationMessage,
         onGarbageNotificationEnabledChanged = { garbageVm?.onNotificationEnabledChanged(it) },
         onGarbageNotificationWebhookUrlChanged = { garbageVm?.onNotificationWebhookUrlChanged(it) },
-        onGarbageNotificationTimeChanged = { garbageVm?.onNotificationTimeChanged(it) },
+        onGarbageNotificationHourChanged = { garbageVm?.onNotificationHourChanged(it) },
         onGarbageNotificationPrefixChanged = { garbageVm?.onNotificationPrefixChanged(it) },
         onSaveGarbageNotification = { garbageVm?.onSaveNotificationSettings() },
         webhookLoading = webhookVm?.uiState?.isLoading ?: false,
@@ -145,14 +145,14 @@ internal fun SettingsContent(
     garbageNotificationLoading: Boolean = false,
     garbageNotificationEnabled: Boolean = false,
     garbageNotificationWebhookUrl: String = "",
-    garbageNotificationTime: String = "10:00",
+    garbageNotificationHour: String = "10",
     garbageNotificationPrefix: String = "",
     garbageNotificationSaving: Boolean = false,
-    garbageNotificationTimeValid: Boolean = true,
+    garbageNotificationHourValid: Boolean = true,
     garbageNotificationMessage: String? = null,
     onGarbageNotificationEnabledChanged: (Boolean) -> Unit = {},
     onGarbageNotificationWebhookUrlChanged: (String) -> Unit = {},
-    onGarbageNotificationTimeChanged: (String) -> Unit = {},
+    onGarbageNotificationHourChanged: (String) -> Unit = {},
     onGarbageNotificationPrefixChanged: (String) -> Unit = {},
     onSaveGarbageNotification: () -> Unit = {},
     webhookLoading: Boolean = false,
@@ -247,14 +247,14 @@ internal fun SettingsContent(
                         GarbageNotificationCard(
                             enabled = garbageNotificationEnabled,
                             webhookUrl = garbageNotificationWebhookUrl,
-                            notifyTime = garbageNotificationTime,
+                            notifyHour = garbageNotificationHour,
                             prefix = garbageNotificationPrefix,
                             isSaving = garbageNotificationSaving,
-                            isTimeValid = garbageNotificationTimeValid,
+                            isHourValid = garbageNotificationHourValid,
                             message = garbageNotificationMessage,
                             onEnabledChanged = onGarbageNotificationEnabledChanged,
                             onWebhookUrlChanged = onGarbageNotificationWebhookUrlChanged,
-                            onNotifyTimeChanged = onGarbageNotificationTimeChanged,
+                            onNotifyHourChanged = onGarbageNotificationHourChanged,
                             onPrefixChanged = onGarbageNotificationPrefixChanged,
                             onSave = onSaveGarbageNotification,
                             modifier = cardModifier,
@@ -907,14 +907,14 @@ private fun CacheRefreshCard(
 private fun GarbageNotificationCard(
     enabled: Boolean,
     webhookUrl: String,
-    notifyTime: String,
+    notifyHour: String,
     prefix: String,
     isSaving: Boolean,
-    isTimeValid: Boolean,
+    isHourValid: Boolean,
     message: String?,
     onEnabledChanged: (Boolean) -> Unit,
     onWebhookUrlChanged: (String) -> Unit,
-    onNotifyTimeChanged: (String) -> Unit,
+    onNotifyHourChanged: (String) -> Unit,
     onPrefixChanged: (String) -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
@@ -942,50 +942,48 @@ private fun GarbageNotificationCard(
                 )
             }
 
-            if (enabled) {
-                OutlinedTextField(
-                    value = webhookUrl,
-                    onValueChange = onWebhookUrlChanged,
-                    label = { Text("Webhook URL") },
-                    placeholder = { Text("https://discord.com/api/webhooks/...") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isSaving,
-                )
+            OutlinedTextField(
+                value = webhookUrl,
+                onValueChange = onWebhookUrlChanged,
+                label = { Text("Webhook URL") },
+                placeholder = { Text("https://discord.com/api/webhooks/...") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isSaving,
+            )
 
-                OutlinedTextField(
-                    value = notifyTime,
-                    onValueChange = onNotifyTimeChanged,
-                    label = { Text("通知時刻") },
-                    placeholder = { Text("10:00") },
-                    singleLine = true,
-                    isError = !isTimeValid,
-                    supportingText =
-                        if (!isTimeValid) {
-                            { Text("HH:mm 形式で入力してください") }
-                        } else {
-                            null
-                        },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isSaving,
-                )
+            OutlinedTextField(
+                value = notifyHour,
+                onValueChange = onNotifyHourChanged,
+                label = { Text("通知時刻 (時)") },
+                placeholder = { Text("10") },
+                singleLine = true,
+                isError = !isHourValid,
+                supportingText =
+                    if (!isHourValid) {
+                        { Text("0〜23 の整数で入力してください") }
+                    } else {
+                        null
+                    },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isSaving,
+            )
 
-                Text(
-                    text = "この時刻に翌日のゴミ出し情報を通知します。ダッシュボードの更新時刻も連動します。",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            Text(
+                text = "この時刻に翌日のゴミ出し情報を通知します。ダッシュボードの更新時刻も連動します。",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
 
-                OutlinedTextField(
-                    value = prefix,
-                    onValueChange = onPrefixChanged,
-                    label = { Text("通知テキスト") },
-                    placeholder = { Text("@everyone") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isSaving,
-                )
-            }
+            OutlinedTextField(
+                value = prefix,
+                onValueChange = onPrefixChanged,
+                label = { Text("通知テキスト") },
+                placeholder = { Text("@everyone") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isSaving,
+            )
 
             if (message != null) {
                 Text(
@@ -998,7 +996,7 @@ private fun GarbageNotificationCard(
             Button(
                 onClick = onSave,
                 modifier = Modifier.height(48.dp),
-                enabled = !isSaving && isTimeValid,
+                enabled = !isSaving && isHourValid,
             ) {
                 if (isSaving) {
                     CircularProgressIndicator(

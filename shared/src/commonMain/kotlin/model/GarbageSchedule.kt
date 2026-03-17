@@ -19,7 +19,7 @@ data class GarbageTypeSchedule(
 data class GarbageNotificationSettings(
     val enabled: Boolean = false,
     val webhookUrl: String = "",
-    val notifyTime: String = "10:00",
+    val notifyHour: Int = 10,
     val prefix: String = "",
 )
 
