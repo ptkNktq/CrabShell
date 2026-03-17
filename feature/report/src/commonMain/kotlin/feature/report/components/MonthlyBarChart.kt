@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -29,7 +31,7 @@ fun MonthlyBarChart(
     selectedMonth: String,
     primaryColor: Color = MaterialTheme.colorScheme.primary,
     onSurfaceVariantColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    onMonthClick: (String) -> Unit = {},
+    onMonthClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val textMeasurer = rememberTextMeasurer()
@@ -45,6 +47,8 @@ fun MonthlyBarChart(
             fontSize = MaterialTheme.typography.labelSmall.fontSize,
             textAlign = TextAlign.Center,
         )
+
+    val currentOnMonthClick by rememberUpdatedState(onMonthClick)
 
     val density = LocalDensity.current
     val horizontalPaddingPx = remember(density) { with(density) { HorizontalPadding.toPx() } }
@@ -64,7 +68,7 @@ fun MonthlyBarChart(
                         months.forEachIndexed { index, summary ->
                             val x = horizontalPaddingPx + index * (barWidth + barSpacingPx)
                             if (offset.x in x..(x + barWidth)) {
-                                onMonthClick(summary.month)
+                                currentOnMonthClick(summary.month)
                                 return@detectTapGestures
                             }
                         }
@@ -75,10 +79,8 @@ fun MonthlyBarChart(
 
         val maxAmount = months.maxOf { it.totalAmount }.coerceAtLeast(1L)
         val barCount = months.size
-        val horizontalPadding = HorizontalPadding.toPx()
-        val chartWidth = size.width - horizontalPadding * 2
-        val barSpacing = BarSpacing.toPx()
-        val barWidth = (chartWidth - barSpacing * (barCount - 1)) / barCount
+        val chartWidth = size.width - horizontalPaddingPx * 2
+        val barWidth = (chartWidth - barSpacingPx * (barCount - 1)) / barCount
         val topPadding = 28.dp.toPx()
         val bottomPadding = 24.dp.toPx()
         val chartHeight = size.height - topPadding - bottomPadding
@@ -91,7 +93,7 @@ fun MonthlyBarChart(
                 } else {
                     0f
                 }
-            val x = horizontalPadding + index * (barWidth + barSpacing)
+            val x = horizontalPaddingPx + index * (barWidth + barSpacingPx)
             val y = topPadding + chartHeight - barHeight
 
             val isSelected = summary.month == selectedMonth
