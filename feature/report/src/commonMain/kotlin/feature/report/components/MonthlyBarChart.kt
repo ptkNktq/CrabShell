@@ -20,6 +20,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import model.MonthlyExpenseSummary
 
+private val HorizontalPadding = 16.dp
+private val BarSpacing = 12.dp
+
 @Composable
 fun MonthlyBarChart(
     months: List<MonthlyExpenseSummary>,
@@ -44,8 +47,8 @@ fun MonthlyBarChart(
         )
 
     val density = LocalDensity.current
-    val horizontalPaddingPx = remember(density) { with(density) { 16.dp.toPx() } }
-    val barSpacingPx = remember(density) { with(density) { 12.dp.toPx() } }
+    val horizontalPaddingPx = remember(density) { with(density) { HorizontalPadding.toPx() } }
+    val barSpacingPx = remember(density) { with(density) { BarSpacing.toPx() } }
 
     Canvas(
         modifier =
@@ -72,9 +75,9 @@ fun MonthlyBarChart(
 
         val maxAmount = months.maxOf { it.totalAmount }.coerceAtLeast(1L)
         val barCount = months.size
-        val horizontalPadding = 16.dp.toPx()
+        val horizontalPadding = HorizontalPadding.toPx()
         val chartWidth = size.width - horizontalPadding * 2
-        val barSpacing = 12.dp.toPx()
+        val barSpacing = BarSpacing.toPx()
         val barWidth = (chartWidth - barSpacing * (barCount - 1)) / barCount
         val topPadding = 28.dp.toPx()
         val bottomPadding = 24.dp.toPx()

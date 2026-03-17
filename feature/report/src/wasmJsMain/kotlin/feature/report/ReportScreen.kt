@@ -73,7 +73,7 @@ internal fun ReportContent(
     error: String?,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
-    onSelectMonth: (String) -> Unit = {},
+    onSelectMonth: (String) -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
