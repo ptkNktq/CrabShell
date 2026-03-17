@@ -42,6 +42,7 @@ fun DashboardScreen(vm: DashboardViewModel = koinViewModel()) {
         feedingLog = vm.uiState.feedingLog,
         petName = vm.uiState.petName,
         todayGarbageTypes = vm.uiState.todayGarbageTypes,
+        garbageUpdateLabel = vm.uiState.garbageUpdateLabel,
         currentTime = vm.uiState.currentTime,
         currentYear = vm.uiState.currentYear,
         dateWithDay = vm.uiState.dateWithDay,
@@ -59,6 +60,7 @@ internal fun DashboardContent(
     feedingLog: FeedingLog,
     petName: String?,
     todayGarbageTypes: List<GarbageType>,
+    garbageUpdateLabel: String,
     currentTime: String,
     currentYear: String,
     dateWithDay: String,
@@ -83,6 +85,7 @@ internal fun DashboardContent(
             ) {
                 DateTimeCard(
                     garbageTypes = todayGarbageTypes,
+                    garbageUpdateLabel = garbageUpdateLabel,
                     currentTime = currentTime,
                     currentYear = currentYear,
                     dateWithDay = dateWithDay,
@@ -109,6 +112,7 @@ internal fun DashboardContent(
             ) {
                 DateTimeCard(
                     garbageTypes = todayGarbageTypes,
+                    garbageUpdateLabel = garbageUpdateLabel,
                     currentTime = currentTime,
                     currentYear = currentYear,
                     dateWithDay = dateWithDay,
@@ -132,6 +136,7 @@ internal fun DashboardContent(
 @Composable
 fun DateTimeCard(
     garbageTypes: List<GarbageType>,
+    garbageUpdateLabel: String,
     currentTime: String,
     currentYear: String,
     dateWithDay: String,
@@ -176,7 +181,7 @@ fun DateTimeCard(
             HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
 
             Text(
-                text = "毎日 10:00 更新",
+                text = garbageUpdateLabel,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

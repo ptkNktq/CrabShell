@@ -81,6 +81,18 @@ fun SettingsScreen(
         onToggleDay = { type, day -> garbageVm?.onToggleDay(type, day) },
         onFrequencyChange = { type, freq -> garbageVm?.onChangeFrequency(type, freq) },
         onSaveGarbageSchedule = { garbageVm?.onSaveSchedule() },
+        garbageNotificationLoading = garbageVm?.uiState?.notificationLoading ?: false,
+        garbageNotificationEnabled = garbageVm?.uiState?.notificationEnabled ?: false,
+        garbageNotificationWebhookUrl = garbageVm?.uiState?.notificationWebhookUrl ?: "",
+        garbageNotificationTime = garbageVm?.uiState?.notificationTime ?: "10:00",
+        garbageNotificationPrefix = garbageVm?.uiState?.notificationPrefix ?: "",
+        garbageNotificationSaving = garbageVm?.uiState?.notificationSaving ?: false,
+        garbageNotificationMessage = garbageVm?.uiState?.notificationMessage,
+        onGarbageNotificationEnabledChanged = { garbageVm?.onNotificationEnabledChanged(it) },
+        onGarbageNotificationWebhookUrlChanged = { garbageVm?.onNotificationWebhookUrlChanged(it) },
+        onGarbageNotificationTimeChanged = { garbageVm?.onNotificationTimeChanged(it) },
+        onGarbageNotificationPrefixChanged = { garbageVm?.onNotificationPrefixChanged(it) },
+        onSaveGarbageNotification = { garbageVm?.onSaveNotificationSettings() },
         webhookLoading = webhookVm?.uiState?.isLoading ?: false,
         webhookUrl = webhookVm?.uiState?.url ?: "",
         webhookEnabled = webhookVm?.uiState?.enabled ?: false,
@@ -129,6 +141,18 @@ internal fun SettingsContent(
     onToggleDay: (GarbageType, Int) -> Unit,
     onFrequencyChange: (GarbageType, CollectionFrequency) -> Unit,
     onSaveGarbageSchedule: () -> Unit,
+    garbageNotificationLoading: Boolean = false,
+    garbageNotificationEnabled: Boolean = false,
+    garbageNotificationWebhookUrl: String = "",
+    garbageNotificationTime: String = "10:00",
+    garbageNotificationPrefix: String = "",
+    garbageNotificationSaving: Boolean = false,
+    garbageNotificationMessage: String? = null,
+    onGarbageNotificationEnabledChanged: (Boolean) -> Unit = {},
+    onGarbageNotificationWebhookUrlChanged: (String) -> Unit = {},
+    onGarbageNotificationTimeChanged: (String) -> Unit = {},
+    onGarbageNotificationPrefixChanged: (String) -> Unit = {},
+    onSaveGarbageNotification: () -> Unit = {},
     webhookLoading: Boolean = false,
     webhookUrl: String = "",
     webhookEnabled: Boolean = false,
@@ -212,6 +236,24 @@ internal fun SettingsContent(
                             onToggleDay = onToggleDay,
                             onFrequencyChange = onFrequencyChange,
                             onSaveClick = onSaveGarbageSchedule,
+                            modifier = cardModifier,
+                        )
+                    }
+                    if (garbageNotificationLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    } else {
+                        GarbageNotificationCard(
+                            enabled = garbageNotificationEnabled,
+                            webhookUrl = garbageNotificationWebhookUrl,
+                            notifyTime = garbageNotificationTime,
+                            prefix = garbageNotificationPrefix,
+                            isSaving = garbageNotificationSaving,
+                            message = garbageNotificationMessage,
+                            onEnabledChanged = onGarbageNotificationEnabledChanged,
+                            onWebhookUrlChanged = onGarbageNotificationWebhookUrlChanged,
+                            onNotifyTimeChanged = onGarbageNotificationTimeChanged,
+                            onPrefixChanged = onGarbageNotificationPrefixChanged,
+                            onSave = onSaveGarbageNotification,
                             modifier = cardModifier,
                         )
                     }
@@ -852,6 +894,109 @@ private fun CacheRefreshCard(
                     )
                 } else {
                     Text("キャッシュをクリア")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GarbageNotificationCard(
+    enabled: Boolean,
+    webhookUrl: String,
+    notifyTime: String,
+    prefix: String,
+    isSaving: Boolean,
+    message: String?,
+    onEnabledChanged: (Boolean) -> Unit,
+    onWebhookUrlChanged: (String) -> Unit,
+    onNotifyTimeChanged: (String) -> Unit,
+    onPrefixChanged: (String) -> Unit,
+    onSave: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier,
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp).fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("リマインダー通知", style = MaterialTheme.typography.titleSmall)
+                Switch(
+                    checked = enabled,
+                    onCheckedChange = onEnabledChanged,
+                )
+            }
+
+            if (enabled) {
+                OutlinedTextField(
+                    value = webhookUrl,
+                    onValueChange = onWebhookUrlChanged,
+                    label = { Text("Webhook URL") },
+                    placeholder = { Text("https://discord.com/api/webhooks/...") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isSaving,
+                )
+
+                OutlinedTextField(
+                    value = notifyTime,
+                    onValueChange = onNotifyTimeChanged,
+                    label = { Text("通知時刻") },
+                    placeholder = { Text("10:00") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isSaving,
+                )
+
+                Text(
+                    text = "この時刻に翌日のゴミ出し情報を通知します。ダッシュボードの更新時刻も連動します。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                OutlinedTextField(
+                    value = prefix,
+                    onValueChange = onPrefixChanged,
+                    label = { Text("通知テキスト") },
+                    placeholder = { Text("@everyone") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isSaving,
+                )
+            }
+
+            if (message != null) {
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+
+            Button(
+                onClick = onSave,
+                modifier = Modifier.height(48.dp),
+                enabled = !isSaving,
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                } else {
+                    Text("保存する")
                 }
             }
         }
