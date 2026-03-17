@@ -17,6 +17,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import core.auth.AuthStateHolder
 import core.ui.LocalWindowSizeClass
@@ -81,6 +82,19 @@ fun SettingsScreen(
         onToggleDay = { type, day -> garbageVm?.onToggleDay(type, day) },
         onFrequencyChange = { type, freq -> garbageVm?.onChangeFrequency(type, freq) },
         onSaveGarbageSchedule = { garbageVm?.onSaveSchedule() },
+        garbageNotificationLoading = garbageVm?.uiState?.notificationLoading ?: false,
+        garbageNotificationEnabled = garbageVm?.uiState?.notificationEnabled ?: false,
+        garbageNotificationWebhookUrl = garbageVm?.uiState?.notificationWebhookUrl ?: "",
+        garbageNotificationHour = garbageVm?.uiState?.notificationHour ?: "10",
+        garbageNotificationPrefix = garbageVm?.uiState?.notificationPrefix ?: "",
+        garbageNotificationSaving = garbageVm?.uiState?.notificationSaving ?: false,
+        garbageNotificationHourValid = garbageVm?.uiState?.isNotificationHourValid ?: true,
+        garbageNotificationMessage = garbageVm?.uiState?.notificationMessage,
+        onGarbageNotificationEnabledChanged = { garbageVm?.onNotificationEnabledChanged(it) },
+        onGarbageNotificationWebhookUrlChanged = { garbageVm?.onNotificationWebhookUrlChanged(it) },
+        onGarbageNotificationHourChanged = { garbageVm?.onNotificationHourChanged(it) },
+        onGarbageNotificationPrefixChanged = { garbageVm?.onNotificationPrefixChanged(it) },
+        onSaveGarbageNotification = { garbageVm?.onSaveNotificationSettings() },
         webhookLoading = webhookVm?.uiState?.isLoading ?: false,
         webhookUrl = webhookVm?.uiState?.url ?: "",
         webhookEnabled = webhookVm?.uiState?.enabled ?: false,
@@ -129,6 +143,19 @@ internal fun SettingsContent(
     onToggleDay: (GarbageType, Int) -> Unit,
     onFrequencyChange: (GarbageType, CollectionFrequency) -> Unit,
     onSaveGarbageSchedule: () -> Unit,
+    garbageNotificationLoading: Boolean = false,
+    garbageNotificationEnabled: Boolean = false,
+    garbageNotificationWebhookUrl: String = "",
+    garbageNotificationHour: String = "10",
+    garbageNotificationPrefix: String = "",
+    garbageNotificationSaving: Boolean = false,
+    garbageNotificationHourValid: Boolean = true,
+    garbageNotificationMessage: String? = null,
+    onGarbageNotificationEnabledChanged: (Boolean) -> Unit = {},
+    onGarbageNotificationWebhookUrlChanged: (String) -> Unit = {},
+    onGarbageNotificationHourChanged: (String) -> Unit = {},
+    onGarbageNotificationPrefixChanged: (String) -> Unit = {},
+    onSaveGarbageNotification: () -> Unit = {},
     webhookLoading: Boolean = false,
     webhookUrl: String = "",
     webhookEnabled: Boolean = false,
@@ -212,6 +239,25 @@ internal fun SettingsContent(
                             onToggleDay = onToggleDay,
                             onFrequencyChange = onFrequencyChange,
                             onSaveClick = onSaveGarbageSchedule,
+                            modifier = cardModifier,
+                        )
+                    }
+                    if (garbageNotificationLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    } else {
+                        GarbageNotificationCard(
+                            enabled = garbageNotificationEnabled,
+                            webhookUrl = garbageNotificationWebhookUrl,
+                            notifyHour = garbageNotificationHour,
+                            prefix = garbageNotificationPrefix,
+                            isSaving = garbageNotificationSaving,
+                            isHourValid = garbageNotificationHourValid,
+                            message = garbageNotificationMessage,
+                            onEnabledChanged = onGarbageNotificationEnabledChanged,
+                            onWebhookUrlChanged = onGarbageNotificationWebhookUrlChanged,
+                            onNotifyHourChanged = onGarbageNotificationHourChanged,
+                            onPrefixChanged = onGarbageNotificationPrefixChanged,
+                            onSave = onSaveGarbageNotification,
                             modifier = cardModifier,
                         )
                     }
@@ -852,6 +898,124 @@ private fun CacheRefreshCard(
                     )
                 } else {
                     Text("キャッシュをクリア")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GarbageNotificationCard(
+    enabled: Boolean,
+    webhookUrl: String,
+    notifyHour: String,
+    prefix: String,
+    isSaving: Boolean,
+    isHourValid: Boolean,
+    message: String?,
+    onEnabledChanged: (Boolean) -> Unit,
+    onWebhookUrlChanged: (String) -> Unit,
+    onNotifyHourChanged: (String) -> Unit,
+    onPrefixChanged: (String) -> Unit,
+    onSave: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier,
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp).fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("リマインダー通知", style = MaterialTheme.typography.titleSmall)
+                Switch(
+                    checked = enabled,
+                    onCheckedChange = onEnabledChanged,
+                )
+            }
+
+            OutlinedTextField(
+                value = webhookUrl,
+                onValueChange = onWebhookUrlChanged,
+                label = { Text("Webhook URL") },
+                placeholder = { Text("https://discord.com/api/webhooks/...") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isSaving,
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = "通知時刻",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.width(80.dp),
+                )
+                OutlinedTextField(
+                    value = notifyHour,
+                    onValueChange = { v ->
+                        val filtered = v.filter { it.isDigit() }.take(2)
+                        onNotifyHourChanged(filtered)
+                    },
+                    label = { Text("時") },
+                    singleLine = true,
+                    isError = !isHourValid,
+                    modifier = Modifier.width(72.dp),
+                    enabled = !isSaving,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center),
+                )
+                Text(": 00", style = MaterialTheme.typography.titleMedium)
+            }
+
+            Text(
+                text = "この時刻に翌日のゴミ出し情報を通知します。ダッシュボードの更新時刻も連動します。",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            OutlinedTextField(
+                value = prefix,
+                onValueChange = onPrefixChanged,
+                label = { Text("通知テキスト") },
+                placeholder = { Text("@everyone") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isSaving,
+            )
+
+            if (message != null) {
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+
+            Button(
+                onClick = onSave,
+                modifier = Modifier.height(48.dp),
+                enabled = !isSaving && isHourValid,
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                } else {
+                    Text("保存する")
                 }
             }
         }

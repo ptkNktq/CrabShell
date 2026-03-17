@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import core.network.GarbageScheduleRepository
 import kotlinx.coroutines.launch
 import model.CollectionFrequency
+import model.GarbageNotificationSettings
 import model.GarbageType
 import model.GarbageTypeSchedule
 
@@ -17,7 +18,20 @@ data class GarbageScheduleUiState(
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
     val message: String? = null,
-)
+    val notificationEnabled: Boolean = false,
+    val notificationWebhookUrl: String = "",
+    val notificationHour: String = "10",
+    val notificationPrefix: String = "",
+    val notificationLoading: Boolean = true,
+    val notificationSaving: Boolean = false,
+    val notificationMessage: String? = null,
+) {
+    val isNotificationHourValid: Boolean
+        get() {
+            val h = notificationHour.toIntOrNull() ?: return false
+            return h in 0..23
+        }
+}
 
 class GarbageScheduleViewModel(
     private val garbageScheduleRepository: GarbageScheduleRepository,
@@ -27,6 +41,7 @@ class GarbageScheduleViewModel(
 
     init {
         loadSchedules()
+        loadNotificationSettings()
     }
 
     private fun loadSchedules() {
@@ -44,6 +59,24 @@ class GarbageScheduleViewModel(
                     )
             } catch (_: Exception) {
                 uiState = uiState.copy(isLoading = false)
+            }
+        }
+    }
+
+    private fun loadNotificationSettings() {
+        viewModelScope.launch {
+            try {
+                val settings = garbageScheduleRepository.getNotificationSettings()
+                uiState =
+                    uiState.copy(
+                        notificationEnabled = settings.enabled,
+                        notificationWebhookUrl = settings.webhookUrl,
+                        notificationHour = settings.notifyHour.toString(),
+                        notificationPrefix = settings.prefix,
+                        notificationLoading = false,
+                    )
+            } catch (_: Exception) {
+                uiState = uiState.copy(notificationLoading = false)
             }
         }
     }
@@ -98,6 +131,43 @@ class GarbageScheduleViewModel(
                 uiState = uiState.copy(isSaving = false, message = "保存しました")
             } catch (e: Exception) {
                 uiState = uiState.copy(isSaving = false, message = "保存に失敗しました: ${e.message}")
+            }
+        }
+    }
+
+    fun onNotificationEnabledChanged(enabled: Boolean) {
+        uiState = uiState.copy(notificationEnabled = enabled, notificationMessage = null)
+    }
+
+    fun onNotificationWebhookUrlChanged(url: String) {
+        uiState = uiState.copy(notificationWebhookUrl = url, notificationMessage = null)
+    }
+
+    fun onNotificationHourChanged(hour: String) {
+        uiState = uiState.copy(notificationHour = hour, notificationMessage = null)
+    }
+
+    fun onNotificationPrefixChanged(prefix: String) {
+        uiState = uiState.copy(notificationPrefix = prefix, notificationMessage = null)
+    }
+
+    fun onSaveNotificationSettings() {
+        val hour = uiState.notificationHour.toIntOrNull() ?: return
+        uiState = uiState.copy(notificationSaving = true, notificationMessage = null)
+        viewModelScope.launch {
+            try {
+                garbageScheduleRepository.saveNotificationSettings(
+                    GarbageNotificationSettings(
+                        enabled = uiState.notificationEnabled,
+                        webhookUrl = uiState.notificationWebhookUrl,
+                        notifyHour = hour,
+                        prefix = uiState.notificationPrefix,
+                    ),
+                )
+                uiState = uiState.copy(notificationSaving = false, notificationMessage = "保存しました")
+            } catch (e: Exception) {
+                uiState =
+                    uiState.copy(notificationSaving = false, notificationMessage = "保存に失敗しました: ${e.message}")
             }
         }
     }

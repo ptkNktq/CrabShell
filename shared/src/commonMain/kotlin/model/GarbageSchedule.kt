@@ -15,6 +15,14 @@ data class GarbageTypeSchedule(
     val frequency: CollectionFrequency = CollectionFrequency.WEEKLY,
 )
 
+@Serializable
+data class GarbageNotificationSettings(
+    val enabled: Boolean = false,
+    val webhookUrl: String = "",
+    val notifyHour: Int = 10,
+    val prefix: String = "",
+)
+
 /** 指定された曜日・月内週に該当するゴミ種を返す */
 fun resolveGarbageTypes(
     schedules: List<GarbageTypeSchedule>,

@@ -32,6 +32,7 @@ import server.config.EnvConfig
 import server.di.serverModule
 import server.feeding.FeedingReminderService
 import server.feeding.feedingRoutes
+import server.garbage.GarbageNotificationService
 import server.garbage.garbageRoutes
 import server.money.moneyRoutes
 import server.passkey.PasskeyDatabase
@@ -63,6 +64,9 @@ fun Application.module() {
 
     val feedingReminderService by inject<FeedingReminderService>()
     launch { feedingReminderService.runPollingLoop() }
+
+    val garbageNotificationService by inject<GarbageNotificationService>()
+    launch { garbageNotificationService.runPollingLoop() }
 
     configureAuth()
     install(ContentNegotiation) { json() }

@@ -6,6 +6,7 @@ import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import model.GarbageNotificationSettings
 import model.GarbageTypeSchedule
 import org.koin.ktor.ext.inject
 import server.auth.adminOnly
@@ -45,6 +46,45 @@ fun Route.garbageRoutes() {
                 val schedules = call.receive<List<GarbageTypeSchedule>>()
                 garbageRepository.saveSchedules(schedules)
                 call.respond(schedules)
+            }
+        }
+    }
+
+    route("/garbage/notification-settings") {
+        authenticated {
+            get({
+                tags = listOf("garbage")
+                summary = "ゴミ出し通知設定取得"
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<GarbageNotificationSettings>()
+                    }
+                }
+            }) {
+                call.respond(garbageRepository.getNotificationSettings())
+            }
+        }
+
+        adminOnly {
+            put({
+                tags = listOf("garbage")
+                summary = "ゴミ出し通知設定更新（admin）"
+                request {
+                    body<GarbageNotificationSettings>()
+                }
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<GarbageNotificationSettings>()
+                    }
+                }
+            }) {
+                val settings = call.receive<GarbageNotificationSettings>()
+                if (settings.notifyHour !in 0..23) {
+                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to "notifyHour must be 0-23"))
+                    return@put
+                }
+                garbageRepository.saveNotificationSettings(settings)
+                call.respond(settings)
             }
         }
     }

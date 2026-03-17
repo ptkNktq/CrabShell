@@ -32,6 +32,7 @@ data class DashboardUiState(
     val feedingActionError: String? = null,
     val petName: String? = null,
     val todayGarbageTypes: List<GarbageType> = emptyList(),
+    val garbageUpdateLabel: String = "毎日 10:00 更新",
     val currentTime: String = "",
     val currentYear: String = "",
     val dateWithDay: String = "",
@@ -48,8 +49,9 @@ class DashboardViewModel(
     private var trackedDate: String = todayDateJs().toString()
     private var trackedFeedingDate: String = today
     private var lastFeedingHalfHour = -1
+    private var garbageSwitchHour = 10
     private var garbageRefreshedToday =
-        (currentTimeJs().toString().substringBefore(":").toIntOrNull() ?: 0) >= 10
+        (currentTimeJs().toString().substringBefore(":").toIntOrNull() ?: 0) >= garbageSwitchHour
 
     var uiState by mutableStateOf(
         DashboardUiState(
@@ -110,9 +112,9 @@ class DashboardViewModel(
                     silentRefreshFeeding()
                 }
                 lastFeedingHalfHour = halfHour
-                // 毎朝10時にゴミ出しスケジュールを再取得
+                // 更新時刻にゴミ出しスケジュールを再取得
                 val hour = timeStr.substringBefore(":").toIntOrNull() ?: 0
-                if (hour >= 10 && !garbageRefreshedToday) {
+                if (hour >= garbageSwitchHour && !garbageRefreshedToday) {
                     garbageRefreshedToday = true
                     loadGarbageSchedule()
                 }
@@ -134,18 +136,27 @@ class DashboardViewModel(
         viewModelScope.launch {
             try {
                 cachedSchedules = garbageScheduleRepository.getSchedules()
-                refreshGarbageForToday()
             } catch (_: Exception) {
                 // ゴミ出し情報取得失敗は無視
             }
+            try {
+                val hour = garbageScheduleRepository.getNotificationSettings().notifyHour
+                if (hour in 0..23) {
+                    garbageSwitchHour = hour
+                    uiState = uiState.copy(garbageUpdateLabel = "毎日 $hour:00 更新")
+                }
+            } catch (_: Exception) {
+                // 通知設定取得失敗はデフォルト値で続行
+            }
+            refreshGarbageForToday()
         }
     }
 
     private fun refreshGarbageForToday() {
         val hour = currentTimeJs().toString().substringBefore(":").toIntOrNull() ?: 0
-        val isAfter10 = hour >= 10
-        val dayOfWeek = if (isAfter10) tomorrowDayOfWeekIndexJs() else dayOfWeekIndexJs()
-        val weekOfMonth = if (isAfter10) tomorrowWeekOfMonthJs() else weekOfMonthJs()
+        val isAfterSwitchHour = hour >= garbageSwitchHour
+        val dayOfWeek = if (isAfterSwitchHour) tomorrowDayOfWeekIndexJs() else dayOfWeekIndexJs()
+        val weekOfMonth = if (isAfterSwitchHour) tomorrowWeekOfMonthJs() else weekOfMonthJs()
         uiState = uiState.copy(todayGarbageTypes = resolveGarbageTypes(cachedSchedules, dayOfWeek, weekOfMonth))
     }
 
