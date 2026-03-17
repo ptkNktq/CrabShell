@@ -1,5 +1,6 @@
 package feature.report
 
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,8 +22,17 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
@@ -47,6 +57,7 @@ fun ReportScreen(vm: ReportViewModel = koinViewModel()) {
         error = vm.uiState.error,
         onPreviousMonth = vm::onGoToPreviousMonth,
         onNextMonth = vm::onGoToNextMonth,
+        onSelectMonth = vm::onSelectMonth,
         windowSizeClass = windowSizeClass,
     )
 }
@@ -62,16 +73,42 @@ internal fun ReportContent(
     error: String?,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
+    onSelectMonth: (String) -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
     val outerPadding = if (isCompact) 12.dp else 24.dp
 
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+
     Column(
         modifier =
             Modifier
                 .fillMaxSize()
-                .padding(outerPadding),
+                .padding(outerPadding)
+                .focusRequester(focusRequester)
+                .focusable()
+                .onKeyEvent { event ->
+                    if (event.type == KeyEventType.KeyDown) {
+                        when (event.key) {
+                            Key.DirectionLeft -> {
+                                onPreviousMonth()
+                                true
+                            }
+                            Key.DirectionRight -> {
+                                onNextMonth()
+                                true
+                            }
+                            else -> false
+                        }
+                    } else {
+                        false
+                    }
+                },
     ) {
         Text(
             text = "家計レポート",
@@ -95,6 +132,7 @@ internal fun ReportContent(
             previousMonthDiff = previousMonthDiff,
             isLoading = isLoading,
             error = error,
+            onSelectMonth = onSelectMonth,
             isCompact = isCompact,
             modifier = Modifier.weight(1f),
         )
@@ -110,6 +148,7 @@ private fun ReportMainContent(
     previousMonthDiff: Long?,
     isLoading: Boolean,
     error: String?,
+    onSelectMonth: (String) -> Unit,
     isCompact: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -149,6 +188,7 @@ private fun ReportMainContent(
                     MonthlyBarChart(
                         months = report.months,
                         selectedMonth = selectedMonth,
+                        onMonthClick = onSelectMonth,
                         modifier = Modifier.widthIn(max = 600.dp),
                     )
                 }
