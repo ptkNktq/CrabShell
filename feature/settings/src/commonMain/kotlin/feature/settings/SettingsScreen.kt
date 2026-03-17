@@ -17,6 +17,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import core.auth.AuthStateHolder
 import core.ui.LocalWindowSizeClass
@@ -952,22 +953,31 @@ private fun GarbageNotificationCard(
                 enabled = !isSaving,
             )
 
-            OutlinedTextField(
-                value = notifyHour,
-                onValueChange = onNotifyHourChanged,
-                label = { Text("通知時刻 (時)") },
-                placeholder = { Text("10") },
-                singleLine = true,
-                isError = !isHourValid,
-                supportingText =
-                    if (!isHourValid) {
-                        { Text("0〜23 の整数で入力してください") }
-                    } else {
-                        null
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = "通知時刻",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.width(80.dp),
+                )
+                OutlinedTextField(
+                    value = notifyHour,
+                    onValueChange = { v ->
+                        val filtered = v.filter { it.isDigit() }.take(2)
+                        onNotifyHourChanged(filtered)
                     },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isSaving,
-            )
+                    label = { Text("時") },
+                    singleLine = true,
+                    isError = !isHourValid,
+                    modifier = Modifier.width(72.dp),
+                    enabled = !isSaving,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center),
+                )
+                Text(": 00", style = MaterialTheme.typography.titleMedium)
+            }
 
             Text(
                 text = "この時刻に翌日のゴミ出し情報を通知します。ダッシュボードの更新時刻も連動します。",
