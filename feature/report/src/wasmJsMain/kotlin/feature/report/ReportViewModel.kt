@@ -98,4 +98,11 @@ class ReportViewModel(
         uiState = uiState.copy(selectedMonth = newMonth)
         loadReport(newMonth)
     }
+
+    fun onSelectMonth(month: String) {
+        if (month != uiState.selectedMonth) {
+            uiState = uiState.copy(selectedMonth = month)
+            loadReport(month)
+        }
+    }
 }

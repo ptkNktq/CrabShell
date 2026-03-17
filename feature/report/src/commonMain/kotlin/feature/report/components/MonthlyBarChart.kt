@@ -1,14 +1,18 @@
 package feature.report.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -22,6 +26,7 @@ fun MonthlyBarChart(
     selectedMonth: String,
     primaryColor: Color = MaterialTheme.colorScheme.primary,
     onSurfaceVariantColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    onMonthClick: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val textMeasurer = rememberTextMeasurer()
@@ -38,11 +43,30 @@ fun MonthlyBarChart(
             textAlign = TextAlign.Center,
         )
 
+    val density = LocalDensity.current
+    val horizontalPaddingPx = remember(density) { with(density) { 16.dp.toPx() } }
+    val barSpacingPx = remember(density) { with(density) { 12.dp.toPx() } }
+
     Canvas(
         modifier =
             modifier
                 .fillMaxWidth()
-                .height(220.dp),
+                .height(220.dp)
+                .pointerInput(months) {
+                    if (months.isEmpty()) return@pointerInput
+                    detectTapGestures { offset ->
+                        val chartWidth = size.width - horizontalPaddingPx * 2
+                        val barWidth =
+                            (chartWidth - barSpacingPx * (months.size - 1)) / months.size
+                        months.forEachIndexed { index, summary ->
+                            val x = horizontalPaddingPx + index * (barWidth + barSpacingPx)
+                            if (offset.x in x..(x + barWidth)) {
+                                onMonthClick(summary.month)
+                                return@detectTapGestures
+                            }
+                        }
+                    }
+                },
     ) {
         if (months.isEmpty()) return@Canvas
 
