@@ -11,6 +11,7 @@ import model.GarbageTypeSchedule
 import org.koin.ktor.ext.inject
 import server.auth.adminOnly
 import server.auth.authenticated
+import java.time.LocalTime
 
 fun Route.garbageRoutes() {
     val garbageRepository by inject<GarbageRepository>()
@@ -79,14 +80,10 @@ fun Route.garbageRoutes() {
                 }
             }) {
                 val settings = call.receive<GarbageNotificationSettings>()
-                val timeRegex = Regex("""\d{2}:\d{2}""")
-                if (!timeRegex.matches(settings.notifyTime)) {
+                try {
+                    LocalTime.parse(settings.notifyTime)
+                } catch (_: Exception) {
                     call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid notifyTime format"))
-                    return@put
-                }
-                val (h, m) = settings.notifyTime.split(":").map { it.toInt() }
-                if (h !in 0..23 || m !in 0..59) {
-                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid notifyTime value"))
                     return@put
                 }
                 garbageRepository.saveNotificationSettings(settings)

@@ -97,7 +97,7 @@ class GarbageNotificationService(
                 setBody(TextContent(payload, ContentType.Application.Json))
             }
         } catch (e: Exception) {
-            logger.warn("Garbage notification webhook failed: ${e.message}")
+            logger.warn("Garbage notification webhook failed: ${e.javaClass.simpleName}")
         }
     }
 

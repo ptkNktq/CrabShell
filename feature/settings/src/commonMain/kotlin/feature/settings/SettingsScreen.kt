@@ -87,6 +87,7 @@ fun SettingsScreen(
         garbageNotificationTime = garbageVm?.uiState?.notificationTime ?: "10:00",
         garbageNotificationPrefix = garbageVm?.uiState?.notificationPrefix ?: "",
         garbageNotificationSaving = garbageVm?.uiState?.notificationSaving ?: false,
+        garbageNotificationTimeValid = garbageVm?.uiState?.isNotificationTimeValid ?: true,
         garbageNotificationMessage = garbageVm?.uiState?.notificationMessage,
         onGarbageNotificationEnabledChanged = { garbageVm?.onNotificationEnabledChanged(it) },
         onGarbageNotificationWebhookUrlChanged = { garbageVm?.onNotificationWebhookUrlChanged(it) },
@@ -147,6 +148,7 @@ internal fun SettingsContent(
     garbageNotificationTime: String = "10:00",
     garbageNotificationPrefix: String = "",
     garbageNotificationSaving: Boolean = false,
+    garbageNotificationTimeValid: Boolean = true,
     garbageNotificationMessage: String? = null,
     onGarbageNotificationEnabledChanged: (Boolean) -> Unit = {},
     onGarbageNotificationWebhookUrlChanged: (String) -> Unit = {},
@@ -248,6 +250,7 @@ internal fun SettingsContent(
                             notifyTime = garbageNotificationTime,
                             prefix = garbageNotificationPrefix,
                             isSaving = garbageNotificationSaving,
+                            isTimeValid = garbageNotificationTimeValid,
                             message = garbageNotificationMessage,
                             onEnabledChanged = onGarbageNotificationEnabledChanged,
                             onWebhookUrlChanged = onGarbageNotificationWebhookUrlChanged,
@@ -907,6 +910,7 @@ private fun GarbageNotificationCard(
     notifyTime: String,
     prefix: String,
     isSaving: Boolean,
+    isTimeValid: Boolean,
     message: String?,
     onEnabledChanged: (Boolean) -> Unit,
     onWebhookUrlChanged: (String) -> Unit,
@@ -955,6 +959,13 @@ private fun GarbageNotificationCard(
                     label = { Text("通知時刻") },
                     placeholder = { Text("10:00") },
                     singleLine = true,
+                    isError = !isTimeValid,
+                    supportingText =
+                        if (!isTimeValid) {
+                            { Text("HH:mm 形式で入力してください") }
+                        } else {
+                            null
+                        },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !isSaving,
                 )
@@ -987,7 +998,7 @@ private fun GarbageNotificationCard(
             Button(
                 onClick = onSave,
                 modifier = Modifier.height(48.dp),
-                enabled = !isSaving,
+                enabled = !isSaving && isTimeValid,
             ) {
                 if (isSaving) {
                     CircularProgressIndicator(
