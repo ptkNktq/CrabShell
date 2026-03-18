@@ -23,6 +23,7 @@ import core.auth.AuthStateHolder
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
 import core.ui.components.AdminBadge
+import core.ui.components.LoadErrorContent
 import core.ui.extensions.color
 import core.ui.extensions.icon
 import core.ui.extensions.label
@@ -78,8 +79,10 @@ fun SettingsScreen(
         usersMessage = userNameVm?.uiState?.message,
         onUpdateDisplayName = { uid, name -> userNameVm?.onUpdateDisplayName(uid, name) },
         onRetryUsers = { userNameVm?.loadUsers() },
+        usersLoadErrorMessage = userNameVm?.uiState?.loadErrorMessage,
         garbageLoading = garbageVm?.uiState?.isLoading ?: false,
         garbageLoadError = garbageVm?.uiState?.loadError ?: false,
+        garbageLoadErrorMessage = garbageVm?.uiState?.loadErrorMessage,
         garbageSchedules = garbageVm?.uiState?.schedules ?: emptyList(),
         garbageMessage = garbageVm?.uiState?.message,
         garbageSaving = garbageVm?.uiState?.isSaving ?: false,
@@ -89,6 +92,7 @@ fun SettingsScreen(
         onRetryGarbageSchedule = { garbageVm?.loadSchedules() },
         garbageNotificationLoading = garbageVm?.uiState?.notificationLoading ?: false,
         garbageNotificationLoadError = garbageVm?.uiState?.notificationLoadError ?: false,
+        garbageNotificationLoadErrorMessage = garbageVm?.uiState?.notificationLoadErrorMessage,
         garbageNotificationEnabled = garbageVm?.uiState?.notificationEnabled ?: false,
         garbageNotificationWebhookUrl = garbageVm?.uiState?.notificationWebhookUrl ?: "",
         garbageNotificationHour = garbageVm?.uiState?.notificationHour ?: "10",
@@ -104,6 +108,7 @@ fun SettingsScreen(
         onRetryGarbageNotification = { garbageVm?.loadNotificationSettings() },
         webhookLoading = webhookVm?.uiState?.isLoading ?: false,
         webhookLoadError = webhookVm?.uiState?.loadError ?: false,
+        webhookLoadErrorMessage = webhookVm?.uiState?.loadErrorMessage,
         webhookUrl = webhookVm?.uiState?.url ?: "",
         webhookEnabled = webhookVm?.uiState?.enabled ?: false,
         webhookEvents = webhookVm?.uiState?.events ?: emptyList(),
@@ -143,6 +148,7 @@ internal fun SettingsContent(
     onRegisterPasskey: () -> Unit = {},
     usersLoading: Boolean = false,
     usersLoadError: Boolean = false,
+    usersLoadErrorMessage: String? = null,
     users: List<User>,
     usersSaving: Boolean,
     usersMessage: String?,
@@ -150,6 +156,7 @@ internal fun SettingsContent(
     onRetryUsers: () -> Unit = {},
     garbageLoading: Boolean,
     garbageLoadError: Boolean = false,
+    garbageLoadErrorMessage: String? = null,
     garbageSchedules: List<GarbageTypeSchedule>,
     garbageMessage: String?,
     garbageSaving: Boolean,
@@ -159,6 +166,7 @@ internal fun SettingsContent(
     onRetryGarbageSchedule: () -> Unit = {},
     garbageNotificationLoading: Boolean = false,
     garbageNotificationLoadError: Boolean = false,
+    garbageNotificationLoadErrorMessage: String? = null,
     garbageNotificationEnabled: Boolean = false,
     garbageNotificationWebhookUrl: String = "",
     garbageNotificationHour: String = "10",
@@ -174,6 +182,7 @@ internal fun SettingsContent(
     onRetryGarbageNotification: () -> Unit = {},
     webhookLoading: Boolean = false,
     webhookLoadError: Boolean = false,
+    webhookLoadErrorMessage: String? = null,
     webhookUrl: String = "",
     webhookEnabled: Boolean = false,
     webhookEvents: List<String> = emptyList(),
@@ -237,6 +246,7 @@ internal fun SettingsContent(
                     UserNameManagementCard(
                         isLoading = usersLoading,
                         loadError = usersLoadError,
+                        loadErrorMessage = usersLoadErrorMessage,
                         users = users,
                         usersSaving = usersSaving,
                         usersMessage = usersMessage,
@@ -253,6 +263,7 @@ internal fun SettingsContent(
                     GarbageScheduleCard(
                         isLoading = garbageLoading,
                         loadError = garbageLoadError,
+                        loadErrorMessage = garbageLoadErrorMessage,
                         schedules = garbageSchedules,
                         garbageMessage = garbageMessage,
                         garbageSaving = garbageSaving,
@@ -265,6 +276,7 @@ internal fun SettingsContent(
                     GarbageNotificationCard(
                         isLoading = garbageNotificationLoading,
                         loadError = garbageNotificationLoadError,
+                        loadErrorMessage = garbageNotificationLoadErrorMessage,
                         enabled = garbageNotificationEnabled,
                         webhookUrl = garbageNotificationWebhookUrl,
                         notifyHour = garbageNotificationHour,
@@ -289,6 +301,7 @@ internal fun SettingsContent(
                     WebhookSettingsCard(
                         isLoading = webhookLoading,
                         loadError = webhookLoadError,
+                        loadErrorMessage = webhookLoadErrorMessage,
                         url = webhookUrl,
                         enabled = webhookEnabled,
                         events = webhookEvents,
@@ -362,6 +375,7 @@ private fun SettingsSection(
 private fun UserNameManagementCard(
     isLoading: Boolean = false,
     loadError: Boolean = false,
+    loadErrorMessage: String? = null,
     users: List<User>,
     usersSaving: Boolean,
     usersMessage: String?,
@@ -391,7 +405,7 @@ private fun UserNameManagementCard(
             return@Card
         }
         if (loadError) {
-            LoadErrorContent(onRetry = onRetry)
+            LoadErrorContent(onRetry = onRetry, errorDetail = loadErrorMessage)
             return@Card
         }
         Column(
@@ -453,6 +467,7 @@ private fun UserNameManagementCard(
 private fun GarbageScheduleCard(
     isLoading: Boolean,
     loadError: Boolean = false,
+    loadErrorMessage: String? = null,
     schedules: List<GarbageTypeSchedule>,
     garbageMessage: String?,
     garbageSaving: Boolean,
@@ -479,7 +494,7 @@ private fun GarbageScheduleCard(
             return@Card
         }
         if (loadError) {
-            LoadErrorContent(onRetry = onRetry)
+            LoadErrorContent(onRetry = onRetry, errorDetail = loadErrorMessage)
             return@Card
         }
         Column(
@@ -819,6 +834,7 @@ private fun PasskeyManagementCard(
 private fun WebhookSettingsCard(
     isLoading: Boolean,
     loadError: Boolean = false,
+    loadErrorMessage: String? = null,
     url: String,
     enabled: Boolean,
     events: List<String>,
@@ -848,7 +864,7 @@ private fun WebhookSettingsCard(
             return@Card
         }
         if (loadError) {
-            LoadErrorContent(onRetry = onRetry)
+            LoadErrorContent(onRetry = onRetry, errorDetail = loadErrorMessage)
             return@Card
         }
         Column(
@@ -970,6 +986,7 @@ private fun CacheRefreshCard(
 private fun GarbageNotificationCard(
     isLoading: Boolean,
     loadError: Boolean = false,
+    loadErrorMessage: String? = null,
     enabled: Boolean,
     webhookUrl: String,
     notifyHour: String,
@@ -1002,7 +1019,7 @@ private fun GarbageNotificationCard(
             return@Card
         }
         if (loadError) {
-            LoadErrorContent(onRetry = onRetry)
+            LoadErrorContent(onRetry = onRetry, errorDetail = loadErrorMessage)
             return@Card
         }
         Column(
@@ -1096,24 +1113,6 @@ private fun GarbageNotificationCard(
                     Text("保存する")
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun LoadErrorContent(onRetry: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text(
-            text = "読み込みに失敗しました",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.error,
-        )
-        OutlinedButton(onClick = onRetry) {
-            Text("再試行")
         }
     }
 }

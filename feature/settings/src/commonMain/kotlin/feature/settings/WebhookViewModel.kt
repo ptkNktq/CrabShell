@@ -15,6 +15,7 @@ data class WebhookUiState(
     val events: List<String> = emptyList(),
     val isLoading: Boolean = true,
     val loadError: Boolean = false,
+    val loadErrorMessage: String? = null,
     val isSaving: Boolean = false,
     val message: String? = null,
 )
@@ -41,8 +42,8 @@ class WebhookViewModel(
                         events = settings.events,
                         isLoading = false,
                     )
-            } catch (_: Exception) {
-                uiState = uiState.copy(isLoading = false, loadError = true)
+            } catch (e: Exception) {
+                uiState = uiState.copy(isLoading = false, loadError = true, loadErrorMessage = e.message)
             }
         }
     }

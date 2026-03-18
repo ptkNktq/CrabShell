@@ -17,6 +17,7 @@ data class GarbageScheduleUiState(
         GarbageType.entries.map { GarbageTypeSchedule(garbageType = it, daysOfWeek = emptyList()) },
     val isLoading: Boolean = true,
     val loadError: Boolean = false,
+    val loadErrorMessage: String? = null,
     val isSaving: Boolean = false,
     val message: String? = null,
     val notificationEnabled: Boolean = false,
@@ -25,6 +26,7 @@ data class GarbageScheduleUiState(
     val notificationPrefix: String = "",
     val notificationLoading: Boolean = true,
     val notificationLoadError: Boolean = false,
+    val notificationLoadErrorMessage: String? = null,
     val notificationSaving: Boolean = false,
     val notificationMessage: String? = null,
 ) {
@@ -60,8 +62,8 @@ class GarbageScheduleViewModel(
                             },
                         isLoading = false,
                     )
-            } catch (_: Exception) {
-                uiState = uiState.copy(isLoading = false, loadError = true)
+            } catch (e: Exception) {
+                uiState = uiState.copy(isLoading = false, loadError = true, loadErrorMessage = e.message)
             }
         }
     }
@@ -79,8 +81,13 @@ class GarbageScheduleViewModel(
                         notificationPrefix = settings.prefix,
                         notificationLoading = false,
                     )
-            } catch (_: Exception) {
-                uiState = uiState.copy(notificationLoading = false, notificationLoadError = true)
+            } catch (e: Exception) {
+                uiState =
+                    uiState.copy(
+                        notificationLoading = false,
+                        notificationLoadError = true,
+                        notificationLoadErrorMessage = e.message,
+                    )
             }
         }
     }

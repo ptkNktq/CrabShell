@@ -13,6 +13,7 @@ data class UserNameUiState(
     val users: List<User> = emptyList(),
     val isLoading: Boolean = true,
     val loadError: Boolean = false,
+    val loadErrorMessage: String? = null,
     val isSaving: Boolean = false,
     val message: String? = null,
 )
@@ -32,8 +33,8 @@ class UserNameViewModel(
         viewModelScope.launch {
             try {
                 uiState = uiState.copy(users = userRepository.getUsers(), isLoading = false)
-            } catch (_: Exception) {
-                uiState = uiState.copy(isLoading = false, loadError = true)
+            } catch (e: Exception) {
+                uiState = uiState.copy(isLoading = false, loadError = true, loadErrorMessage = e.message)
             }
         }
     }
