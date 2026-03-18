@@ -11,6 +11,8 @@ import model.User
 
 data class UserNameUiState(
     val users: List<User> = emptyList(),
+    val isLoading: Boolean = true,
+    val loadError: Boolean = false,
     val isSaving: Boolean = false,
     val message: String? = null,
 )
@@ -25,12 +27,13 @@ class UserNameViewModel(
         loadUsers()
     }
 
-    private fun loadUsers() {
+    fun loadUsers() {
+        uiState = uiState.copy(isLoading = true, loadError = false)
         viewModelScope.launch {
             try {
-                uiState = uiState.copy(users = userRepository.getUsers())
+                uiState = uiState.copy(users = userRepository.getUsers(), isLoading = false)
             } catch (_: Exception) {
-                // 読み込み失敗は空リストのまま
+                uiState = uiState.copy(isLoading = false, loadError = true)
             }
         }
     }

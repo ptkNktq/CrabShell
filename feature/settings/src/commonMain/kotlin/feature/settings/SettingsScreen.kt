@@ -71,10 +71,13 @@ fun SettingsScreen(
         passkeyError = passkeyVm.uiState.errorMessage,
         passkeySuccess = passkeyVm.uiState.successMessage,
         onRegisterPasskey = passkeyVm::onRegisterPasskey,
+        usersLoading = userNameVm?.uiState?.isLoading ?: false,
+        usersLoadError = userNameVm?.uiState?.loadError ?: false,
         users = userNameVm?.uiState?.users ?: emptyList(),
         usersSaving = userNameVm?.uiState?.isSaving ?: false,
         usersMessage = userNameVm?.uiState?.message,
         onUpdateDisplayName = { uid, name -> userNameVm?.onUpdateDisplayName(uid, name) },
+        onRetryUsers = { userNameVm?.loadUsers() },
         garbageLoading = garbageVm?.uiState?.isLoading ?: false,
         garbageLoadError = garbageVm?.uiState?.loadError ?: false,
         garbageSchedules = garbageVm?.uiState?.schedules ?: emptyList(),
@@ -138,10 +141,13 @@ internal fun SettingsContent(
     passkeyError: String? = null,
     passkeySuccess: String? = null,
     onRegisterPasskey: () -> Unit = {},
+    usersLoading: Boolean = false,
+    usersLoadError: Boolean = false,
     users: List<User>,
     usersSaving: Boolean,
     usersMessage: String?,
     onUpdateDisplayName: (String, String) -> Unit,
+    onRetryUsers: () -> Unit = {},
     garbageLoading: Boolean,
     garbageLoadError: Boolean = false,
     garbageSchedules: List<GarbageTypeSchedule>,
@@ -229,10 +235,13 @@ internal fun SettingsContent(
                 // ユーザー名管理セクション（管理者のみ）
                 SettingsSection(title = "ユーザー名管理", showAdminBadge = true) {
                     UserNameManagementCard(
+                        isLoading = usersLoading,
+                        loadError = usersLoadError,
                         users = users,
                         usersSaving = usersSaving,
                         usersMessage = usersMessage,
                         onUpdateDisplayName = onUpdateDisplayName,
+                        onRetry = onRetryUsers,
                         modifier = cardModifier,
                     )
                 }
@@ -351,10 +360,13 @@ private fun SettingsSection(
 
 @Composable
 private fun UserNameManagementCard(
+    isLoading: Boolean = false,
+    loadError: Boolean = false,
     users: List<User>,
     usersSaving: Boolean,
     usersMessage: String?,
     onUpdateDisplayName: (String, String) -> Unit,
+    onRetry: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // ローカル編集状態: uid -> 入力中の displayName
@@ -369,59 +381,68 @@ private fun UserNameManagementCard(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
             ),
     ) {
+        if (isLoading) {
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(24.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+            }
+            return@Card
+        }
+        if (loadError) {
+            LoadErrorContent(onRetry = onRetry)
+            return@Card
+        }
         Column(
             modifier = Modifier.padding(24.dp).fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            if (users.isEmpty()) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp))
-            } else {
-                for (user in users) {
-                    OutlinedTextField(
-                        value = editedNames[user.uid] ?: "",
-                        onValueChange = { value ->
-                            editedNames =
-                                editedNames.toMutableMap().apply {
-                                    put(user.uid, value)
-                                }
-                        },
-                        label = { Text(user.uid) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        enabled = !usersSaving,
-                    )
-                }
-
-                if (usersMessage != null) {
-                    Text(
-                        text = usersMessage,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-
-                Button(
-                    onClick = {
-                        for (user in users) {
-                            val newName = editedNames[user.uid] ?: ""
-                            val oldName = user.displayName ?: ""
-                            if (newName != oldName) {
-                                onUpdateDisplayName(user.uid, newName)
+            for (user in users) {
+                OutlinedTextField(
+                    value = editedNames[user.uid] ?: "",
+                    onValueChange = { value ->
+                        editedNames =
+                            editedNames.toMutableMap().apply {
+                                put(user.uid, value)
                             }
-                        }
                     },
-                    modifier = Modifier.height(48.dp),
+                    label = { Text(user.uid) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
                     enabled = !usersSaving,
-                ) {
-                    if (usersSaving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
-                    } else {
-                        Text("保存する")
+                )
+            }
+
+            if (usersMessage != null) {
+                Text(
+                    text = usersMessage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+
+            Button(
+                onClick = {
+                    for (user in users) {
+                        val newName = editedNames[user.uid] ?: ""
+                        val oldName = user.displayName ?: ""
+                        if (newName != oldName) {
+                            onUpdateDisplayName(user.uid, newName)
+                        }
                     }
+                },
+                modifier = Modifier.height(48.dp),
+                enabled = !usersSaving,
+            ) {
+                if (usersSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                } else {
+                    Text("保存する")
                 }
             }
         }
