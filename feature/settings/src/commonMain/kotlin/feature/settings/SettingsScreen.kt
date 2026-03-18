@@ -76,13 +76,16 @@ fun SettingsScreen(
         usersMessage = userNameVm?.uiState?.message,
         onUpdateDisplayName = { uid, name -> userNameVm?.onUpdateDisplayName(uid, name) },
         garbageLoading = garbageVm?.uiState?.isLoading ?: false,
+        garbageLoadError = garbageVm?.uiState?.loadError ?: false,
         garbageSchedules = garbageVm?.uiState?.schedules ?: emptyList(),
         garbageMessage = garbageVm?.uiState?.message,
         garbageSaving = garbageVm?.uiState?.isSaving ?: false,
         onToggleDay = { type, day -> garbageVm?.onToggleDay(type, day) },
         onFrequencyChange = { type, freq -> garbageVm?.onChangeFrequency(type, freq) },
         onSaveGarbageSchedule = { garbageVm?.onSaveSchedule() },
+        onRetryGarbageSchedule = { garbageVm?.loadSchedules() },
         garbageNotificationLoading = garbageVm?.uiState?.notificationLoading ?: false,
+        garbageNotificationLoadError = garbageVm?.uiState?.notificationLoadError ?: false,
         garbageNotificationEnabled = garbageVm?.uiState?.notificationEnabled ?: false,
         garbageNotificationWebhookUrl = garbageVm?.uiState?.notificationWebhookUrl ?: "",
         garbageNotificationHour = garbageVm?.uiState?.notificationHour ?: "10",
@@ -95,7 +98,9 @@ fun SettingsScreen(
         onGarbageNotificationHourChanged = { garbageVm?.onNotificationHourChanged(it) },
         onGarbageNotificationPrefixChanged = { garbageVm?.onNotificationPrefixChanged(it) },
         onSaveGarbageNotification = { garbageVm?.onSaveNotificationSettings() },
+        onRetryGarbageNotification = { garbageVm?.loadNotificationSettings() },
         webhookLoading = webhookVm?.uiState?.isLoading ?: false,
+        webhookLoadError = webhookVm?.uiState?.loadError ?: false,
         webhookUrl = webhookVm?.uiState?.url ?: "",
         webhookEnabled = webhookVm?.uiState?.enabled ?: false,
         webhookEvents = webhookVm?.uiState?.events ?: emptyList(),
@@ -105,6 +110,7 @@ fun SettingsScreen(
         onWebhookEnabledChanged = { webhookVm?.onEnabledChanged(it) },
         onWebhookToggleEvent = { webhookVm?.onToggleEvent(it) },
         onSaveWebhook = { webhookVm?.onSave() },
+        onRetryWebhook = { webhookVm?.loadSettings() },
         cacheClearing = cacheVm?.uiState?.isClearing ?: false,
         cacheMessage = cacheVm?.uiState?.message,
         onClearCache = { cacheVm?.onClearCache() },
@@ -137,13 +143,16 @@ internal fun SettingsContent(
     usersMessage: String?,
     onUpdateDisplayName: (String, String) -> Unit,
     garbageLoading: Boolean,
+    garbageLoadError: Boolean = false,
     garbageSchedules: List<GarbageTypeSchedule>,
     garbageMessage: String?,
     garbageSaving: Boolean,
     onToggleDay: (GarbageType, Int) -> Unit,
     onFrequencyChange: (GarbageType, CollectionFrequency) -> Unit,
     onSaveGarbageSchedule: () -> Unit,
+    onRetryGarbageSchedule: () -> Unit = {},
     garbageNotificationLoading: Boolean = false,
+    garbageNotificationLoadError: Boolean = false,
     garbageNotificationEnabled: Boolean = false,
     garbageNotificationWebhookUrl: String = "",
     garbageNotificationHour: String = "10",
@@ -156,7 +165,9 @@ internal fun SettingsContent(
     onGarbageNotificationHourChanged: (String) -> Unit = {},
     onGarbageNotificationPrefixChanged: (String) -> Unit = {},
     onSaveGarbageNotification: () -> Unit = {},
+    onRetryGarbageNotification: () -> Unit = {},
     webhookLoading: Boolean = false,
+    webhookLoadError: Boolean = false,
     webhookUrl: String = "",
     webhookEnabled: Boolean = false,
     webhookEvents: List<String> = emptyList(),
@@ -166,6 +177,7 @@ internal fun SettingsContent(
     onWebhookEnabledChanged: (Boolean) -> Unit = {},
     onWebhookToggleEvent: (String) -> Unit = {},
     onSaveWebhook: () -> Unit = {},
+    onRetryWebhook: () -> Unit = {},
     cacheClearing: Boolean = false,
     cacheMessage: String? = null,
     onClearCache: () -> Unit = {},
@@ -231,16 +243,19 @@ internal fun SettingsContent(
                 SettingsSection(title = "ゴミ出し", showAdminBadge = true) {
                     GarbageScheduleCard(
                         isLoading = garbageLoading,
+                        loadError = garbageLoadError,
                         schedules = garbageSchedules,
                         garbageMessage = garbageMessage,
                         garbageSaving = garbageSaving,
                         onToggleDay = onToggleDay,
                         onFrequencyChange = onFrequencyChange,
                         onSaveClick = onSaveGarbageSchedule,
+                        onRetry = onRetryGarbageSchedule,
                         modifier = cardModifier,
                     )
                     GarbageNotificationCard(
                         isLoading = garbageNotificationLoading,
+                        loadError = garbageNotificationLoadError,
                         enabled = garbageNotificationEnabled,
                         webhookUrl = garbageNotificationWebhookUrl,
                         notifyHour = garbageNotificationHour,
@@ -253,6 +268,7 @@ internal fun SettingsContent(
                         onNotifyHourChanged = onGarbageNotificationHourChanged,
                         onPrefixChanged = onGarbageNotificationPrefixChanged,
                         onSave = onSaveGarbageNotification,
+                        onRetry = onRetryGarbageNotification,
                         modifier = cardModifier,
                     )
                 }
@@ -263,6 +279,7 @@ internal fun SettingsContent(
                 SettingsSection(title = "Webhook 通知", showAdminBadge = true) {
                     WebhookSettingsCard(
                         isLoading = webhookLoading,
+                        loadError = webhookLoadError,
                         url = webhookUrl,
                         enabled = webhookEnabled,
                         events = webhookEvents,
@@ -272,6 +289,7 @@ internal fun SettingsContent(
                         onEnabledChanged = onWebhookEnabledChanged,
                         onToggleEvent = onWebhookToggleEvent,
                         onSave = onSaveWebhook,
+                        onRetry = onRetryWebhook,
                         modifier = cardModifier,
                     )
                 }
@@ -413,12 +431,14 @@ private fun UserNameManagementCard(
 @Composable
 private fun GarbageScheduleCard(
     isLoading: Boolean,
+    loadError: Boolean = false,
     schedules: List<GarbageTypeSchedule>,
     garbageMessage: String?,
     garbageSaving: Boolean,
     onToggleDay: (GarbageType, Int) -> Unit,
     onFrequencyChange: (GarbageType, CollectionFrequency) -> Unit,
     onSaveClick: () -> Unit,
+    onRetry: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -435,6 +455,10 @@ private fun GarbageScheduleCard(
             ) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp))
             }
+            return@Card
+        }
+        if (loadError) {
+            LoadErrorContent(onRetry = onRetry)
             return@Card
         }
         Column(
@@ -773,6 +797,7 @@ private fun PasskeyManagementCard(
 @Composable
 private fun WebhookSettingsCard(
     isLoading: Boolean,
+    loadError: Boolean = false,
     url: String,
     enabled: Boolean,
     events: List<String>,
@@ -782,6 +807,7 @@ private fun WebhookSettingsCard(
     onEnabledChanged: (Boolean) -> Unit,
     onToggleEvent: (String) -> Unit,
     onSave: () -> Unit,
+    onRetry: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -798,6 +824,10 @@ private fun WebhookSettingsCard(
             ) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp))
             }
+            return@Card
+        }
+        if (loadError) {
+            LoadErrorContent(onRetry = onRetry)
             return@Card
         }
         Column(
@@ -918,6 +948,7 @@ private fun CacheRefreshCard(
 @Composable
 private fun GarbageNotificationCard(
     isLoading: Boolean,
+    loadError: Boolean = false,
     enabled: Boolean,
     webhookUrl: String,
     notifyHour: String,
@@ -930,6 +961,7 @@ private fun GarbageNotificationCard(
     onNotifyHourChanged: (String) -> Unit,
     onPrefixChanged: (String) -> Unit,
     onSave: () -> Unit,
+    onRetry: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -946,6 +978,10 @@ private fun GarbageNotificationCard(
             ) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp))
             }
+            return@Card
+        }
+        if (loadError) {
+            LoadErrorContent(onRetry = onRetry)
             return@Card
         }
         Column(
@@ -1039,6 +1075,24 @@ private fun GarbageNotificationCard(
                     Text("保存する")
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun LoadErrorContent(onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = "読み込みに失敗しました",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+        )
+        OutlinedButton(onClick = onRetry) {
+            Text("再試行")
         }
     }
 }

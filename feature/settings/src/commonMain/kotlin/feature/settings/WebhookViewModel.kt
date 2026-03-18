@@ -14,6 +14,7 @@ data class WebhookUiState(
     val enabled: Boolean = false,
     val events: List<String> = emptyList(),
     val isLoading: Boolean = true,
+    val loadError: Boolean = false,
     val isSaving: Boolean = false,
     val message: String? = null,
 )
@@ -28,7 +29,8 @@ class WebhookViewModel(
         loadSettings()
     }
 
-    private fun loadSettings() {
+    fun loadSettings() {
+        uiState = uiState.copy(isLoading = true, loadError = false, message = null)
         viewModelScope.launch {
             try {
                 val settings = webhookRepository.getSettings()
@@ -39,8 +41,8 @@ class WebhookViewModel(
                         events = settings.events,
                         isLoading = false,
                     )
-            } catch (e: Exception) {
-                uiState = uiState.copy(isLoading = false, message = "読み込み失敗: ${e.message}")
+            } catch (_: Exception) {
+                uiState = uiState.copy(isLoading = false, loadError = true)
             }
         }
     }
