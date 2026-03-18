@@ -21,6 +21,7 @@ include(":server")
 include(":app")
 
 // core モジュール
+include(":core:common")
 include(":core:auth")
 include(":core:network")
 include(":core:ui")

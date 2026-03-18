@@ -68,7 +68,7 @@ class WebhookViewModelTest {
             advanceUntilIdle()
 
             assertFalse(viewModel.uiState.isLoading)
-            assertEquals("読み込み失敗: load error", viewModel.uiState.message)
+            assertTrue(viewModel.uiState.loadError)
         }
 
     @Test

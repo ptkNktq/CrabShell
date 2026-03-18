@@ -23,6 +23,7 @@ import core.auth.AuthStateHolder
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
 import core.ui.components.AdminBadge
+import core.ui.components.LoadableCardContent
 import core.ui.extensions.color
 import core.ui.extensions.icon
 import core.ui.extensions.label
@@ -71,18 +72,27 @@ fun SettingsScreen(
         passkeyError = passkeyVm.uiState.errorMessage,
         passkeySuccess = passkeyVm.uiState.successMessage,
         onRegisterPasskey = passkeyVm::onRegisterPasskey,
+        usersLoading = userNameVm?.uiState?.isLoading ?: false,
+        usersLoadError = userNameVm?.uiState?.loadError ?: false,
         users = userNameVm?.uiState?.users ?: emptyList(),
         usersSaving = userNameVm?.uiState?.isSaving ?: false,
         usersMessage = userNameVm?.uiState?.message,
         onUpdateDisplayName = { uid, name -> userNameVm?.onUpdateDisplayName(uid, name) },
+        onRetryUsers = { userNameVm?.loadUsers() },
+        usersLoadErrorMessage = userNameVm?.uiState?.loadErrorMessage,
         garbageLoading = garbageVm?.uiState?.isLoading ?: false,
+        garbageLoadError = garbageVm?.uiState?.loadError ?: false,
+        garbageLoadErrorMessage = garbageVm?.uiState?.loadErrorMessage,
         garbageSchedules = garbageVm?.uiState?.schedules ?: emptyList(),
         garbageMessage = garbageVm?.uiState?.message,
         garbageSaving = garbageVm?.uiState?.isSaving ?: false,
         onToggleDay = { type, day -> garbageVm?.onToggleDay(type, day) },
         onFrequencyChange = { type, freq -> garbageVm?.onChangeFrequency(type, freq) },
         onSaveGarbageSchedule = { garbageVm?.onSaveSchedule() },
+        onRetryGarbageSchedule = { garbageVm?.loadSchedules() },
         garbageNotificationLoading = garbageVm?.uiState?.notificationLoading ?: false,
+        garbageNotificationLoadError = garbageVm?.uiState?.notificationLoadError ?: false,
+        garbageNotificationLoadErrorMessage = garbageVm?.uiState?.notificationLoadErrorMessage,
         garbageNotificationEnabled = garbageVm?.uiState?.notificationEnabled ?: false,
         garbageNotificationWebhookUrl = garbageVm?.uiState?.notificationWebhookUrl ?: "",
         garbageNotificationHour = garbageVm?.uiState?.notificationHour ?: "10",
@@ -95,7 +105,10 @@ fun SettingsScreen(
         onGarbageNotificationHourChanged = { garbageVm?.onNotificationHourChanged(it) },
         onGarbageNotificationPrefixChanged = { garbageVm?.onNotificationPrefixChanged(it) },
         onSaveGarbageNotification = { garbageVm?.onSaveNotificationSettings() },
+        onRetryGarbageNotification = { garbageVm?.loadNotificationSettings() },
         webhookLoading = webhookVm?.uiState?.isLoading ?: false,
+        webhookLoadError = webhookVm?.uiState?.loadError ?: false,
+        webhookLoadErrorMessage = webhookVm?.uiState?.loadErrorMessage,
         webhookUrl = webhookVm?.uiState?.url ?: "",
         webhookEnabled = webhookVm?.uiState?.enabled ?: false,
         webhookEvents = webhookVm?.uiState?.events ?: emptyList(),
@@ -105,6 +118,7 @@ fun SettingsScreen(
         onWebhookEnabledChanged = { webhookVm?.onEnabledChanged(it) },
         onWebhookToggleEvent = { webhookVm?.onToggleEvent(it) },
         onSaveWebhook = { webhookVm?.onSave() },
+        onRetryWebhook = { webhookVm?.loadSettings() },
         cacheClearing = cacheVm?.uiState?.isClearing ?: false,
         cacheMessage = cacheVm?.uiState?.message,
         onClearCache = { cacheVm?.onClearCache() },
@@ -132,18 +146,27 @@ internal fun SettingsContent(
     passkeyError: String? = null,
     passkeySuccess: String? = null,
     onRegisterPasskey: () -> Unit = {},
+    usersLoading: Boolean = false,
+    usersLoadError: Boolean = false,
+    usersLoadErrorMessage: String? = null,
     users: List<User>,
     usersSaving: Boolean,
     usersMessage: String?,
     onUpdateDisplayName: (String, String) -> Unit,
+    onRetryUsers: () -> Unit = {},
     garbageLoading: Boolean,
+    garbageLoadError: Boolean = false,
+    garbageLoadErrorMessage: String? = null,
     garbageSchedules: List<GarbageTypeSchedule>,
     garbageMessage: String?,
     garbageSaving: Boolean,
     onToggleDay: (GarbageType, Int) -> Unit,
     onFrequencyChange: (GarbageType, CollectionFrequency) -> Unit,
     onSaveGarbageSchedule: () -> Unit,
+    onRetryGarbageSchedule: () -> Unit = {},
     garbageNotificationLoading: Boolean = false,
+    garbageNotificationLoadError: Boolean = false,
+    garbageNotificationLoadErrorMessage: String? = null,
     garbageNotificationEnabled: Boolean = false,
     garbageNotificationWebhookUrl: String = "",
     garbageNotificationHour: String = "10",
@@ -156,7 +179,10 @@ internal fun SettingsContent(
     onGarbageNotificationHourChanged: (String) -> Unit = {},
     onGarbageNotificationPrefixChanged: (String) -> Unit = {},
     onSaveGarbageNotification: () -> Unit = {},
+    onRetryGarbageNotification: () -> Unit = {},
     webhookLoading: Boolean = false,
+    webhookLoadError: Boolean = false,
+    webhookLoadErrorMessage: String? = null,
     webhookUrl: String = "",
     webhookEnabled: Boolean = false,
     webhookEvents: List<String> = emptyList(),
@@ -166,6 +192,7 @@ internal fun SettingsContent(
     onWebhookEnabledChanged: (Boolean) -> Unit = {},
     onWebhookToggleEvent: (String) -> Unit = {},
     onSaveWebhook: () -> Unit = {},
+    onRetryWebhook: () -> Unit = {},
     cacheClearing: Boolean = false,
     cacheMessage: String? = null,
     onClearCache: () -> Unit = {},
@@ -217,10 +244,14 @@ internal fun SettingsContent(
                 // ユーザー名管理セクション（管理者のみ）
                 SettingsSection(title = "ユーザー名管理", showAdminBadge = true) {
                     UserNameManagementCard(
+                        isLoading = usersLoading,
+                        loadError = usersLoadError,
+                        loadErrorMessage = usersLoadErrorMessage,
                         users = users,
                         usersSaving = usersSaving,
                         usersMessage = usersMessage,
                         onUpdateDisplayName = onUpdateDisplayName,
+                        onRetry = onRetryUsers,
                         modifier = cardModifier,
                     )
                 }
@@ -229,60 +260,60 @@ internal fun SettingsContent(
 
                 // ゴミ出しセクション（管理者のみ）
                 SettingsSection(title = "ゴミ出し", showAdminBadge = true) {
-                    if (garbageLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                    } else {
-                        GarbageScheduleCard(
-                            schedules = garbageSchedules,
-                            garbageMessage = garbageMessage,
-                            garbageSaving = garbageSaving,
-                            onToggleDay = onToggleDay,
-                            onFrequencyChange = onFrequencyChange,
-                            onSaveClick = onSaveGarbageSchedule,
-                            modifier = cardModifier,
-                        )
-                    }
-                    if (garbageNotificationLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                    } else {
-                        GarbageNotificationCard(
-                            enabled = garbageNotificationEnabled,
-                            webhookUrl = garbageNotificationWebhookUrl,
-                            notifyHour = garbageNotificationHour,
-                            prefix = garbageNotificationPrefix,
-                            isSaving = garbageNotificationSaving,
-                            isHourValid = garbageNotificationHourValid,
-                            message = garbageNotificationMessage,
-                            onEnabledChanged = onGarbageNotificationEnabledChanged,
-                            onWebhookUrlChanged = onGarbageNotificationWebhookUrlChanged,
-                            onNotifyHourChanged = onGarbageNotificationHourChanged,
-                            onPrefixChanged = onGarbageNotificationPrefixChanged,
-                            onSave = onSaveGarbageNotification,
-                            modifier = cardModifier,
-                        )
-                    }
+                    GarbageScheduleCard(
+                        isLoading = garbageLoading,
+                        loadError = garbageLoadError,
+                        loadErrorMessage = garbageLoadErrorMessage,
+                        schedules = garbageSchedules,
+                        garbageMessage = garbageMessage,
+                        garbageSaving = garbageSaving,
+                        onToggleDay = onToggleDay,
+                        onFrequencyChange = onFrequencyChange,
+                        onSaveClick = onSaveGarbageSchedule,
+                        onRetry = onRetryGarbageSchedule,
+                        modifier = cardModifier,
+                    )
+                    GarbageNotificationCard(
+                        isLoading = garbageNotificationLoading,
+                        loadError = garbageNotificationLoadError,
+                        loadErrorMessage = garbageNotificationLoadErrorMessage,
+                        enabled = garbageNotificationEnabled,
+                        webhookUrl = garbageNotificationWebhookUrl,
+                        notifyHour = garbageNotificationHour,
+                        prefix = garbageNotificationPrefix,
+                        isSaving = garbageNotificationSaving,
+                        isHourValid = garbageNotificationHourValid,
+                        message = garbageNotificationMessage,
+                        onEnabledChanged = onGarbageNotificationEnabledChanged,
+                        onWebhookUrlChanged = onGarbageNotificationWebhookUrlChanged,
+                        onNotifyHourChanged = onGarbageNotificationHourChanged,
+                        onPrefixChanged = onGarbageNotificationPrefixChanged,
+                        onSave = onSaveGarbageNotification,
+                        onRetry = onRetryGarbageNotification,
+                        modifier = cardModifier,
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
 
                 // Webhook 設定セクション（管理者のみ）
                 SettingsSection(title = "Webhook 通知", showAdminBadge = true) {
-                    if (webhookLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                    } else {
-                        WebhookSettingsCard(
-                            url = webhookUrl,
-                            enabled = webhookEnabled,
-                            events = webhookEvents,
-                            isSaving = webhookSaving,
-                            message = webhookMessage,
-                            onUrlChanged = onWebhookUrlChanged,
-                            onEnabledChanged = onWebhookEnabledChanged,
-                            onToggleEvent = onWebhookToggleEvent,
-                            onSave = onSaveWebhook,
-                            modifier = cardModifier,
-                        )
-                    }
+                    WebhookSettingsCard(
+                        isLoading = webhookLoading,
+                        loadError = webhookLoadError,
+                        loadErrorMessage = webhookLoadErrorMessage,
+                        url = webhookUrl,
+                        enabled = webhookEnabled,
+                        events = webhookEvents,
+                        isSaving = webhookSaving,
+                        message = webhookMessage,
+                        onUrlChanged = onWebhookUrlChanged,
+                        onEnabledChanged = onWebhookEnabledChanged,
+                        onToggleEvent = onWebhookToggleEvent,
+                        onSave = onSaveWebhook,
+                        onRetry = onRetryWebhook,
+                        modifier = cardModifier,
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -342,10 +373,14 @@ private fun SettingsSection(
 
 @Composable
 private fun UserNameManagementCard(
+    isLoading: Boolean = false,
+    loadError: Boolean = false,
+    loadErrorMessage: String? = null,
     users: List<User>,
     usersSaving: Boolean,
     usersMessage: String?,
     onUpdateDisplayName: (String, String) -> Unit,
+    onRetry: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // ローカル編集状態: uid -> 入力中の displayName
@@ -360,13 +395,16 @@ private fun UserNameManagementCard(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
             ),
     ) {
-        Column(
-            modifier = Modifier.padding(24.dp).fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+        LoadableCardContent(
+            isLoading = isLoading,
+            loadError = loadError,
+            loadErrorMessage = loadErrorMessage,
+            onRetry = onRetry,
         ) {
-            if (users.isEmpty()) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp))
-            } else {
+            Column(
+                modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
                 for (user in users) {
                     OutlinedTextField(
                         value = editedNames[user.uid] ?: "",
@@ -421,12 +459,16 @@ private fun UserNameManagementCard(
 
 @Composable
 private fun GarbageScheduleCard(
+    isLoading: Boolean,
+    loadError: Boolean = false,
+    loadErrorMessage: String? = null,
     schedules: List<GarbageTypeSchedule>,
     garbageMessage: String?,
     garbageSaving: Boolean,
     onToggleDay: (GarbageType, Int) -> Unit,
     onFrequencyChange: (GarbageType, CollectionFrequency) -> Unit,
     onSaveClick: () -> Unit,
+    onRetry: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -436,107 +478,114 @@ private fun GarbageScheduleCard(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
             ),
     ) {
-        Column(
-            modifier = Modifier.padding(24.dp).fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+        LoadableCardContent(
+            isLoading = isLoading,
+            loadError = loadError,
+            loadErrorMessage = loadErrorMessage,
+            onRetry = onRetry,
         ) {
-            for (schedule in schedules) {
-                val garbageType = schedule.garbageType
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+            Column(
+                modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                for (schedule in schedules) {
+                    val garbageType = schedule.garbageType
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        Icon(
-                            imageVector = garbageType.icon,
-                            contentDescription = null,
-                            tint = garbageType.color,
-                        )
-                        Text(
-                            text = garbageType.label,
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-
-                    // 曜日チップ
-                    Text(
-                        text = "収集曜日",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        for (dayIndex in 0..6) {
-                            val selected = dayIndex in schedule.daysOfWeek
-                            FilterChip(
-                                selected = selected,
-                                onClick = { onToggleDay(garbageType, dayIndex) },
-                                label = { Text(dayLabels[dayIndex]) },
-                                border =
-                                    if (selected) {
-                                        BorderStroke(1.dp, garbageType.color)
-                                    } else {
-                                        FilterChipDefaults.filterChipBorder(enabled = true, selected = false)
-                                    },
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Icon(
+                                imageVector = garbageType.icon,
+                                contentDescription = null,
+                                tint = garbageType.color,
+                            )
+                            Text(
+                                text = garbageType.label,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurface,
                             )
                         }
-                    }
 
-                    // 頻度セレクタ
-                    Text(
-                        text = "収集頻度",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    SingleChoiceSegmentedButtonRow {
-                        CollectionFrequency.entries.forEachIndexed { index, freq ->
-                            SegmentedButton(
-                                selected = schedule.frequency == freq,
-                                onClick = { onFrequencyChange(garbageType, freq) },
-                                shape =
-                                    SegmentedButtonDefaults.itemShape(
-                                        index = index,
-                                        count = CollectionFrequency.entries.size,
-                                    ),
-                            ) {
-                                Text(
-                                    text = freq.label,
-                                    style = MaterialTheme.typography.labelSmall,
+                        // 曜日チップ
+                        Text(
+                            text = "収集曜日",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            for (dayIndex in 0..6) {
+                                val selected = dayIndex in schedule.daysOfWeek
+                                FilterChip(
+                                    selected = selected,
+                                    onClick = { onToggleDay(garbageType, dayIndex) },
+                                    label = { Text(dayLabels[dayIndex]) },
+                                    border =
+                                        if (selected) {
+                                            BorderStroke(1.dp, garbageType.color)
+                                        } else {
+                                            FilterChipDefaults.filterChipBorder(enabled = true, selected = false)
+                                        },
                                 )
                             }
                         }
+
+                        // 頻度セレクタ
+                        Text(
+                            text = "収集頻度",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        SingleChoiceSegmentedButtonRow {
+                            CollectionFrequency.entries.forEachIndexed { index, freq ->
+                                SegmentedButton(
+                                    selected = schedule.frequency == freq,
+                                    onClick = { onFrequencyChange(garbageType, freq) },
+                                    shape =
+                                        SegmentedButtonDefaults.itemShape(
+                                            index = index,
+                                            count = CollectionFrequency.entries.size,
+                                        ),
+                                ) {
+                                    Text(
+                                        text = freq.label,
+                                        style = MaterialTheme.typography.labelSmall,
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (schedule != schedules.lastOrNull()) {
+                        HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
                     }
                 }
 
-                if (schedule != schedules.lastOrNull()) {
-                    HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
-                }
-            }
-
-            if (garbageMessage != null) {
-                Text(
-                    text = garbageMessage,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-
-            Button(
-                onClick = onSaveClick,
-                modifier = Modifier.height(48.dp),
-                enabled = !garbageSaving,
-            ) {
-                if (garbageSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
+                if (garbageMessage != null) {
+                    Text(
+                        text = garbageMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
                     )
-                } else {
-                    Text("保存する")
+                }
+
+                Button(
+                    onClick = onSaveClick,
+                    modifier = Modifier.height(48.dp),
+                    enabled = !garbageSaving,
+                ) {
+                    if (garbageSaving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    } else {
+                        Text("保存する")
+                    }
                 }
             }
         }
@@ -771,6 +820,9 @@ private fun PasskeyManagementCard(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun WebhookSettingsCard(
+    isLoading: Boolean,
+    loadError: Boolean = false,
+    loadErrorMessage: String? = null,
     url: String,
     enabled: Boolean,
     events: List<String>,
@@ -780,6 +832,7 @@ private fun WebhookSettingsCard(
     onEnabledChanged: (Boolean) -> Unit,
     onToggleEvent: (String) -> Unit,
     onSave: () -> Unit,
+    onRetry: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -789,64 +842,71 @@ private fun WebhookSettingsCard(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
             ),
     ) {
-        Column(
-            modifier = Modifier.padding(24.dp).fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+        LoadableCardContent(
+            isLoading = isLoading,
+            loadError = loadError,
+            loadErrorMessage = loadErrorMessage,
+            onRetry = onRetry,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+            Column(
+                modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Text("Webhook 設定", style = MaterialTheme.typography.titleSmall)
-                Switch(
-                    checked = enabled,
-                    onCheckedChange = onEnabledChanged,
-                )
-            }
-
-            OutlinedTextField(
-                value = url,
-                onValueChange = onUrlChanged,
-                label = { Text("Webhook URL") },
-                placeholder = { Text("https://discord.com/api/webhooks/...") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isSaving,
-            )
-
-            Text("通知するイベント", style = MaterialTheme.typography.labelMedium)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                WebhookEvent.all.forEach { event ->
-                    FilterChip(
-                        selected = event in events,
-                        onClick = { onToggleEvent(event) },
-                        label = { Text(WebhookEvent.label(event)) },
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Webhook 設定", style = MaterialTheme.typography.titleSmall)
+                    Switch(
+                        checked = enabled,
+                        onCheckedChange = onEnabledChanged,
                     )
                 }
-            }
 
-            if (message != null) {
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = onUrlChanged,
+                    label = { Text("Webhook URL") },
+                    placeholder = { Text("https://discord.com/api/webhooks/...") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isSaving,
                 )
-            }
 
-            Button(
-                onClick = onSave,
-                modifier = Modifier.height(48.dp),
-                enabled = !isSaving,
-            ) {
-                if (isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
+                Text("通知するイベント", style = MaterialTheme.typography.labelMedium)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    WebhookEvent.all.forEach { event ->
+                        FilterChip(
+                            selected = event in events,
+                            onClick = { onToggleEvent(event) },
+                            label = { Text(WebhookEvent.label(event)) },
+                        )
+                    }
+                }
+
+                if (message != null) {
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
                     )
-                } else {
-                    Text("保存する")
+                }
+
+                Button(
+                    onClick = onSave,
+                    modifier = Modifier.height(48.dp),
+                    enabled = !isSaving,
+                ) {
+                    if (isSaving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    } else {
+                        Text("保存する")
+                    }
                 }
             }
         }
@@ -906,6 +966,9 @@ private fun CacheRefreshCard(
 
 @Composable
 private fun GarbageNotificationCard(
+    isLoading: Boolean,
+    loadError: Boolean = false,
+    loadErrorMessage: String? = null,
     enabled: Boolean,
     webhookUrl: String,
     notifyHour: String,
@@ -918,6 +981,7 @@ private fun GarbageNotificationCard(
     onNotifyHourChanged: (String) -> Unit,
     onPrefixChanged: (String) -> Unit,
     onSave: () -> Unit,
+    onRetry: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -927,95 +991,102 @@ private fun GarbageNotificationCard(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
             ),
     ) {
-        Column(
-            modifier = Modifier.padding(24.dp).fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+        LoadableCardContent(
+            isLoading = isLoading,
+            loadError = loadError,
+            loadErrorMessage = loadErrorMessage,
+            onRetry = onRetry,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+            Column(
+                modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Text("リマインダー通知", style = MaterialTheme.typography.titleSmall)
-                Switch(
-                    checked = enabled,
-                    onCheckedChange = onEnabledChanged,
-                )
-            }
-
-            OutlinedTextField(
-                value = webhookUrl,
-                onValueChange = onWebhookUrlChanged,
-                label = { Text("Webhook URL") },
-                placeholder = { Text("https://discord.com/api/webhooks/...") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isSaving,
-            )
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = "通知時刻",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.width(80.dp),
-                )
-                OutlinedTextField(
-                    value = notifyHour,
-                    onValueChange = { v ->
-                        val filtered = v.filter { it.isDigit() }.take(2)
-                        onNotifyHourChanged(filtered)
-                    },
-                    label = { Text("時") },
-                    singleLine = true,
-                    isError = !isHourValid,
-                    modifier = Modifier.width(72.dp),
-                    enabled = !isSaving,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center),
-                )
-                Text(": 00", style = MaterialTheme.typography.titleMedium)
-            }
-
-            Text(
-                text = "この時刻に翌日のゴミ出し情報を通知します。ダッシュボードの更新時刻も連動します。",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            OutlinedTextField(
-                value = prefix,
-                onValueChange = onPrefixChanged,
-                label = { Text("通知テキスト") },
-                placeholder = { Text("@everyone") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isSaving,
-            )
-
-            if (message != null) {
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-
-            Button(
-                onClick = onSave,
-                modifier = Modifier.height(48.dp),
-                enabled = !isSaving && isHourValid,
-            ) {
-                if (isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("リマインダー通知", style = MaterialTheme.typography.titleSmall)
+                    Switch(
+                        checked = enabled,
+                        onCheckedChange = onEnabledChanged,
                     )
-                } else {
-                    Text("保存する")
+                }
+
+                OutlinedTextField(
+                    value = webhookUrl,
+                    onValueChange = onWebhookUrlChanged,
+                    label = { Text("Webhook URL") },
+                    placeholder = { Text("https://discord.com/api/webhooks/...") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isSaving,
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = "通知時刻",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.width(80.dp),
+                    )
+                    OutlinedTextField(
+                        value = notifyHour,
+                        onValueChange = { v ->
+                            val filtered = v.filter { it.isDigit() }.take(2)
+                            onNotifyHourChanged(filtered)
+                        },
+                        label = { Text("時") },
+                        singleLine = true,
+                        isError = !isHourValid,
+                        modifier = Modifier.width(72.dp),
+                        enabled = !isSaving,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center),
+                    )
+                    Text(": 00", style = MaterialTheme.typography.titleMedium)
+                }
+
+                Text(
+                    text = "この時刻に翌日のゴミ出し情報を通知します。ダッシュボードの更新時刻も連動します。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                OutlinedTextField(
+                    value = prefix,
+                    onValueChange = onPrefixChanged,
+                    label = { Text("通知テキスト") },
+                    placeholder = { Text("@everyone") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isSaving,
+                )
+
+                if (message != null) {
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+
+                Button(
+                    onClick = onSave,
+                    modifier = Modifier.height(48.dp),
+                    enabled = !isSaving && isHourValid,
+                ) {
+                    if (isSaving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    } else {
+                        Text("保存する")
+                    }
                 }
             }
         }
