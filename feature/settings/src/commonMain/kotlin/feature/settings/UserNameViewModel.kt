@@ -29,7 +29,7 @@ class UserNameViewModel(
     }
 
     fun loadUsers() {
-        uiState = uiState.copy(isLoading = true, loadError = false)
+        uiState = uiState.copy(isLoading = true, loadError = false, loadErrorMessage = null)
         viewModelScope.launch {
             try {
                 uiState = uiState.copy(users = userRepository.getUsers(), isLoading = false)

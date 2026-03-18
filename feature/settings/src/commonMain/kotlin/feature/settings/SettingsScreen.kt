@@ -23,7 +23,7 @@ import core.auth.AuthStateHolder
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
 import core.ui.components.AdminBadge
-import core.ui.components.LoadErrorContent
+import core.ui.components.LoadableCardContent
 import core.ui.extensions.color
 import core.ui.extensions.icon
 import core.ui.extensions.label
@@ -395,68 +395,62 @@ private fun UserNameManagementCard(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
             ),
     ) {
-        if (isLoading) {
-            Box(
-                modifier = Modifier.fillMaxWidth().padding(24.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp))
-            }
-            return@Card
-        }
-        if (loadError) {
-            LoadErrorContent(onRetry = onRetry, errorDetail = loadErrorMessage)
-            return@Card
-        }
-        Column(
-            modifier = Modifier.padding(24.dp).fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+        LoadableCardContent(
+            isLoading = isLoading,
+            loadError = loadError,
+            loadErrorMessage = loadErrorMessage,
+            onRetry = onRetry,
         ) {
-            for (user in users) {
-                OutlinedTextField(
-                    value = editedNames[user.uid] ?: "",
-                    onValueChange = { value ->
-                        editedNames =
-                            editedNames.toMutableMap().apply {
-                                put(user.uid, value)
-                            }
-                    },
-                    label = { Text(user.uid) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    enabled = !usersSaving,
-                )
-            }
-
-            if (usersMessage != null) {
-                Text(
-                    text = usersMessage,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-
-            Button(
-                onClick = {
-                    for (user in users) {
-                        val newName = editedNames[user.uid] ?: ""
-                        val oldName = user.displayName ?: ""
-                        if (newName != oldName) {
-                            onUpdateDisplayName(user.uid, newName)
-                        }
-                    }
-                },
-                modifier = Modifier.height(48.dp),
-                enabled = !usersSaving,
+            Column(
+                modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                if (usersSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
+                for (user in users) {
+                    OutlinedTextField(
+                        value = editedNames[user.uid] ?: "",
+                        onValueChange = { value ->
+                            editedNames =
+                                editedNames.toMutableMap().apply {
+                                    put(user.uid, value)
+                                }
+                        },
+                        label = { Text(user.uid) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        enabled = !usersSaving,
                     )
-                } else {
-                    Text("保存する")
+                }
+
+                if (usersMessage != null) {
+                    Text(
+                        text = usersMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+
+                Button(
+                    onClick = {
+                        for (user in users) {
+                            val newName = editedNames[user.uid] ?: ""
+                            val oldName = user.displayName ?: ""
+                            if (newName != oldName) {
+                                onUpdateDisplayName(user.uid, newName)
+                            }
+                        }
+                    },
+                    modifier = Modifier.height(48.dp),
+                    enabled = !usersSaving,
+                ) {
+                    if (usersSaving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    } else {
+                        Text("保存する")
+                    }
                 }
             }
         }
@@ -484,120 +478,114 @@ private fun GarbageScheduleCard(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
             ),
     ) {
-        if (isLoading) {
-            Box(
-                modifier = Modifier.fillMaxWidth().padding(24.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp))
-            }
-            return@Card
-        }
-        if (loadError) {
-            LoadErrorContent(onRetry = onRetry, errorDetail = loadErrorMessage)
-            return@Card
-        }
-        Column(
-            modifier = Modifier.padding(24.dp).fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+        LoadableCardContent(
+            isLoading = isLoading,
+            loadError = loadError,
+            loadErrorMessage = loadErrorMessage,
+            onRetry = onRetry,
         ) {
-            for (schedule in schedules) {
-                val garbageType = schedule.garbageType
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+            Column(
+                modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                for (schedule in schedules) {
+                    val garbageType = schedule.garbageType
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        Icon(
-                            imageVector = garbageType.icon,
-                            contentDescription = null,
-                            tint = garbageType.color,
-                        )
-                        Text(
-                            text = garbageType.label,
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-
-                    // 曜日チップ
-                    Text(
-                        text = "収集曜日",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        for (dayIndex in 0..6) {
-                            val selected = dayIndex in schedule.daysOfWeek
-                            FilterChip(
-                                selected = selected,
-                                onClick = { onToggleDay(garbageType, dayIndex) },
-                                label = { Text(dayLabels[dayIndex]) },
-                                border =
-                                    if (selected) {
-                                        BorderStroke(1.dp, garbageType.color)
-                                    } else {
-                                        FilterChipDefaults.filterChipBorder(enabled = true, selected = false)
-                                    },
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Icon(
+                                imageVector = garbageType.icon,
+                                contentDescription = null,
+                                tint = garbageType.color,
+                            )
+                            Text(
+                                text = garbageType.label,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurface,
                             )
                         }
-                    }
 
-                    // 頻度セレクタ
-                    Text(
-                        text = "収集頻度",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    SingleChoiceSegmentedButtonRow {
-                        CollectionFrequency.entries.forEachIndexed { index, freq ->
-                            SegmentedButton(
-                                selected = schedule.frequency == freq,
-                                onClick = { onFrequencyChange(garbageType, freq) },
-                                shape =
-                                    SegmentedButtonDefaults.itemShape(
-                                        index = index,
-                                        count = CollectionFrequency.entries.size,
-                                    ),
-                            ) {
-                                Text(
-                                    text = freq.label,
-                                    style = MaterialTheme.typography.labelSmall,
+                        // 曜日チップ
+                        Text(
+                            text = "収集曜日",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            for (dayIndex in 0..6) {
+                                val selected = dayIndex in schedule.daysOfWeek
+                                FilterChip(
+                                    selected = selected,
+                                    onClick = { onToggleDay(garbageType, dayIndex) },
+                                    label = { Text(dayLabels[dayIndex]) },
+                                    border =
+                                        if (selected) {
+                                            BorderStroke(1.dp, garbageType.color)
+                                        } else {
+                                            FilterChipDefaults.filterChipBorder(enabled = true, selected = false)
+                                        },
                                 )
                             }
                         }
+
+                        // 頻度セレクタ
+                        Text(
+                            text = "収集頻度",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        SingleChoiceSegmentedButtonRow {
+                            CollectionFrequency.entries.forEachIndexed { index, freq ->
+                                SegmentedButton(
+                                    selected = schedule.frequency == freq,
+                                    onClick = { onFrequencyChange(garbageType, freq) },
+                                    shape =
+                                        SegmentedButtonDefaults.itemShape(
+                                            index = index,
+                                            count = CollectionFrequency.entries.size,
+                                        ),
+                                ) {
+                                    Text(
+                                        text = freq.label,
+                                        style = MaterialTheme.typography.labelSmall,
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (schedule != schedules.lastOrNull()) {
+                        HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
                     }
                 }
 
-                if (schedule != schedules.lastOrNull()) {
-                    HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
-                }
-            }
-
-            if (garbageMessage != null) {
-                Text(
-                    text = garbageMessage,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-
-            Button(
-                onClick = onSaveClick,
-                modifier = Modifier.height(48.dp),
-                enabled = !garbageSaving,
-            ) {
-                if (garbageSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
+                if (garbageMessage != null) {
+                    Text(
+                        text = garbageMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
                     )
-                } else {
-                    Text("保存する")
+                }
+
+                Button(
+                    onClick = onSaveClick,
+                    modifier = Modifier.height(48.dp),
+                    enabled = !garbageSaving,
+                ) {
+                    if (garbageSaving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    } else {
+                        Text("保存する")
+                    }
                 }
             }
         }
@@ -854,77 +842,71 @@ private fun WebhookSettingsCard(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
             ),
     ) {
-        if (isLoading) {
-            Box(
-                modifier = Modifier.fillMaxWidth().padding(24.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp))
-            }
-            return@Card
-        }
-        if (loadError) {
-            LoadErrorContent(onRetry = onRetry, errorDetail = loadErrorMessage)
-            return@Card
-        }
-        Column(
-            modifier = Modifier.padding(24.dp).fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+        LoadableCardContent(
+            isLoading = isLoading,
+            loadError = loadError,
+            loadErrorMessage = loadErrorMessage,
+            onRetry = onRetry,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+            Column(
+                modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Text("Webhook 設定", style = MaterialTheme.typography.titleSmall)
-                Switch(
-                    checked = enabled,
-                    onCheckedChange = onEnabledChanged,
-                )
-            }
-
-            OutlinedTextField(
-                value = url,
-                onValueChange = onUrlChanged,
-                label = { Text("Webhook URL") },
-                placeholder = { Text("https://discord.com/api/webhooks/...") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isSaving,
-            )
-
-            Text("通知するイベント", style = MaterialTheme.typography.labelMedium)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                WebhookEvent.all.forEach { event ->
-                    FilterChip(
-                        selected = event in events,
-                        onClick = { onToggleEvent(event) },
-                        label = { Text(WebhookEvent.label(event)) },
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Webhook 設定", style = MaterialTheme.typography.titleSmall)
+                    Switch(
+                        checked = enabled,
+                        onCheckedChange = onEnabledChanged,
                     )
                 }
-            }
 
-            if (message != null) {
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = onUrlChanged,
+                    label = { Text("Webhook URL") },
+                    placeholder = { Text("https://discord.com/api/webhooks/...") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isSaving,
                 )
-            }
 
-            Button(
-                onClick = onSave,
-                modifier = Modifier.height(48.dp),
-                enabled = !isSaving,
-            ) {
-                if (isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
+                Text("通知するイベント", style = MaterialTheme.typography.labelMedium)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    WebhookEvent.all.forEach { event ->
+                        FilterChip(
+                            selected = event in events,
+                            onClick = { onToggleEvent(event) },
+                            label = { Text(WebhookEvent.label(event)) },
+                        )
+                    }
+                }
+
+                if (message != null) {
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
                     )
-                } else {
-                    Text("保存する")
+                }
+
+                Button(
+                    onClick = onSave,
+                    modifier = Modifier.height(48.dp),
+                    enabled = !isSaving,
+                ) {
+                    if (isSaving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    } else {
+                        Text("保存する")
+                    }
                 }
             }
         }
@@ -1009,108 +991,102 @@ private fun GarbageNotificationCard(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
             ),
     ) {
-        if (isLoading) {
-            Box(
-                modifier = Modifier.fillMaxWidth().padding(24.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp))
-            }
-            return@Card
-        }
-        if (loadError) {
-            LoadErrorContent(onRetry = onRetry, errorDetail = loadErrorMessage)
-            return@Card
-        }
-        Column(
-            modifier = Modifier.padding(24.dp).fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+        LoadableCardContent(
+            isLoading = isLoading,
+            loadError = loadError,
+            loadErrorMessage = loadErrorMessage,
+            onRetry = onRetry,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+            Column(
+                modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Text("リマインダー通知", style = MaterialTheme.typography.titleSmall)
-                Switch(
-                    checked = enabled,
-                    onCheckedChange = onEnabledChanged,
-                )
-            }
-
-            OutlinedTextField(
-                value = webhookUrl,
-                onValueChange = onWebhookUrlChanged,
-                label = { Text("Webhook URL") },
-                placeholder = { Text("https://discord.com/api/webhooks/...") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isSaving,
-            )
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = "通知時刻",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.width(80.dp),
-                )
-                OutlinedTextField(
-                    value = notifyHour,
-                    onValueChange = { v ->
-                        val filtered = v.filter { it.isDigit() }.take(2)
-                        onNotifyHourChanged(filtered)
-                    },
-                    label = { Text("時") },
-                    singleLine = true,
-                    isError = !isHourValid,
-                    modifier = Modifier.width(72.dp),
-                    enabled = !isSaving,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center),
-                )
-                Text(": 00", style = MaterialTheme.typography.titleMedium)
-            }
-
-            Text(
-                text = "この時刻に翌日のゴミ出し情報を通知します。ダッシュボードの更新時刻も連動します。",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            OutlinedTextField(
-                value = prefix,
-                onValueChange = onPrefixChanged,
-                label = { Text("通知テキスト") },
-                placeholder = { Text("@everyone") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isSaving,
-            )
-
-            if (message != null) {
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-
-            Button(
-                onClick = onSave,
-                modifier = Modifier.height(48.dp),
-                enabled = !isSaving && isHourValid,
-            ) {
-                if (isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("リマインダー通知", style = MaterialTheme.typography.titleSmall)
+                    Switch(
+                        checked = enabled,
+                        onCheckedChange = onEnabledChanged,
                     )
-                } else {
-                    Text("保存する")
+                }
+
+                OutlinedTextField(
+                    value = webhookUrl,
+                    onValueChange = onWebhookUrlChanged,
+                    label = { Text("Webhook URL") },
+                    placeholder = { Text("https://discord.com/api/webhooks/...") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isSaving,
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = "通知時刻",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.width(80.dp),
+                    )
+                    OutlinedTextField(
+                        value = notifyHour,
+                        onValueChange = { v ->
+                            val filtered = v.filter { it.isDigit() }.take(2)
+                            onNotifyHourChanged(filtered)
+                        },
+                        label = { Text("時") },
+                        singleLine = true,
+                        isError = !isHourValid,
+                        modifier = Modifier.width(72.dp),
+                        enabled = !isSaving,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center),
+                    )
+                    Text(": 00", style = MaterialTheme.typography.titleMedium)
+                }
+
+                Text(
+                    text = "この時刻に翌日のゴミ出し情報を通知します。ダッシュボードの更新時刻も連動します。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                OutlinedTextField(
+                    value = prefix,
+                    onValueChange = onPrefixChanged,
+                    label = { Text("通知テキスト") },
+                    placeholder = { Text("@everyone") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isSaving,
+                )
+
+                if (message != null) {
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+
+                Button(
+                    onClick = onSave,
+                    modifier = Modifier.height(48.dp),
+                    enabled = !isSaving && isHourValid,
+                ) {
+                    if (isSaving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    } else {
+                        Text("保存する")
+                    }
                 }
             }
         }

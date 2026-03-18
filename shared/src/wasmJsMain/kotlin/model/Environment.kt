@@ -1,4 +1,4 @@
-package core.ui
+package model
 
 import kotlinx.browser.window
 

@@ -49,7 +49,7 @@ class GarbageScheduleViewModel(
     }
 
     fun loadSchedules() {
-        uiState = uiState.copy(isLoading = true, loadError = false)
+        uiState = uiState.copy(isLoading = true, loadError = false, loadErrorMessage = null)
         viewModelScope.launch {
             try {
                 val loaded = garbageScheduleRepository.getSchedules()
@@ -69,7 +69,7 @@ class GarbageScheduleViewModel(
     }
 
     fun loadNotificationSettings() {
-        uiState = uiState.copy(notificationLoading = true, notificationLoadError = false)
+        uiState = uiState.copy(notificationLoading = true, notificationLoadError = false, notificationLoadErrorMessage = null)
         viewModelScope.launch {
             try {
                 val settings = garbageScheduleRepository.getNotificationSettings()

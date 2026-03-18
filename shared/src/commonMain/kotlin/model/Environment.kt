@@ -1,3 +1,3 @@
-package core.ui
+package model
 
 expect val isDevEnvironment: Boolean
