@@ -229,60 +229,51 @@ internal fun SettingsContent(
 
                 // ゴミ出しセクション（管理者のみ）
                 SettingsSection(title = "ゴミ出し", showAdminBadge = true) {
-                    if (garbageLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                    } else {
-                        GarbageScheduleCard(
-                            schedules = garbageSchedules,
-                            garbageMessage = garbageMessage,
-                            garbageSaving = garbageSaving,
-                            onToggleDay = onToggleDay,
-                            onFrequencyChange = onFrequencyChange,
-                            onSaveClick = onSaveGarbageSchedule,
-                            modifier = cardModifier,
-                        )
-                    }
-                    if (garbageNotificationLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                    } else {
-                        GarbageNotificationCard(
-                            enabled = garbageNotificationEnabled,
-                            webhookUrl = garbageNotificationWebhookUrl,
-                            notifyHour = garbageNotificationHour,
-                            prefix = garbageNotificationPrefix,
-                            isSaving = garbageNotificationSaving,
-                            isHourValid = garbageNotificationHourValid,
-                            message = garbageNotificationMessage,
-                            onEnabledChanged = onGarbageNotificationEnabledChanged,
-                            onWebhookUrlChanged = onGarbageNotificationWebhookUrlChanged,
-                            onNotifyHourChanged = onGarbageNotificationHourChanged,
-                            onPrefixChanged = onGarbageNotificationPrefixChanged,
-                            onSave = onSaveGarbageNotification,
-                            modifier = cardModifier,
-                        )
-                    }
+                    GarbageScheduleCard(
+                        isLoading = garbageLoading,
+                        schedules = garbageSchedules,
+                        garbageMessage = garbageMessage,
+                        garbageSaving = garbageSaving,
+                        onToggleDay = onToggleDay,
+                        onFrequencyChange = onFrequencyChange,
+                        onSaveClick = onSaveGarbageSchedule,
+                        modifier = cardModifier,
+                    )
+                    GarbageNotificationCard(
+                        isLoading = garbageNotificationLoading,
+                        enabled = garbageNotificationEnabled,
+                        webhookUrl = garbageNotificationWebhookUrl,
+                        notifyHour = garbageNotificationHour,
+                        prefix = garbageNotificationPrefix,
+                        isSaving = garbageNotificationSaving,
+                        isHourValid = garbageNotificationHourValid,
+                        message = garbageNotificationMessage,
+                        onEnabledChanged = onGarbageNotificationEnabledChanged,
+                        onWebhookUrlChanged = onGarbageNotificationWebhookUrlChanged,
+                        onNotifyHourChanged = onGarbageNotificationHourChanged,
+                        onPrefixChanged = onGarbageNotificationPrefixChanged,
+                        onSave = onSaveGarbageNotification,
+                        modifier = cardModifier,
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
 
                 // Webhook 設定セクション（管理者のみ）
                 SettingsSection(title = "Webhook 通知", showAdminBadge = true) {
-                    if (webhookLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                    } else {
-                        WebhookSettingsCard(
-                            url = webhookUrl,
-                            enabled = webhookEnabled,
-                            events = webhookEvents,
-                            isSaving = webhookSaving,
-                            message = webhookMessage,
-                            onUrlChanged = onWebhookUrlChanged,
-                            onEnabledChanged = onWebhookEnabledChanged,
-                            onToggleEvent = onWebhookToggleEvent,
-                            onSave = onSaveWebhook,
-                            modifier = cardModifier,
-                        )
-                    }
+                    WebhookSettingsCard(
+                        isLoading = webhookLoading,
+                        url = webhookUrl,
+                        enabled = webhookEnabled,
+                        events = webhookEvents,
+                        isSaving = webhookSaving,
+                        message = webhookMessage,
+                        onUrlChanged = onWebhookUrlChanged,
+                        onEnabledChanged = onWebhookEnabledChanged,
+                        onToggleEvent = onWebhookToggleEvent,
+                        onSave = onSaveWebhook,
+                        modifier = cardModifier,
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -421,6 +412,7 @@ private fun UserNameManagementCard(
 
 @Composable
 private fun GarbageScheduleCard(
+    isLoading: Boolean,
     schedules: List<GarbageTypeSchedule>,
     garbageMessage: String?,
     garbageSaving: Boolean,
@@ -436,6 +428,15 @@ private fun GarbageScheduleCard(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
             ),
     ) {
+        if (isLoading) {
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(24.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+            }
+            return@Card
+        }
         Column(
             modifier = Modifier.padding(24.dp).fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -771,6 +772,7 @@ private fun PasskeyManagementCard(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun WebhookSettingsCard(
+    isLoading: Boolean,
     url: String,
     enabled: Boolean,
     events: List<String>,
@@ -789,6 +791,15 @@ private fun WebhookSettingsCard(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
             ),
     ) {
+        if (isLoading) {
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(24.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+            }
+            return@Card
+        }
         Column(
             modifier = Modifier.padding(24.dp).fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -906,6 +917,7 @@ private fun CacheRefreshCard(
 
 @Composable
 private fun GarbageNotificationCard(
+    isLoading: Boolean,
     enabled: Boolean,
     webhookUrl: String,
     notifyHour: String,
@@ -927,6 +939,15 @@ private fun GarbageNotificationCard(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
             ),
     ) {
+        if (isLoading) {
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(24.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+            }
+            return@Card
+        }
         Column(
             modifier = Modifier.padding(24.dp).fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
