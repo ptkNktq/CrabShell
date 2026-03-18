@@ -1,4 +1,4 @@
-package model
+package core.common
 
 import kotlinx.browser.window
 

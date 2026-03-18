@@ -111,15 +111,18 @@ server/              → Ktor server (Netty, JVM)
                        Repository 層: interface + Firestore 実装 class
                        ルートハンドラは HTTP 処理 + ビジネスルール判定のみ
 
+core/common/         → 環境判定（isDevEnvironment）など横断的ユーティリティ (commonMain)
+                       wasmJs: window.location.port による開発環境判定
+                       Compose・ネットワーク非依存の純粋 KMP モジュール
 core/auth/           → AuthRepository interface + AuthState/AuthStateHolder (commonMain)
                        Firebase/WebAuthn interop + AuthRepositoryImpl (wasmJsMain)
                        Depends on :shared, compose.runtime
 core/network/        → 認証トークン付き HTTP client + Repository interfaces/impls (commonMain)
                        PasskeyRepositoryImpl + NetworkModule (wasmJsMain)
                        Depends on :core:auth, ktor-client
-core/ui/             → テーマ定義 + WindowSizeClass (commonMain)
+core/ui/             → テーマ定義 + WindowSizeClass + 汎用UIコンポーネント (commonMain)
                        DateUtils (@JsFun) + CalendarView (wasmJsMain)
-                       Depends on compose (runtime, foundation, material3, ui)
+                       Depends on :core:common, compose (runtime, foundation, material3, ui)
 
 feature/auth/        → LoginViewModel + LoginScreen (commonMain)
                        AuthenticatedApp + PasskeySetupViewModel (wasmJsMain)
@@ -159,6 +162,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Server entry point: `server/src/main/kotlin/server/Application.kt`
 - Server DI: `server/src/main/kotlin/server/di/ServerModule.kt`
 - Server repositories: `server/src/main/kotlin/server/{money,quest,feeding,garbage,pet}/` (interface + Firestore 実装)
+- Core common: `core/common/src/commonMain/kotlin/core/common/` (Environment.kt)
 - Core auth (commonMain): `core/auth/src/commonMain/kotlin/core/auth/` (AuthRepository interface, AuthState)
 - Core auth (wasmJsMain): `core/auth/src/wasmJsMain/kotlin/core/auth/` (AuthRepositoryImpl, FirebaseInterop, WebAuthnInterop)
 - Core network (commonMain): `core/network/src/commonMain/kotlin/core/network/` (AuthHttpClient, Repository interfaces/impls)
