@@ -1,6 +1,7 @@
 package server.feeding
 
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -28,7 +29,12 @@ class FeedingReminderService(
     private val feedingRepository: FeedingRepository,
     private val feedingSettingsRepository: FeedingSettingsRepository,
     private val petRepository: PetRepository,
-    private val client: HttpClient = HttpClient(),
+    private val client: HttpClient =
+        HttpClient {
+            install(HttpTimeout) {
+                requestTimeoutMillis = 10_000
+            }
+        },
 ) {
     private val json = Json
 
