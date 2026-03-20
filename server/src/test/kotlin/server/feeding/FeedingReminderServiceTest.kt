@@ -276,6 +276,34 @@ class FeedingReminderServiceTest {
     }
 
     @Test
+    fun genericPayloadContainsPrefixWhenSet() {
+        val service = createService()
+        val payload =
+            service.buildPayload(
+                url = "https://example.com/webhook",
+                prefix = "@channel",
+                petName = "ポチ",
+                mealLabel = "朝",
+                scheduledTime = "07:00",
+            )
+        assertTrue(payload.contains("\"prefix\":\"@channel\""))
+    }
+
+    @Test
+    fun genericPayloadOmitsPrefixWhenBlank() {
+        val service = createService()
+        val payload =
+            service.buildPayload(
+                url = "https://example.com/webhook",
+                prefix = "",
+                petName = "ポチ",
+                mealLabel = "朝",
+                scheduledTime = "07:00",
+            )
+        assertFalse(payload.contains("\"prefix\""))
+    }
+
+    @Test
     fun payloadWithoutAppUrl() {
         val service = createService()
         val payload =
