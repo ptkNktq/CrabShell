@@ -48,6 +48,7 @@ fun PetManagementScreen(viewModel: PetManagementViewModel = koinViewModel()) {
         reminderPrefix = viewModel.uiState.reminderPrefix,
         isLoading = viewModel.uiState.isLoading,
         isSaving = viewModel.uiState.isSaving,
+        isTesting = viewModel.uiState.isTesting,
         message = viewModel.uiState.message,
         onPetNameChanged = viewModel::onPetNameChanged,
         onSavePetName = viewModel::onSavePetName,
@@ -58,6 +59,7 @@ fun PetManagementScreen(viewModel: PetManagementViewModel = koinViewModel()) {
         onReminderDelayMinutesChanged = viewModel::onReminderDelayMinutesChanged,
         onReminderPrefixChanged = viewModel::onReminderPrefixChanged,
         onSaveFeedingSettings = viewModel::onSaveFeedingSettings,
+        onTestReminder = viewModel::onTestReminder,
         windowSizeClass = windowSizeClass,
     )
 }
@@ -75,6 +77,7 @@ internal fun PetManagementContent(
     reminderPrefix: String,
     isLoading: Boolean,
     isSaving: Boolean,
+    isTesting: Boolean = false,
     message: String?,
     onPetNameChanged: (String, String) -> Unit,
     onSavePetName: (String) -> Unit,
@@ -85,6 +88,7 @@ internal fun PetManagementContent(
     onReminderDelayMinutesChanged: (Int) -> Unit,
     onReminderPrefixChanged: (String) -> Unit,
     onSaveFeedingSettings: () -> Unit,
+    onTestReminder: () -> Unit = {},
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
@@ -130,6 +134,7 @@ internal fun PetManagementContent(
                 reminderDelayMinutes = reminderDelayMinutes,
                 reminderPrefix = reminderPrefix,
                 isSaving = isSaving,
+                isTesting = isTesting,
                 message = message,
                 onMealOrderChanged = onMealOrderChanged,
                 onMealTimeChanged = onMealTimeChanged,
@@ -138,6 +143,7 @@ internal fun PetManagementContent(
                 onReminderDelayMinutesChanged = onReminderDelayMinutesChanged,
                 onReminderPrefixChanged = onReminderPrefixChanged,
                 onSave = onSaveFeedingSettings,
+                onTestReminder = onTestReminder,
                 modifier = cardModifier,
             )
         }
@@ -223,6 +229,7 @@ private fun FeedingSettingsCard(
     reminderDelayMinutes: Int,
     reminderPrefix: String,
     isSaving: Boolean,
+    isTesting: Boolean = false,
     message: String?,
     onMealOrderChanged: (List<MealTime>) -> Unit,
     onMealTimeChanged: (MealTime, String) -> Unit,
@@ -231,6 +238,7 @@ private fun FeedingSettingsCard(
     onReminderDelayMinutesChanged: (Int) -> Unit,
     onReminderPrefixChanged: (String) -> Unit,
     onSave: () -> Unit,
+    onTestReminder: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -378,19 +386,35 @@ private fun FeedingSettingsCard(
                 )
             }
 
-            Button(
-                onClick = onSave,
-                modifier = Modifier.height(48.dp),
-                enabled = !isSaving,
-            ) {
-                if (isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    )
-                } else {
-                    Text("保存する")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = onSave,
+                    modifier = Modifier.height(48.dp),
+                    enabled = !isSaving && !isTesting,
+                ) {
+                    if (isSaving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    } else {
+                        Text("保存する")
+                    }
+                }
+                OutlinedButton(
+                    onClick = onTestReminder,
+                    modifier = Modifier.height(48.dp),
+                    enabled = !isSaving && !isTesting && reminderEnabled && reminderWebhookUrl.isNotBlank(),
+                ) {
+                    if (isTesting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        Text("テスト送信")
+                    }
                 }
             }
         }

@@ -94,6 +94,22 @@ class FeedingReminderService(
         }
     }
 
+    /** テスト送信: 保存済み設定を使って最初のペット・最初の食事でリマインダーを即時送信 */
+    suspend fun sendTestReminder() {
+        val settings = feedingSettingsRepository.getSettings()
+        require(settings.reminderWebhookUrl.isNotBlank()) { "Webhook URL が設定されていません" }
+        val pet = petRepository.getPets().firstOrNull() ?: error("ペットが登録されていません")
+        val mealTime = settings.mealOrder.firstOrNull() ?: MealTime.MORNING
+        val scheduledTime = settings.mealTimes[mealTime] ?: "00:00"
+        sendWebhook(
+            url = settings.reminderWebhookUrl,
+            prefix = settings.reminderPrefix,
+            petName = pet.name,
+            mealTime = mealTime,
+            scheduledTime = scheduledTime,
+        )
+    }
+
     internal suspend fun sendWebhook(
         url: String,
         prefix: String,

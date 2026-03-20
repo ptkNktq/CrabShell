@@ -23,6 +23,7 @@ data class PetManagementUiState(
     val reminderDelayMinutes: Int = 30,
     val reminderPrefix: String = "",
     val isSaving: Boolean = false,
+    val isTesting: Boolean = false,
     val message: String? = null,
 )
 
@@ -146,6 +147,18 @@ class PetManagementViewModel(
                 uiState = uiState.copy(isSaving = false, message = "設定を保存しました")
             } catch (e: Exception) {
                 uiState = uiState.copy(isSaving = false, message = "保存失敗: ${e.message}")
+            }
+        }
+    }
+
+    fun onTestReminder() {
+        uiState = uiState.copy(isTesting = true, message = null)
+        viewModelScope.launch {
+            try {
+                feedingSettingsRepository.testReminder()
+                uiState = uiState.copy(isTesting = false, message = "テスト送信しました")
+            } catch (e: Exception) {
+                uiState = uiState.copy(isTesting = false, message = "テスト送信失敗: ${e.message}")
             }
         }
     }
