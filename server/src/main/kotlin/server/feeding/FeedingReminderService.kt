@@ -148,6 +148,7 @@ class FeedingReminderService(
                 json.encodeToString(
                     GenericReminderPayload(
                         event = "feeding_reminder",
+                        prefix = prefix.ifBlank { null },
                         petName = petName,
                         mealTime = mealLabel,
                         scheduledTime = scheduledTime,
@@ -230,6 +231,7 @@ internal data class SlackReminderPayload(
 @Serializable
 internal data class GenericReminderPayload(
     val event: String,
+    val prefix: String? = null,
     val petName: String,
     val mealTime: String,
     val scheduledTime: String,
