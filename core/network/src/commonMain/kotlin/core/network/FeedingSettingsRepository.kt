@@ -10,6 +10,8 @@ interface FeedingSettingsRepository {
     suspend fun getSettings(): FeedingSettings
 
     suspend fun updateSettings(settings: FeedingSettings): FeedingSettings
+
+    suspend fun testReminder()
 }
 
 class FeedingSettingsRepositoryImpl(
@@ -23,4 +25,8 @@ class FeedingSettingsRepositoryImpl(
                 contentType(ContentType.Application.Json)
                 setBody(settings)
             }.body()
+
+    override suspend fun testReminder() {
+        client.post("/api/feeding/test-reminder")
+    }
 }

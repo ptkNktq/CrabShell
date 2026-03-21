@@ -1,6 +1,7 @@
 package server.feeding
 
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -28,7 +29,12 @@ class FeedingReminderService(
     private val feedingRepository: FeedingRepository,
     private val feedingSettingsRepository: FeedingSettingsRepository,
     private val petRepository: PetRepository,
-    private val client: HttpClient = HttpClient(),
+    private val client: HttpClient =
+        HttpClient {
+            install(HttpTimeout) {
+                requestTimeoutMillis = 10_000
+            }
+        },
 ) {
     private val json = Json
 
@@ -92,6 +98,22 @@ class FeedingReminderService(
                 notified.add(mealTime)
             }
         }
+    }
+
+    /** テスト送信: 保存済み設定を使って最初のペット・最初の食事でリマインダーを即時送信 */
+    suspend fun sendTestReminder() {
+        val settings = feedingSettingsRepository.getSettings()
+        require(settings.reminderWebhookUrl.isNotBlank()) { "Webhook URL が設定されていません" }
+        val pet = petRepository.getPets().firstOrNull() ?: error("ペットが登録されていません")
+        val mealTime = settings.mealOrder.firstOrNull() ?: MealTime.MORNING
+        val scheduledTime = settings.mealTimes[mealTime] ?: "00:00"
+        sendWebhook(
+            url = settings.reminderWebhookUrl,
+            prefix = settings.reminderPrefix,
+            petName = pet.name,
+            mealTime = mealTime,
+            scheduledTime = scheduledTime,
+        )
     }
 
     internal suspend fun sendWebhook(

@@ -2,6 +2,7 @@ package server.feeding
 
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.patch
+import io.github.smiley4.ktoropenapi.post
 import io.github.smiley4.ktoropenapi.put
 import io.ktor.http.*
 import io.ktor.server.request.*
@@ -134,6 +135,24 @@ fun Route.feedingRoutes() {
     }
 
     adminOnly {
+        post("/feeding/test-reminder", {
+            tags = listOf("feeding")
+            summary = "給餌リマインダーテスト送信（admin）"
+            response {
+                code(HttpStatusCode.OK) {
+                    body<Map<String, String>>()
+                }
+            }
+        }) {
+            val feedingReminderService by inject<FeedingReminderService>()
+            try {
+                feedingReminderService.sendTestReminder()
+                call.respond(mapOf("status" to "sent"))
+            } catch (e: Exception) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to (e.message ?: "送信失敗")))
+            }
+        }
+
         get("/feeding/settings", {
             tags = listOf("feeding")
             summary = "給餌設定取得（admin）"
