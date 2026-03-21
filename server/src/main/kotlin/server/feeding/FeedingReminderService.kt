@@ -91,6 +91,7 @@ class FeedingReminderService(
                 sendWebhook(
                     url = settings.reminderWebhookUrl,
                     prefix = settings.reminderPrefix,
+                    petId = pet.id,
                     petName = pet.name,
                     mealTime = mealTime,
                     scheduledTime = scheduledTimeStr,
@@ -110,6 +111,7 @@ class FeedingReminderService(
         sendWebhook(
             url = settings.reminderWebhookUrl,
             prefix = settings.reminderPrefix,
+            petId = pet.id,
             petName = pet.name,
             mealTime = mealTime,
             scheduledTime = scheduledTime,
@@ -119,12 +121,13 @@ class FeedingReminderService(
     internal suspend fun sendWebhook(
         url: String,
         prefix: String,
+        petId: String,
         petName: String,
         mealTime: MealTime,
         scheduledTime: String,
     ) {
         val mealLabel = mealTimeLabel(mealTime)
-        val payload = buildPayload(url, prefix, petName, mealLabel, scheduledTime)
+        val payload = buildPayload(url, prefix, petId, petName, mealLabel, scheduledTime)
         try {
             client.post(url) {
                 setBody(TextContent(payload, ContentType.Application.Json))
@@ -137,6 +140,7 @@ class FeedingReminderService(
     internal fun buildPayload(
         url: String,
         prefix: String,
+        petId: String,
         petName: String,
         mealLabel: String,
         scheduledTime: String,
@@ -171,6 +175,7 @@ class FeedingReminderService(
                     GenericReminderPayload(
                         event = "feeding_reminder",
                         prefix = prefix.ifBlank { null },
+                        petId = petId,
                         petName = petName,
                         mealTime = mealLabel,
                         scheduledTime = scheduledTime,
@@ -254,6 +259,7 @@ internal data class SlackReminderPayload(
 internal data class GenericReminderPayload(
     val event: String,
     val prefix: String? = null,
+    val petId: String,
     val petName: String,
     val mealTime: String,
     val scheduledTime: String,

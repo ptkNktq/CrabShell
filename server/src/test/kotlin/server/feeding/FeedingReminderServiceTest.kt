@@ -228,6 +228,7 @@ class FeedingReminderServiceTest {
             service.buildPayload(
                 url = "https://discord.com/api/webhooks/x/y",
                 prefix = "@everyone",
+                petId = "pet1",
                 petName = "ポチ",
                 mealLabel = "昼",
                 scheduledTime = "12:00",
@@ -248,6 +249,7 @@ class FeedingReminderServiceTest {
             service.buildPayload(
                 url = "https://hooks.slack.com/services/x/y/z",
                 prefix = "",
+                petId = "pet1",
                 petName = "ポチ",
                 mealLabel = "朝",
                 scheduledTime = "07:00",
@@ -265,6 +267,7 @@ class FeedingReminderServiceTest {
             service.buildPayload(
                 url = "https://example.com/webhook",
                 prefix = "",
+                petId = "pet1",
                 petName = "ポチ",
                 mealLabel = "晩",
                 scheduledTime = "18:00",
@@ -282,6 +285,7 @@ class FeedingReminderServiceTest {
             service.buildPayload(
                 url = "https://example.com/webhook",
                 prefix = "@channel",
+                petId = "pet1",
                 petName = "ポチ",
                 mealLabel = "朝",
                 scheduledTime = "07:00",
@@ -296,6 +300,7 @@ class FeedingReminderServiceTest {
             service.buildPayload(
                 url = "https://example.com/webhook",
                 prefix = "",
+                petId = "pet1",
                 petName = "ポチ",
                 mealLabel = "朝",
                 scheduledTime = "07:00",
@@ -310,6 +315,7 @@ class FeedingReminderServiceTest {
             service.buildPayload(
                 url = "https://discord.com/api/webhooks/x/y",
                 prefix = "",
+                petId = "pet1",
                 petName = "ポチ",
                 mealLabel = "昼",
                 scheduledTime = "12:00",
