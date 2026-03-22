@@ -182,11 +182,6 @@ class DashboardViewModel(
         }
     }
 
-    companion object {
-        /** ダッシュボードのゴミ情報を「今日→明日」に切り替える時刻（固定） */
-        private const val GARBAGE_SWITCH_HOUR = 10
-    }
-
     fun onFeed(mealTime: MealTime) {
         val id = petId ?: return
         viewModelScope.launch {
@@ -204,5 +199,10 @@ class DashboardViewModel(
                 uiState = uiState.copy(feedingActionError = e.message)
             }
         }
+    }
+
+    companion object {
+        /** ダッシュボードのゴミ情報を「今日→明日」に切り替える時刻（固定） */
+        private const val GARBAGE_SWITCH_HOUR = 10
     }
 }
