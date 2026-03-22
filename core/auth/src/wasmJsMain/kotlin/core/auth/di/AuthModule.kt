@@ -10,5 +10,7 @@ val authModule =
     module {
         single { AuthStateHolder() }
         single<AuthRepository> { AuthRepositoryImpl(get()) }
+        // TabResumedEvent は core:common 定義だが、AuthenticatedApp（feature:auth）が
+        // トークンリフレッシュ完了後に emit する起点なので、認証関連の DI としてここに登録
         single { TabResumedEvent() }
     }
