@@ -1050,7 +1050,7 @@ private fun GarbageNotificationCard(
                 }
 
                 Text(
-                    text = "この時刻に翌日のゴミ出し情報を通知します。ダッシュボードの更新時刻も連動します。",
+                    text = "この時刻に翌日のゴミ出し情報を通知します。ダッシュボードの表示切替は毎日 10:00 固定です。",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
