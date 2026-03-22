@@ -31,7 +31,9 @@ COPY server/ server/
 COPY app/ app/
 COPY core/ core/
 COPY feature/ feature/
-RUN gradle :server:buildFatJar --no-daemon
+RUN gradle :server:buildFatJar --no-daemon \
+    -Dorg.gradle.jvmargs="-Xmx2g -Dfile.encoding=UTF-8" \
+    -Dorg.gradle.workers.max=2
 
 FROM eclipse-temurin:21.0.10_7-jre-noble
 WORKDIR /app
