@@ -48,7 +48,7 @@ class FeedingReminderService(
             try {
                 checkAndNotify()
             } catch (e: Exception) {
-                logger.warn("Feeding reminder check failed: ${e.message}")
+                logger.warn("Feeding reminder check failed", e)
             }
             delay(60_000L)
         }
@@ -133,7 +133,7 @@ class FeedingReminderService(
                 setBody(TextContent(payload, ContentType.Application.Json))
             }
         } catch (e: Exception) {
-            logger.warn("Feeding reminder webhook failed: ${e.message}")
+            logger.warn("Feeding reminder webhook failed", e)
         }
     }
 

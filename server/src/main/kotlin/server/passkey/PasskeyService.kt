@@ -19,8 +19,11 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
+import org.slf4j.LoggerFactory
 import server.config.EnvConfig
 import java.util.Base64
+
+private val logger = LoggerFactory.getLogger("PasskeyService")
 
 object PasskeyService {
     private val webAuthnManager = WebAuthnManager.createNonStrictWebAuthnManager()
@@ -31,7 +34,7 @@ object PasskeyService {
         val hasRpId = EnvConfig["WEBAUTHN_RP_ID"] != null
         val hasOrigin = EnvConfig["WEBAUTHN_ORIGIN"] != null
         if (!hasRpId || !hasOrigin) {
-            println("WARNING: WEBAUTHN_RP_ID / WEBAUTHN_ORIGIN が未設定のためパスキー機能は無効です")
+            logger.warn("WEBAUTHN_RP_ID / WEBAUTHN_ORIGIN が未設定のためパスキー機能は無効です")
         }
         hasRpId && hasOrigin
     }

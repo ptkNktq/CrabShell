@@ -73,7 +73,7 @@ class WebhookService(
                     setBody(TextContent(payload, ContentType.Application.Json))
                 }
             } catch (e: Exception) {
-                logger.warn("Webhook delivery failed for event=$event: ${e.message}")
+                logger.warn("Webhook delivery failed for event=$event", e)
             }
         }
     }
