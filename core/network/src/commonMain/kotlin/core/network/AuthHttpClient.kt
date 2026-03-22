@@ -2,15 +2,19 @@ package core.network
 
 import core.auth.AuthRepository
 import core.auth.AuthStateHolder
+import core.common.AppLogger
 import io.ktor.client.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.observer.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+
+private const val TAG = "HttpClient"
 
 /** エラーレスポンスの JSON から "error" フィールドを抽出する */
 private suspend fun HttpResponse.extractErrorMessage(): String {
@@ -49,6 +53,12 @@ fun createAuthenticatedClient(
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })
         }
+        install(ResponseObserver) {
+            onResponse { response ->
+                val request = response.request
+                AppLogger.d(TAG, "${request.method.value} ${request.url} → ${response.status}")
+            }
+        }
         defaultRequest {
             val token = authStateHolder.idToken
             if (token != null) {
@@ -62,6 +72,7 @@ fun createAuthenticatedClient(
             }
             delay {
                 // delay は suspend なのでトークンリフレッシュを実行できる
+                AppLogger.w(TAG, "401 Unauthorized — refreshing token")
                 authRepository.refreshToken()
             }
             modifyRequest { request ->
@@ -77,11 +88,14 @@ fun createAuthenticatedClient(
             validateResponse { response ->
                 if (response.status == HttpStatusCode.Unauthorized) {
                     // Firebase からサインアウトして認証状態を完全にリセット
+                    AppLogger.e(TAG, "Token refresh failed — signing out")
                     authRepository.signOut()
                     throw Exception("認証エラー: 再ログインしてください")
                 }
                 if (!response.status.isSuccess()) {
-                    throw Exception(response.extractErrorMessage())
+                    val message = response.extractErrorMessage()
+                    AppLogger.e(TAG, "${response.request.method.value} ${response.request.url} failed: $message")
+                    throw Exception(message)
                 }
             }
         }
