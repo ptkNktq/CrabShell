@@ -1,4 +1,4 @@
-package core.auth
+package core.common
 
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow

@@ -5,7 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import core.auth.TabResumedEvent
+import core.common.TabResumedEvent
 import core.network.FeedingRepository
 import core.network.GarbageScheduleRepository
 import core.network.PetRepository

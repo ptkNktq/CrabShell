@@ -17,7 +17,7 @@ import androidx.compose.ui.Modifier
 import core.auth.AuthRepository
 import core.auth.AuthState
 import core.auth.AuthStateHolder
-import core.auth.TabResumedEvent
+import core.common.TabResumedEvent
 import core.common.addPageVisibleListener
 import core.common.removePageVisibleListener
 import core.ui.theme.AppColorScheme
