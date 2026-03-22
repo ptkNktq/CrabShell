@@ -78,6 +78,7 @@ cp .env.example .env
 | `PASSKEY_DB_PATH` | Passkey SQLite DB のパス（デフォルト: `data/passkey.db`） | いいえ |
 | `APP_URL` | アプリケーションの公開 URL（給餌リマインダー Webhook のリンクに使用） | いいえ（未設定時はリンクなし） |
 | `SWAGGER_ENABLED` | `true` で Swagger UI (`/swagger`) を有効化（本番では設定しない） | いいえ |
+| `LOG_LEVEL` | サーバーのログレベル（デフォルト: `INFO`、開発時は `DEBUG` 推奨） | いいえ |
 
 - webpack dev server (port 3000) が `/api/*` を Ktor サーバー (port 8080) にプロキシ
 - `-PskipFrontend` を付けるとサーバービルド時に WASM フロントエンドのビルドをスキップ
@@ -111,8 +112,9 @@ server/              → Ktor server (Netty, JVM)
                        Repository 層: interface + Firestore 実装 class
                        ルートハンドラは HTTP 処理 + ビジネスルール判定のみ
 
-core/common/         → 環境判定（isDevEnvironment）、TabResumedEvent など横断的ユーティリティ (commonMain)
+core/common/         → 環境判定（isDevEnvironment）、AppLogger、TabResumedEvent など横断的ユーティリティ (commonMain)
                        wasmJs: window.location.port による開発環境判定、PageVisibility (visibilitychange)
+                       wasmJs: AppLogger → 開発環境のみ console.log/warn/error 出力（本番は no-op）
                        Compose 非依存の純粋 KMP モジュール（kotlinx-coroutines-core のみ依存）
 core/auth/           → AuthRepository interface + AuthState/AuthStateHolder (commonMain)
                        Firebase/WebAuthn interop + AuthRepositoryImpl (wasmJsMain)
@@ -151,7 +153,8 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - **Kotlin** 2.3.10, **Compose Multiplatform** 1.10.1, **Ktor** 3.4.0
 - **DI**: Koin 4.2.0-RC1（クライアント + サーバー共通。Kotlin 2.3.0 wasmJs 互換の唯一のバージョン）
 - **Serialization**: kotlinx-serialization-json 1.10.0
-- **API Docs**: ktor-openapi-tools 5.5.0（OpenAPI spec + Swagger UI、開発モード時のみ）
+- **API Docs**: ktor-openapi-tools 5.6.0（OpenAPI spec + Swagger UI、開発モード時のみ）
+- **Logging**: サーバー: SLF4J + Logback（`LOG_LEVEL` 環境変数で制御）、フロントエンド: `AppLogger`（開発環境のみ console 出力、本番 no-op）
 - **Dependency versions**: managed in `gradle/libs.versions.toml` (bundles: `ktor-server`, `ktor-client`, `koin`, `feature`, `exposed`)
 - **Kotlin code style**: official (set in `gradle.properties`)
 
@@ -162,8 +165,8 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Server entry point: `server/src/main/kotlin/server/Application.kt`
 - Server DI: `server/src/main/kotlin/server/di/ServerModule.kt`
 - Server repositories: `server/src/main/kotlin/server/{money,quest,feeding,garbage,pet}/` (interface + Firestore 実装)
-- Core common: `core/common/src/commonMain/kotlin/core/common/` (Environment.kt, TabResumedEvent.kt)
-- Core common (wasmJsMain): `core/common/src/wasmJsMain/kotlin/core/common/` (Environment.kt, PageVisibility.kt)
+- Core common: `core/common/src/commonMain/kotlin/core/common/` (Environment.kt, AppLogger.kt, TabResumedEvent.kt)
+- Core common (wasmJsMain): `core/common/src/wasmJsMain/kotlin/core/common/` (Environment.kt, AppLogger.wasmJs.kt, PageVisibility.kt)
 - Core auth (commonMain): `core/auth/src/commonMain/kotlin/core/auth/` (AuthRepository interface, AuthState)
 - Core auth (wasmJsMain): `core/auth/src/wasmJsMain/kotlin/core/auth/` (AuthRepositoryImpl, FirebaseInterop, WebAuthnInterop)
 - Core network (commonMain): `core/network/src/commonMain/kotlin/core/network/` (AuthHttpClient, Repository interfaces/impls)

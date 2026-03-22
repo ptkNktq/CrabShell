@@ -359,6 +359,7 @@ node -e "
 | `GEMINI_API_KEY` | | Google AI Studio の API キー（クエスト AI テキスト生成用。未設定時は AI 生成ボタン非表示） |
 | `GEMINI_MODEL` | | Gemini モデル名（デフォルト: `gemini-2.5-flash`） |
 | `SWAGGER_ENABLED` | | `true` で Swagger UI (`/swagger`) を有効化（本番では設定しない） |
+| `LOG_LEVEL` | | サーバーのログレベル（デフォルト: `INFO`、開発時は `DEBUG` 推奨） |
 
 > `WEBAUTHN_RP_ID` / `WEBAUTHN_ORIGIN` が未設定の場合、パスキー機能は無効化されます（メール/パスワード認証のみ動作）。
 

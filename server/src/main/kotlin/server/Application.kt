@@ -14,16 +14,20 @@ import io.ktor.server.netty.*
 import io.ktor.server.plugins.MissingRequestParameterException
 import io.ktor.server.plugins.ParameterConversionException
 import io.ktor.server.plugins.bodylimit.RequestBodyLimit
+import io.ktor.server.plugins.calllogging.CallLogging
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.forwardedheaders.XForwardedHeaders
 import io.ktor.server.plugins.origin
 import io.ktor.server.plugins.ratelimit.RateLimit
 import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.request.path
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.coroutines.launch
 import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
+import org.slf4j.LoggerFactory
+import org.slf4j.event.Level
 import server.auth.FirebaseAdmin
 import server.auth.configureAuth
 import server.auth.firebasePrincipal
@@ -54,6 +58,14 @@ fun main() {
 }
 
 fun Application.module() {
+    // dotenv-java の値を Logback に反映（logback.xml は OS 環境変数のみ参照するため）
+    EnvConfig["LOG_LEVEL"]?.let { level ->
+        val root = LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME) as ch.qos.logback.classic.Logger
+        root.level =
+            ch.qos.logback.classic.Level
+                .valueOf(level)
+    }
+
     FirebaseAdmin.initialize()
     PasskeyDatabase.initialize()
 
@@ -69,6 +81,10 @@ fun Application.module() {
     launch { garbageNotificationService.runPollingLoop() }
 
     configureAuth()
+    install(CallLogging) {
+        level = Level.DEBUG
+        filter { call -> call.request.path().startsWith("/api") }
+    }
     install(ContentNegotiation) { json() }
     install(RequestBodyLimit) { bodyLimit { 256_000L } }
 

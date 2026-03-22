@@ -37,7 +37,7 @@ class GarbageNotificationService(
             try {
                 checkAndNotify()
             } catch (e: Exception) {
-                logger.warn("Garbage notification check failed: ${e.message}")
+                logger.warn("Garbage notification check failed", e)
             }
             delay(60_000L)
         }
@@ -95,7 +95,7 @@ class GarbageNotificationService(
                 setBody(TextContent(payload, ContentType.Application.Json))
             }
         } catch (e: Exception) {
-            logger.warn("Garbage notification webhook failed: ${e.javaClass.simpleName}")
+            logger.warn("Garbage notification webhook failed", e)
         }
     }
 
