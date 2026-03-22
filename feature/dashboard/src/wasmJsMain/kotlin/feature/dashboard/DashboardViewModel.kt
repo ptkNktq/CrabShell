@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import core.common.TabResumedEvent
 import core.network.FeedingRepository
 import core.network.GarbageScheduleRepository
 import core.network.PetRepository
@@ -39,6 +40,7 @@ data class DashboardUiState(
 )
 
 class DashboardViewModel(
+    tabResumedEvent: TabResumedEvent,
     private val petRepository: PetRepository,
     private val feedingRepository: FeedingRepository,
     private val garbageScheduleRepository: GarbageScheduleRepository,
@@ -76,6 +78,10 @@ class DashboardViewModel(
         }
         loadGarbageSchedule()
         startDateChangePolling()
+        // バックグラウンド復帰時（トークンリフレッシュ完了後）にデータ再取得
+        viewModelScope.launch {
+            tabResumedEvent.events.collect { onRefreshFeeding() }
+        }
     }
 
     private fun startDateChangePolling() {
