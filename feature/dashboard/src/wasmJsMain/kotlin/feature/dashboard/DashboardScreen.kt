@@ -15,6 +15,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import core.common.addPageVisibleListener
+import core.common.removePageVisibleListener
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
 import core.ui.extensions.FeedingDoneColor
@@ -33,6 +35,12 @@ private val CardHeaderMinHeight = 48.dp
 
 @Composable
 fun DashboardScreen(vm: DashboardViewModel = koinViewModel()) {
+    // バックグラウンドからの復帰時にトークンリフレッシュ+データ再取得
+    DisposableEffect(Unit) {
+        val handler = addPageVisibleListener { vm.onTabResumed() }
+        onDispose { removePageVisibleListener(handler) }
+    }
+
     val windowSizeClass = LocalWindowSizeClass.current
 
     DashboardContent(
