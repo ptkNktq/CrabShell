@@ -5,7 +5,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import core.auth.AuthRepository
 import core.network.FeedingRepository
 import core.network.GarbageScheduleRepository
 import core.network.PetRepository
@@ -40,7 +39,6 @@ data class DashboardUiState(
 )
 
 class DashboardViewModel(
-    private val authRepository: AuthRepository,
     private val petRepository: PetRepository,
     private val feedingRepository: FeedingRepository,
     private val garbageScheduleRepository: GarbageScheduleRepository,
@@ -187,12 +185,9 @@ class DashboardViewModel(
         }
     }
 
-    /** バックグラウンドから復帰時: トークンを先行リフレッシュしてからデータ再取得 */
+    /** バックグラウンドから復帰時: データ再取得（トークンリフレッシュは AuthenticatedApp で実施済み） */
     fun onTabResumed() {
-        viewModelScope.launch {
-            authRepository.refreshToken()
-            onRefreshFeeding()
-        }
+        onRefreshFeeding()
     }
 
     fun onFeed(mealTime: MealTime) {
