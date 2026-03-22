@@ -51,9 +51,8 @@ class DashboardViewModel(
     private var trackedDate: String = todayDateJs().toString()
     private var trackedFeedingDate: String = today
     private var lastFeedingHalfHour = -1
-    private var garbageSwitchHour = 10
     private var garbageRefreshedToday =
-        (currentTimeJs().toString().substringBefore(":").toIntOrNull() ?: 0) >= garbageSwitchHour
+        (currentTimeJs().toString().substringBefore(":").toIntOrNull() ?: 0) >= GARBAGE_SWITCH_HOUR
 
     var uiState by mutableStateOf(
         DashboardUiState(
@@ -120,7 +119,7 @@ class DashboardViewModel(
                 lastFeedingHalfHour = halfHour
                 // 更新時刻にゴミ出しスケジュールを再取得
                 val hour = timeStr.substringBefore(":").toIntOrNull() ?: 0
-                if (hour >= garbageSwitchHour && !garbageRefreshedToday) {
+                if (hour >= GARBAGE_SWITCH_HOUR && !garbageRefreshedToday) {
                     garbageRefreshedToday = true
                     loadGarbageSchedule()
                 }
@@ -145,22 +144,14 @@ class DashboardViewModel(
             } catch (_: Exception) {
                 // ゴミ出し情報取得失敗は無視
             }
-            try {
-                val hour = garbageScheduleRepository.getNotificationSettings().notifyHour
-                if (hour in 0..23) {
-                    garbageSwitchHour = hour
-                    uiState = uiState.copy(garbageUpdateLabel = "毎日 $hour:00 更新")
-                }
-            } catch (_: Exception) {
-                // 通知設定取得失敗はデフォルト値で続行
-            }
+            // ゴミ情報の更新時刻は 10:00 固定（通知時刻とは独立）
             refreshGarbageForToday()
         }
     }
 
     private fun refreshGarbageForToday() {
         val hour = currentTimeJs().toString().substringBefore(":").toIntOrNull() ?: 0
-        val isAfterSwitchHour = hour >= garbageSwitchHour
+        val isAfterSwitchHour = hour >= GARBAGE_SWITCH_HOUR
         val dayOfWeek = if (isAfterSwitchHour) tomorrowDayOfWeekIndexJs() else dayOfWeekIndexJs()
         val weekOfMonth = if (isAfterSwitchHour) tomorrowWeekOfMonthJs() else weekOfMonthJs()
         uiState = uiState.copy(todayGarbageTypes = resolveGarbageTypes(cachedSchedules, dayOfWeek, weekOfMonth))
@@ -208,5 +199,10 @@ class DashboardViewModel(
                 uiState = uiState.copy(feedingActionError = e.message)
             }
         }
+    }
+
+    companion object {
+        /** ダッシュボードのゴミ情報を「今日→明日」に切り替える時刻（固定） */
+        private const val GARBAGE_SWITCH_HOUR = 10
     }
 }
