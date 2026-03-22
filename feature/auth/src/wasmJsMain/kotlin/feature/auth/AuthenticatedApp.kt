@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import core.auth.AuthRepository
 import core.auth.AuthState
 import core.auth.AuthStateHolder
+import core.auth.TabResumedEvent
 import core.common.addPageVisibleListener
 import core.common.removePageVisibleListener
 import core.ui.theme.AppColorScheme
@@ -28,13 +29,17 @@ import org.koin.compose.koinInject
 fun AuthenticatedApp(authenticatedContent: @Composable () -> Unit) {
     val authStateHolder = koinInject<AuthStateHolder>()
     val authRepository = koinInject<AuthRepository>()
+    val tabResumedEvent = koinInject<TabResumedEvent>()
 
-    // バックグラウンド復帰時にトークンを先行リフレッシュ（全画面共通）
+    // バックグラウンド復帰時にトークンリフレッシュ → 完了後に各画面へ通知
     val scope = rememberCoroutineScope()
     DisposableEffect(Unit) {
         val handler =
             addPageVisibleListener {
-                scope.launch { authRepository.refreshToken() }
+                scope.launch {
+                    authRepository.refreshToken()
+                    tabResumedEvent.emit()
+                }
             }
         onDispose { removePageVisibleListener(handler) }
     }
