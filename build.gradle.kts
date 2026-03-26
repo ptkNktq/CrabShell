@@ -5,7 +5,7 @@ plugins {
     alias(libs.plugins.compose.multiplatform) apply false
     alias(libs.plugins.compose.compiler) apply false
     alias(libs.plugins.ktor) apply false
-    alias(libs.plugins.ktlint) apply false
+    alias(libs.plugins.ktlint)
 }
 
 subprojects {
