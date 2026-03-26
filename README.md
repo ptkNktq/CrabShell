@@ -235,11 +235,9 @@ services:
   crabshell:
     image: ghcr.io/ptknktq/crabshell:latest
     container_name: crabshell
+    env_file: .env
     environment:
       - FIREBASE_SERVICE_ACCOUNT_PATH=/app/firebase-service-account.json
-      - WEBAUTHN_RP_ID=${WEBAUTHN_RP_ID}
-      - WEBAUTHN_ORIGIN=${WEBAUTHN_ORIGIN}
-      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
     volumes:
       - ./firebase-service-account.json:/app/firebase-service-account.json:ro
       - app-data:/app/data
@@ -352,6 +350,12 @@ node -e "
 
 | 変数 | 必須 | 説明 |
 |-----|------|------|
+| `FIREBASE_API_KEY` | **必須** | Firebase クライアント API キー |
+| `FIREBASE_AUTH_DOMAIN` | **必須** | Firebase Auth ドメイン（例: `your-project.firebaseapp.com`） |
+| `FIREBASE_PROJECT_ID` | **必須** | Firebase プロジェクト ID |
+| `FIREBASE_STORAGE_BUCKET` | **必須** | Firebase Storage バケット |
+| `FIREBASE_MESSAGING_SENDER_ID` | **必須** | Firebase Cloud Messaging 送信者 ID |
+| `FIREBASE_APP_ID` | **必須** | Firebase アプリ ID |
 | `FIREBASE_SERVICE_ACCOUNT_PATH` | | Firebase サービスアカウントキー（デフォルト: `firebase-service-account.json`） |
 | `WEBAUTHN_RP_ID` | **必須** | Relying Party ID（例: `localhost`, `example.com`） |
 | `WEBAUTHN_ORIGIN` | **必須** | 許可するオリジン（カンマ区切り。例: `https://example.com`） |

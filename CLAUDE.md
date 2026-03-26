@@ -70,6 +70,12 @@ cp .env.example .env
 
 | 変数 | 説明 | 必須 |
 |------|------|------|
+| `FIREBASE_API_KEY` | Firebase クライアント API キー | はい |
+| `FIREBASE_AUTH_DOMAIN` | Firebase Auth ドメイン（例: `your-project.firebaseapp.com`） | はい |
+| `FIREBASE_PROJECT_ID` | Firebase プロジェクト ID | はい |
+| `FIREBASE_STORAGE_BUCKET` | Firebase Storage バケット | はい |
+| `FIREBASE_MESSAGING_SENDER_ID` | Firebase Cloud Messaging 送信者 ID | はい |
+| `FIREBASE_APP_ID` | Firebase アプリ ID | はい |
 | `WEBAUTHN_RP_ID` | WebAuthn の Relying Party ID（開発時は `localhost`） | はい |
 | `WEBAUTHN_ORIGIN` | WebAuthn の許可オリジン（カンマ区切り） | はい |
 | `GEMINI_API_KEY` | Google AI Studio の API キー（クエスト AI テキスト生成用） | いいえ（未設定時は AI 生成ボタン非表示） |
