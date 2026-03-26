@@ -379,10 +379,13 @@ node -e "
 
 ## Lint
 
-ktlint を全サブプロジェクトに適用済み。
+ktlint を全サブプロジェクトに適用済み。コミット時に pre-commit hook で自動フォーマットされる。
 
 ```bash
-# 自動フォーマット
+# pre-commit hook のセットアップ（リポジトリごとに初回のみ）
+./gradlew addKtlintFormatGitPreCommitHook
+
+# 手動フォーマット
 ./gradlew ktlintFormat
 
 # チェックのみ

@@ -266,8 +266,10 @@ docker compose pull && docker compose up -d
 ## Linting
 
 - **ktlint** (`org.jlleitschuh.gradle.ktlint`) を全サブプロジェクトに適用済み。
-- コミット前に必ず `./gradlew ktlintFormat` を実行してからステージング・コミットすること。
-- チェックのみ: `./gradlew ktlintCheck`
+- **pre-commit hook** でコミット時に自動で `ktlintFormat` が実行される（ステージング済み Kotlin ファイルのみ対象）。手動実行は不要。
+- hook 未設定の場合: `./gradlew addKtlintFormatGitPreCommitHook` を実行（リポジトリごとに初回のみ）。
+- 手動チェック: `./gradlew ktlintCheck`
+- 手動フォーマット: `./gradlew ktlintFormat`
 
 ## Dependency Management
 
