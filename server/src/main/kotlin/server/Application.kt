@@ -33,6 +33,7 @@ import server.auth.configureAuth
 import server.auth.firebasePrincipal
 import server.cache.cacheRoutes
 import server.config.EnvConfig
+import server.config.firebaseConfigRoute
 import server.di.serverModule
 import server.feeding.FeedingReminderService
 import server.feeding.feedingRoutes
@@ -149,6 +150,7 @@ fun Application.module() {
         }
 
         route("/api") {
+            firebaseConfigRoute()
             userRoutes()
             petRoutes()
             feedingRoutes()
@@ -170,8 +172,7 @@ fun Application.module() {
                 when {
                     // エントリーポイント: 毎回サーバーに再検証（ETag/304）
                     path.endsWith("index.html") ||
-                        path.endsWith("app.js") ||
-                        path.endsWith("firebase-config.js") ->
+                        path.endsWith("app.js") ->
                         listOf(CacheControl.NoCache(null))
                     // ハッシュ付きファイル（チャンク JS, WASM, フォント等）: 1年キャッシュ
                     else ->

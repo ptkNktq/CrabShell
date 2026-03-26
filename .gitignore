@@ -20,6 +20,7 @@ kotlin-js-store/
 
 # Firebase
 firebase-service-account.json
+firebase-config.js
 
 # Local data (SQLite DB etc.)
 data/
