@@ -127,23 +127,32 @@ core/auth/           → AuthRepository interface + AuthState/AuthStateHolder (c
                        Depends on :shared, :core:common, compose.runtime
 core/network/        → 認証トークン付き HTTP client + Repository interfaces/impls (commonMain)
                        PasskeyRepositoryImpl + NetworkModule (wasmJsMain)
-                       Depends on :core:auth, ktor-client
+                       Depends on :core:common, :core:auth, :shared, ktor-client
 core/ui/             → テーマ定義 + WindowSizeClass + 汎用UIコンポーネント (commonMain)
                        DateUtils (@JsFun) + CalendarView (wasmJsMain)
-                       Depends on :core:common, compose (runtime, foundation, material3, ui)
+                       Depends on :core:common, :shared (api), compose (runtime, foundation, material3, ui)
 
 feature/auth/        → LoginViewModel + LoginScreen (commonMain)
                        AuthenticatedApp + PasskeySetupViewModel (wasmJsMain)
-                       Depends on :core:auth, :core:network, :core:ui
+                       Depends on :core:auth, :core:common, :core:network, :core:ui
 feature/dashboard/   → DashboardViewModel + DashboardScreen (wasmJsMain)
-                       Depends on :core:network, :core:ui, :shared
+                       Depends on :core:auth, :core:network, :core:ui
+feature/feeding/     → FeedingViewModel + FeedingScreen (wasmJsMain)
+                       Depends on :core:network, :core:ui
+feature/money/       → MoneyViewModel + MoneyScreen (wasmJsMain)
+                       Depends on :core:auth, :core:network, :core:ui
+feature/payment/     → PaymentViewModel + PaymentScreen (wasmJsMain)
+                       Depends on :core:auth, :core:network, :core:ui
+feature/quest/       → QuestCategory enum (commonMain)
+                       QuestViewModel + QuestScreen (wasmJsMain)
+                       Depends on :core:network, :core:ui + wasmJs: :core:auth
 feature/report/      → ReportSummaryCard + MonthlyBarChart + CategoryBreakdown (commonMain)
                        ReportViewModel + ReportScreen (wasmJsMain)
-                       Depends on :core:network, :core:ui, :shared
+                       Depends on :core:ui + wasmJs: :core:auth, :core:network
 feature/pet-management/ → PetManagementViewModel + PetManagementScreen (commonMain)
-                       Depends on :core:network, :core:ui, :shared
+                       Depends on :core:network, :core:ui
 feature/settings/    → 全ファイル commonMain (wasmJs 固有 API 不使用)
-                       Depends on :core:auth, :core:network, :core:ui, :shared
+                       Depends on :core:auth, :core:network, :core:ui
 
 app/                 → Screen enum + Sidebar + DrawerContent + NavigationItems (commonMain)
                        Main.kt + Navigator + App.kt + AppModule (wasmJsMain)
@@ -156,8 +165,8 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 
 ## Tech Stack
 
-- **Kotlin** 2.3.10, **Compose Multiplatform** 1.10.1, **Ktor** 3.4.0
-- **DI**: Koin 4.2.0-RC1（クライアント + サーバー共通。Kotlin 2.3.0 wasmJs 互換の唯一のバージョン）
+- **Kotlin** 2.3.10, **Compose Multiplatform** 1.10.2, **Ktor** 3.4.1
+- **DI**: Koin 4.2.0（クライアント + サーバー共通。Kotlin 2.3.0 wasmJs 互換の唯一のバージョン）
 - **Serialization**: kotlinx-serialization-json 1.10.0
 - **API Docs**: ktor-openapi-tools 5.6.0（OpenAPI spec + Swagger UI、開発モード時のみ）
 - **Logging**: サーバー: SLF4J + Logback（`LOG_LEVEL` 環境変数で制御）、フロントエンド: `AppLogger`（開発環境のみ console 出力、本番 no-op）
@@ -184,6 +193,11 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Feature pet-management (commonMain): `feature/pet-management/src/commonMain/kotlin/feature/petmanagement/` (PetManagementViewModel, PetManagementScreen)
 - Feature settings (commonMain): `feature/settings/src/commonMain/kotlin/feature/settings/` (全ファイル)
 - Feature dashboard: `feature/dashboard/src/wasmJsMain/kotlin/feature/dashboard/` (DashboardViewModel, DashboardScreen)
+- Feature feeding: `feature/feeding/src/wasmJsMain/kotlin/feature/feeding/` (FeedingViewModel, FeedingScreen)
+- Feature money: `feature/money/src/wasmJsMain/kotlin/feature/money/` (MoneyViewModel, MoneyScreen)
+- Feature payment: `feature/payment/src/wasmJsMain/kotlin/feature/payment/` (PaymentViewModel, PaymentScreen)
+- Feature quest (commonMain): `feature/quest/src/commonMain/kotlin/feature/quest/` (QuestCategory)
+- Feature quest (wasmJsMain): `feature/quest/src/wasmJsMain/kotlin/feature/quest/` (QuestViewModel, QuestScreen)
 - Feature report (commonMain): `feature/report/src/commonMain/kotlin/feature/report/components/` (UI コンポーネント)
 - Feature report (wasmJsMain): `feature/report/src/wasmJsMain/kotlin/feature/report/` (ReportViewModel, ReportScreen)
 - App shell (commonMain): `app/src/commonMain/kotlin/app/` (Screen.kt, components/)
