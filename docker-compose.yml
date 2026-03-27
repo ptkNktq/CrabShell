@@ -11,11 +11,7 @@ services:
       resources:
         limits:
           memory: 512m
-    environment:
-      - FIREBASE_SERVICE_ACCOUNT_PATH=/app/firebase-service-account.json
-      - WEBAUTHN_RP_ID=${WEBAUTHN_RP_ID:?WEBAUTHN_RP_ID is required}
-      - WEBAUTHN_ORIGIN=${WEBAUTHN_ORIGIN:?WEBAUTHN_ORIGIN is required}
-      # - PASSKEY_DB_PATH=/app/data/passkey.db
+    env_file: .env
     volumes:
       - ./firebase-service-account.json:/app/firebase-service-account.json:ro
     logging:
