@@ -25,8 +25,10 @@ firebase-config.js
 # Local data (SQLite DB etc.)
 data/
 
-# Node.js (admin スクリプト用)
+# Node.js (admin スクリプト用 / WASM ビルド自動生成)
 node_modules/
+package.json
+package-lock.json
 
 # Dev process management
 .dev/
