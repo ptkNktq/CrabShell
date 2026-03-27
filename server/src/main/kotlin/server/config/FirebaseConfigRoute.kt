@@ -38,6 +38,7 @@ fun Route.firebaseConfigRoute() {
             firebase.initializeApp(firebaseConfig);
             """.trimIndent()
 
+        call.response.header(HttpHeaders.CacheControl, "no-cache")
         call.respondText(js, ContentType("application", "javascript"))
     }
 }
