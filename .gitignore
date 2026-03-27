@@ -30,6 +30,11 @@ node_modules/
 package.json
 package-lock.json
 
+# Claude Code（ローカル専用ファイル）
+.claude/settings.local.json
+.claude/plans/
+.claude/worktrees/
+
 # Dev process management
 .dev/
 
