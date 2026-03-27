@@ -77,25 +77,33 @@ graph TD
   FD --> CA
   FD --> CN
   FD --> CU
+  FD --> S
   FF --> CN
   FF --> CU
+  FF --> S
   FM --> CA
   FM --> CN
   FM --> CU
+  FM --> S
   FP --> CA
   FP --> CN
   FP --> CU
+  FP --> S
   FPM --> CN
   FPM --> CU
+  FPM --> S
   FQ --> CN
   FQ --> CU
+  FQ --> S
   FQ --> CA
   FR --> CU
+  FR --> S
   FR --> CA
   FR --> CN
   FS --> CA
   FS --> CN
   FS --> CU
+  FS --> S
 
   WF --> CA
   WF --> CN

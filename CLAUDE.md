@@ -135,23 +135,23 @@ feature/auth/        → LoginViewModel + LoginScreen (commonMain)
                        AuthenticatedApp + PasskeySetupViewModel (wasmJsMain)
                        Depends on :core:auth, :core:common, :core:network, :core:ui
 feature/dashboard/   → DashboardViewModel + DashboardScreen (wasmJsMain)
-                       Depends on :core:auth, :core:network, :core:ui
+                       Depends on :core:auth, :core:network, :core:ui, :shared
 feature/feeding/     → FeedingViewModel + FeedingScreen (wasmJsMain)
-                       Depends on :core:network, :core:ui
+                       Depends on :core:network, :core:ui, :shared
 feature/money/       → MoneyViewModel + MoneyScreen (wasmJsMain)
-                       Depends on :core:auth, :core:network, :core:ui
+                       Depends on :core:auth, :core:network, :core:ui, :shared
 feature/payment/     → PaymentViewModel + PaymentScreen (wasmJsMain)
-                       Depends on :core:auth, :core:network, :core:ui
+                       Depends on :core:auth, :core:network, :core:ui, :shared
 feature/quest/       → QuestCategory enum (commonMain)
                        QuestViewModel + QuestScreen (wasmJsMain)
-                       Depends on :core:network, :core:ui + wasmJs: :core:auth
+                       Depends on :core:network, :core:ui, :shared + wasmJs: :core:auth
 feature/report/      → ReportSummaryCard + MonthlyBarChart + CategoryBreakdown (commonMain)
                        ReportViewModel + ReportScreen (wasmJsMain)
-                       Depends on :core:ui + wasmJs: :core:auth, :core:network
+                       Depends on :core:ui, :shared + wasmJs: :core:auth, :core:network
 feature/pet-management/ → PetManagementViewModel + PetManagementScreen (commonMain)
-                       Depends on :core:network, :core:ui
+                       Depends on :core:network, :core:ui, :shared
 feature/settings/    → 全ファイル commonMain (wasmJs 固有 API 不使用)
-                       Depends on :core:auth, :core:network, :core:ui
+                       Depends on :core:auth, :core:network, :core:ui, :shared
 
 app/                 → Screen enum + Sidebar + DrawerContent + NavigationItems (commonMain)
                        Main.kt + Navigator + App.kt + AppModule (wasmJsMain)
@@ -295,6 +295,7 @@ docker compose pull && docker compose up -d
 - **Renovate Bot** (`renovate.json`) がライブラリの更新を自動監視し、PR を作成する。
 - patch 更新は自動マージ、Kotlin & Compose / Ktor / Koin / Exposed はグループ化して1つの PR にまとめる。
 - `gradle/libs.versions.toml` の `[bundles]` セクションで関連ライブラリをグループ化済み。新しいライブラリ追加時は既存 bundle に含められるか確認すること。
+- **コードが直接 import しているモジュール・ライブラリは、推移的に利用可能であっても `build.gradle.kts` に明示的に宣言すること。** 推移的依存に頼ると、中間モジュールの変更（`api()` → `implementation()`）で下流が壊れるリスクがある。
 
 ## Security
 
