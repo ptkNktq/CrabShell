@@ -38,7 +38,6 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 ktor-server-core = { module = "io.ktor:ktor-server-core-jvm", version.ref = "ktor" }
 ktor-server-netty = { module = "io.ktor:ktor-server-netty-jvm", version.ref = "ktor" }
 ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation-jvm", version.ref = "ktor" }
-ktor-server-cors = { module = "io.ktor:ktor-server-cors-jvm", version.ref = "ktor" }
 ktor-server-auth = { module = "io.ktor:ktor-server-auth-jvm", version.ref = "ktor" }
 ktor-server-host-common = { module = "io.ktor:ktor-server-host-common-jvm", version.ref = "ktor" }
 ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages-jvm", version.ref = "ktor" }
@@ -74,7 +73,7 @@ ktor-client-java = { module = "io.ktor:ktor-client-java", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 
 [bundles]
-ktor-server = ["ktor-server-core", "ktor-server-netty", "ktor-server-content-negotiation", "ktor-server-auth", "ktor-server-cors", "ktor-server-host-common", "ktor-server-status-pages", "ktor-server-body-limit", "ktor-server-rate-limit", "ktor-server-forwarded-header", "ktor-server-call-logging", "ktor-serialization-kotlinx-json-jvm"]
+ktor-server = ["ktor-server-core", "ktor-server-netty", "ktor-server-content-negotiation", "ktor-server-auth", "ktor-server-host-common", "ktor-server-status-pages", "ktor-server-body-limit", "ktor-server-rate-limit", "ktor-server-forwarded-header", "ktor-server-call-logging", "ktor-serialization-kotlinx-json-jvm"]
 ktor-client = ["ktor-client-core", "ktor-client-content-negotiation", "ktor-serialization-kotlinx-json"]
 koin = ["koin-core", "koin-compose", "koin-compose-viewmodel"]
 feature = ["koin-core", "koin-compose", "koin-compose-viewmodel", "lifecycle-viewmodel-compose"]

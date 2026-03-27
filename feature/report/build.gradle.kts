@@ -11,8 +11,6 @@ kotlin {
         wasmJsMain.dependencies {
             implementation(project(":core:auth"))
             implementation(project(":core:network"))
-
-            implementation(libs.ktor.client.core)
         }
     }
 }
