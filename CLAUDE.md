@@ -80,7 +80,6 @@ cp .env.example .env
 | `WEBAUTHN_ORIGIN` | WebAuthn の許可オリジン（カンマ区切り） | はい |
 | `GEMINI_API_KEY` | Google AI Studio の API キー（クエスト AI テキスト生成用） | いいえ（未設定時は AI 生成ボタン非表示） |
 | `GEMINI_MODEL` | Gemini モデル名（デフォルト: `gemini-2.5-flash`） | いいえ |
-| `FIREBASE_SERVICE_ACCOUNT_PATH` | Firebase サービスアカウント JSON のパス（デフォルト: `firebase-service-account.json`） | いいえ |
 | `PASSKEY_DB_PATH` | Passkey SQLite DB のパス（デフォルト: `data/passkey.db`） | いいえ |
 | `APP_URL` | アプリケーションの公開 URL（給餌リマインダー Webhook のリンクに使用） | いいえ（未設定時はリンクなし） |
 | `SWAGGER_ENABLED` | `true` で Swagger UI (`/swagger`) を有効化（本番では設定しない） | いいえ |
