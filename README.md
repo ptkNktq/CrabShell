@@ -235,9 +235,9 @@ services:
   crabshell:
     image: ghcr.io/ptknktq/crabshell:latest
     container_name: crabshell
-    env_file: .env
+    env_file: .env  # environment: は env_file より優先される
     environment:
-      - FIREBASE_SERVICE_ACCOUNT_PATH=/app/firebase-service-account.json
+      - FIREBASE_SERVICE_ACCOUNT_PATH=/app/firebase-service-account.json  # コンテナ内パスに上書き
     volumes:
       - ./firebase-service-account.json:/app/firebase-service-account.json:ro
       - app-data:/app/data
