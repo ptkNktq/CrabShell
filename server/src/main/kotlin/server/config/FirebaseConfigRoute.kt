@@ -14,14 +14,22 @@ private val REQUIRED_KEYS =
         "FIREBASE_APP_ID",
     )
 
-private fun escapeJs(value: String): String = value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
+private fun escapeJs(value: String): String =
+    value
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("\n", "\\n")
+        .replace("</", "<\\/")
 
 fun Route.firebaseConfigRoute() {
     get("/firebase-config.js") {
         val config = REQUIRED_KEYS.associateWith { EnvConfig[it] }
         val missing = config.filterValues { it == null }.keys
         if (missing.isNotEmpty()) {
-            call.respond(HttpStatusCode.InternalServerError, "Missing Firebase config: ${missing.joinToString()}")
+            call.respondText(
+                "Missing Firebase config: ${missing.joinToString()}",
+                status = HttpStatusCode.InternalServerError,
+            )
             return@get
         }
 
