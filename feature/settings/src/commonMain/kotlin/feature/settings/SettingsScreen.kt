@@ -342,6 +342,7 @@ internal fun SettingsContent(
                 showBackButton = true,
                 onBack = { selectedCategory = null },
                 modifier = Modifier.fillMaxSize(),
+                contentModifier = Modifier.fillMaxWidth(),
             ) {
                 categoryContent(selected, Modifier.fillMaxWidth())
             }
@@ -365,6 +366,7 @@ internal fun SettingsContent(
                 showBackButton = false,
                 onBack = {},
                 modifier = Modifier.weight(1f).fillMaxHeight(),
+                contentModifier = Modifier.widthIn(max = 480.dp),
             ) {
                 categoryContent(selected, Modifier.widthIn(max = 480.dp))
             }
@@ -474,6 +476,7 @@ private fun CategoryDetailPane(
     showBackButton: Boolean,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    contentModifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Box(modifier = modifier) {
@@ -488,7 +491,7 @@ private fun CategoryDetailPane(
         ) {
             // ヘッダー（戻るボタン + タイトル）
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = contentModifier,
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
