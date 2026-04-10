@@ -354,7 +354,7 @@ internal fun SettingsContent(
                 categories = categories,
                 selectedCategory = selectedCategory,
                 onSelectCategory = { selectedCategory = it },
-                modifier = Modifier.width(280.dp).fillMaxHeight().padding(24.dp),
+                modifier = Modifier.width(320.dp).fillMaxHeight().padding(24.dp),
             )
 
             VerticalDivider()
@@ -450,7 +450,10 @@ private fun CategoryItem(
                 tint = contentColor,
                 modifier = Modifier.size(24.dp),
             )
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
                 Text(
                     text = category.title,
                     style = MaterialTheme.typography.bodyLarge,
