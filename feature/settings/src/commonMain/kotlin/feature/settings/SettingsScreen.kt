@@ -450,14 +450,15 @@ private fun CategoryItem(
                 tint = contentColor,
                 modifier = Modifier.size(24.dp),
             )
-            Text(
-                text = category.title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = contentColor,
-                modifier = Modifier.weight(1f),
-            )
-            if (category.adminOnly) {
-                AdminBadge()
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = category.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = contentColor,
+                )
+                if (category.adminOnly) {
+                    AdminBadge()
+                }
             }
             Icon(
                 imageVector = Icons.Default.ChevronRight,
