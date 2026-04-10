@@ -422,13 +422,13 @@ private fun CategoryItem(
 ) {
     val containerColor =
         if (isSelected) {
-            MaterialTheme.colorScheme.secondaryContainer
+            MaterialTheme.colorScheme.primaryContainer
         } else {
             MaterialTheme.colorScheme.surface
         }
     val contentColor =
         if (isSelected) {
-            MaterialTheme.colorScheme.onSecondaryContainer
+            MaterialTheme.colorScheme.onPrimaryContainer
         } else {
             MaterialTheme.colorScheme.onSurface
         }
