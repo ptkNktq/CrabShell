@@ -70,11 +70,9 @@ fun SettingsScreen(
     val garbageVm = remember(isAdmin) { if (isAdmin) koin.get<GarbageScheduleViewModel>() else null }
     val webhookVm = remember(isAdmin) { if (isAdmin) koin.get<WebhookViewModel>() else null }
     val cacheVm = remember(isAdmin) { if (isAdmin) koin.get<CacheRefreshViewModel>() else null }
-    val scrollState = rememberScrollState()
     val windowSizeClass = LocalWindowSizeClass.current
 
     SettingsContent(
-        scrollState = scrollState,
         isAdmin = isAdmin,
         currentPassword = passwordVm.uiState.currentPassword,
         newPassword = passwordVm.uiState.newPassword,
@@ -148,7 +146,6 @@ fun SettingsScreen(
 
 @Composable
 internal fun SettingsContent(
-    scrollState: ScrollState,
     isAdmin: Boolean,
     currentPassword: String,
     newPassword: String,
@@ -336,15 +333,18 @@ internal fun SettingsContent(
                 modifier = Modifier.fillMaxSize().padding(16.dp),
             )
         } else {
-            CategoryDetailPane(
-                category = selected,
-                scrollState = scrollState,
-                showBackButton = true,
-                onBack = { selectedCategory = null },
-                modifier = Modifier.fillMaxSize(),
-                contentModifier = Modifier.fillMaxWidth(),
-            ) {
-                categoryContent(selected, Modifier.fillMaxWidth())
+            key(selected) {
+                val detailScrollState = rememberScrollState()
+                CategoryDetailPane(
+                    category = selected,
+                    scrollState = detailScrollState,
+                    showBackButton = true,
+                    onBack = { selectedCategory = null },
+                    modifier = Modifier.fillMaxSize(),
+                    contentModifier = Modifier.fillMaxWidth(),
+                ) {
+                    categoryContent(selected, Modifier.fillMaxWidth())
+                }
             }
         }
     } else {
@@ -360,15 +360,18 @@ internal fun SettingsContent(
             VerticalDivider()
 
             val selected = selectedCategory ?: categories.first()
-            CategoryDetailPane(
-                category = selected,
-                scrollState = scrollState,
-                showBackButton = false,
-                onBack = {},
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-                contentModifier = Modifier.widthIn(max = 480.dp),
-            ) {
-                categoryContent(selected, Modifier.widthIn(max = 480.dp))
+            key(selected) {
+                val detailScrollState = rememberScrollState()
+                CategoryDetailPane(
+                    category = selected,
+                    scrollState = detailScrollState,
+                    showBackButton = false,
+                    onBack = {},
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    contentModifier = Modifier.widthIn(max = 480.dp),
+                ) {
+                    categoryContent(selected, Modifier.widthIn(max = 480.dp))
+                }
             }
         }
     }
@@ -466,7 +469,7 @@ private fun CategoryItem(
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = contentColor,
                 modifier = Modifier.size(20.dp),
             )
         }
