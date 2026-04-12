@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -64,7 +65,7 @@ internal enum class SettingsCategory(
     Account("アカウント", Icons.Default.Person),
     UserManagement("ユーザー管理", Icons.Default.Group, adminOnly = true),
     Garbage("ゴミ出し", Icons.Default.DeleteSweep, adminOnly = true),
-    Quest("クエスト", Icons.Default.Stars, adminOnly = true),
+    Quest("クエスト", Icons.Default.Star, adminOnly = true),
     Cache("サーバーキャッシュ", Icons.Default.Cached, adminOnly = true),
 }
 
