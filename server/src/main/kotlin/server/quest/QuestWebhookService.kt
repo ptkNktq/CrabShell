@@ -28,7 +28,7 @@ class QuestWebhookService(
     private val firestore: Firestore,
     dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
-    private val settingsDoc get() = firestore.collection("settings").document("webhook")
+    private val settingsDoc get() = firestore.collection("settings").document("quest-webhook")
     private val scope = CoroutineScope(dispatcher)
 
     private val client = HttpClient()
