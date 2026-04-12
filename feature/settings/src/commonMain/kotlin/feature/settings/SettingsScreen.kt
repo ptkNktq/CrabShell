@@ -1054,7 +1054,7 @@ private fun QuestWebhookSettingsCard(
                 OutlinedTextField(
                     value = url,
                     onValueChange = onUrlChanged,
-                    label = { Text("Webhook URL") },
+                    label = { Text("クエスト Webhook URL") },
                     placeholder = { Text("https://discord.com/api/webhooks/...") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
