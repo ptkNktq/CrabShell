@@ -410,6 +410,7 @@ private fun MoneyItemForm(
     }
 
     val amount = amountText.toLongOrNull() ?: 0L
+    val isAmountValid = amountText.toLongOrNull() != null
     val payments =
         paymentAmounts.mapNotNull { (uid, text) ->
             val a = text.toLongOrNull()
@@ -518,7 +519,7 @@ private fun MoneyItemForm(
                                         put(user.uid, (amount / 2).toString())
                                     }
                             },
-                            enabled = !saving && amountText.isNotBlank(),
+                            enabled = !saving && isAmountValid,
                             contentPadding = PaddingValues(horizontal = 8.dp),
                         ) {
                             Text("半額", style = MaterialTheme.typography.labelSmall)
@@ -530,7 +531,7 @@ private fun MoneyItemForm(
                                         put(user.uid, amount.toString())
                                     }
                             },
-                            enabled = !saving && amountText.isNotBlank(),
+                            enabled = !saving && isAmountValid,
                             contentPadding = PaddingValues(horizontal = 8.dp),
                         ) {
                             Text("全額", style = MaterialTheme.typography.labelSmall)
@@ -547,7 +548,7 @@ private fun MoneyItemForm(
                                         put(user.uid, (amount - othersTotal).toString())
                                     }
                             },
-                            enabled = !saving && amountText.isNotBlank(),
+                            enabled = !saving && isAmountValid,
                             contentPadding = PaddingValues(horizontal = 8.dp),
                         ) {
                             Text("残額", style = MaterialTheme.typography.labelSmall)
@@ -605,7 +606,7 @@ private fun MoneyItemForm(
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
                     onClick = { onSave(name, amount, note, payments, selectedTags) },
-                    enabled = name.isNotBlank() && amountText.isNotBlank() && !saving && !locked,
+                    enabled = name.isNotBlank() && isAmountValid && !saving && !locked,
                 ) {
                     Text(if (isEditing) "保存" else "追加")
                 }
