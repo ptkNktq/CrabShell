@@ -409,8 +409,9 @@ private fun MoneyItemForm(
         )
     }
 
-    val amount = amountText.toLongOrNull() ?: 0L
-    val isAmountValid = amountText.toLongOrNull() != null
+    val parsedAmount = amountText.toLongOrNull()
+    val isAmountValid = parsedAmount != null
+    val amount = parsedAmount ?: 0L
     val payments =
         paymentAmounts.mapNotNull { (uid, text) ->
             val a = text.toLongOrNull()
