@@ -38,8 +38,8 @@ import core.ui.extensions.label
 import model.CollectionFrequency
 import model.GarbageType
 import model.GarbageTypeSchedule
+import model.QuestWebhookEvent
 import model.User
-import model.WebhookEvent
 import org.koin.compose.getKoin
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -65,7 +65,7 @@ internal enum class SettingsCategory(
     Account("アカウント", Icons.Default.Person),
     UserManagement("ユーザー管理", Icons.Default.Group, adminOnly = true),
     Garbage("ゴミ出し", Icons.Default.DeleteSweep, adminOnly = true),
-    Webhook("Webhook 通知", Icons.Default.Notifications, adminOnly = true),
+    QuestWebhook("クエスト Webhook 通知", Icons.Default.Notifications, adminOnly = true),
     Cache("サーバーキャッシュ", Icons.Default.Cached, adminOnly = true),
 }
 
@@ -79,7 +79,7 @@ fun SettingsScreen(
     val koin = getKoin()
     val userNameVm = remember(isAdmin) { if (isAdmin) koin.get<UserNameViewModel>() else null }
     val garbageVm = remember(isAdmin) { if (isAdmin) koin.get<GarbageScheduleViewModel>() else null }
-    val webhookVm = remember(isAdmin) { if (isAdmin) koin.get<WebhookViewModel>() else null }
+    val questWebhookVm = remember(isAdmin) { if (isAdmin) koin.get<QuestWebhookViewModel>() else null }
     val cacheVm = remember(isAdmin) { if (isAdmin) koin.get<CacheRefreshViewModel>() else null }
     val windowSizeClass = LocalWindowSizeClass.current
 
@@ -135,19 +135,19 @@ fun SettingsScreen(
         onGarbageNotificationPrefixChanged = { garbageVm?.onNotificationPrefixChanged(it) },
         onSaveGarbageNotification = { garbageVm?.onSaveNotificationSettings() },
         onRetryGarbageNotification = { garbageVm?.loadNotificationSettings() },
-        webhookLoading = webhookVm?.uiState?.isLoading ?: false,
-        webhookLoadError = webhookVm?.uiState?.loadError ?: false,
-        webhookLoadErrorMessage = webhookVm?.uiState?.loadErrorMessage,
-        webhookUrl = webhookVm?.uiState?.url ?: "",
-        webhookEnabled = webhookVm?.uiState?.enabled ?: false,
-        webhookEvents = webhookVm?.uiState?.events ?: emptyList(),
-        webhookSaving = webhookVm?.uiState?.isSaving ?: false,
-        webhookMessage = webhookVm?.uiState?.message,
-        onWebhookUrlChanged = { webhookVm?.onUrlChanged(it) },
-        onWebhookEnabledChanged = { webhookVm?.onEnabledChanged(it) },
-        onWebhookToggleEvent = { webhookVm?.onToggleEvent(it) },
-        onSaveWebhook = { webhookVm?.onSave() },
-        onRetryWebhook = { webhookVm?.loadSettings() },
+        questWebhookLoading = questWebhookVm?.uiState?.isLoading ?: false,
+        questWebhookLoadError = questWebhookVm?.uiState?.loadError ?: false,
+        questWebhookLoadErrorMessage = questWebhookVm?.uiState?.loadErrorMessage,
+        questWebhookUrl = questWebhookVm?.uiState?.url ?: "",
+        questWebhookEnabled = questWebhookVm?.uiState?.enabled ?: false,
+        questWebhookEvents = questWebhookVm?.uiState?.events ?: emptyList(),
+        questWebhookSaving = questWebhookVm?.uiState?.isSaving ?: false,
+        questWebhookMessage = questWebhookVm?.uiState?.message,
+        onQuestWebhookUrlChanged = { questWebhookVm?.onUrlChanged(it) },
+        onQuestWebhookEnabledChanged = { questWebhookVm?.onEnabledChanged(it) },
+        onQuestWebhookToggleEvent = { questWebhookVm?.onToggleEvent(it) },
+        onSaveQuestWebhook = { questWebhookVm?.onSave() },
+        onRetryQuestWebhook = { questWebhookVm?.loadSettings() },
         cacheClearing = cacheVm?.uiState?.isClearing ?: false,
         cacheMessage = cacheVm?.uiState?.message,
         onClearCache = { cacheVm?.onClearCache() },
@@ -208,19 +208,19 @@ internal fun SettingsContent(
     onGarbageNotificationPrefixChanged: (String) -> Unit = {},
     onSaveGarbageNotification: () -> Unit = {},
     onRetryGarbageNotification: () -> Unit = {},
-    webhookLoading: Boolean = false,
-    webhookLoadError: Boolean = false,
-    webhookLoadErrorMessage: String? = null,
-    webhookUrl: String = "",
-    webhookEnabled: Boolean = false,
-    webhookEvents: List<String> = emptyList(),
-    webhookSaving: Boolean = false,
-    webhookMessage: String? = null,
-    onWebhookUrlChanged: (String) -> Unit = {},
-    onWebhookEnabledChanged: (Boolean) -> Unit = {},
-    onWebhookToggleEvent: (String) -> Unit = {},
-    onSaveWebhook: () -> Unit = {},
-    onRetryWebhook: () -> Unit = {},
+    questWebhookLoading: Boolean = false,
+    questWebhookLoadError: Boolean = false,
+    questWebhookLoadErrorMessage: String? = null,
+    questWebhookUrl: String = "",
+    questWebhookEnabled: Boolean = false,
+    questWebhookEvents: List<String> = emptyList(),
+    questWebhookSaving: Boolean = false,
+    questWebhookMessage: String? = null,
+    onQuestWebhookUrlChanged: (String) -> Unit = {},
+    onQuestWebhookEnabledChanged: (Boolean) -> Unit = {},
+    onQuestWebhookToggleEvent: (String) -> Unit = {},
+    onSaveQuestWebhook: () -> Unit = {},
+    onRetryQuestWebhook: () -> Unit = {},
     cacheClearing: Boolean = false,
     cacheMessage: String? = null,
     onClearCache: () -> Unit = {},
@@ -320,21 +320,21 @@ internal fun SettingsContent(
                     modifier = cardModifier,
                 )
             }
-            SettingsCategory.Webhook -> {
-                WebhookSettingsCard(
-                    isLoading = webhookLoading,
-                    loadError = webhookLoadError,
-                    loadErrorMessage = webhookLoadErrorMessage,
-                    url = webhookUrl,
-                    enabled = webhookEnabled,
-                    events = webhookEvents,
-                    isSaving = webhookSaving,
-                    message = webhookMessage,
-                    onUrlChanged = onWebhookUrlChanged,
-                    onEnabledChanged = onWebhookEnabledChanged,
-                    onToggleEvent = onWebhookToggleEvent,
-                    onSave = onSaveWebhook,
-                    onRetry = onRetryWebhook,
+            SettingsCategory.QuestWebhook -> {
+                QuestWebhookSettingsCard(
+                    isLoading = questWebhookLoading,
+                    loadError = questWebhookLoadError,
+                    loadErrorMessage = questWebhookLoadErrorMessage,
+                    url = questWebhookUrl,
+                    enabled = questWebhookEnabled,
+                    events = questWebhookEvents,
+                    isSaving = questWebhookSaving,
+                    message = questWebhookMessage,
+                    onUrlChanged = onQuestWebhookUrlChanged,
+                    onEnabledChanged = onQuestWebhookEnabledChanged,
+                    onToggleEvent = onQuestWebhookToggleEvent,
+                    onSave = onSaveQuestWebhook,
+                    onRetry = onRetryQuestWebhook,
                     modifier = cardModifier,
                 )
             }
@@ -1006,7 +1006,7 @@ private fun PasskeyManagementCard(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun WebhookSettingsCard(
+private fun QuestWebhookSettingsCard(
     isLoading: Boolean,
     loadError: Boolean = false,
     loadErrorMessage: String? = null,
@@ -1044,7 +1044,7 @@ private fun WebhookSettingsCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Webhook 設定", style = MaterialTheme.typography.titleSmall)
+                    Text("クエスト Webhook 設定", style = MaterialTheme.typography.titleSmall)
                     Switch(
                         checked = enabled,
                         onCheckedChange = onEnabledChanged,
@@ -1063,11 +1063,11 @@ private fun WebhookSettingsCard(
 
                 Text("通知するイベント", style = MaterialTheme.typography.labelMedium)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    WebhookEvent.all.forEach { event ->
+                    QuestWebhookEvent.all.forEach { event ->
                         FilterChip(
                             selected = event in events,
                             onClick = { onToggleEvent(event) },
-                            label = { Text(WebhookEvent.label(event)) },
+                            label = { Text(QuestWebhookEvent.label(event)) },
                         )
                     }
                 }

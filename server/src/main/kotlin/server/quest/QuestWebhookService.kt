@@ -14,7 +14,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import model.Quest
-import model.WebhookSettings
+import model.QuestWebhookSettings
 import org.slf4j.LoggerFactory
 import server.util.DISCORD_EMBED_COLOR
 import server.util.WebhookServiceType
@@ -22,9 +22,9 @@ import server.util.await
 import server.util.detectWebhookService
 import java.time.Instant
 
-private val logger = LoggerFactory.getLogger("WebhookService")
+private val logger = LoggerFactory.getLogger("QuestWebhookService")
 
-class WebhookService(
+class QuestWebhookService(
     private val firestore: Firestore,
     dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
@@ -34,19 +34,19 @@ class WebhookService(
     private val client = HttpClient()
     private val json = Json
 
-    suspend fun getSettings(): WebhookSettings {
+    suspend fun getSettings(): QuestWebhookSettings {
         val doc = settingsDoc.get().await()
-        if (!doc.exists()) return WebhookSettings()
-        val data = doc.data ?: return WebhookSettings()
+        if (!doc.exists()) return QuestWebhookSettings()
+        val data = doc.data ?: return QuestWebhookSettings()
         @Suppress("UNCHECKED_CAST")
-        return WebhookSettings(
+        return QuestWebhookSettings(
             url = data["url"] as? String ?: "",
             enabled = data["enabled"] as? Boolean ?: false,
             events = (data["events"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
         )
     }
 
-    suspend fun updateSettings(settings: WebhookSettings) {
+    suspend fun updateSettings(settings: QuestWebhookSettings) {
         settingsDoc
             .set(
                 mapOf(

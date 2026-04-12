@@ -3,13 +3,13 @@ package model
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class WebhookSettings(
+data class QuestWebhookSettings(
     val url: String = "",
     val enabled: Boolean = false,
     val events: List<String> = emptyList(),
 )
 
-object WebhookEvent {
+object QuestWebhookEvent {
     const val QUEST_CREATED = "quest_created"
     const val QUEST_COMPLETED = "quest_completed"
     const val QUEST_VERIFIED = "quest_verified"

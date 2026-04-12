@@ -1,6 +1,6 @@
 package feature.settings
 
-import core.network.WebhookRepository
+import core.network.QuestWebhookRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -11,7 +11,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import model.WebhookSettings
+import model.QuestWebhookSettings
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -21,12 +21,12 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class WebhookViewModelTest {
+class QuestWebhookViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
-    private lateinit var webhookRepository: WebhookRepository
+    private lateinit var questWebhookRepository: QuestWebhookRepository
 
     private val testSettings =
-        WebhookSettings(
+        QuestWebhookSettings(
             url = "https://hooks.example.com/webhook",
             enabled = true,
             events = listOf("quest_created", "quest_completed"),
@@ -35,7 +35,7 @@ class WebhookViewModelTest {
     @BeforeTest
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        webhookRepository = mockk()
+        questWebhookRepository = mockk()
     }
 
     @AfterTest
@@ -43,9 +43,9 @@ class WebhookViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun createViewModel(): WebhookViewModel {
-        coEvery { webhookRepository.getSettings() } returns testSettings
-        return WebhookViewModel(webhookRepository)
+    private fun createViewModel(): QuestWebhookViewModel {
+        coEvery { questWebhookRepository.getSettings() } returns testSettings
+        return QuestWebhookViewModel(questWebhookRepository)
     }
 
     @Test
@@ -63,8 +63,8 @@ class WebhookViewModelTest {
     @Test
     fun `init load failure shows error`() =
         runTest {
-            coEvery { webhookRepository.getSettings() } throws RuntimeException("load error")
-            val viewModel = WebhookViewModel(webhookRepository)
+            coEvery { questWebhookRepository.getSettings() } throws RuntimeException("load error")
+            val viewModel = QuestWebhookViewModel(questWebhookRepository)
             advanceUntilIdle()
 
             assertFalse(viewModel.uiState.isLoading)
@@ -127,7 +127,7 @@ class WebhookViewModelTest {
             val viewModel = createViewModel()
             advanceUntilIdle()
 
-            coEvery { webhookRepository.updateSettings(any()) } returns testSettings
+            coEvery { questWebhookRepository.updateSettings(any()) } returns testSettings
 
             viewModel.onSave()
             advanceUntilIdle()
@@ -135,8 +135,8 @@ class WebhookViewModelTest {
             assertFalse(viewModel.uiState.isSaving)
             assertEquals("保存しました", viewModel.uiState.message)
             coVerify {
-                webhookRepository.updateSettings(
-                    WebhookSettings(
+                questWebhookRepository.updateSettings(
+                    QuestWebhookSettings(
                         url = "https://hooks.example.com/webhook",
                         enabled = true,
                         events = listOf("quest_created", "quest_completed"),
@@ -151,7 +151,7 @@ class WebhookViewModelTest {
             val viewModel = createViewModel()
             advanceUntilIdle()
 
-            coEvery { webhookRepository.updateSettings(any()) } throws RuntimeException("save error")
+            coEvery { questWebhookRepository.updateSettings(any()) } throws RuntimeException("save error")
 
             viewModel.onSave()
             advanceUntilIdle()

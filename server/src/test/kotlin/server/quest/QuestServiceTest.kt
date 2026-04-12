@@ -10,7 +10,7 @@ import model.CreateQuestRequest
 import model.Quest
 import model.QuestCategory
 import model.QuestStatus
-import model.WebhookEvent
+import model.QuestWebhookEvent
 import java.time.Instant
 import java.time.LocalDate
 import kotlin.test.Test
@@ -20,8 +20,8 @@ import kotlin.test.assertIs
 class QuestServiceTest {
     private val questRepository = mockk<QuestRepository>()
     private val pointRepository = mockk<PointRepository>()
-    private val webhookService = mockk<WebhookService>(relaxed = true)
-    private val service = QuestService(questRepository, pointRepository, webhookService)
+    private val questWebhookService = mockk<QuestWebhookService>(relaxed = true)
+    private val service = QuestService(questRepository, pointRepository, questWebhookService)
 
     // --- テストデータヘルパー ---
 
@@ -120,7 +120,7 @@ class QuestServiceTest {
             assertEquals(QuestCategory.Errand, success.data.category)
             assertEquals(QuestStatus.Open, success.data.status)
             assertEquals("2024-07-15T10:00:00Z", success.data.createdAt)
-            coVerify { webhookService.notify(WebhookEvent.QUEST_CREATED, any()) }
+            coVerify { questWebhookService.notify(QuestWebhookEvent.QUEST_CREATED, any()) }
         }
 
     @Test
@@ -211,7 +211,7 @@ class QuestServiceTest {
             assertEquals(QuestStatus.Verified, success.data.status)
             assertEquals("2024-07-15T12:00:00Z", success.data.completedAt)
             coVerify { pointRepository.awardPoints("user2", "花子", 50, "クエスト達成: 掃除", questId = "q1") }
-            coVerify { webhookService.notify(WebhookEvent.QUEST_VERIFIED, any()) }
+            coVerify { questWebhookService.notify(QuestWebhookEvent.QUEST_VERIFIED, any()) }
         }
 
     @Test
