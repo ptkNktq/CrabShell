@@ -228,14 +228,14 @@ internal fun SettingsContent(
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
     val categories = SettingsCategory.entries.filter { !it.adminOnly || isAdmin }
-    var selectedCategory by remember { mutableStateOf<SettingsCategory?>(if (isCompact) null else categories.first()) }
+    var selectedCategory by remember { mutableStateOf<SettingsCategory?>(if (isCompact) null else categories.firstOrNull()) }
 
     // Compact ↔ Expanded 切り替え時に selectedCategory を適切にリセット
     LaunchedEffect(isCompact) {
         if (isCompact) {
             selectedCategory = null
         } else if (selectedCategory == null) {
-            selectedCategory = categories.first()
+            selectedCategory = categories.firstOrNull()
         }
     }
 
@@ -386,18 +386,20 @@ internal fun SettingsContent(
 
             VerticalDivider()
 
-            val selected = selectedCategory ?: categories.first()
-            key(selected) {
-                val detailScrollState = rememberScrollState()
-                CategoryDetailPane(
-                    category = selected,
-                    scrollState = detailScrollState,
-                    showBackButton = false,
-                    onBack = {},
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                    contentModifier = Modifier.widthIn(max = 480.dp),
-                ) {
-                    categoryContent(selected, Modifier.widthIn(max = 480.dp))
+            val selected = selectedCategory ?: categories.firstOrNull()
+            if (selected != null) {
+                key(selected) {
+                    val detailScrollState = rememberScrollState()
+                    CategoryDetailPane(
+                        category = selected,
+                        scrollState = detailScrollState,
+                        showBackButton = false,
+                        onBack = {},
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        contentModifier = Modifier.widthIn(max = 480.dp),
+                    ) {
+                        categoryContent(selected, Modifier.widthIn(max = 480.dp))
+                    }
                 }
             }
         }
