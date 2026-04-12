@@ -46,6 +46,17 @@ import org.koin.compose.viewmodel.koinViewModel
 
 private val dayLabels = listOf("日", "月", "火", "水", "木", "金", "土")
 
+@Composable
+private fun settingsScrollbarStyle() =
+    ScrollbarStyle(
+        minimalHeight = 48.dp,
+        thickness = 8.dp,
+        shape = MaterialTheme.shapes.small,
+        hoverDurationMillis = 300,
+        unhoverColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+        hoverColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+    )
+
 internal enum class SettingsCategory(
     val title: String,
     val icon: ImageVector,
@@ -218,6 +229,22 @@ internal fun SettingsContent(
     val isCompact = windowSizeClass == WindowSizeClass.Compact
     val categories = SettingsCategory.entries.filter { !it.adminOnly || isAdmin }
     var selectedCategory by remember { mutableStateOf<SettingsCategory?>(if (isCompact) null else categories.first()) }
+
+    // Compact ↔ Expanded 切り替え時に selectedCategory を適切にリセット
+    LaunchedEffect(isCompact) {
+        if (isCompact) {
+            selectedCategory = null
+        } else if (selectedCategory == null) {
+            selectedCategory = categories.first()
+        }
+    }
+
+    // isAdmin 変化等で categories から selectedCategory が除外された場合にリセット
+    LaunchedEffect(categories) {
+        if (selectedCategory != null && selectedCategory !in categories) {
+            selectedCategory = if (isCompact) null else categories.firstOrNull()
+        }
+    }
 
     val categoryContent: @Composable (SettingsCategory, Modifier) -> Unit = { category, cardModifier ->
         when (category) {
@@ -403,15 +430,7 @@ private fun CategoryListPane(
         VerticalScrollbar(
             adapter = rememberScrollbarAdapter(listScrollState),
             modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
-            style =
-                ScrollbarStyle(
-                    minimalHeight = 48.dp,
-                    thickness = 8.dp,
-                    shape = MaterialTheme.shapes.small,
-                    hoverDurationMillis = 300,
-                    unhoverColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                    hoverColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                ),
+            style = settingsScrollbarStyle(),
         )
     }
 }
@@ -532,15 +551,7 @@ private fun CategoryDetailPane(
         VerticalScrollbar(
             adapter = rememberScrollbarAdapter(scrollState),
             modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
-            style =
-                ScrollbarStyle(
-                    minimalHeight = 48.dp,
-                    thickness = 8.dp,
-                    shape = MaterialTheme.shapes.small,
-                    hoverDurationMillis = 300,
-                    unhoverColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                    hoverColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                ),
+            style = settingsScrollbarStyle(),
         )
     }
 }
