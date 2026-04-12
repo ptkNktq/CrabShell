@@ -1,5 +1,6 @@
 package feature.money
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,6 +20,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -87,13 +90,21 @@ internal fun MoneyContent(
     val isCompact = windowSizeClass == WindowSizeClass.Compact
     // Compact 用: フォーム表示切替
     var showFormCompact by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
 
     // editingItem がクリアされたらフォームを閉じる（保存成功時）
     LaunchedEffect(editingItem) {
         if (editingItem == null) showFormCompact = false
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = { focusManager.clearFocus() })
+                },
+    ) {
         if (isCompact) {
             if (showFormCompact) {
                 // Compact: フォーム表示
@@ -507,7 +518,7 @@ private fun MoneyItemForm(
                                         put(user.uid, (amount / 2).toString())
                                     }
                             },
-                            enabled = !saving && amount != 0L,
+                            enabled = !saving && amountText.isNotBlank(),
                             contentPadding = PaddingValues(horizontal = 8.dp),
                         ) {
                             Text("半額", style = MaterialTheme.typography.labelSmall)
@@ -519,7 +530,7 @@ private fun MoneyItemForm(
                                         put(user.uid, amount.toString())
                                     }
                             },
-                            enabled = !saving && amount != 0L,
+                            enabled = !saving && amountText.isNotBlank(),
                             contentPadding = PaddingValues(horizontal = 8.dp),
                         ) {
                             Text("全額", style = MaterialTheme.typography.labelSmall)
@@ -536,7 +547,7 @@ private fun MoneyItemForm(
                                         put(user.uid, (amount - othersTotal).toString())
                                     }
                             },
-                            enabled = !saving && amount != 0L,
+                            enabled = !saving && amountText.isNotBlank(),
                             contentPadding = PaddingValues(horizontal = 8.dp),
                         ) {
                             Text("残額", style = MaterialTheme.typography.labelSmall)
@@ -594,7 +605,7 @@ private fun MoneyItemForm(
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
                     onClick = { onSave(name, amount, note, payments, selectedTags) },
-                    enabled = name.isNotBlank() && amount != 0L && !saving && !locked,
+                    enabled = name.isNotBlank() && amountText.isNotBlank() && !saving && !locked,
                 ) {
                     Text(if (isEditing) "保存" else "追加")
                 }
