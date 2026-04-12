@@ -1,6 +1,7 @@
 package server.quest
 
 import com.google.cloud.firestore.Firestore
+import com.google.cloud.firestore.SetOptions
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -57,8 +58,7 @@ class QuestWebhookService(
                             "events" to settings.events,
                         ),
                 ),
-                com.google.cloud.firestore.SetOptions
-                    .merge(),
+                SetOptions.merge(),
             ).await()
     }
 
