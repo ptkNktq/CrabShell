@@ -65,7 +65,7 @@ internal enum class SettingsCategory(
     Account("アカウント", Icons.Default.Person),
     UserManagement("ユーザー管理", Icons.Default.Group, adminOnly = true),
     Garbage("ゴミ出し", Icons.Default.DeleteSweep, adminOnly = true),
-    QuestWebhook("クエスト Webhook 通知", Icons.Default.Notifications, adminOnly = true),
+    Quest("クエスト", Icons.Default.Notifications, adminOnly = true),
     Cache("サーバーキャッシュ", Icons.Default.Cached, adminOnly = true),
 }
 
@@ -320,7 +320,7 @@ internal fun SettingsContent(
                     modifier = cardModifier,
                 )
             }
-            SettingsCategory.QuestWebhook -> {
+            SettingsCategory.Quest -> {
                 QuestWebhookSettingsCard(
                     isLoading = questWebhookLoading,
                     loadError = questWebhookLoadError,
@@ -1044,7 +1044,7 @@ private fun QuestWebhookSettingsCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("クエスト Webhook 設定", style = MaterialTheme.typography.titleSmall)
+                    Text("Webhook 通知", style = MaterialTheme.typography.titleSmall)
                     Switch(
                         checked = enabled,
                         onCheckedChange = onEnabledChanged,
@@ -1054,7 +1054,7 @@ private fun QuestWebhookSettingsCard(
                 OutlinedTextField(
                     value = url,
                     onValueChange = onUrlChanged,
-                    label = { Text("クエスト Webhook URL") },
+                    label = { Text("Webhook URL") },
                     placeholder = { Text("https://discord.com/api/webhooks/...") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
