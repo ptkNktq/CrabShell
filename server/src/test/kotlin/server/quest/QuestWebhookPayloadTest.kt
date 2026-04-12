@@ -17,8 +17,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-class WebhookPayloadTest {
-    private val service = WebhookService(firestore = mockk<Firestore>())
+class QuestWebhookPayloadTest {
+    private val service = QuestWebhookService(firestore = mockk<Firestore>())
 
     private val sampleQuest =
         Quest(

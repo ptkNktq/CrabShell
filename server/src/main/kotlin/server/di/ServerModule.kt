@@ -22,7 +22,7 @@ import server.quest.FirestoreQuestRepository
 import server.quest.PointRepository
 import server.quest.QuestRepository
 import server.quest.QuestService
-import server.quest.WebhookService
+import server.quest.QuestWebhookService
 import server.report.BalanceCalculationService
 
 val serverModule =
@@ -35,7 +35,7 @@ val serverModule =
         single<FeedingSettingsRepository> { FirestoreFeedingSettingsRepository(get()) }
         single<GarbageRepository> { FirestoreGarbageRepository(get()) }
         single<PetRepository> { FirestorePetRepository(get()) }
-        single { WebhookService(get()) }
+        single { QuestWebhookService(get()) }
         single { QuestService(get(), get(), get()) }
         single { FeedingReminderService(get(), get(), get()) }
         single { GarbageNotificationService(get()) }

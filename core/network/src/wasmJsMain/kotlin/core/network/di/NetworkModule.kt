@@ -18,14 +18,14 @@ import core.network.PointRepository
 import core.network.PointRepositoryImpl
 import core.network.QuestRepository
 import core.network.QuestRepositoryImpl
+import core.network.QuestWebhookRepository
+import core.network.QuestWebhookRepositoryImpl
 import core.network.ReportRepository
 import core.network.ReportRepositoryImpl
 import core.network.RewardRepository
 import core.network.RewardRepositoryImpl
 import core.network.UserRepository
 import core.network.UserRepositoryImpl
-import core.network.WebhookRepository
-import core.network.WebhookRepositoryImpl
 import core.network.createAuthenticatedClient
 import io.ktor.client.*
 import org.koin.dsl.module
@@ -44,6 +44,6 @@ val networkModule =
         single<RewardRepository> { RewardRepositoryImpl(get()) }
         single<UserRepository> { UserRepositoryImpl(get()) }
         single<PasskeyRepository> { PasskeyRepositoryImpl(get()) }
-        single<WebhookRepository> { WebhookRepositoryImpl(get()) }
+        single<QuestWebhookRepository> { QuestWebhookRepositoryImpl(get()) }
         single<CacheRepository> { CacheRepositoryImpl(get()) }
     }

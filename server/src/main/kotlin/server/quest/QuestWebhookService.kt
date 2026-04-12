@@ -1,6 +1,7 @@
 package server.quest
 
 import com.google.cloud.firestore.Firestore
+import com.google.cloud.firestore.SetOptions
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -14,7 +15,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import model.Quest
-import model.WebhookSettings
+import model.QuestWebhookSettings
 import org.slf4j.LoggerFactory
 import server.util.DISCORD_EMBED_COLOR
 import server.util.WebhookServiceType
@@ -22,38 +23,42 @@ import server.util.await
 import server.util.detectWebhookService
 import java.time.Instant
 
-private val logger = LoggerFactory.getLogger("WebhookService")
+private val logger = LoggerFactory.getLogger("QuestWebhookService")
 
-class WebhookService(
+class QuestWebhookService(
     private val firestore: Firestore,
     dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
-    private val settingsDoc get() = firestore.collection("settings").document("webhook")
+    private val questSettingsDoc get() = firestore.collection("settings").document("quest")
     private val scope = CoroutineScope(dispatcher)
 
     private val client = HttpClient()
     private val json = Json
 
-    suspend fun getSettings(): WebhookSettings {
-        val doc = settingsDoc.get().await()
-        if (!doc.exists()) return WebhookSettings()
-        val data = doc.data ?: return WebhookSettings()
-        @Suppress("UNCHECKED_CAST")
-        return WebhookSettings(
-            url = data["url"] as? String ?: "",
-            enabled = data["enabled"] as? Boolean ?: false,
-            events = (data["events"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+    @Suppress("UNCHECKED_CAST")
+    suspend fun getSettings(): QuestWebhookSettings {
+        val doc = questSettingsDoc.get().await()
+        if (!doc.exists()) return QuestWebhookSettings()
+        val webhook = (doc.data?.get("webhook") as? Map<String, Any?>) ?: return QuestWebhookSettings()
+        return QuestWebhookSettings(
+            url = webhook["url"] as? String ?: "",
+            enabled = webhook["enabled"] as? Boolean ?: false,
+            events = (webhook["events"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
         )
     }
 
-    suspend fun updateSettings(settings: WebhookSettings) {
-        settingsDoc
+    suspend fun updateSettings(settings: QuestWebhookSettings) {
+        questSettingsDoc
             .set(
                 mapOf(
-                    "url" to settings.url,
-                    "enabled" to settings.enabled,
-                    "events" to settings.events,
+                    "webhook" to
+                        mapOf(
+                            "url" to settings.url,
+                            "enabled" to settings.enabled,
+                            "events" to settings.events,
+                        ),
                 ),
+                SetOptions.merge(),
             ).await()
     }
 

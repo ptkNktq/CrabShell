@@ -5,11 +5,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import core.network.WebhookRepository
+import core.network.QuestWebhookRepository
 import kotlinx.coroutines.launch
-import model.WebhookSettings
+import model.QuestWebhookSettings
 
-data class WebhookUiState(
+data class QuestWebhookUiState(
     val url: String = "",
     val enabled: Boolean = false,
     val events: List<String> = emptyList(),
@@ -20,10 +20,10 @@ data class WebhookUiState(
     val message: String? = null,
 )
 
-class WebhookViewModel(
-    private val webhookRepository: WebhookRepository,
+class QuestWebhookViewModel(
+    private val questWebhookRepository: QuestWebhookRepository,
 ) : ViewModel() {
-    var uiState by mutableStateOf(WebhookUiState())
+    var uiState by mutableStateOf(QuestWebhookUiState())
         private set
 
     init {
@@ -34,7 +34,7 @@ class WebhookViewModel(
         uiState = uiState.copy(isLoading = true, loadError = false, message = null)
         viewModelScope.launch {
             try {
-                val settings = webhookRepository.getSettings()
+                val settings = questWebhookRepository.getSettings()
                 uiState =
                     uiState.copy(
                         url = settings.url,
@@ -71,12 +71,12 @@ class WebhookViewModel(
         viewModelScope.launch {
             try {
                 val settings =
-                    WebhookSettings(
+                    QuestWebhookSettings(
                         url = uiState.url,
                         enabled = uiState.enabled,
                         events = uiState.events,
                     )
-                webhookRepository.updateSettings(settings)
+                questWebhookRepository.updateSettings(settings)
                 uiState = uiState.copy(isSaving = false, message = "保存しました")
             } catch (e: Exception) {
                 uiState = uiState.copy(isSaving = false, message = "保存失敗: ${e.message}")

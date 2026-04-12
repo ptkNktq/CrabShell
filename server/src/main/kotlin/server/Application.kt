@@ -47,7 +47,7 @@ import server.pet.PetRepository
 import server.pet.petRoutes
 import server.quest.pointRoutes
 import server.quest.questRoutes
-import server.quest.webhookRoutes
+import server.quest.questWebhookRoutes
 import server.ratelimit.RateLimitNames
 import server.report.reportRoutes
 import server.user.userRoutes
@@ -159,7 +159,7 @@ fun Application.module() {
             reportRoutes()
             questRoutes()
             pointRoutes()
-            webhookRoutes()
+            questWebhookRoutes()
             cacheRoutes()
             passkeyRoutes()
         }

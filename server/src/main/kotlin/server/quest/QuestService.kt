@@ -4,7 +4,7 @@ import model.CreateQuestRequest
 import model.Quest
 import model.QuestCategory
 import model.QuestStatus
-import model.WebhookEvent
+import model.QuestWebhookEvent
 import java.time.Instant
 import java.time.LocalDate
 
@@ -31,7 +31,7 @@ sealed class QuestResult<out T> {
 class QuestService(
     private val questRepository: QuestRepository,
     private val pointRepository: PointRepository,
-    private val webhookService: WebhookService,
+    private val questWebhookService: QuestWebhookService,
 ) {
     suspend fun listQuests(
         statusFilter: String?,
@@ -98,7 +98,7 @@ class QuestService(
                 createdAt = questData["createdAt"] as String,
             )
 
-        webhookService.notify(WebhookEvent.QUEST_CREATED, created)
+        questWebhookService.notify(QuestWebhookEvent.QUEST_CREATED, created)
         return QuestResult.Success(created)
     }
 
@@ -173,7 +173,7 @@ class QuestService(
         }
 
         val verifiedQuest = buildQuest(id, data, QuestStatus.Verified, completedAtOverride = completedAt)
-        webhookService.notify(WebhookEvent.QUEST_VERIFIED, verifiedQuest)
+        questWebhookService.notify(QuestWebhookEvent.QUEST_VERIFIED, verifiedQuest)
         return QuestResult.Success(verifiedQuest)
     }
 
