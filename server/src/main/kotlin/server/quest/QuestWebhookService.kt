@@ -28,32 +28,37 @@ class QuestWebhookService(
     private val firestore: Firestore,
     dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
-    private val settingsDoc get() = firestore.collection("settings").document("quest-webhook")
+    private val questSettingsDoc get() = firestore.collection("settings").document("quest")
     private val scope = CoroutineScope(dispatcher)
 
     private val client = HttpClient()
     private val json = Json
 
+    @Suppress("UNCHECKED_CAST")
     suspend fun getSettings(): QuestWebhookSettings {
-        val doc = settingsDoc.get().await()
+        val doc = questSettingsDoc.get().await()
         if (!doc.exists()) return QuestWebhookSettings()
-        val data = doc.data ?: return QuestWebhookSettings()
-        @Suppress("UNCHECKED_CAST")
+        val webhook = (doc.data?.get("webhook") as? Map<String, Any?>) ?: return QuestWebhookSettings()
         return QuestWebhookSettings(
-            url = data["url"] as? String ?: "",
-            enabled = data["enabled"] as? Boolean ?: false,
-            events = (data["events"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+            url = webhook["url"] as? String ?: "",
+            enabled = webhook["enabled"] as? Boolean ?: false,
+            events = (webhook["events"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
         )
     }
 
     suspend fun updateSettings(settings: QuestWebhookSettings) {
-        settingsDoc
+        questSettingsDoc
             .set(
                 mapOf(
-                    "url" to settings.url,
-                    "enabled" to settings.enabled,
-                    "events" to settings.events,
+                    "webhook" to
+                        mapOf(
+                            "url" to settings.url,
+                            "enabled" to settings.enabled,
+                            "events" to settings.events,
+                        ),
                 ),
+                com.google.cloud.firestore.SetOptions
+                    .merge(),
             ).await()
     }
 
