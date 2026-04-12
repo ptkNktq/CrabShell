@@ -4,14 +4,22 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Cached
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -39,6 +47,29 @@ import org.koin.compose.viewmodel.koinViewModel
 private val dayLabels = listOf("日", "月", "火", "水", "木", "金", "土")
 
 @Composable
+private fun settingsScrollbarStyle() =
+    ScrollbarStyle(
+        minimalHeight = 48.dp,
+        thickness = 8.dp,
+        shape = MaterialTheme.shapes.small,
+        hoverDurationMillis = 300,
+        unhoverColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+        hoverColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+    )
+
+internal enum class SettingsCategory(
+    val title: String,
+    val icon: ImageVector,
+    val adminOnly: Boolean = false,
+) {
+    Account("アカウント", Icons.Default.Person),
+    UserManagement("ユーザー管理", Icons.Default.Group, adminOnly = true),
+    Garbage("ゴミ出し", Icons.Default.DeleteSweep, adminOnly = true),
+    Webhook("Webhook 通知", Icons.Default.Notifications, adminOnly = true),
+    Cache("サーバーキャッシュ", Icons.Default.Cached, adminOnly = true),
+}
+
+@Composable
 fun SettingsScreen(
     passwordVm: PasswordChangeViewModel = koinViewModel(),
     passkeyVm: PasskeyManagementViewModel = koinViewModel(),
@@ -50,11 +81,9 @@ fun SettingsScreen(
     val garbageVm = remember(isAdmin) { if (isAdmin) koin.get<GarbageScheduleViewModel>() else null }
     val webhookVm = remember(isAdmin) { if (isAdmin) koin.get<WebhookViewModel>() else null }
     val cacheVm = remember(isAdmin) { if (isAdmin) koin.get<CacheRefreshViewModel>() else null }
-    val scrollState = rememberScrollState()
     val windowSizeClass = LocalWindowSizeClass.current
 
     SettingsContent(
-        scrollState = scrollState,
         isAdmin = isAdmin,
         currentPassword = passwordVm.uiState.currentPassword,
         newPassword = passwordVm.uiState.newPassword,
@@ -128,7 +157,6 @@ fun SettingsScreen(
 
 @Composable
 internal fun SettingsContent(
-    scrollState: ScrollState,
     isAdmin: Boolean,
     currentPassword: String,
     newPassword: String,
@@ -199,20 +227,28 @@ internal fun SettingsContent(
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
+    val categories = SettingsCategory.entries.filter { !it.adminOnly || isAdmin }
+    var selectedCategory by remember { mutableStateOf<SettingsCategory?>(if (isCompact) null else categories.firstOrNull()) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(if (isCompact) 16.dp else 24.dp)
-                    .verticalScroll(scrollState),
-            horizontalAlignment = if (isCompact) Alignment.Start else Alignment.CenterHorizontally,
-        ) {
-            val cardModifier = if (isCompact) Modifier.fillMaxWidth() else Modifier.widthIn(max = 480.dp)
+    // Compact ↔ Expanded 切り替え時に selectedCategory を適切にリセット
+    LaunchedEffect(isCompact) {
+        if (isCompact) {
+            selectedCategory = null
+        } else if (selectedCategory == null) {
+            selectedCategory = categories.firstOrNull()
+        }
+    }
 
-            // アカウントセクション
-            SettingsSection(title = "アカウント") {
+    // isAdmin 変化等で categories から selectedCategory が除外された場合にリセット
+    LaunchedEffect(categories) {
+        if (selectedCategory != null && selectedCategory !in categories) {
+            selectedCategory = if (isCompact) null else categories.firstOrNull()
+        }
+    }
+
+    val categoryContent: @Composable (SettingsCategory, Modifier) -> Unit = { category, cardModifier ->
+        when (category) {
+            SettingsCategory.Account -> {
                 PasswordChangeCard(
                     currentPassword = currentPassword,
                     newPassword = newPassword,
@@ -237,137 +273,288 @@ internal fun SettingsContent(
                     )
                 }
             }
+            SettingsCategory.UserManagement -> {
+                UserNameManagementCard(
+                    isLoading = usersLoading,
+                    loadError = usersLoadError,
+                    loadErrorMessage = usersLoadErrorMessage,
+                    users = users,
+                    usersSaving = usersSaving,
+                    usersMessage = usersMessage,
+                    onUpdateDisplayName = onUpdateDisplayName,
+                    onRetry = onRetryUsers,
+                    modifier = cardModifier,
+                )
+            }
+            SettingsCategory.Garbage -> {
+                GarbageScheduleCard(
+                    isLoading = garbageLoading,
+                    loadError = garbageLoadError,
+                    loadErrorMessage = garbageLoadErrorMessage,
+                    schedules = garbageSchedules,
+                    garbageMessage = garbageMessage,
+                    garbageSaving = garbageSaving,
+                    onToggleDay = onToggleDay,
+                    onFrequencyChange = onFrequencyChange,
+                    onSaveClick = onSaveGarbageSchedule,
+                    onRetry = onRetryGarbageSchedule,
+                    modifier = cardModifier,
+                )
+                GarbageNotificationCard(
+                    isLoading = garbageNotificationLoading,
+                    loadError = garbageNotificationLoadError,
+                    loadErrorMessage = garbageNotificationLoadErrorMessage,
+                    enabled = garbageNotificationEnabled,
+                    webhookUrl = garbageNotificationWebhookUrl,
+                    notifyHour = garbageNotificationHour,
+                    prefix = garbageNotificationPrefix,
+                    isSaving = garbageNotificationSaving,
+                    isHourValid = garbageNotificationHourValid,
+                    message = garbageNotificationMessage,
+                    onEnabledChanged = onGarbageNotificationEnabledChanged,
+                    onWebhookUrlChanged = onGarbageNotificationWebhookUrlChanged,
+                    onNotifyHourChanged = onGarbageNotificationHourChanged,
+                    onPrefixChanged = onGarbageNotificationPrefixChanged,
+                    onSave = onSaveGarbageNotification,
+                    onRetry = onRetryGarbageNotification,
+                    modifier = cardModifier,
+                )
+            }
+            SettingsCategory.Webhook -> {
+                WebhookSettingsCard(
+                    isLoading = webhookLoading,
+                    loadError = webhookLoadError,
+                    loadErrorMessage = webhookLoadErrorMessage,
+                    url = webhookUrl,
+                    enabled = webhookEnabled,
+                    events = webhookEvents,
+                    isSaving = webhookSaving,
+                    message = webhookMessage,
+                    onUrlChanged = onWebhookUrlChanged,
+                    onEnabledChanged = onWebhookEnabledChanged,
+                    onToggleEvent = onWebhookToggleEvent,
+                    onSave = onSaveWebhook,
+                    onRetry = onRetryWebhook,
+                    modifier = cardModifier,
+                )
+            }
+            SettingsCategory.Cache -> {
+                CacheRefreshCard(
+                    isClearing = cacheClearing,
+                    message = cacheMessage,
+                    onClearCache = onClearCache,
+                    modifier = cardModifier,
+                )
+            }
+        }
+    }
 
-            if (isAdmin) {
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // ユーザー名管理セクション（管理者のみ）
-                SettingsSection(title = "ユーザー名管理", showAdminBadge = true) {
-                    UserNameManagementCard(
-                        isLoading = usersLoading,
-                        loadError = usersLoadError,
-                        loadErrorMessage = usersLoadErrorMessage,
-                        users = users,
-                        usersSaving = usersSaving,
-                        usersMessage = usersMessage,
-                        onUpdateDisplayName = onUpdateDisplayName,
-                        onRetry = onRetryUsers,
-                        modifier = cardModifier,
-                    )
+    if (isCompact) {
+        // Compact: カテゴリリスト ↔ カテゴリ詳細の切り替え
+        val selected = selectedCategory
+        if (selected == null) {
+            CategoryListPane(
+                categories = categories,
+                selectedCategory = null,
+                onSelectCategory = { selectedCategory = it },
+                modifier = Modifier.fillMaxSize().padding(16.dp),
+            )
+        } else {
+            key(selected) {
+                val detailScrollState = rememberScrollState()
+                CategoryDetailPane(
+                    category = selected,
+                    scrollState = detailScrollState,
+                    showBackButton = true,
+                    onBack = { selectedCategory = null },
+                    modifier = Modifier.fillMaxSize(),
+                    contentModifier = Modifier.fillMaxWidth(),
+                ) {
+                    categoryContent(selected, Modifier.fillMaxWidth())
                 }
+            }
+        }
+    } else {
+        // Medium / Expanded: 左カテゴリリスト + 右詳細の2ペイン
+        Row(modifier = Modifier.fillMaxSize()) {
+            CategoryListPane(
+                categories = categories,
+                selectedCategory = selectedCategory,
+                onSelectCategory = { selectedCategory = it },
+                modifier = Modifier.width(320.dp).fillMaxHeight().padding(24.dp),
+            )
 
-                Spacer(modifier = Modifier.height(32.dp))
+            VerticalDivider()
 
-                // ゴミ出しセクション（管理者のみ）
-                SettingsSection(title = "ゴミ出し", showAdminBadge = true) {
-                    GarbageScheduleCard(
-                        isLoading = garbageLoading,
-                        loadError = garbageLoadError,
-                        loadErrorMessage = garbageLoadErrorMessage,
-                        schedules = garbageSchedules,
-                        garbageMessage = garbageMessage,
-                        garbageSaving = garbageSaving,
-                        onToggleDay = onToggleDay,
-                        onFrequencyChange = onFrequencyChange,
-                        onSaveClick = onSaveGarbageSchedule,
-                        onRetry = onRetryGarbageSchedule,
-                        modifier = cardModifier,
-                    )
-                    GarbageNotificationCard(
-                        isLoading = garbageNotificationLoading,
-                        loadError = garbageNotificationLoadError,
-                        loadErrorMessage = garbageNotificationLoadErrorMessage,
-                        enabled = garbageNotificationEnabled,
-                        webhookUrl = garbageNotificationWebhookUrl,
-                        notifyHour = garbageNotificationHour,
-                        prefix = garbageNotificationPrefix,
-                        isSaving = garbageNotificationSaving,
-                        isHourValid = garbageNotificationHourValid,
-                        message = garbageNotificationMessage,
-                        onEnabledChanged = onGarbageNotificationEnabledChanged,
-                        onWebhookUrlChanged = onGarbageNotificationWebhookUrlChanged,
-                        onNotifyHourChanged = onGarbageNotificationHourChanged,
-                        onPrefixChanged = onGarbageNotificationPrefixChanged,
-                        onSave = onSaveGarbageNotification,
-                        onRetry = onRetryGarbageNotification,
-                        modifier = cardModifier,
-                    )
+            val selected = selectedCategory ?: categories.firstOrNull()
+            if (selected != null) {
+                key(selected) {
+                    val detailScrollState = rememberScrollState()
+                    CategoryDetailPane(
+                        category = selected,
+                        scrollState = detailScrollState,
+                        showBackButton = false,
+                        onBack = {},
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        contentModifier = Modifier.widthIn(max = 480.dp),
+                    ) {
+                        categoryContent(selected, Modifier.widthIn(max = 480.dp))
+                    }
                 }
+            }
+        }
+    }
+}
 
-                Spacer(modifier = Modifier.height(32.dp))
+@Composable
+private fun CategoryListPane(
+    categories: List<SettingsCategory>,
+    selectedCategory: SettingsCategory?,
+    onSelectCategory: (SettingsCategory) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val listScrollState = rememberScrollState()
 
-                // Webhook 設定セクション（管理者のみ）
-                SettingsSection(title = "Webhook 通知", showAdminBadge = true) {
-                    WebhookSettingsCard(
-                        isLoading = webhookLoading,
-                        loadError = webhookLoadError,
-                        loadErrorMessage = webhookLoadErrorMessage,
-                        url = webhookUrl,
-                        enabled = webhookEnabled,
-                        events = webhookEvents,
-                        isSaving = webhookSaving,
-                        message = webhookMessage,
-                        onUrlChanged = onWebhookUrlChanged,
-                        onEnabledChanged = onWebhookEnabledChanged,
-                        onToggleEvent = onWebhookToggleEvent,
-                        onSave = onSaveWebhook,
-                        onRetry = onRetryWebhook,
-                        modifier = cardModifier,
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // サーバーキャッシュセクション（管理者のみ）
-                SettingsSection(title = "サーバーキャッシュ", showAdminBadge = true) {
-                    CacheRefreshCard(
-                        isClearing = cacheClearing,
-                        message = cacheMessage,
-                        onClearCache = onClearCache,
-                        modifier = cardModifier,
-                    )
-                }
+    Box(modifier = modifier) {
+        Column(
+            modifier = Modifier.fillMaxSize().verticalScroll(listScrollState),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            categories.forEach { category ->
+                CategoryItem(
+                    category = category,
+                    isSelected = category == selectedCategory,
+                    onClick = { onSelectCategory(category) },
+                )
             }
         }
 
         VerticalScrollbar(
-            adapter = rememberScrollbarAdapter(scrollState),
+            adapter = rememberScrollbarAdapter(listScrollState),
             modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
-            style =
-                ScrollbarStyle(
-                    minimalHeight = 48.dp,
-                    thickness = 8.dp,
-                    shape = MaterialTheme.shapes.small,
-                    hoverDurationMillis = 300,
-                    unhoverColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                    hoverColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                ),
+            style = settingsScrollbarStyle(),
         )
     }
 }
 
 @Composable
-private fun SettingsSection(
-    title: String,
-    showAdminBadge: Boolean = false,
+private fun CategoryItem(
+    category: SettingsCategory,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val containerColor =
+        if (isSelected) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.surface
+        }
+    val contentColor =
+        if (isSelected) {
+            MaterialTheme.colorScheme.onPrimaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        }
+
+    Surface(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = containerColor,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(
+                imageVector = category.icon,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(24.dp),
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = category.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = contentColor,
+                )
+                if (category.adminOnly) {
+                    AdminBadge()
+                }
+            }
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategoryDetailPane(
+    category: SettingsCategory,
+    scrollState: ScrollState,
+    showBackButton: Boolean,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    contentModifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+    Box(modifier = modifier) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(24.dp)
+                    .verticalScroll(scrollState),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            if (showAdminBadge) {
-                AdminBadge()
+            // ヘッダー（戻るボタン + タイトル）
+            Row(
+                modifier = contentModifier,
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (showBackButton) {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "戻る",
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = category.icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp),
+                )
+                Text(
+                    text = category.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                if (category.adminOnly) {
+                    AdminBadge()
+                }
             }
+            content()
         }
-        content()
+
+        VerticalScrollbar(
+            adapter = rememberScrollbarAdapter(scrollState),
+            modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+            style = settingsScrollbarStyle(),
+        )
     }
 }
 
