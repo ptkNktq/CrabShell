@@ -15,6 +15,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -105,69 +106,78 @@ internal fun LoginHistoryCardContent(
 
 @Composable
 private fun LoginEventRow(event: LoginEvent) {
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Icon(
-            imageVector =
-                when (event.loginMethod) {
-                    "passkey" -> Icons.Default.Fingerprint
-                    else -> Icons.Default.Email
-                },
-            contentDescription =
-                when (event.loginMethod) {
-                    "passkey" -> "パスキー"
-                    else -> "メール"
-                },
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(20.dp),
-        )
-
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
+            Text(
+                text = formatTimestamp(event.timestamp),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            LoginMethodBadge(event.loginMethod)
+        }
+
+        val ip = event.ipAddress
+        val ua = event.userAgent
+        if (ip != null || ua != null) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = formatTimestamp(event.timestamp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text =
-                        when (event.loginMethod) {
-                            "passkey" -> "パスキー"
-                            "email" -> "メール"
-                            else -> event.loginMethod ?: ""
-                        },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-
-            if (event.ipAddress != null) {
-                Text(
-                    text = "IP: ${event.ipAddress}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            val ua = event.userAgent
-            if (ua != null) {
-                Text(
-                    text = summarizeUserAgent(ua),
+                    text = ip ?: "",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = if (ua != null) summarizeUserAgent(ua) else "",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun LoginMethodBadge(loginMethod: String?) {
+    val (label, icon) =
+        when (loginMethod) {
+            "passkey" -> "パスキー" to Icons.Default.Fingerprint
+            "email" -> "メール" to Icons.Default.Email
+            else -> (loginMethod ?: "") to Icons.Default.Email
+        }
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.primaryContainer,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(12.dp),
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
         }
     }
 }
