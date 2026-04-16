@@ -170,6 +170,7 @@ private fun summarizeUserAgent(ua: String): String {
     // 主要ブラウザを判定
     return when {
         "Edg/" in ua -> "Microsoft Edge"
+        "OPR/" in ua || "Opera/" in ua -> "Opera"
         "Chrome/" in ua && "Safari/" in ua -> "Google Chrome"
         "Firefox/" in ua -> "Mozilla Firefox"
         "Safari/" in ua -> "Safari"

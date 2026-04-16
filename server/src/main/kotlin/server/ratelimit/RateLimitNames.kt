@@ -9,4 +9,7 @@ object RateLimitNames {
 
     /** AI テキスト生成 */
     val AI_GENERATE = RateLimitName("ai-generate")
+
+    /** ログイン履歴記録 */
+    val LOGIN_HISTORY = RateLimitName("login-history")
 }

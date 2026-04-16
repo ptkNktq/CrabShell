@@ -5,6 +5,7 @@ import core.auth.AuthStateHolder
 import core.network.LoginHistoryRepository
 import core.network.PasskeyRepository
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -88,6 +89,7 @@ class LoginViewModelTest {
 
             assertFalse(viewModel.uiState.isLoading)
             assertNull(viewModel.uiState.errorMessage)
+            coVerify { loginHistoryRepository.recordLogin("email") }
         }
 
     @Test
@@ -145,6 +147,7 @@ class LoginViewModelTest {
             assertTrue(authStateHolder.signedInViaPasskey)
             assertFalse(viewModel.uiState.isLoading)
             assertNull(viewModel.uiState.errorMessage)
+            coVerify { loginHistoryRepository.recordLogin("passkey") }
         }
 
     @Test

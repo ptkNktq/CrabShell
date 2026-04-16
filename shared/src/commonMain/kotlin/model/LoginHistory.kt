@@ -16,8 +16,6 @@ data class LoginEvent(
     // Phase 2: 不審ログイン検知
     val suspicious: Boolean? = null,
     val deviceFingerprint: String? = null,
-    // Firestore TTL 自動削除用
-    val expireAt: String? = null,
 )
 
 @Serializable

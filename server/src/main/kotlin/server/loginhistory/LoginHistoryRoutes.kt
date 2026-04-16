@@ -4,6 +4,7 @@ import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.*
 import io.ktor.server.plugins.origin
+import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -12,6 +13,7 @@ import model.RecordLoginRequest
 import org.koin.ktor.ext.inject
 import server.auth.authenticated
 import server.auth.firebasePrincipal
+import server.ratelimit.RateLimitNames
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
@@ -24,36 +26,38 @@ fun Route.loginHistoryRoutes() {
 
     authenticated {
         route("/login-history") {
-            post({
-                tags = listOf("login-history")
-                summary = "ログインイベント記録"
-                request {
-                    body<RecordLoginRequest>()
-                }
-                response {
-                    code(HttpStatusCode.Created) {}
-                }
-            }) {
-                val uid = call.firebasePrincipal.uid
-                val body = call.receive<RecordLoginRequest>()
-                if (body.loginMethod !in ALLOWED_LOGIN_METHODS) {
-                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid login method"))
-                    return@post
-                }
-                val now = Instant.now()
+            rateLimit(RateLimitNames.LOGIN_HISTORY) {
+                post({
+                    tags = listOf("login-history")
+                    summary = "ログインイベント記録"
+                    request {
+                        body<RecordLoginRequest>()
+                    }
+                    response {
+                        code(HttpStatusCode.Created) {}
+                    }
+                }) {
+                    val uid = call.firebasePrincipal.uid
+                    val body = call.receive<RecordLoginRequest>()
+                    if (body.loginMethod !in ALLOWED_LOGIN_METHODS) {
+                        call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid login method"))
+                        return@post
+                    }
+                    val now = Instant.now()
 
-                val event =
-                    LoginEvent(
-                        id = UUID.randomUUID().toString(),
-                        timestamp = now.toString(),
-                        ipAddress = call.request.origin.remoteAddress,
-                        userAgent = call.request.headers["User-Agent"],
-                        loginMethod = body.loginMethod,
-                    )
-                val expireAt = now.plus(TTL_DAYS, ChronoUnit.DAYS)
+                    val event =
+                        LoginEvent(
+                            id = UUID.randomUUID().toString(),
+                            timestamp = now.toString(),
+                            ipAddress = call.request.origin.remoteAddress,
+                            userAgent = call.request.headers["User-Agent"],
+                            loginMethod = body.loginMethod,
+                        )
+                    val expireAt = now.plus(TTL_DAYS, ChronoUnit.DAYS)
 
-                loginHistoryRepository.recordLogin(uid, event, expireAt)
-                call.respond(HttpStatusCode.Created)
+                    loginHistoryRepository.recordLogin(uid, event, expireAt)
+                    call.respond(HttpStatusCode.Created)
+                }
             }
 
             get({

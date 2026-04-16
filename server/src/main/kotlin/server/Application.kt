@@ -105,6 +105,10 @@ fun Application.module() {
             rateLimiter(limit = 5, refillPeriod = 60.seconds)
             requestKey { call -> call.firebasePrincipal.uid }
         }
+        register(RateLimitNames.LOGIN_HISTORY) {
+            rateLimiter(limit = 3, refillPeriod = 60.seconds)
+            requestKey { call -> call.firebasePrincipal.uid }
+        }
     }
 
     install(StatusPages) {
