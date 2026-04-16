@@ -67,7 +67,7 @@ fun Route.loginHistoryRoutes() {
                 }
             }) {
                 val uid = call.firebasePrincipal.uid
-                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 50
+                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 5
                 val history = loginHistoryRepository.getHistory(uid, limit)
                 call.respond(history)
             }

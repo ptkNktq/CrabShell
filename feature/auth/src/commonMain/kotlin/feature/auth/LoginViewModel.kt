@@ -74,7 +74,7 @@ class LoginViewModel(
             val result = authRepository.signIn(uiState.email, uiState.password)
             uiState = uiState.copy(isLoading = false)
             if (result.isSuccess) {
-                viewModelScope.launch { runCatching { loginHistoryRepository.recordLogin("email") } }
+                runCatching { loginHistoryRepository.recordLogin("email") }
             }
             if (result.isFailure) {
                 uiState =
@@ -99,7 +99,7 @@ class LoginViewModel(
                     val result = authRepository.signInWithCustomToken(customToken)
                     uiState = uiState.copy(isLoading = false)
                     if (result.isSuccess) {
-                        viewModelScope.launch { runCatching { loginHistoryRepository.recordLogin("passkey") } }
+                        runCatching { loginHistoryRepository.recordLogin("passkey") }
                     }
                     if (result.isFailure) {
                         uiState =

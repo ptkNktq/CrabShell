@@ -10,7 +10,7 @@ import model.RecordLoginRequest
 interface LoginHistoryRepository {
     suspend fun recordLogin(loginMethod: String)
 
-    suspend fun getLoginHistory(limit: Int = 50): List<LoginEvent>
+    suspend fun getLoginHistory(limit: Int = 5): List<LoginEvent>
 }
 
 class LoginHistoryRepositoryImpl(

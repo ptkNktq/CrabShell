@@ -10,6 +10,6 @@ interface LoginHistoryRepository {
 
     suspend fun getHistory(
         uid: String,
-        limit: Int = 50,
+        limit: Int = 5,
     ): List<LoginEvent>
 }
