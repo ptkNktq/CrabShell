@@ -4,6 +4,8 @@ import com.google.cloud.firestore.Firestore
 import com.google.cloud.firestore.Query
 import model.LoginEvent
 import server.util.await
+import java.time.Instant
+import com.google.cloud.Timestamp as FirestoreTimestamp
 
 class FirestoreLoginHistoryRepository(
     private val firestore: Firestore,
@@ -13,6 +15,7 @@ class FirestoreLoginHistoryRepository(
     override suspend fun recordLogin(
         uid: String,
         event: LoginEvent,
+        expireAt: Instant,
     ) {
         val data =
             buildMap<String, Any?> {
@@ -20,7 +23,7 @@ class FirestoreLoginHistoryRepository(
                 put("ipAddress", event.ipAddress)
                 put("userAgent", event.userAgent)
                 put("loginMethod", event.loginMethod)
-                put("expireAt", event.expireAt)
+                put("expireAt", FirestoreTimestamp.ofTimeSecondsAndNanos(expireAt.epochSecond, expireAt.nano))
             }
         userCollection(uid).document(event.id).set(data).await()
     }
@@ -49,7 +52,7 @@ class FirestoreLoginHistoryRepository(
                 city = doc.getString("city"),
                 suspicious = doc.getBoolean("suspicious"),
                 deviceFingerprint = doc.getString("deviceFingerprint"),
-                expireAt = doc.getString("expireAt"),
+                expireAt = (doc.get("expireAt") as? FirestoreTimestamp)?.toString(),
             )
         }
     }

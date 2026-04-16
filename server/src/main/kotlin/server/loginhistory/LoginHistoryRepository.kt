@@ -1,11 +1,13 @@
 package server.loginhistory
 
 import model.LoginEvent
+import java.time.Instant
 
 interface LoginHistoryRepository {
     suspend fun recordLogin(
         uid: String,
         event: LoginEvent,
+        expireAt: Instant,
     )
 
     suspend fun getHistory(

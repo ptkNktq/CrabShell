@@ -27,21 +27,6 @@ import core.ui.util.formatIsoToJst
 import model.LoginEvent
 
 @Composable
-fun LoginHistoryCard(
-    viewModel: LoginHistoryViewModel,
-    modifier: Modifier = Modifier,
-) {
-    LoginHistoryCardContent(
-        isLoading = viewModel.uiState.isLoading,
-        loadError = viewModel.uiState.loadError,
-        loadErrorMessage = viewModel.uiState.loadErrorMessage,
-        events = viewModel.uiState.events,
-        onRetry = viewModel::loadHistory,
-        modifier = modifier,
-    )
-}
-
-@Composable
 internal fun LoginHistoryCardContent(
     isLoading: Boolean,
     loadError: Boolean,
