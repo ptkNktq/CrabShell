@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import core.ui.components.LoadableCardContent
+import core.ui.util.formatIsoToJst
 import model.LoginEvent
 
 @Composable
@@ -115,7 +116,7 @@ private fun LoginEventRow(event: LoginEvent) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = formatTimestamp(event.timestamp),
+                text = formatIsoToJst(event.timestamp),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -174,16 +175,6 @@ private fun buildDetailText(
 ): String {
     val parts = listOfNotNull(ip, ua?.let { summarizeUserAgent(it) })
     return parts.joinToString(" · ")
-}
-
-/** ISO 8601 タイムスタンプを "yyyy/MM/dd HH:mm" 形式に簡易変換 */
-private fun formatTimestamp(timestamp: String): String {
-    if (timestamp.length < 16) return timestamp
-    // "2026-04-16T23:50:00Z" -> "2026/04/16 23:50"
-    return timestamp
-        .take(16)
-        .replace("-", "/")
-        .replace("T", " ")
 }
 
 /** UserAgent を簡略表示（ブラウザ名を抽出） */

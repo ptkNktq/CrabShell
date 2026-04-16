@@ -1,0 +1,19 @@
+@file:OptIn(ExperimentalWasmJsInterop::class)
+
+package core.ui.util
+
+@JsFun(
+    """(iso) => {
+    const d = new Date(iso);
+    const opts = {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hour12: false,
+        timeZone: 'Asia/Tokyo',
+    };
+    const parts = d.toLocaleDateString('ja-JP', opts);
+    return parts.replace(/\//g, '/');
+}""",
+)
+private external fun formatIsoToJstJs(iso: JsString): JsString
+
+actual fun formatIsoToJst(iso: String): String = formatIsoToJstJs(iso.toJsString()).toString()
