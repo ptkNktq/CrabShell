@@ -38,6 +38,7 @@ import core.ui.extensions.label
 import model.CollectionFrequency
 import model.GarbageType
 import model.GarbageTypeSchedule
+import model.LoginEvent
 import model.QuestWebhookEvent
 import model.User
 import org.koin.compose.getKoin
@@ -73,6 +74,7 @@ internal enum class SettingsCategory(
 fun SettingsScreen(
     passwordVm: PasswordChangeViewModel = koinViewModel(),
     passkeyVm: PasskeyManagementViewModel = koinViewModel(),
+    loginHistoryVm: LoginHistoryViewModel = koinViewModel(),
 ) {
     val authStateHolder = koinInject<AuthStateHolder>()
     val isAdmin = authStateHolder.isAdmin
@@ -85,6 +87,11 @@ fun SettingsScreen(
 
     SettingsContent(
         isAdmin = isAdmin,
+        loginHistoryLoading = loginHistoryVm.uiState.isLoading,
+        loginHistoryLoadError = loginHistoryVm.uiState.loadError,
+        loginHistoryLoadErrorMessage = loginHistoryVm.uiState.loadErrorMessage,
+        loginHistoryEvents = loginHistoryVm.uiState.events,
+        onRetryLoginHistory = loginHistoryVm::loadHistory,
         currentPassword = passwordVm.uiState.currentPassword,
         newPassword = passwordVm.uiState.newPassword,
         confirmPassword = passwordVm.uiState.confirmPassword,
@@ -158,6 +165,11 @@ fun SettingsScreen(
 @Composable
 internal fun SettingsContent(
     isAdmin: Boolean,
+    loginHistoryLoading: Boolean,
+    loginHistoryLoadError: Boolean,
+    loginHistoryLoadErrorMessage: String?,
+    loginHistoryEvents: List<LoginEvent>,
+    onRetryLoginHistory: () -> Unit,
     currentPassword: String,
     newPassword: String,
     confirmPassword: String,
@@ -272,6 +284,14 @@ internal fun SettingsContent(
                         modifier = cardModifier,
                     )
                 }
+                LoginHistoryCardContent(
+                    isLoading = loginHistoryLoading,
+                    loadError = loginHistoryLoadError,
+                    loadErrorMessage = loginHistoryLoadErrorMessage,
+                    events = loginHistoryEvents,
+                    onRetry = onRetryLoginHistory,
+                    modifier = cardModifier,
+                )
             }
             SettingsCategory.UserManagement -> {
                 UserNameManagementCard(

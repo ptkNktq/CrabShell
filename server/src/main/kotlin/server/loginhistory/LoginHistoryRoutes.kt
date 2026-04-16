@@ -3,6 +3,7 @@ package server.loginhistory
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.*
+import io.ktor.server.plugins.origin
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -29,7 +30,7 @@ fun Route.loginHistoryRoutes() {
                     body<RecordLoginRequest>()
                 }
                 response {
-                    code(HttpStatusCode.Created)
+                    code(HttpStatusCode.Created) {}
                 }
             }) {
                 val uid = call.firebasePrincipal.uid
