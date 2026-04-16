@@ -2,6 +2,7 @@ package feature.auth
 
 import core.auth.AuthRepository
 import core.auth.AuthStateHolder
+import core.network.LoginHistoryRepository
 import core.network.PasskeyRepository
 import io.mockk.coEvery
 import io.mockk.every
@@ -27,6 +28,7 @@ class LoginViewModelTest {
     private lateinit var authRepository: AuthRepository
     private lateinit var passkeyRepository: PasskeyRepository
     private lateinit var authStateHolder: AuthStateHolder
+    private lateinit var loginHistoryRepository: LoginHistoryRepository
 
     @BeforeTest
     fun setUp() {
@@ -34,6 +36,7 @@ class LoginViewModelTest {
         authRepository = mockk()
         passkeyRepository = mockk()
         authStateHolder = AuthStateHolder()
+        loginHistoryRepository = mockk(relaxed = true)
     }
 
     @AfterTest
@@ -43,7 +46,7 @@ class LoginViewModelTest {
 
     private fun createViewModel(webAuthnSupported: Boolean = true): LoginViewModel {
         every { authRepository.isWebAuthnSupported() } returns webAuthnSupported
-        return LoginViewModel(authRepository, passkeyRepository, authStateHolder)
+        return LoginViewModel(authRepository, passkeyRepository, authStateHolder, loginHistoryRepository)
     }
 
     @Test

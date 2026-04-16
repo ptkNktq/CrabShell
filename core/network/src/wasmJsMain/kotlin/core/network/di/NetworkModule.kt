@@ -8,6 +8,8 @@ import core.network.FeedingSettingsRepository
 import core.network.FeedingSettingsRepositoryImpl
 import core.network.GarbageScheduleRepository
 import core.network.GarbageScheduleRepositoryImpl
+import core.network.LoginHistoryRepository
+import core.network.LoginHistoryRepositoryImpl
 import core.network.MoneyRepository
 import core.network.MoneyRepositoryImpl
 import core.network.PasskeyRepository
@@ -46,4 +48,5 @@ val networkModule =
         single<PasskeyRepository> { PasskeyRepositoryImpl(get()) }
         single<QuestWebhookRepository> { QuestWebhookRepositoryImpl(get()) }
         single<CacheRepository> { CacheRepositoryImpl(get()) }
+        single<LoginHistoryRepository> { LoginHistoryRepositoryImpl(get()) }
     }

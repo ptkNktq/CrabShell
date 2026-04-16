@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import core.auth.AuthRepository
 import core.auth.AuthStateHolder
+import core.network.LoginHistoryRepository
 import core.network.PasskeyRepository
 import kotlinx.coroutines.launch
 
@@ -29,6 +30,7 @@ class LoginViewModel(
     private val authRepository: AuthRepository,
     private val passkeyRepository: PasskeyRepository,
     private val authStateHolder: AuthStateHolder,
+    private val loginHistoryRepository: LoginHistoryRepository,
 ) : ViewModel() {
     var uiState by mutableStateOf(LoginUiState())
         private set
@@ -71,6 +73,9 @@ class LoginViewModel(
         viewModelScope.launch {
             val result = authRepository.signIn(uiState.email, uiState.password)
             uiState = uiState.copy(isLoading = false)
+            if (result.isSuccess) {
+                viewModelScope.launch { runCatching { loginHistoryRepository.recordLogin("email") } }
+            }
             if (result.isFailure) {
                 uiState =
                     uiState.copy(
@@ -93,6 +98,9 @@ class LoginViewModel(
                     authStateHolder.signedInViaPasskey = true
                     val result = authRepository.signInWithCustomToken(customToken)
                     uiState = uiState.copy(isLoading = false)
+                    if (result.isSuccess) {
+                        viewModelScope.launch { runCatching { loginHistoryRepository.recordLogin("passkey") } }
+                    }
                     if (result.isFailure) {
                         uiState =
                             uiState.copy(
