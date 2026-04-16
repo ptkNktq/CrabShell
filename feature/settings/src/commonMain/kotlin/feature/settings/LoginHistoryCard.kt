@@ -122,30 +122,15 @@ private fun LoginEventRow(event: LoginEvent) {
             LoginMethodBadge(event.loginMethod)
         }
 
-        val ip = event.ipAddress
-        val ua = event.userAgent
-        if (ip != null || ua != null) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = ip ?: "",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    text = if (ua != null) summarizeUserAgent(ua) else "",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-            }
+        val detail = buildDetailText(event.ipAddress, event.userAgent)
+        if (detail.isNotEmpty()) {
+            Text(
+                text = detail,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -180,6 +165,15 @@ private fun LoginMethodBadge(loginMethod: String?) {
             )
         }
     }
+}
+
+/** IP とブラウザ名を "ip · browser" 形式で結合 */
+private fun buildDetailText(
+    ip: String?,
+    ua: String?,
+): String {
+    val parts = listOfNotNull(ip, ua?.let { summarizeUserAgent(it) })
+    return parts.joinToString(" · ")
 }
 
 /** ISO 8601 タイムスタンプを "yyyy/MM/dd HH:mm" 形式に簡易変換 */
