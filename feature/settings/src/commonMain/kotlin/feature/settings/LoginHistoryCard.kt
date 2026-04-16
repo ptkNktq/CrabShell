@@ -158,9 +158,10 @@ private fun LoginEventRow(event: LoginEvent) {
                 )
             }
 
-            if (event.userAgent != null) {
+            val ua = event.userAgent
+            if (ua != null) {
                 Text(
-                    text = summarizeUserAgent(event.userAgent),
+                    text = summarizeUserAgent(ua),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
