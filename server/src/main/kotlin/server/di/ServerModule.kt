@@ -13,6 +13,8 @@ import server.feeding.FirestoreFeedingSettingsRepository
 import server.garbage.FirestoreGarbageRepository
 import server.garbage.GarbageNotificationService
 import server.garbage.GarbageRepository
+import server.loginhistory.FirestoreLoginHistoryRepository
+import server.loginhistory.LoginHistoryRepository
 import server.money.FirestoreMoneyRepository
 import server.money.MoneyRepository
 import server.pet.FirestorePetRepository
@@ -34,6 +36,7 @@ val serverModule =
         single<FeedingRepository> { FirestoreFeedingRepository(get()) }
         single<FeedingSettingsRepository> { FirestoreFeedingSettingsRepository(get()) }
         single<GarbageRepository> { FirestoreGarbageRepository(get()) }
+        single<LoginHistoryRepository> { FirestoreLoginHistoryRepository(get()) }
         single<PetRepository> { FirestorePetRepository(get()) }
         single { QuestWebhookService(get()) }
         single { QuestService(get(), get(), get()) }

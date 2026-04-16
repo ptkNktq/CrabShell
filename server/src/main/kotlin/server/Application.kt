@@ -39,6 +39,7 @@ import server.feeding.FeedingReminderService
 import server.feeding.feedingRoutes
 import server.garbage.GarbageNotificationService
 import server.garbage.garbageRoutes
+import server.loginhistory.loginHistoryRoutes
 import server.money.moneyRoutes
 import server.passkey.PasskeyDatabase
 import server.passkey.passkeyRoutes
@@ -161,6 +162,7 @@ fun Application.module() {
             pointRoutes()
             questWebhookRoutes()
             cacheRoutes()
+            loginHistoryRoutes()
             passkeyRoutes()
         }
 
