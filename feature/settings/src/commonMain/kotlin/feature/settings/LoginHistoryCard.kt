@@ -105,7 +105,10 @@ private fun LoginEventRow(event: LoginEvent) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            LoginMethodBadge(event.loginMethod)
+            val method = event.loginMethod
+            if (method != null) {
+                LoginMethodBadge(method)
+            }
         }
 
         val detail = buildDetailText(event.ipAddress, event.userAgent)
@@ -122,12 +125,12 @@ private fun LoginEventRow(event: LoginEvent) {
 }
 
 @Composable
-private fun LoginMethodBadge(loginMethod: String?) {
+private fun LoginMethodBadge(loginMethod: String) {
     val (label, icon) =
         when (loginMethod) {
             "passkey" -> "パスキー" to Icons.Default.Fingerprint
             "email" -> "メール" to Icons.Default.Email
-            else -> (loginMethod ?: "") to Icons.Default.Email
+            else -> loginMethod to Icons.Default.Email
         }
     Surface(
         shape = MaterialTheme.shapes.small,

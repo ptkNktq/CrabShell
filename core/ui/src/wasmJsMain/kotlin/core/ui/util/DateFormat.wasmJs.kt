@@ -11,8 +11,7 @@ package core.ui.util
         hour: '2-digit', minute: '2-digit', hour12: false,
         timeZone: 'Asia/Tokyo',
     };
-    const parts = d.toLocaleDateString('ja-JP', opts);
-    return parts.replace(/\//g, '/');
+    return d.toLocaleDateString('ja-JP', opts);
 }""",
 )
 private external fun formatIsoToJstJs(iso: JsString): JsString

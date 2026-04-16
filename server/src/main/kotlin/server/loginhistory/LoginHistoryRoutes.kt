@@ -17,6 +17,7 @@ import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 private const val TTL_DAYS = 90L
+private val ALLOWED_LOGIN_METHODS = setOf("email", "passkey")
 
 fun Route.loginHistoryRoutes() {
     val loginHistoryRepository by inject<LoginHistoryRepository>()
@@ -35,6 +36,10 @@ fun Route.loginHistoryRoutes() {
             }) {
                 val uid = call.firebasePrincipal.uid
                 val body = call.receive<RecordLoginRequest>()
+                if (body.loginMethod !in ALLOWED_LOGIN_METHODS) {
+                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid login method"))
+                    return@post
+                }
                 val now = Instant.now()
 
                 val event =

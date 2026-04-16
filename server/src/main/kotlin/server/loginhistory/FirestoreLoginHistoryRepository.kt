@@ -52,7 +52,7 @@ class FirestoreLoginHistoryRepository(
                 city = doc.getString("city"),
                 suspicious = doc.getBoolean("suspicious"),
                 deviceFingerprint = doc.getString("deviceFingerprint"),
-                expireAt = (doc.get("expireAt") as? FirestoreTimestamp)?.toString(),
+                // expireAt は Firestore TTL 用の内部フィールドのためクライアントには返さない
             )
         }
     }
