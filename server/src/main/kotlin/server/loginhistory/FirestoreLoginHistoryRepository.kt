@@ -3,6 +3,7 @@ package server.loginhistory
 import com.google.cloud.firestore.Firestore
 import com.google.cloud.firestore.Query
 import model.LoginEvent
+import model.LoginMethod
 import server.util.await
 import java.time.Instant
 import com.google.cloud.Timestamp as FirestoreTimestamp
@@ -21,11 +22,11 @@ class FirestoreLoginHistoryRepository(
         expireAt: Instant,
     ) {
         val data =
-            buildMap<String, Any> {
+            buildMap {
                 put("timestamp", timestamp.toFirestoreTimestamp())
                 event.ipAddress?.let { put("ipAddress", it) }
                 event.userAgent?.let { put("userAgent", it) }
-                event.loginMethod?.let { put("loginMethod", it) }
+                event.loginMethod?.let { put("loginMethod", it.name.lowercase()) }
                 put("expireAt", expireAt.toFirestoreTimestamp())
             }
         userCollection(uid).document(event.id).set(data).await()
@@ -43,17 +44,18 @@ class FirestoreLoginHistoryRepository(
                 .await()
                 .documents
 
-        return docs.map { doc ->
+        return docs.mapNotNull { doc ->
+            val timestamp =
+                (doc.get("timestamp") as? FirestoreTimestamp)
+                    ?.toDate()
+                    ?.toInstant()
+                    ?.toString() ?: return@mapNotNull null
             LoginEvent(
                 id = doc.id,
-                timestamp =
-                    (doc.get("timestamp") as? FirestoreTimestamp)
-                        ?.toDate()
-                        ?.toInstant()
-                        ?.toString() ?: "",
+                timestamp = timestamp,
                 ipAddress = doc.getString("ipAddress"),
                 userAgent = doc.getString("userAgent"),
-                loginMethod = doc.getString("loginMethod"),
+                loginMethod = doc.getString("loginMethod")?.let(::parseLoginMethod),
                 country = doc.getString("country"),
                 region = doc.getString("region"),
                 city = doc.getString("city"),
@@ -63,4 +65,6 @@ class FirestoreLoginHistoryRepository(
             )
         }
     }
+
+    private fun parseLoginMethod(raw: String): LoginMethod? = LoginMethod.entries.firstOrNull { it.name.equals(raw, ignoreCase = true) }
 }

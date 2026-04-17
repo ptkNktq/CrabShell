@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import core.ui.components.LoadableCardContent
 import core.ui.util.formatIsoToJst
 import model.LoginEvent
+import model.LoginMethod
 
 @Composable
 internal fun LoginHistoryCardContent(
@@ -125,12 +126,11 @@ private fun LoginEventRow(event: LoginEvent) {
 }
 
 @Composable
-private fun LoginMethodBadge(loginMethod: String) {
+private fun LoginMethodBadge(loginMethod: LoginMethod) {
     val (label, icon) =
         when (loginMethod) {
-            "passkey" -> "パスキー" to Icons.Default.Fingerprint
-            "email" -> "メール" to Icons.Default.Email
-            else -> loginMethod to Icons.Default.Email
+            LoginMethod.PASSKEY -> "パスキー" to Icons.Default.Fingerprint
+            LoginMethod.EMAIL -> "メール" to Icons.Default.Email
         }
     Surface(
         shape = MaterialTheme.shapes.small,

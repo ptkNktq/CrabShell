@@ -11,6 +11,7 @@ import core.common.AppLogger
 import core.network.LoginHistoryRepository
 import core.network.PasskeyRepository
 import kotlinx.coroutines.launch
+import model.LoginMethod
 
 enum class LoginMode {
     PASSKEY,
@@ -75,7 +76,7 @@ class LoginViewModel(
             val result = authRepository.signIn(uiState.email, uiState.password)
             uiState = uiState.copy(isLoading = false)
             if (result.isSuccess) {
-                runCatching { loginHistoryRepository.recordLogin("email") }
+                runCatching { loginHistoryRepository.recordLogin(LoginMethod.EMAIL) }
                     .onFailure { AppLogger.w("LoginViewModel", "Failed to record login history: ${it.message}") }
             }
             if (result.isFailure) {
@@ -101,7 +102,7 @@ class LoginViewModel(
                     val result = authRepository.signInWithCustomToken(customToken)
                     uiState = uiState.copy(isLoading = false)
                     if (result.isSuccess) {
-                        runCatching { loginHistoryRepository.recordLogin("passkey") }
+                        runCatching { loginHistoryRepository.recordLogin(LoginMethod.PASSKEY) }
                             .onFailure { AppLogger.w("LoginViewModel", "Failed to record login history: ${it.message}") }
                     }
                     if (result.isFailure) {

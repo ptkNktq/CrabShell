@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import model.LoginMethod
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -89,7 +90,7 @@ class LoginViewModelTest {
 
             assertFalse(viewModel.uiState.isLoading)
             assertNull(viewModel.uiState.errorMessage)
-            coVerify { loginHistoryRepository.recordLogin("email") }
+            coVerify { loginHistoryRepository.recordLogin(LoginMethod.EMAIL) }
         }
 
     @Test
@@ -97,7 +98,7 @@ class LoginViewModelTest {
         runTest {
             val viewModel = createViewModel()
             coEvery { authRepository.signIn("test@example.com", "password") } returns Result.success(Unit)
-            coEvery { loginHistoryRepository.recordLogin("email") } throws RuntimeException("Network error")
+            coEvery { loginHistoryRepository.recordLogin(LoginMethod.EMAIL) } throws RuntimeException("Network error")
 
             viewModel.onEmailChanged("test@example.com")
             viewModel.onPasswordChanged("password")
@@ -163,7 +164,7 @@ class LoginViewModelTest {
             assertTrue(authStateHolder.signedInViaPasskey)
             assertFalse(viewModel.uiState.isLoading)
             assertNull(viewModel.uiState.errorMessage)
-            coVerify { loginHistoryRepository.recordLogin("passkey") }
+            coVerify { loginHistoryRepository.recordLogin(LoginMethod.PASSKEY) }
         }
 
     @Test
@@ -173,7 +174,7 @@ class LoginViewModelTest {
             coEvery { passkeyRepository.authenticateWithPasskey("test@example.com") } returns
                 Result.success("custom-token")
             coEvery { authRepository.signInWithCustomToken("custom-token") } returns Result.success(Unit)
-            coEvery { loginHistoryRepository.recordLogin("passkey") } throws RuntimeException("Network error")
+            coEvery { loginHistoryRepository.recordLogin(LoginMethod.PASSKEY) } throws RuntimeException("Network error")
 
             viewModel.onEmailChanged("test@example.com")
             viewModel.onPasskeySignIn()

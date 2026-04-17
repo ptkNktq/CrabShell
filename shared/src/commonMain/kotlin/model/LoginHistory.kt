@@ -1,6 +1,16 @@
 package model
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+
+@Serializable
+enum class LoginMethod {
+    @SerialName("email")
+    EMAIL,
+
+    @SerialName("passkey")
+    PASSKEY,
+}
 
 @Serializable
 data class LoginEvent(
@@ -8,7 +18,7 @@ data class LoginEvent(
     val timestamp: String = "",
     val ipAddress: String? = null,
     val userAgent: String? = null,
-    val loginMethod: String? = null,
+    val loginMethod: LoginMethod? = null,
     // Phase 2: IP Geolocation
     val country: String? = null,
     val region: String? = null,
@@ -20,5 +30,5 @@ data class LoginEvent(
 
 @Serializable
 data class RecordLoginRequest(
-    val loginMethod: String,
+    val loginMethod: LoginMethod,
 )
