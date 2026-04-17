@@ -167,6 +167,24 @@ class LoginViewModelTest {
         }
 
     @Test
+    fun `passkey login history failure does not block sign in`() =
+        runTest {
+            val viewModel = createViewModel()
+            coEvery { passkeyRepository.authenticateWithPasskey("test@example.com") } returns
+                Result.success("custom-token")
+            coEvery { authRepository.signInWithCustomToken("custom-token") } returns Result.success(Unit)
+            coEvery { loginHistoryRepository.recordLogin("passkey") } throws RuntimeException("Network error")
+
+            viewModel.onEmailChanged("test@example.com")
+            viewModel.onPasskeySignIn()
+            advanceUntilIdle()
+
+            assertTrue(authStateHolder.signedInViaPasskey)
+            assertFalse(viewModel.uiState.isLoading)
+            assertNull(viewModel.uiState.errorMessage)
+        }
+
+    @Test
     fun `failed passkey authentication shows error`() =
         runTest {
             val viewModel = createViewModel()

@@ -57,27 +57,27 @@ fun Route.loginHistoryRoutes() {
                     loginHistoryRepository.recordLogin(uid, event, now, expireAt)
                     call.respond(HttpStatusCode.Created)
                 }
+            }
 
-                get({
-                    tags = listOf("login-history")
-                    summary = "ログイン履歴取得"
-                    request {
-                        queryParameter<Int>("limit") {
-                            description = "取得件数（デフォルト: 5、最大: 50）"
-                            required = false
-                        }
+            get({
+                tags = listOf("login-history")
+                summary = "ログイン履歴取得"
+                request {
+                    queryParameter<Int>("limit") {
+                        description = "取得件数（デフォルト: 5、最大: 50）"
+                        required = false
                     }
-                    response {
-                        code(HttpStatusCode.OK) {
-                            body<List<LoginEvent>>()
-                        }
-                    }
-                }) {
-                    val uid = call.firebasePrincipal.uid
-                    val limit = (call.request.queryParameters["limit"]?.toIntOrNull() ?: 5).coerceIn(1, 50)
-                    val history = loginHistoryRepository.getHistory(uid, limit)
-                    call.respond(history)
                 }
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<List<LoginEvent>>()
+                    }
+                }
+            }) {
+                val uid = call.firebasePrincipal.uid
+                val limit = (call.request.queryParameters["limit"]?.toIntOrNull() ?: 5).coerceIn(1, 50)
+                val history = loginHistoryRepository.getHistory(uid, limit)
+                call.respond(history)
             }
         }
     }

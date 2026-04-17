@@ -21,11 +21,11 @@ class FirestoreLoginHistoryRepository(
         expireAt: Instant,
     ) {
         val data =
-            buildMap<String, Any?> {
+            buildMap<String, Any> {
                 put("timestamp", timestamp.toFirestoreTimestamp())
-                put("ipAddress", event.ipAddress)
-                put("userAgent", event.userAgent)
-                put("loginMethod", event.loginMethod)
+                event.ipAddress?.let { put("ipAddress", it) }
+                event.userAgent?.let { put("userAgent", it) }
+                event.loginMethod?.let { put("loginMethod", it) }
                 put("expireAt", expireAt.toFirestoreTimestamp())
             }
         userCollection(uid).document(event.id).set(data).await()
