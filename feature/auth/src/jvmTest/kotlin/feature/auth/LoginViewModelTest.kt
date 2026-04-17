@@ -93,6 +93,22 @@ class LoginViewModelTest {
         }
 
     @Test
+    fun `login history failure does not block sign in`() =
+        runTest {
+            val viewModel = createViewModel()
+            coEvery { authRepository.signIn("test@example.com", "password") } returns Result.success(Unit)
+            coEvery { loginHistoryRepository.recordLogin("email") } throws RuntimeException("Network error")
+
+            viewModel.onEmailChanged("test@example.com")
+            viewModel.onPasswordChanged("password")
+            viewModel.onSignIn()
+            advanceUntilIdle()
+
+            assertFalse(viewModel.uiState.isLoading)
+            assertNull(viewModel.uiState.errorMessage)
+        }
+
+    @Test
     fun `failed sign in shows error message`() =
         runTest {
             val viewModel = createViewModel()

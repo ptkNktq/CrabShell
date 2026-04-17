@@ -7,6 +7,7 @@ interface LoginHistoryRepository {
     suspend fun recordLogin(
         uid: String,
         event: LoginEvent,
+        timestamp: Instant,
         expireAt: Instant,
     )
 

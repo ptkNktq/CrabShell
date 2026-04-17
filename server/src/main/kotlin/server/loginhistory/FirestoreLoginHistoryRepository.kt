@@ -12,18 +12,21 @@ class FirestoreLoginHistoryRepository(
 ) : LoginHistoryRepository {
     private fun userCollection(uid: String) = firestore.collection("users").document(uid).collection("loginHistory")
 
+    private fun Instant.toFirestoreTimestamp() = FirestoreTimestamp.ofTimeSecondsAndNanos(epochSecond, nano)
+
     override suspend fun recordLogin(
         uid: String,
         event: LoginEvent,
+        timestamp: Instant,
         expireAt: Instant,
     ) {
         val data =
             buildMap<String, Any?> {
-                put("timestamp", event.timestamp)
+                put("timestamp", timestamp.toFirestoreTimestamp())
                 put("ipAddress", event.ipAddress)
                 put("userAgent", event.userAgent)
                 put("loginMethod", event.loginMethod)
-                put("expireAt", FirestoreTimestamp.ofTimeSecondsAndNanos(expireAt.epochSecond, expireAt.nano))
+                put("expireAt", expireAt.toFirestoreTimestamp())
             }
         userCollection(uid).document(event.id).set(data).await()
     }
@@ -43,7 +46,11 @@ class FirestoreLoginHistoryRepository(
         return docs.map { doc ->
             LoginEvent(
                 id = doc.id,
-                timestamp = doc.getString("timestamp") ?: "",
+                timestamp =
+                    (doc.get("timestamp") as? FirestoreTimestamp)
+                        ?.toDate()
+                        ?.toInstant()
+                        ?.toString() ?: "",
                 ipAddress = doc.getString("ipAddress"),
                 userAgent = doc.getString("userAgent"),
                 loginMethod = doc.getString("loginMethod"),

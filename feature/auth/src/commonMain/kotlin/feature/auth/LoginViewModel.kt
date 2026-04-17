@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import core.auth.AuthRepository
 import core.auth.AuthStateHolder
+import core.common.AppLogger
 import core.network.LoginHistoryRepository
 import core.network.PasskeyRepository
 import kotlinx.coroutines.launch
@@ -75,6 +76,7 @@ class LoginViewModel(
             uiState = uiState.copy(isLoading = false)
             if (result.isSuccess) {
                 runCatching { loginHistoryRepository.recordLogin("email") }
+                    .onFailure { AppLogger.w("LoginViewModel", "Failed to record login history: ${it.message}") }
             }
             if (result.isFailure) {
                 uiState =
@@ -100,6 +102,7 @@ class LoginViewModel(
                     uiState = uiState.copy(isLoading = false)
                     if (result.isSuccess) {
                         runCatching { loginHistoryRepository.recordLogin("passkey") }
+                            .onFailure { AppLogger.w("LoginViewModel", "Failed to record login history: ${it.message}") }
                     }
                     if (result.isFailure) {
                         uiState =
