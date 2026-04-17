@@ -106,7 +106,7 @@ fun Application.module() {
             requestKey { call -> call.firebasePrincipal.uid }
         }
         register(RateLimitNames.LOGIN_HISTORY) {
-            rateLimiter(limit = 3, refillPeriod = 60.seconds)
+            rateLimiter(limit = 10, refillPeriod = 60.seconds)
             requestKey { call -> call.firebasePrincipal.uid }
         }
     }
