@@ -11,7 +11,10 @@ import core.common.AppLogger
 import core.network.LoginHistoryRepository
 import core.network.PasskeyRepository
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import model.LoginMethod
+
+private const val RECORD_LOGIN_TIMEOUT_MS = 2_000L
 
 enum class LoginMode {
     PASSKEY,
@@ -66,6 +69,17 @@ class LoginViewModel(
         uiState = uiState.copy(loginMode = LoginMode.EMAIL_PASSWORD, errorMessage = null)
     }
 
+    /**
+     * ログイン履歴を記録する。タイムアウト（[RECORD_LOGIN_TIMEOUT_MS]）付きで待機し、
+     * 失敗や遅延があってもログイン自体はブロックしない。
+     */
+    private suspend fun recordLoginWithTimeout(method: LoginMethod) {
+        withTimeoutOrNull(RECORD_LOGIN_TIMEOUT_MS) {
+            runCatching { loginHistoryRepository.recordLogin(method) }
+                .onFailure { AppLogger.w("LoginViewModel", "Failed to record login history: ${it.message}") }
+        } ?: AppLogger.w("LoginViewModel", "recordLogin timed out after ${RECORD_LOGIN_TIMEOUT_MS}ms")
+    }
+
     fun onSignIn() {
         if (uiState.email.isBlank() || uiState.password.isBlank()) {
             uiState = uiState.copy(errorMessage = "メールアドレスとパスワードを入力してください")
@@ -74,11 +88,10 @@ class LoginViewModel(
         uiState = uiState.copy(isLoading = true, errorMessage = null)
         viewModelScope.launch {
             val result = authRepository.signIn(uiState.email, uiState.password)
-            uiState = uiState.copy(isLoading = false)
             if (result.isSuccess) {
-                runCatching { loginHistoryRepository.recordLogin(LoginMethod.EMAIL) }
-                    .onFailure { AppLogger.w("LoginViewModel", "Failed to record login history: ${it.message}") }
+                recordLoginWithTimeout(LoginMethod.EMAIL)
             }
+            uiState = uiState.copy(isLoading = false)
             if (result.isFailure) {
                 uiState =
                     uiState.copy(
@@ -100,11 +113,10 @@ class LoginViewModel(
                 .onSuccess { customToken ->
                     authStateHolder.signedInViaPasskey = true
                     val result = authRepository.signInWithCustomToken(customToken)
-                    uiState = uiState.copy(isLoading = false)
                     if (result.isSuccess) {
-                        runCatching { loginHistoryRepository.recordLogin(LoginMethod.PASSKEY) }
-                            .onFailure { AppLogger.w("LoginViewModel", "Failed to record login history: ${it.message}") }
+                        recordLoginWithTimeout(LoginMethod.PASSKEY)
                     }
+                    uiState = uiState.copy(isLoading = false)
                     if (result.isFailure) {
                         uiState =
                             uiState.copy(
