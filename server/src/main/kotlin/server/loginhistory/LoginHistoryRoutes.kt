@@ -28,6 +28,9 @@ fun Route.loginHistoryRoutes() {
 
     authenticated {
         route("/login-history") {
+            // POST/GET ともに Firestore アクセスが発生するため、UID 単位でレートリミットを適用する。
+            // GET は LoginHistoryViewModel.init から呼ばれるほか再取得も可能で、limit=50 連打で
+            // 読み取り課金を膨らませうるため GET も保護対象。
             rateLimit(RateLimitNames.LOGIN_HISTORY) {
                 post({
                     tags = listOf("login-history")
@@ -55,39 +58,39 @@ fun Route.loginHistoryRoutes() {
                     loginHistoryRepository.recordLogin(uid, event, now, expireAt)
                     call.respond(HttpStatusCode.Created)
                 }
-            }
 
-            get({
-                tags = listOf("login-history")
-                summary = "ログイン履歴取得"
-                request {
-                    queryParameter<Int>("limit") {
-                        description = "取得件数（デフォルト: 5、最大: 50）"
-                        required = false
-                    }
-                }
-                response {
-                    code(HttpStatusCode.OK) {
-                        body<List<LoginEvent>>()
-                    }
-                }
-            }) {
-                val uid = call.firebasePrincipal.uid
-                val limitParam = call.request.queryParameters["limit"]
-                val limit =
-                    if (limitParam == null) {
-                        DEFAULT_LIMIT
-                    } else {
-                        val parsed =
-                            limitParam.toIntOrNull()
-                                ?: throw BadRequestException("limit must be an integer between 1 and $MAX_LIMIT")
-                        if (parsed !in 1..MAX_LIMIT) {
-                            throw BadRequestException("limit must be between 1 and $MAX_LIMIT")
+                get({
+                    tags = listOf("login-history")
+                    summary = "ログイン履歴取得"
+                    request {
+                        queryParameter<Int>("limit") {
+                            description = "取得件数（デフォルト: 5、最大: 50）"
+                            required = false
                         }
-                        parsed
                     }
-                val history = loginHistoryRepository.getHistory(uid, limit)
-                call.respond(history)
+                    response {
+                        code(HttpStatusCode.OK) {
+                            body<List<LoginEvent>>()
+                        }
+                    }
+                }) {
+                    val uid = call.firebasePrincipal.uid
+                    val limitParam = call.request.queryParameters["limit"]
+                    val limit =
+                        if (limitParam == null) {
+                            DEFAULT_LIMIT
+                        } else {
+                            val parsed =
+                                limitParam.toIntOrNull()
+                                    ?: throw BadRequestException("limit must be an integer between 1 and $MAX_LIMIT")
+                            if (parsed !in 1..MAX_LIMIT) {
+                                throw BadRequestException("limit must be between 1 and $MAX_LIMIT")
+                            }
+                            parsed
+                        }
+                    val history = loginHistoryRepository.getHistory(uid, limit)
+                    call.respond(history)
+                }
             }
         }
     }
