@@ -20,19 +20,17 @@ class FirestoreLoginHistoryRepository(
 
     override suspend fun recordLogin(
         uid: String,
-        event: LoginEvent,
-        timestamp: Instant,
-        expireAt: Instant,
+        input: RecordLoginInput,
     ) {
         val data =
             buildMap {
-                put("timestamp", timestamp.toFirestoreTimestamp())
-                event.ipAddress?.let { put("ipAddress", it) }
-                event.userAgent?.let { put("userAgent", it) }
-                event.loginMethod?.let { put("loginMethod", it.name) }
-                put("expireAt", expireAt.toFirestoreTimestamp())
+                put("timestamp", input.timestamp.toFirestoreTimestamp())
+                input.ipAddress?.let { put("ipAddress", it) }
+                input.userAgent?.let { put("userAgent", it) }
+                input.loginMethod?.let { put("loginMethod", it.name) }
+                put("expireAt", input.expireAt.toFirestoreTimestamp())
             }
-        userCollection(uid).document(event.id).set(data).await()
+        userCollection(uid).document(input.docId).set(data).await()
     }
 
     override suspend fun getHistory(

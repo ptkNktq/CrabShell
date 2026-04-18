@@ -46,16 +46,17 @@ fun Route.loginHistoryRoutes() {
                     val body = call.receive<RecordLoginRequest>()
                     val now = Instant.now()
 
-                    val event =
-                        LoginEvent(
-                            id = UUID.randomUUID().toString(),
+                    val input =
+                        RecordLoginInput(
+                            docId = UUID.randomUUID().toString(),
+                            timestamp = now,
+                            expireAt = now.plus(TTL_DAYS, ChronoUnit.DAYS),
                             ipAddress = call.request.origin.remoteAddress,
                             userAgent = call.request.headers["User-Agent"],
                             loginMethod = body.loginMethod,
                         )
-                    val expireAt = now.plus(TTL_DAYS, ChronoUnit.DAYS)
 
-                    loginHistoryRepository.recordLogin(uid, event, now, expireAt)
+                    loginHistoryRepository.recordLogin(uid, input)
                     call.respond(HttpStatusCode.Created)
                 }
 
