@@ -167,10 +167,14 @@ private fun buildDetailText(
 
 /** UserAgent を簡略表示（ブラウザ名を抽出） */
 private fun summarizeUserAgent(ua: String): String {
-    // 主要ブラウザを判定
+    // iOS 上の Chrome / Firefox は WKWebView ベースで UA に Safari/ が含まれるため、
+    // CriOS / FxiOS を先に判定する。Android Chrome は "Android" + "Chrome/" で分岐。
     return when {
-        "Edg/" in ua -> "Microsoft Edge"
-        "OPR/" in ua || "Opera/" in ua -> "Opera"
+        "Edg/" in ua || "EdgiOS/" in ua || "EdgA/" in ua -> "Microsoft Edge"
+        "OPR/" in ua || "Opera/" in ua || "OPiOS/" in ua -> "Opera"
+        "CriOS/" in ua -> "Google Chrome (iOS)"
+        "FxiOS/" in ua -> "Mozilla Firefox (iOS)"
+        "Android" in ua && "Chrome/" in ua && "Safari/" in ua -> "Google Chrome (Android)"
         "Chrome/" in ua && "Safari/" in ua -> "Google Chrome"
         "Firefox/" in ua -> "Mozilla Firefox"
         "Safari/" in ua -> "Safari"
