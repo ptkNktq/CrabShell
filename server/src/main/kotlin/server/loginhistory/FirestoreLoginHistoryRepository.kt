@@ -60,7 +60,12 @@ class FirestoreLoginHistoryRepository(
                 timestamp = timestamp,
                 ipAddress = doc.getString("ipAddress"),
                 userAgent = doc.getString("userAgent"),
-                loginMethod = doc.getString("loginMethod")?.let { runCatching { LoginMethod.valueOf(it) }.getOrNull() },
+                loginMethod =
+                    doc.getString("loginMethod")?.let { raw ->
+                        runCatching { LoginMethod.valueOf(raw) }
+                            .onFailure { logger.warn("Login history doc ${doc.id} has unknown loginMethod: $raw") }
+                            .getOrNull()
+                    },
                 country = doc.getString("country"),
                 region = doc.getString("region"),
                 city = doc.getString("city"),
