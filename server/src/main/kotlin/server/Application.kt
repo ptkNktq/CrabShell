@@ -109,6 +109,9 @@ fun Application.module() {
             rateLimiter(limit = 5, refillPeriod = 60.seconds)
             requestKey { call -> call.firebasePrincipal.uid }
         }
+        // ログイン API（パスキー 5/分は IP 単位、メール/パスワードは Firebase 側制御）と
+        // 同等以上の余裕を持たせて 10/分。GET/POST 共通バケットのため、ログイン直後に
+        // 設定画面を開くと 2 消費する点に注意。
         register(RateLimitNames.LOGIN_HISTORY) {
             rateLimiter(limit = 10, refillPeriod = 60.seconds)
             requestKey { call -> call.firebasePrincipal.uid }
