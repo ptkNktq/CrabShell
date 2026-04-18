@@ -102,6 +102,9 @@ class AuthRepositoryImpl(
      * onAuthStateChanged コールバック経由の状態更新より先に、続く API リクエストで
      * Authorization ヘッダを確実に付けるための処置。取得に失敗しても signIn 自体は成功扱いとする
      * （onAuthStateChanged が後続で状態を埋めるため）。
+     *
+     * なお onAuthStateChanged 側でも再度 getIdTokenResult が走るが、Firebase JS SDK は
+     * 有効な ID Token をメモリキャッシュするため 2 回目は HTTP リクエストなしで解決される。
      */
     private suspend fun updateIdTokenImmediately() {
         try {
