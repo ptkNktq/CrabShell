@@ -11,6 +11,7 @@ import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.http.content.*
 import io.ktor.server.netty.*
+import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.MissingRequestParameterException
 import io.ktor.server.plugins.ParameterConversionException
 import io.ktor.server.plugins.bodylimit.RequestBodyLimit
@@ -24,6 +25,7 @@ import io.ktor.server.request.path
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.coroutines.launch
+import kotlinx.serialization.SerializationException
 import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
 import org.slf4j.LoggerFactory
@@ -123,6 +125,13 @@ fun Application.module() {
         }
         exception<ParameterConversionException> { call, cause ->
             call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid ${cause.parameterName}: ${cause.type}"))
+        }
+        exception<BadRequestException> { call, cause ->
+            call.respond(HttpStatusCode.BadRequest, mapOf("error" to (cause.message ?: "Bad request")))
+        }
+        // 不正な JSON（enum の未知値、型不一致等）は 400 で返す（Ktor デフォルトの 500 を上書き）
+        exception<SerializationException> { call, cause ->
+            call.respond(HttpStatusCode.BadRequest, mapOf("error" to (cause.message ?: "Invalid request body")))
         }
     }
 
