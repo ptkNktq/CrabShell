@@ -10,8 +10,9 @@ import core.auth.AuthStateHolder
 import core.common.AppLogger
 import core.network.LoginHistoryRepository
 import core.network.PasskeyRepository
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.withTimeout
 import model.LoginMethod
 
 private const val RECORD_LOGIN_TIMEOUT_MS = 2_000L
@@ -74,10 +75,15 @@ class LoginViewModel(
      * 失敗や遅延があってもログイン自体はブロックしない。
      */
     private suspend fun recordLoginWithTimeout(method: LoginMethod) {
-        withTimeoutOrNull(RECORD_LOGIN_TIMEOUT_MS) {
-            runCatching { loginHistoryRepository.recordLogin(method) }
-                .onFailure { AppLogger.w("LoginViewModel", "Failed to record login history: ${it.message}") }
-        } ?: AppLogger.w("LoginViewModel", "recordLogin timed out after ${RECORD_LOGIN_TIMEOUT_MS}ms")
+        try {
+            withTimeout(RECORD_LOGIN_TIMEOUT_MS) {
+                loginHistoryRepository.recordLogin(method)
+            }
+        } catch (e: TimeoutCancellationException) {
+            AppLogger.w("LoginViewModel", "recordLogin timed out after ${RECORD_LOGIN_TIMEOUT_MS}ms")
+        } catch (e: Throwable) {
+            AppLogger.w("LoginViewModel", "Failed to record login history: ${e.message}")
+        }
     }
 
     fun onSignIn() {
