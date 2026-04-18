@@ -26,7 +26,7 @@ class FirestoreLoginHistoryRepository(
                 put("timestamp", timestamp.toFirestoreTimestamp())
                 event.ipAddress?.let { put("ipAddress", it) }
                 event.userAgent?.let { put("userAgent", it) }
-                event.loginMethod?.let { put("loginMethod", it.name.lowercase()) }
+                event.loginMethod?.let { put("loginMethod", it.name) }
                 put("expireAt", expireAt.toFirestoreTimestamp())
             }
         userCollection(uid).document(event.id).set(data).await()
@@ -55,7 +55,7 @@ class FirestoreLoginHistoryRepository(
                 timestamp = timestamp,
                 ipAddress = doc.getString("ipAddress"),
                 userAgent = doc.getString("userAgent"),
-                loginMethod = doc.getString("loginMethod")?.let(::parseLoginMethod),
+                loginMethod = doc.getString("loginMethod")?.let { runCatching { LoginMethod.valueOf(it) }.getOrNull() },
                 country = doc.getString("country"),
                 region = doc.getString("region"),
                 city = doc.getString("city"),
@@ -65,6 +65,4 @@ class FirestoreLoginHistoryRepository(
             )
         }
     }
-
-    private fun parseLoginMethod(raw: String): LoginMethod? = LoginMethod.entries.firstOrNull { it.name.equals(raw, ignoreCase = true) }
 }
