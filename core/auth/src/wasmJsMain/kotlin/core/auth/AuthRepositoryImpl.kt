@@ -47,6 +47,11 @@ class AuthRepositoryImpl(
         try {
             AppLogger.d(TAG, "Signing in: $email")
             signInWithEmailAndPassword(auth, email.toJsString(), password.toJsString()).await<Nothing?>()
+            // onAuthStateChanged コールバックは非同期に走るため、signIn 成功直後に
+            // idToken を取得して AuthStateHolder に反映する。これをしないと
+            // 直後の API リクエスト（ログイン履歴記録等）が Authorization ヘッダ無しで
+            // 送信され、401 → forceRefresh リトライの無駄打ちが発生する。
+            updateIdTokenImmediately()
             Result.success(Unit)
         } catch (e: Throwable) {
             AppLogger.e(TAG, "Sign-in failed: ${e.message}")
@@ -85,11 +90,30 @@ class AuthRepositoryImpl(
         try {
             AppLogger.d(TAG, "Signing in with custom token (passkey)")
             signInWithCustomToken(auth, token.toJsString()).await<Nothing?>()
+            updateIdTokenImmediately()
             Result.success(Unit)
         } catch (e: Throwable) {
             AppLogger.e(TAG, "Custom token sign-in failed: ${e.message}")
             Result.failure(e)
         }
+
+    /**
+     * サインイン直後の idToken を同期的に取得して [AuthStateHolder] に反映する。
+     * onAuthStateChanged コールバック経由の状態更新より先に、続く API リクエストで
+     * Authorization ヘッダを確実に付けるための処置。取得に失敗しても signIn 自体は成功扱いとする
+     * （onAuthStateChanged が後続で状態を埋めるため）。
+     */
+    private suspend fun updateIdTokenImmediately() {
+        try {
+            val resultJs = getIdTokenResult(auth).await<JsAny?>()
+            val token = resultJs?.let { getTokenFromResult(it).toString() }
+            if (token != null) {
+                authStateHolder.idToken = token
+            }
+        } catch (e: Throwable) {
+            AppLogger.w(TAG, "Failed to fetch idToken immediately after sign-in: ${e.message}")
+        }
+    }
 
     override fun isWebAuthnSupported(): Boolean = isWebAuthnAvailable()
 
