@@ -61,6 +61,8 @@ fun main() {
         .start(wait = true)
 }
 
+private val logger = LoggerFactory.getLogger("server.Application")
+
 fun Application.module() {
     // dotenv-java の値を Logback に反映（logback.xml は OS 環境変数のみ参照するため）
     EnvConfig["LOG_LEVEL"]?.let { level ->
@@ -129,9 +131,12 @@ fun Application.module() {
         exception<BadRequestException> { call, cause ->
             call.respond(HttpStatusCode.BadRequest, mapOf("error" to (cause.message ?: "Bad request")))
         }
-        // 不正な JSON（enum の未知値、型不一致等）は 400 で返す（Ktor デフォルトの 500 を上書き）
+        // 不正な JSON（enum の未知値、型不一致等）は 400 で返す（Ktor デフォルトの 500 を上書き）。
+        // cause.message には内部型名・フィールド名を含みうるため、クライアントには固定メッセージを返し
+        // 詳細はサーバーログのみに出す。
         exception<SerializationException> { call, cause ->
-            call.respond(HttpStatusCode.BadRequest, mapOf("error" to (cause.message ?: "Invalid request body")))
+            logger.warn("Invalid request body on ${call.request.path()}: ${cause.message}")
+            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid request body"))
         }
     }
 
