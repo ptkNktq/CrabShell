@@ -3,6 +3,7 @@ package server.loginhistory
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.*
+import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.origin
 import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.request.*
@@ -19,6 +20,8 @@ import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 private const val TTL_DAYS = 90L
+private const val DEFAULT_LIMIT = 5
+private const val MAX_LIMIT = 50
 
 fun Route.loginHistoryRoutes() {
     val loginHistoryRepository by inject<LoginHistoryRepository>()
@@ -70,7 +73,19 @@ fun Route.loginHistoryRoutes() {
                 }
             }) {
                 val uid = call.firebasePrincipal.uid
-                val limit = (call.request.queryParameters["limit"]?.toIntOrNull() ?: 5).coerceIn(1, 50)
+                val limitParam = call.request.queryParameters["limit"]
+                val limit =
+                    if (limitParam == null) {
+                        DEFAULT_LIMIT
+                    } else {
+                        val parsed =
+                            limitParam.toIntOrNull()
+                                ?: throw BadRequestException("limit must be an integer between 1 and $MAX_LIMIT")
+                        if (parsed !in 1..MAX_LIMIT) {
+                            throw BadRequestException("limit must be between 1 and $MAX_LIMIT")
+                        }
+                        parsed
+                    }
                 val history = loginHistoryRepository.getHistory(uid, limit)
                 call.respond(history)
             }
