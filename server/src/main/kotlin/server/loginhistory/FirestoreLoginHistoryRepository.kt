@@ -4,6 +4,7 @@ import com.google.cloud.firestore.Firestore
 import com.google.cloud.firestore.Query
 import model.LoginEvent
 import model.LoginMethod
+import org.slf4j.LoggerFactory
 import server.util.await
 import java.time.Instant
 import com.google.cloud.Timestamp as FirestoreTimestamp
@@ -11,6 +12,8 @@ import com.google.cloud.Timestamp as FirestoreTimestamp
 class FirestoreLoginHistoryRepository(
     private val firestore: Firestore,
 ) : LoginHistoryRepository {
+    private val logger = LoggerFactory.getLogger(FirestoreLoginHistoryRepository::class.java)
+
     private fun userCollection(uid: String) = firestore.collection("users").document(uid).collection("loginHistory")
 
     private fun Instant.toFirestoreTimestamp() = FirestoreTimestamp.ofTimeSecondsAndNanos(epochSecond, nano)
@@ -49,7 +52,11 @@ class FirestoreLoginHistoryRepository(
                 (doc.get("timestamp") as? FirestoreTimestamp)
                     ?.toDate()
                     ?.toInstant()
-                    ?.toString() ?: return@mapNotNull null
+                    ?.toString()
+            if (timestamp == null) {
+                logger.warn("Login history doc ${doc.id} skipped: missing or invalid timestamp")
+                return@mapNotNull null
+            }
             LoginEvent(
                 id = doc.id,
                 timestamp = timestamp,
