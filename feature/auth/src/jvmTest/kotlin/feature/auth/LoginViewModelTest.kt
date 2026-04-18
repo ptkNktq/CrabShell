@@ -2,8 +2,10 @@ package feature.auth
 
 import core.auth.AuthRepository
 import core.auth.AuthStateHolder
+import core.network.LoginHistoryRepository
 import core.network.PasskeyRepository
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -13,6 +15,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import model.LoginMethod
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -27,6 +30,7 @@ class LoginViewModelTest {
     private lateinit var authRepository: AuthRepository
     private lateinit var passkeyRepository: PasskeyRepository
     private lateinit var authStateHolder: AuthStateHolder
+    private lateinit var loginHistoryRepository: LoginHistoryRepository
 
     @BeforeTest
     fun setUp() {
@@ -34,6 +38,7 @@ class LoginViewModelTest {
         authRepository = mockk()
         passkeyRepository = mockk()
         authStateHolder = AuthStateHolder()
+        loginHistoryRepository = mockk(relaxed = true)
     }
 
     @AfterTest
@@ -43,7 +48,7 @@ class LoginViewModelTest {
 
     private fun createViewModel(webAuthnSupported: Boolean = true): LoginViewModel {
         every { authRepository.isWebAuthnSupported() } returns webAuthnSupported
-        return LoginViewModel(authRepository, passkeyRepository, authStateHolder)
+        return LoginViewModel(authRepository, passkeyRepository, authStateHolder, loginHistoryRepository)
     }
 
     @Test
@@ -77,6 +82,23 @@ class LoginViewModelTest {
         runTest {
             val viewModel = createViewModel()
             coEvery { authRepository.signIn("test@example.com", "password") } returns Result.success(Unit)
+
+            viewModel.onEmailChanged("test@example.com")
+            viewModel.onPasswordChanged("password")
+            viewModel.onSignIn()
+            advanceUntilIdle()
+
+            assertFalse(viewModel.uiState.isLoading)
+            assertNull(viewModel.uiState.errorMessage)
+            coVerify { loginHistoryRepository.recordLogin(LoginMethod.EMAIL) }
+        }
+
+    @Test
+    fun `login history failure does not block sign in`() =
+        runTest {
+            val viewModel = createViewModel()
+            coEvery { authRepository.signIn("test@example.com", "password") } returns Result.success(Unit)
+            coEvery { loginHistoryRepository.recordLogin(LoginMethod.EMAIL) } throws RuntimeException("Network error")
 
             viewModel.onEmailChanged("test@example.com")
             viewModel.onPasswordChanged("password")
@@ -134,6 +156,25 @@ class LoginViewModelTest {
             coEvery { passkeyRepository.authenticateWithPasskey("test@example.com") } returns
                 Result.success("custom-token")
             coEvery { authRepository.signInWithCustomToken("custom-token") } returns Result.success(Unit)
+
+            viewModel.onEmailChanged("test@example.com")
+            viewModel.onPasskeySignIn()
+            advanceUntilIdle()
+
+            assertTrue(authStateHolder.signedInViaPasskey)
+            assertFalse(viewModel.uiState.isLoading)
+            assertNull(viewModel.uiState.errorMessage)
+            coVerify { loginHistoryRepository.recordLogin(LoginMethod.PASSKEY) }
+        }
+
+    @Test
+    fun `passkey login history failure does not block sign in`() =
+        runTest {
+            val viewModel = createViewModel()
+            coEvery { passkeyRepository.authenticateWithPasskey("test@example.com") } returns
+                Result.success("custom-token")
+            coEvery { authRepository.signInWithCustomToken("custom-token") } returns Result.success(Unit)
+            coEvery { loginHistoryRepository.recordLogin(LoginMethod.PASSKEY) } throws RuntimeException("Network error")
 
             viewModel.onEmailChanged("test@example.com")
             viewModel.onPasskeySignIn()

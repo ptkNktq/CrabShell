@@ -11,6 +11,7 @@ import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.http.content.*
 import io.ktor.server.netty.*
+import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.MissingRequestParameterException
 import io.ktor.server.plugins.ParameterConversionException
 import io.ktor.server.plugins.bodylimit.RequestBodyLimit
@@ -24,6 +25,7 @@ import io.ktor.server.request.path
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.coroutines.launch
+import kotlinx.serialization.SerializationException
 import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
 import org.slf4j.LoggerFactory
@@ -39,6 +41,7 @@ import server.feeding.FeedingReminderService
 import server.feeding.feedingRoutes
 import server.garbage.GarbageNotificationService
 import server.garbage.garbageRoutes
+import server.loginhistory.loginHistoryRoutes
 import server.money.moneyRoutes
 import server.passkey.PasskeyDatabase
 import server.passkey.passkeyRoutes
@@ -57,6 +60,8 @@ fun main() {
     embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::module)
         .start(wait = true)
 }
+
+private val logger = LoggerFactory.getLogger("server.Application")
 
 fun Application.module() {
     // dotenv-java の値を Logback に反映（logback.xml は OS 環境変数のみ参照するため）
@@ -104,6 +109,13 @@ fun Application.module() {
             rateLimiter(limit = 5, refillPeriod = 60.seconds)
             requestKey { call -> call.firebasePrincipal.uid }
         }
+        // ログイン API（パスキー 5/分は IP 単位、メール/パスワードは Firebase 側制御）と
+        // 同等以上の余裕を持たせて 10/分。GET/POST 共通バケットのため、ログイン直後に
+        // 設定画面を開くと 2 消費する点に注意。
+        register(RateLimitNames.LOGIN_HISTORY) {
+            rateLimiter(limit = 10, refillPeriod = 60.seconds)
+            requestKey { call -> call.firebasePrincipal.uid }
+        }
     }
 
     install(StatusPages) {
@@ -118,6 +130,16 @@ fun Application.module() {
         }
         exception<ParameterConversionException> { call, cause ->
             call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid ${cause.parameterName}: ${cause.type}"))
+        }
+        exception<BadRequestException> { call, cause ->
+            call.respond(HttpStatusCode.BadRequest, mapOf("error" to (cause.message ?: "Bad request")))
+        }
+        // 不正な JSON（enum の未知値、型不一致等）は 400 で返す（Ktor デフォルトの 500 を上書き）。
+        // cause.message には内部型名・フィールド名を含みうるため、クライアントには固定メッセージを返し
+        // 詳細はサーバーログのみに出す。
+        exception<SerializationException> { call, cause ->
+            logger.warn("Invalid request body on ${call.request.path()}: ${cause.message}")
+            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid request body"))
         }
     }
 
@@ -161,6 +183,7 @@ fun Application.module() {
             pointRoutes()
             questWebhookRoutes()
             cacheRoutes()
+            loginHistoryRoutes()
             passkeyRoutes()
         }
 

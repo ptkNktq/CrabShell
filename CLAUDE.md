@@ -111,7 +111,7 @@ shared/              → Kotlin Multiplatform library
 
 server/              → Ktor server (Netty, JVM)
                        Depends on :shared
-                       Routes: GET /api/items (JSON), GET / (serves static frontend)
+                       Routes: /api/{firebase-config,users,pets,feeding,garbage,money,report,quest,point,quest-webhook,cache,login-history,passkey}
                        Firebase Auth verification
                        Koin DI でリポジトリ注入（ServerModule）
                        Repository 層: interface + Firestore 実装 class
@@ -178,7 +178,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Shared models: `shared/src/commonMain/kotlin/model/DashboardItem.kt`, `User.kt`
 - Server entry point: `server/src/main/kotlin/server/Application.kt`
 - Server DI: `server/src/main/kotlin/server/di/ServerModule.kt`
-- Server repositories: `server/src/main/kotlin/server/{money,quest,feeding,garbage,pet}/` (interface + Firestore 実装)
+- Server repositories: `server/src/main/kotlin/server/{money,quest,feeding,garbage,pet,loginhistory}/` (interface + Firestore 実装)
 - Core common: `core/common/src/commonMain/kotlin/core/common/` (Environment.kt, AppLogger.kt, TabResumedEvent.kt)
 - Core common (wasmJsMain): `core/common/src/wasmJsMain/kotlin/core/common/` (Environment.kt, AppLogger.wasmJs.kt, PageVisibility.kt)
 - Core auth (commonMain): `core/auth/src/commonMain/kotlin/core/auth/` (AuthRepository interface, AuthState)

@@ -7,6 +7,6 @@ import org.koin.dsl.module
 
 val featureAuthModule =
     module {
-        viewModel { LoginViewModel(get(), get(), get()) }
+        viewModel { LoginViewModel(get(), get(), get(), get()) }
         viewModel { PasskeySetupViewModel(get()) }
     }

@@ -1,0 +1,32 @@
+package core.network
+
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.request.*
+import io.ktor.http.*
+import model.LoginEvent
+import model.LoginMethod
+import model.RecordLoginRequest
+
+interface LoginHistoryRepository {
+    suspend fun recordLogin(loginMethod: LoginMethod)
+
+    suspend fun getLoginHistory(limit: Int = 5): List<LoginEvent>
+}
+
+class LoginHistoryRepositoryImpl(
+    private val client: HttpClient,
+) : LoginHistoryRepository {
+    override suspend fun recordLogin(loginMethod: LoginMethod) {
+        client.post("/api/login-history") {
+            contentType(ContentType.Application.Json)
+            setBody(RecordLoginRequest(loginMethod))
+        }
+    }
+
+    override suspend fun getLoginHistory(limit: Int): List<LoginEvent> =
+        client
+            .get("/api/login-history") {
+                parameter("limit", limit)
+            }.body()
+}

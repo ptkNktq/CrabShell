@@ -139,7 +139,7 @@ feature/payment/     → 支払い画面（ユーザー向け）
 feature/pet-management/ → ペット管理画面
 feature/quest/       → クエスト画面
 feature/report/      → 家計レポート画面（月別支出グラフ・内訳）
-feature/settings/    → 設定画面
+feature/settings/    → 設定画面（パスワード変更・パスキー管理・ログイン履歴）
 app/                 → アプリシェル（ルーティング・レイアウト）
 ```
 
@@ -360,6 +360,20 @@ node -e "
 
 1. **初回**: メール/パスワードでログイン → パスキー登録を案内
 2. **以降**: メールアドレス入力 → パスキーでログイン（パスワード不要）
+
+ログイン成功時にサーバーへログイン履歴を記録する（IP アドレス・UserAgent・ログイン方法）。設定画面のアカウントカテゴリから直近の履歴を確認できる。履歴は Firestore の `users/{uid}/loginHistory/{docId}` に保存し、各ドキュメントの `expireAt` フィールドを基準に 90 日で自動削除する。
+
+> **Important:** 自動削除を有効化するには Firestore 側で TTL ポリシーの設定が必要です（書き込み時に `expireAt` を埋めているだけでは削除されません）。初回セットアップ時に一度だけ、対象コレクション `loginHistory` の `expireAt` フィールドに対して TTL を有効化してください。
+>
+> ```bash
+> # gcloud CLI で TTL ポリシーを有効化（プロジェクト ID を書き換えて実行）
+> gcloud firestore fields ttl update expireAt \
+>   --collection-group=loginHistory \
+>   --enable-ttl \
+>   --project=<FIREBASE_PROJECT_ID>
+> ```
+>
+> もしくは [Firebase Console → Firestore → TTL](https://console.firebase.google.com/project/_/firestore/ttl) から `loginHistory` / `expireAt` で TTL ポリシーを作成します。
 
 ### 環境変数
 
