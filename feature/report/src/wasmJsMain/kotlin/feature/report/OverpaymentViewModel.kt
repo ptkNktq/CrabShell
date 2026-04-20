@@ -12,6 +12,7 @@ import core.network.MoneyRepository
 import core.network.ReportRepository
 import kotlinx.coroutines.launch
 import model.MonthlyMoney
+import model.MonthlyMoneyStatus
 import model.OverpaymentRedemptionRequest
 import model.UserBalance
 
@@ -26,13 +27,13 @@ data class RedemptionFormState(
     val error: String? = null,
     val monthData: MonthlyMoney? = null,
 ) {
-    val isMonthLocked: Boolean get() = monthData?.locked == true
+    val isMonthFrozen: Boolean get() = monthData?.status == MonthlyMoneyStatus.FROZEN
     val canSubmit: Boolean
         get() =
             selectedUid.isNotEmpty() &&
                 (amountText.toLongOrNull() ?: 0L) > 0L &&
                 !isSaving &&
-                !isMonthLocked
+                !isMonthFrozen
 }
 
 data class OverpaymentUiState(
@@ -182,10 +183,10 @@ class OverpaymentViewModel(
                 )
             return
         }
-        if (form.isMonthLocked) {
+        if (form.isMonthFrozen) {
             uiState =
                 uiState.copy(
-                    redemptionForm = form.copy(error = "この月はロックされています"),
+                    redemptionForm = form.copy(error = "この月は凍結されています"),
                 )
             return
         }

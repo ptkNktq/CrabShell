@@ -7,12 +7,15 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.PendingActions
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import core.ui.LocalWindowSizeClass
@@ -20,6 +23,7 @@ import core.ui.WindowSizeClass
 import core.ui.formatYen
 import model.MoneyItem
 import model.MonthlyMoney
+import model.MonthlyMoneyStatus
 import model.PaymentRecord
 import model.User
 import org.koin.compose.viewmodel.koinViewModel
@@ -73,7 +77,8 @@ internal fun PaymentContent(
     // 支払い済み合計
     val totalPaid = monthlyMoney.paymentRecords.sumOf { it.amount }
     val remaining = totalAllocated - totalPaid
-    val locked = monthlyMoney.locked
+    val status = monthlyMoney.status
+    val frozen = status == MonthlyMoneyStatus.FROZEN
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (isCompact) {
@@ -118,10 +123,10 @@ internal fun PaymentContent(
                     loading = loading,
                     error = error,
                     isCompact = true,
-                    locked = locked,
+                    status = status,
                     modifier = Modifier.weight(1f),
                 )
-                if (!loading && error == null && !locked && !isViewingOther) {
+                if (!loading && error == null && !frozen && !isViewingOther) {
                     Spacer(modifier = Modifier.height(8.dp))
                     PaymentInlineForm(
                         remaining = remaining,
@@ -176,11 +181,11 @@ internal fun PaymentContent(
                         loading = loading,
                         error = error,
                         isCompact = false,
-                        locked = locked,
+                        status = status,
                         modifier = Modifier.weight(1f),
                     )
 
-                    if (!locked && !isViewingOther) {
+                    if (!frozen && !isViewingOther) {
                         Spacer(modifier = Modifier.width(24.dp))
 
                         if (!loading && error == null) {
@@ -213,7 +218,7 @@ private fun PaymentListContent(
     loading: Boolean,
     error: String?,
     isCompact: Boolean,
-    locked: Boolean = false,
+    status: MonthlyMoneyStatus = MonthlyMoneyStatus.PENDING,
     modifier: Modifier = Modifier,
 ) {
     when {
@@ -246,7 +251,7 @@ private fun PaymentListContent(
                         totalPaid = totalPaid,
                         remaining = remaining,
                         isCompact = isCompact,
-                        locked = locked,
+                        status = status,
                     )
                 }
 
@@ -440,7 +445,7 @@ private fun SummaryCard(
     totalPaid: Long,
     remaining: Long,
     isCompact: Boolean,
-    locked: Boolean = false,
+    status: MonthlyMoneyStatus = MonthlyMoneyStatus.PENDING,
 ) {
     Card(
         modifier =
@@ -463,30 +468,7 @@ private fun SummaryCard(
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (locked) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.errorContainer,
-                            shape = MaterialTheme.shapes.small,
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                Icon(
-                                    Icons.Default.Lock,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(14.dp),
-                                    tint = MaterialTheme.colorScheme.onErrorContainer,
-                                )
-                                Text(
-                                    text = "ロック中",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.onErrorContainer,
-                                )
-                            }
-                        }
-                    }
+                    StatusBadge(status = status)
                     if (remaining <= 0 && totalAllocated > 0) {
                         Surface(
                             color = MaterialTheme.colorScheme.primary,
@@ -640,6 +622,57 @@ private fun ItemBreakdownCard(
         }
     }
 }
+
+@Composable
+private fun StatusBadge(status: MonthlyMoneyStatus) {
+    val (container, onContainer) =
+        when (status) {
+            MonthlyMoneyStatus.PENDING ->
+                MaterialTheme.colorScheme.tertiaryContainer to
+                    MaterialTheme.colorScheme.onTertiaryContainer
+            MonthlyMoneyStatus.CONFIRMED ->
+                MaterialTheme.colorScheme.primaryContainer to
+                    MaterialTheme.colorScheme.onPrimaryContainer
+            MonthlyMoneyStatus.FROZEN ->
+                MaterialTheme.colorScheme.errorContainer to
+                    MaterialTheme.colorScheme.onErrorContainer
+        }
+    Surface(color = container, shape = MaterialTheme.shapes.small) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Icon(
+                status.icon,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = onContainer,
+            )
+            Text(
+                text = status.displayName,
+                style = MaterialTheme.typography.labelLarge,
+                color = onContainer,
+            )
+        }
+    }
+}
+
+private val MonthlyMoneyStatus.displayName: String
+    get() =
+        when (this) {
+            MonthlyMoneyStatus.PENDING -> "確定前"
+            MonthlyMoneyStatus.CONFIRMED -> "確定済み"
+            MonthlyMoneyStatus.FROZEN -> "凍結"
+        }
+
+private val MonthlyMoneyStatus.icon: ImageVector
+    get() =
+        when (this) {
+            MonthlyMoneyStatus.PENDING -> Icons.Default.PendingActions
+            MonthlyMoneyStatus.CONFIRMED -> Icons.Default.CheckCircle
+            MonthlyMoneyStatus.FROZEN -> Icons.Default.Block
+        }
 
 /** UTC ISO 文字列を JST (UTC+9) に変換して表示用にフォーマットする */
 private fun formatDate(isoString: String): String =
