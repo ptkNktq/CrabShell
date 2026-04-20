@@ -9,13 +9,20 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.util.getOrFail
+import kotlinx.serialization.Serializable
 import model.MoneyTags
 import model.MonthlyMoney
+import model.MonthlyMoneyStatus
 import model.PaymentRecord
 import org.koin.ktor.ext.inject
 import server.auth.adminOnly
 import server.auth.authenticated
 import server.auth.firebasePrincipal
+
+@Serializable
+data class MonthlyMoneyStatusUpdate(
+    val status: MonthlyMoneyStatus,
+)
 
 fun Route.moneyRoutes() {
     val moneyRepository by inject<MoneyRepository>()
@@ -50,13 +57,13 @@ fun Route.moneyRoutes() {
                     code(HttpStatusCode.OK) {
                         body<MonthlyMoney>()
                     }
-                    code(HttpStatusCode.Conflict) { description = "ロック中" }
+                    code(HttpStatusCode.Conflict) { description = "凍結中" }
                 }
             }) {
                 val month = call.parameters.getOrFail("month")
                 val existing = moneyRepository.getMonthlyMoney(month)
-                if (existing?.locked == true) {
-                    call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is locked"))
+                if (existing?.status == MonthlyMoneyStatus.FROZEN) {
+                    call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is frozen"))
                     return@post
                 }
                 val updated = moneyRepository.importItemsByTag(month, MoneyTags.RECURRING)
@@ -74,25 +81,27 @@ fun Route.moneyRoutes() {
                     code(HttpStatusCode.OK) {
                         body<MonthlyMoney>()
                     }
-                    code(HttpStatusCode.Conflict) { description = "ロック中" }
+                    code(HttpStatusCode.Conflict) { description = "凍結中" }
                 }
             }) {
                 val month = call.parameters.getOrFail("month")
                 val existing = moneyRepository.getMonthlyMoney(month) ?: MonthlyMoney(month = month)
-                if (existing.locked) {
-                    call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is locked"))
+                if (existing.status == MonthlyMoneyStatus.FROZEN) {
+                    call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is frozen"))
                     return@put
                 }
                 val body = call.receive<MonthlyMoney>()
-                moneyRepository.saveMonthlyMoney(month, body)
-                call.respond(body)
+                // status フィールドはこのエンドポイントでは変更しない（専用 PATCH /status で更新）
+                moneyRepository.saveMonthlyMoney(month, body.copy(status = existing.status))
+                call.respond(body.copy(status = existing.status))
             }
 
-            patch("lock", {
+            patch("status", {
                 tags = listOf("money")
-                summary = "月次ロック切り替え（admin）"
+                summary = "月次ステータス更新（admin）"
                 request {
                     pathParameter<String>("month") { description = "月（YYYY-MM）" }
+                    body<MonthlyMoneyStatusUpdate>()
                 }
                 response {
                     code(HttpStatusCode.OK) {
@@ -101,8 +110,9 @@ fun Route.moneyRoutes() {
                 }
             }) {
                 val month = call.parameters.getOrFail("month")
+                val body = call.receive<MonthlyMoneyStatusUpdate>()
                 val existing = moneyRepository.getMonthlyMoney(month) ?: MonthlyMoney(month = month)
-                val updated = existing.copy(locked = !existing.locked)
+                val updated = existing.copy(status = body.status)
                 moneyRepository.saveMonthlyMoney(month, updated)
                 call.respond(updated)
             }
@@ -149,7 +159,7 @@ fun Route.moneyRoutes() {
                         body<MonthlyMoney>()
                     }
                     code(HttpStatusCode.NotFound) { description = "月データ未作成" }
-                    code(HttpStatusCode.Conflict) { description = "ロック中" }
+                    code(HttpStatusCode.Conflict) { description = "凍結中" }
                 }
             }) {
                 val month = call.parameters.getOrFail("month")
@@ -164,8 +174,8 @@ fun Route.moneyRoutes() {
                     return@post
                 }
 
-                if (data.locked) {
-                    call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is locked"))
+                if (data.status == MonthlyMoneyStatus.FROZEN) {
+                    call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is frozen"))
                     return@post
                 }
                 val updated = data.copy(paymentRecords = data.paymentRecords + safeRecord)

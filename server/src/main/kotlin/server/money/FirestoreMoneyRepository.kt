@@ -5,6 +5,7 @@ import com.google.cloud.firestore.Firestore
 import model.MoneyItem
 import model.MoneyTags
 import model.MonthlyMoney
+import model.MonthlyMoneyStatus
 import model.Payment
 import model.PaymentRecord
 import server.cache.Cacheable
@@ -73,7 +74,7 @@ class FirestoreMoneyRepository(
         firestore
             .collection(MONEY_COLLECTION)
             .document(month)
-            .set(mapOf("month" to month, "items" to items, "paymentRecords" to records, "locked" to data.locked))
+            .set(mapOf("month" to month, "items" to items, "paymentRecords" to records, "status" to data.status.name))
             .await()
 
         cache[month] = data
@@ -119,9 +120,25 @@ class FirestoreMoneyRepository(
     ): MonthlyMoney {
         val items = parseItems(doc.get("items"))
         val records = parsePaymentRecords(doc.get("paymentRecords"))
-        val locked = doc.getBoolean("locked") ?: false
-        return MonthlyMoney(month = month, items = items, paymentRecords = records, locked = locked)
+        val status = parseStatus(doc.getString("status"), doc.getBoolean("locked"))
+        return MonthlyMoney(month = month, items = items, paymentRecords = records, status = status)
     }
+}
+
+/**
+ * Firestore の生フィールドから MonthlyMoneyStatus を復元する。
+ * 新形式は `status: "FROZEN"` 等の文字列。旧形式（`locked: Boolean` のみ）からは
+ * `locked=true → FROZEN`, `locked=false → PENDING` にフォールバックする。
+ */
+internal fun parseStatus(
+    statusRaw: String?,
+    legacyLocked: Boolean?,
+): MonthlyMoneyStatus {
+    if (statusRaw != null) {
+        return runCatching { MonthlyMoneyStatus.valueOf(statusRaw) }
+            .getOrDefault(MonthlyMoneyStatus.PENDING)
+    }
+    return if (legacyLocked == true) MonthlyMoneyStatus.FROZEN else MonthlyMoneyStatus.PENDING
 }
 
 /** Map リストから MoneyItem リストをパースする（テスト用に internal） */
