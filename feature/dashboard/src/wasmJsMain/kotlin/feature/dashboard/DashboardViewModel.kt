@@ -79,27 +79,24 @@ class DashboardViewModel(
             }
         }
         loadGarbageSchedule()
-        startDateChangePolling()
+        viewModelScope.launch { restartDateChangePolling() }
         // バックグラウンド復帰時: ブラウザの throttle / freeze により遅れた表示を即座に追い付かせ、
         // ポーリングも cancelAndJoin で古いジョブを確実に停止してから再起動する。
         viewModelScope.launch {
             tabResumedEvent.events.collect {
-                pollingJob?.cancelAndJoin()
                 refreshTimeAndGarbage()
                 onRefreshFeeding()
-                startDateChangePolling()
+                restartDateChangePolling()
             }
         }
     }
 
     /**
-     * ポーリングジョブを (再) 起動する。
-     *
-     * 呼び出し契約: 古いジョブが存在する場合は呼び出し側で `pollingJob?.cancelAndJoin()` を
-     * 完了してから呼ぶこと。本関数は cancel を行わないため、そのまま再呼び出しすると
-     * ジョブがリークする。
+     * ポーリングジョブを停止して再起動する。古いジョブが存在する場合は [cancelAndJoin] で
+     * 完了を待ってから新規ジョブを launch するため、呼び出し側は in-flight 競合を意識する必要がない。
      */
-    private fun startDateChangePolling() {
+    private suspend fun restartDateChangePolling() {
+        pollingJob?.cancelAndJoin()
         pollingJob =
             viewModelScope.launch {
                 // ポーリング起点の即時同期は init 時の uiState 初期値 / TabResumedEvent ハンドラ側で担当するため、
