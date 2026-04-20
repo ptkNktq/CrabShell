@@ -18,6 +18,8 @@ import core.ui.util.todayDateJs
 import core.ui.util.tomorrowDayOfWeekIndexJs
 import core.ui.util.tomorrowWeekOfMonthJs
 import core.ui.util.weekOfMonthJs
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import model.FeedingLog
@@ -53,6 +55,7 @@ class DashboardViewModel(
     private var lastFeedingHalfHour = -1
     private var garbageRefreshedToday =
         (currentTimeJs().toString().substringBefore(":").toIntOrNull() ?: 0) >= GARBAGE_SWITCH_HOUR
+    private var pollingJob: Job? = null
 
     var uiState by mutableStateOf(
         DashboardUiState(
@@ -76,55 +79,84 @@ class DashboardViewModel(
             }
         }
         loadGarbageSchedule()
-        startDateChangePolling()
-        // バックグラウンド復帰時（トークンリフレッシュ完了後）にデータ再取得
+        viewModelScope.launch { restartDateChangePolling() }
+        // バックグラウンド復帰時: ブラウザの throttle / freeze により遅れた表示を即座に追い付かせ、
+        // ポーリングも cancelAndJoin で古いジョブを確実に停止してから再起動する。
         viewModelScope.launch {
-            tabResumedEvent.events.collect { onRefreshFeeding() }
+            tabResumedEvent.events.collect {
+                refreshTimeAndGarbage()
+                onRefreshFeeding()
+                restartDateChangePolling()
+            }
         }
     }
 
-    private fun startDateChangePolling() {
-        viewModelScope.launch {
-            while (true) {
-                delay(10_000)
-                val timeStr = currentTimeJs().toString()
-                uiState = uiState.copy(currentTime = timeStr)
-                val newDate = todayDateJs().toString()
-                if (newDate != trackedDate) {
-                    trackedDate = newDate
-                    garbageRefreshedToday = false
-                    uiState =
-                        uiState.copy(
-                            currentYear = currentYearJs().toString(),
-                            dateWithDay = formattedTodayJs().toString(),
-                        )
-                    refreshGarbageForToday()
-                }
-                val newFeedingDate = feedingDateJs().toString()
-                if (newFeedingDate != trackedFeedingDate) {
-                    trackedFeedingDate = newFeedingDate
-                    onRefreshFeeding()
-                }
-                // 毎時0分・30分に給餌情報をサイレント更新
-                val minute = timeStr.substringAfter(":").toIntOrNull() ?: 0
-                val halfHour =
-                    timeStr
-                        .substringBefore(":")
-                        .toIntOrNull()
-                        ?.times(2)
-                        ?.plus(minute / 30) ?: 0
-                if (lastFeedingHalfHour != -1 && halfHour != lastFeedingHalfHour) {
-                    silentRefreshFeeding()
-                }
-                lastFeedingHalfHour = halfHour
-                // 更新時刻にゴミ出しスケジュールを再取得
-                val hour = timeStr.substringBefore(":").toIntOrNull() ?: 0
-                if (hour >= GARBAGE_SWITCH_HOUR && !garbageRefreshedToday) {
-                    garbageRefreshedToday = true
-                    loadGarbageSchedule()
+    /**
+     * ポーリングジョブを停止して再起動する。古いジョブが存在する場合は [cancelAndJoin] で
+     * 完了を待ってから新規ジョブを launch するため、呼び出し側は in-flight 競合を意識する必要がない。
+     */
+    private suspend fun restartDateChangePolling() {
+        pollingJob?.cancelAndJoin()
+        pollingJob =
+            viewModelScope.launch {
+                // ポーリング起点の即時同期は init 時の uiState 初期値 / TabResumedEvent ハンドラ側で担当するため、
+                // ここは delay から開始し、10 秒周期で時刻・ゴミ・給餌のカードを同期するだけに留める。
+                while (true) {
+                    delay(10_000)
+                    refreshTimeAndGarbage()
+                    autoRefreshFeedingOnTick()
                 }
             }
+    }
+
+    /** 時刻カード・年月日・ゴミバッジなど時刻依存の「非給餌」表示を同期する。 */
+    private fun refreshTimeAndGarbage() {
+        val timeStr = currentTimeJs().toString()
+        uiState = uiState.copy(currentTime = timeStr)
+        val newDate = todayDateJs().toString()
+        if (newDate != trackedDate) {
+            trackedDate = newDate
+            garbageRefreshedToday = false
+            uiState =
+                uiState.copy(
+                    currentYear = currentYearJs().toString(),
+                    dateWithDay = formattedTodayJs().toString(),
+                )
+            refreshGarbageForToday()
         }
+        val hour = timeStr.substringBefore(":").toIntOrNull() ?: 0
+        if (hour >= GARBAGE_SWITCH_HOUR && !garbageRefreshedToday) {
+            garbageRefreshedToday = true
+            loadGarbageSchedule()
+        }
+    }
+
+    /**
+     * ポーリング tick で日跨ぎ・半時間跨ぎを検知し、必要な場合のみ給餌ログを再取得する。
+     * タブ復帰時は [onRefreshFeeding] で無条件再取得するため本関数を呼ばない。
+     */
+    private suspend fun autoRefreshFeedingOnTick() {
+        val newFeedingDate = feedingDateJs().toString()
+        if (newFeedingDate != trackedFeedingDate) {
+            // 日跨ぎは全量再取得に任せ、同一 tick 内での半時間判定はスキップ（二重 fetch 回避）
+            onRefreshFeeding()
+            return
+        }
+        val halfHour = computeCurrentHalfHour()
+        if (lastFeedingHalfHour != -1 && halfHour != lastFeedingHalfHour) {
+            silentRefreshFeeding()
+        }
+        lastFeedingHalfHour = halfHour
+    }
+
+    private fun computeCurrentHalfHour(): Int {
+        val timeStr = currentTimeJs().toString()
+        val minute = timeStr.substringAfter(":").toIntOrNull() ?: 0
+        return timeStr
+            .substringBefore(":")
+            .toIntOrNull()
+            ?.times(2)
+            ?.plus(minute / 30) ?: 0
     }
 
     private suspend fun loadToday() {
@@ -167,9 +199,15 @@ class DashboardViewModel(
         }
     }
 
+    /**
+     * 給餌ログを無条件に再取得する。手動更新ボタン・タブ復帰・日跨ぎ検知から呼ばれる。
+     * 次回 [autoRefreshFeedingOnTick] で日跨ぎ・半時間跨ぎ判定が再発火しないよう tracker も同期する。
+     */
     fun onRefreshFeeding() {
         val newDate = feedingDateJs().toString()
         today = newDate
+        trackedFeedingDate = newDate
+        lastFeedingHalfHour = computeCurrentHalfHour()
         viewModelScope.launch {
             uiState =
                 uiState.copy(
