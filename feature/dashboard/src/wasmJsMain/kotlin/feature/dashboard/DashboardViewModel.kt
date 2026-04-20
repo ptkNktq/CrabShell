@@ -95,6 +95,13 @@ class DashboardViewModel(
         }
     }
 
+    /**
+     * ポーリングジョブを (再) 起動する。
+     *
+     * 呼び出し契約: 古いジョブが存在する場合は呼び出し側で `pollingJob?.cancelAndJoin()` を
+     * 完了してから呼ぶこと。本関数は cancel を行わないため、そのまま再呼び出しすると
+     * ジョブがリークする。
+     */
     private fun startDateChangePolling() {
         pollingJob =
             viewModelScope.launch {
