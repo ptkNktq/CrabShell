@@ -80,7 +80,7 @@ class DashboardViewModel(
         // バックグラウンド復帰時にタブ抑制で遅れた表示を即座に追い付かせ、給餌データも再取得
         viewModelScope.launch {
             tabResumedEvent.events.collect {
-                tick()
+                refreshClockAndSchedules()
                 onRefreshFeeding()
             }
         }
@@ -90,12 +90,16 @@ class DashboardViewModel(
         viewModelScope.launch {
             while (true) {
                 delay(10_000)
-                tick()
+                refreshClockAndSchedules()
             }
         }
     }
 
-    private suspend fun tick() {
+    /**
+     * 時刻カードを現在時刻に更新し、日付・給餌・ゴミの時刻依存スケジュールを同期する。
+     * ポーリング（10 秒毎）とタブ復帰イベントの両方から呼ばれる。
+     */
+    private suspend fun refreshClockAndSchedules() {
         val timeStr = currentTimeJs().toString()
         uiState = uiState.copy(currentTime = timeStr)
         val newDate = todayDateJs().toString()
