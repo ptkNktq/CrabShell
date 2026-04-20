@@ -18,6 +18,7 @@ import core.ui.util.todayDateJs
 import core.ui.util.tomorrowDayOfWeekIndexJs
 import core.ui.util.tomorrowWeekOfMonthJs
 import core.ui.util.weekOfMonthJs
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import model.FeedingLog
@@ -53,6 +54,7 @@ class DashboardViewModel(
     private var lastFeedingHalfHour = -1
     private var garbageRefreshedToday =
         (currentTimeJs().toString().substringBefore(":").toIntOrNull() ?: 0) >= GARBAGE_SWITCH_HOUR
+    private var pollingJob: Job? = null
 
     var uiState by mutableStateOf(
         DashboardUiState(
@@ -77,22 +79,30 @@ class DashboardViewModel(
         }
         loadGarbageSchedule()
         startDateChangePolling()
-        // バックグラウンド復帰時にタブ抑制で遅れた表示を即座に追い付かせ、給餌データも再取得
+        // バックグラウンド復帰時: ブラウザの throttle / freeze により遅れた表示を即座に追い付かせ、
+        // ポーリングも再起動して delay サイクルを確実にリセットする。
         viewModelScope.launch {
             tabResumedEvent.events.collect {
+                val feedingDateBefore = trackedFeedingDate
                 refreshClockAndSchedules()
-                onRefreshFeeding()
+                // 日跨ぎ復帰時は refreshClockAndSchedules 内で onRefreshFeeding が既に呼ばれているため二重起動を避ける
+                if (feedingDateBefore == trackedFeedingDate) {
+                    onRefreshFeeding()
+                }
+                startDateChangePolling()
             }
         }
     }
 
     private fun startDateChangePolling() {
-        viewModelScope.launch {
-            while (true) {
-                delay(10_000)
-                refreshClockAndSchedules()
+        pollingJob?.cancel()
+        pollingJob =
+            viewModelScope.launch {
+                while (true) {
+                    delay(10_000)
+                    refreshClockAndSchedules()
+                }
             }
-        }
     }
 
     /**
