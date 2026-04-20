@@ -19,6 +19,7 @@ import core.ui.util.tomorrowDayOfWeekIndexJs
 import core.ui.util.tomorrowWeekOfMonthJs
 import core.ui.util.weekOfMonthJs
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import model.FeedingLog
@@ -80,13 +81,13 @@ class DashboardViewModel(
         loadGarbageSchedule()
         startDateChangePolling()
         // バックグラウンド復帰時: ブラウザの throttle / freeze により遅れた表示を即座に追い付かせ、
-        // ポーリングも再起動して delay サイクルを確実にリセットする。
+        // ポーリングも cancelAndJoin で古いジョブを確実に停止してから再起動する。
         viewModelScope.launch {
             tabResumedEvent.events.collect {
-                val feedingDateBefore = trackedFeedingDate
-                refreshClockAndSchedules()
-                // 日跨ぎ復帰時は refreshClockAndSchedules 内で onRefreshFeeding が既に呼ばれているため二重起動を避ける
-                if (feedingDateBefore == trackedFeedingDate) {
+                pollingJob?.cancelAndJoin()
+                val feedingRefetched = refreshClockAndSchedules()
+                // refreshClockAndSchedules 内で日跨ぎ／半時間跨ぎ検知により再取得済みなら二重起動を避ける
+                if (!feedingRefetched) {
                     onRefreshFeeding()
                 }
                 startDateChangePolling()
@@ -95,9 +96,10 @@ class DashboardViewModel(
     }
 
     private fun startDateChangePolling() {
-        pollingJob?.cancel()
         pollingJob =
             viewModelScope.launch {
+                // ポーリング起点の即時同期は init 直後や TabResumedEvent ハンドラ側で行うため、
+                // ここでは delay から開始して 10 秒周期で refreshClockAndSchedules を繰り返すだけに留める。
                 while (true) {
                     delay(10_000)
                     refreshClockAndSchedules()
@@ -108,8 +110,11 @@ class DashboardViewModel(
     /**
      * 時刻カードを現在時刻に更新し、日付・給餌・ゴミの時刻依存スケジュールを同期する。
      * ポーリング（10 秒毎）とタブ復帰イベントの両方から呼ばれる。
+     *
+     * @return 内部で給餌ログの再取得（onRefreshFeeding / silentRefreshFeeding）を発火したか
      */
-    private suspend fun refreshClockAndSchedules() {
+    private suspend fun refreshClockAndSchedules(): Boolean {
+        var feedingRefetched = false
         val timeStr = currentTimeJs().toString()
         uiState = uiState.copy(currentTime = timeStr)
         val newDate = todayDateJs().toString()
@@ -127,6 +132,7 @@ class DashboardViewModel(
         if (newFeedingDate != trackedFeedingDate) {
             trackedFeedingDate = newFeedingDate
             onRefreshFeeding()
+            feedingRefetched = true
         }
         // 毎時0分・30分に給餌情報をサイレント更新
         val minute = timeStr.substringAfter(":").toIntOrNull() ?: 0
@@ -138,6 +144,7 @@ class DashboardViewModel(
                 ?.plus(minute / 30) ?: 0
         if (lastFeedingHalfHour != -1 && halfHour != lastFeedingHalfHour) {
             silentRefreshFeeding()
+            feedingRefetched = true
         }
         lastFeedingHalfHour = halfHour
         // 更新時刻にゴミ出しスケジュールを再取得
@@ -146,6 +153,7 @@ class DashboardViewModel(
             garbageRefreshedToday = true
             loadGarbageSchedule()
         }
+        return feedingRefetched
     }
 
     private suspend fun loadToday() {
