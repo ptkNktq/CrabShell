@@ -77,9 +77,12 @@ class DashboardViewModel(
         }
         loadGarbageSchedule()
         startDateChangePolling()
-        // バックグラウンド復帰時（トークンリフレッシュ完了後）にデータ再取得
+        // バックグラウンド復帰時にタブ抑制で遅れた表示を即座に追い付かせ、給餌データも再取得
         viewModelScope.launch {
-            tabResumedEvent.events.collect { onRefreshFeeding() }
+            tabResumedEvent.events.collect {
+                tick()
+                onRefreshFeeding()
+            }
         }
     }
 
@@ -87,43 +90,47 @@ class DashboardViewModel(
         viewModelScope.launch {
             while (true) {
                 delay(10_000)
-                val timeStr = currentTimeJs().toString()
-                uiState = uiState.copy(currentTime = timeStr)
-                val newDate = todayDateJs().toString()
-                if (newDate != trackedDate) {
-                    trackedDate = newDate
-                    garbageRefreshedToday = false
-                    uiState =
-                        uiState.copy(
-                            currentYear = currentYearJs().toString(),
-                            dateWithDay = formattedTodayJs().toString(),
-                        )
-                    refreshGarbageForToday()
-                }
-                val newFeedingDate = feedingDateJs().toString()
-                if (newFeedingDate != trackedFeedingDate) {
-                    trackedFeedingDate = newFeedingDate
-                    onRefreshFeeding()
-                }
-                // 毎時0分・30分に給餌情報をサイレント更新
-                val minute = timeStr.substringAfter(":").toIntOrNull() ?: 0
-                val halfHour =
-                    timeStr
-                        .substringBefore(":")
-                        .toIntOrNull()
-                        ?.times(2)
-                        ?.plus(minute / 30) ?: 0
-                if (lastFeedingHalfHour != -1 && halfHour != lastFeedingHalfHour) {
-                    silentRefreshFeeding()
-                }
-                lastFeedingHalfHour = halfHour
-                // 更新時刻にゴミ出しスケジュールを再取得
-                val hour = timeStr.substringBefore(":").toIntOrNull() ?: 0
-                if (hour >= GARBAGE_SWITCH_HOUR && !garbageRefreshedToday) {
-                    garbageRefreshedToday = true
-                    loadGarbageSchedule()
-                }
+                tick()
             }
+        }
+    }
+
+    private suspend fun tick() {
+        val timeStr = currentTimeJs().toString()
+        uiState = uiState.copy(currentTime = timeStr)
+        val newDate = todayDateJs().toString()
+        if (newDate != trackedDate) {
+            trackedDate = newDate
+            garbageRefreshedToday = false
+            uiState =
+                uiState.copy(
+                    currentYear = currentYearJs().toString(),
+                    dateWithDay = formattedTodayJs().toString(),
+                )
+            refreshGarbageForToday()
+        }
+        val newFeedingDate = feedingDateJs().toString()
+        if (newFeedingDate != trackedFeedingDate) {
+            trackedFeedingDate = newFeedingDate
+            onRefreshFeeding()
+        }
+        // 毎時0分・30分に給餌情報をサイレント更新
+        val minute = timeStr.substringAfter(":").toIntOrNull() ?: 0
+        val halfHour =
+            timeStr
+                .substringBefore(":")
+                .toIntOrNull()
+                ?.times(2)
+                ?.plus(minute / 30) ?: 0
+        if (lastFeedingHalfHour != -1 && halfHour != lastFeedingHalfHour) {
+            silentRefreshFeeding()
+        }
+        lastFeedingHalfHour = halfHour
+        // 更新時刻にゴミ出しスケジュールを再取得
+        val hour = timeStr.substringBefore(":").toIntOrNull() ?: 0
+        if (hour >= GARBAGE_SWITCH_HOUR && !garbageRefreshedToday) {
+            garbageRefreshedToday = true
+            loadGarbageSchedule()
         }
     }
 
