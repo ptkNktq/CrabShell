@@ -85,11 +85,8 @@ class DashboardViewModel(
         viewModelScope.launch {
             tabResumedEvent.events.collect {
                 pollingJob?.cancelAndJoin()
-                val feedingRefetched = refreshClockAndSchedules()
-                // refreshClockAndSchedules 内で日跨ぎ／半時間跨ぎ検知により再取得済みなら二重起動を避ける
-                if (!feedingRefetched) {
-                    onRefreshFeeding()
-                }
+                refreshTimeAndGarbage()
+                onRefreshFeeding()
                 startDateChangePolling()
             }
         }
@@ -105,23 +102,18 @@ class DashboardViewModel(
     private fun startDateChangePolling() {
         pollingJob =
             viewModelScope.launch {
-                // ポーリング起点の即時同期は init 直後や TabResumedEvent ハンドラ側で行うため、
-                // ここでは delay から開始して 10 秒周期で refreshClockAndSchedules を繰り返すだけに留める。
+                // ポーリング起点の即時同期は init 時の uiState 初期値 / TabResumedEvent ハンドラ側で担当するため、
+                // ここは delay から開始し、10 秒周期で時刻・ゴミ・給餌のカードを同期するだけに留める。
                 while (true) {
                     delay(10_000)
-                    refreshClockAndSchedules()
+                    refreshTimeAndGarbage()
+                    autoRefreshFeedingOnTick()
                 }
             }
     }
 
-    /**
-     * 時刻カードを現在時刻に更新し、日付・給餌・ゴミの時刻依存スケジュールを同期する。
-     * ポーリング（10 秒毎）とタブ復帰イベントの両方から呼ばれる。
-     *
-     * @return 内部で給餌ログの再取得（onRefreshFeeding / silentRefreshFeeding）を発火したか
-     */
-    private suspend fun refreshClockAndSchedules(): Boolean {
-        var feedingRefetched = false
+    /** 時刻カード・年月日・ゴミバッジなど時刻依存の「非給餌」表示を同期する。 */
+    private fun refreshTimeAndGarbage() {
         val timeStr = currentTimeJs().toString()
         uiState = uiState.copy(currentTime = timeStr)
         val newDate = todayDateJs().toString()
@@ -135,32 +127,39 @@ class DashboardViewModel(
                 )
             refreshGarbageForToday()
         }
-        val newFeedingDate = feedingDateJs().toString()
-        if (newFeedingDate != trackedFeedingDate) {
-            trackedFeedingDate = newFeedingDate
-            onRefreshFeeding()
-            feedingRefetched = true
-        }
-        // 毎時0分・30分に給餌情報をサイレント更新
-        val minute = timeStr.substringAfter(":").toIntOrNull() ?: 0
-        val halfHour =
-            timeStr
-                .substringBefore(":")
-                .toIntOrNull()
-                ?.times(2)
-                ?.plus(minute / 30) ?: 0
-        if (lastFeedingHalfHour != -1 && halfHour != lastFeedingHalfHour) {
-            silentRefreshFeeding()
-            feedingRefetched = true
-        }
-        lastFeedingHalfHour = halfHour
-        // 更新時刻にゴミ出しスケジュールを再取得
         val hour = timeStr.substringBefore(":").toIntOrNull() ?: 0
         if (hour >= GARBAGE_SWITCH_HOUR && !garbageRefreshedToday) {
             garbageRefreshedToday = true
             loadGarbageSchedule()
         }
-        return feedingRefetched
+    }
+
+    /**
+     * ポーリング tick で日跨ぎ・半時間跨ぎを検知し、必要な場合のみ給餌ログを再取得する。
+     * タブ復帰時は [onRefreshFeeding] で無条件再取得するため本関数を呼ばない。
+     */
+    private suspend fun autoRefreshFeedingOnTick() {
+        val newFeedingDate = feedingDateJs().toString()
+        if (newFeedingDate != trackedFeedingDate) {
+            // 日跨ぎは全量再取得に任せ、同一 tick 内での半時間判定はスキップ（二重 fetch 回避）
+            onRefreshFeeding()
+            return
+        }
+        val halfHour = computeCurrentHalfHour()
+        if (lastFeedingHalfHour != -1 && halfHour != lastFeedingHalfHour) {
+            silentRefreshFeeding()
+        }
+        lastFeedingHalfHour = halfHour
+    }
+
+    private fun computeCurrentHalfHour(): Int {
+        val timeStr = currentTimeJs().toString()
+        val minute = timeStr.substringAfter(":").toIntOrNull() ?: 0
+        return timeStr
+            .substringBefore(":")
+            .toIntOrNull()
+            ?.times(2)
+            ?.plus(minute / 30) ?: 0
     }
 
     private suspend fun loadToday() {
@@ -203,9 +202,15 @@ class DashboardViewModel(
         }
     }
 
+    /**
+     * 給餌ログを無条件に再取得する。手動更新ボタン・タブ復帰・日跨ぎ検知から呼ばれる。
+     * 次回 [autoRefreshFeedingOnTick] で日跨ぎ・半時間跨ぎ判定が再発火しないよう tracker も同期する。
+     */
     fun onRefreshFeeding() {
         val newDate = feedingDateJs().toString()
         today = newDate
+        trackedFeedingDate = newDate
+        lastFeedingHalfHour = computeCurrentHalfHour()
         viewModelScope.launch {
             uiState =
                 uiState.copy(
