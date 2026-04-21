@@ -12,6 +12,7 @@ import io.ktor.server.util.getOrFail
 import model.MoneyTags
 import model.MonthlyMoney
 import model.MonthlyMoneyStatus
+import model.MonthlyMoneyStatusUpdate
 import model.PaymentRecord
 import org.koin.ktor.ext.inject
 import server.auth.adminOnly
@@ -104,7 +105,7 @@ fun Route.moneyRoutes() {
                     "含めた任意の状態遷移を admin 権限で許可する。凍結運用を admin が解除できる唯一の経路。"
                 request {
                     pathParameter<String>("month") { description = "月（YYYY-MM）" }
-                    body<MonthlyMoneyStatus>()
+                    body<MonthlyMoneyStatusUpdate>()
                 }
                 response {
                     code(HttpStatusCode.OK) {
@@ -113,10 +114,10 @@ fun Route.moneyRoutes() {
                 }
             }) {
                 val month = call.parameters.getOrFail("month")
-                val newStatus = call.receive<MonthlyMoneyStatus>()
+                val body = call.receive<MonthlyMoneyStatusUpdate>()
                 val existing = moneyRepository.getMonthlyMoney(month) ?: MonthlyMoney(month = month)
                 // FROZEN からの遷移も含めて admin に任意の状態遷移を許可する（凍結解除の唯一経路）。
-                val updated = existing.copy(status = newStatus)
+                val updated = existing.copy(status = body.status)
                 moneyRepository.saveMonthlyMoney(month, updated)
                 call.respond(updated)
             }
