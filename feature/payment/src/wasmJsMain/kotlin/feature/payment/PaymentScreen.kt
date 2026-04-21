@@ -7,19 +7,17 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Block
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.PendingActions
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
+import core.ui.extensions.displayName
+import core.ui.extensions.icon
 import core.ui.formatYen
 import model.MoneyItem
 import model.MonthlyMoney
@@ -657,22 +655,6 @@ private fun StatusBadge(status: MonthlyMoneyStatus) {
         }
     }
 }
-
-private val MonthlyMoneyStatus.displayName: String
-    get() =
-        when (this) {
-            MonthlyMoneyStatus.PENDING -> "確定前"
-            MonthlyMoneyStatus.CONFIRMED -> "確定済み"
-            MonthlyMoneyStatus.FROZEN -> "凍結"
-        }
-
-private val MonthlyMoneyStatus.icon: ImageVector
-    get() =
-        when (this) {
-            MonthlyMoneyStatus.PENDING -> Icons.Default.PendingActions
-            MonthlyMoneyStatus.CONFIRMED -> Icons.Default.CheckCircle
-            MonthlyMoneyStatus.FROZEN -> Icons.Default.Block
-        }
 
 /** UTC ISO 文字列を JST (UTC+9) に変換して表示用にフォーマットする */
 private fun formatDate(isoString: String): String =
