@@ -51,3 +51,8 @@ data class MonthlyMoney(
     val paymentRecords: List<PaymentRecord> = emptyList(),
     val status: MonthlyMoneyStatus = MonthlyMoneyStatus.PENDING,
 )
+
+@Serializable
+data class MonthlyMoneyStatusUpdate(
+    val status: MonthlyMoneyStatus,
+)

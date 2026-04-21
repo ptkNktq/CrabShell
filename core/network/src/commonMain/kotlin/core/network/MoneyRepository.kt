@@ -4,15 +4,10 @@ import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
-import kotlinx.serialization.Serializable
 import model.MonthlyMoney
 import model.MonthlyMoneyStatus
+import model.MonthlyMoneyStatusUpdate
 import model.PaymentRecord
-
-@Serializable
-private data class MonthlyMoneyStatusUpdate(
-    val status: MonthlyMoneyStatus,
-)
 
 interface MoneyRepository {
     suspend fun getMonthlyMoney(month: String): MonthlyMoney

@@ -9,20 +9,15 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.util.getOrFail
-import kotlinx.serialization.Serializable
 import model.MoneyTags
 import model.MonthlyMoney
 import model.MonthlyMoneyStatus
+import model.MonthlyMoneyStatusUpdate
 import model.PaymentRecord
 import org.koin.ktor.ext.inject
 import server.auth.adminOnly
 import server.auth.authenticated
 import server.auth.firebasePrincipal
-
-@Serializable
-data class MonthlyMoneyStatusUpdate(
-    val status: MonthlyMoneyStatus,
-)
 
 fun Route.moneyRoutes() {
     val moneyRepository by inject<MoneyRepository>()
