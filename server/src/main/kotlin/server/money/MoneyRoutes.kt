@@ -98,6 +98,10 @@ fun Route.moneyRoutes() {
             patch("status", {
                 tags = listOf("money")
                 summary = "月次ステータス更新（admin）"
+                description =
+                    "月次の MonthlyMoneyStatus を更新する。他エンドポイント（PUT / pay / redemption 等）が " +
+                    "FROZEN の月を 409 で拒否するのに対し、このエンドポイントは FROZEN からの遷移（凍結解除）も " +
+                    "含めた任意の状態遷移を admin 権限で許可する。凍結運用を admin が解除できる唯一の経路。"
                 request {
                     pathParameter<String>("month") { description = "月（YYYY-MM）" }
                     body<MonthlyMoneyStatus>()
@@ -111,6 +115,7 @@ fun Route.moneyRoutes() {
                 val month = call.parameters.getOrFail("month")
                 val newStatus = call.receive<MonthlyMoneyStatus>()
                 val existing = moneyRepository.getMonthlyMoney(month) ?: MonthlyMoney(month = month)
+                // FROZEN からの遷移も含めて admin に任意の状態遷移を許可する（凍結解除の唯一経路）。
                 val updated = existing.copy(status = newStatus)
                 moneyRepository.saveMonthlyMoney(month, updated)
                 call.respond(updated)
