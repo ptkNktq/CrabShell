@@ -216,7 +216,7 @@ private fun PaymentListContent(
     loading: Boolean,
     error: String?,
     isCompact: Boolean,
-    status: MonthlyMoneyStatus = MonthlyMoneyStatus.PENDING,
+    status: MonthlyMoneyStatus,
     modifier: Modifier = Modifier,
 ) {
     when {
@@ -443,7 +443,7 @@ private fun SummaryCard(
     totalPaid: Long,
     remaining: Long,
     isCompact: Boolean,
-    status: MonthlyMoneyStatus = MonthlyMoneyStatus.PENDING,
+    status: MonthlyMoneyStatus,
 ) {
     Card(
         modifier =
