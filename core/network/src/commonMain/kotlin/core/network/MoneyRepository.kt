@@ -6,7 +6,6 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import model.MonthlyMoney
 import model.MonthlyMoneyStatus
-import model.MonthlyMoneyStatusUpdate
 import model.PaymentRecord
 
 interface MoneyRepository {
@@ -60,7 +59,7 @@ class MoneyRepositoryImpl(
         client
             .patch("/api/money/$month/status") {
                 contentType(ContentType.Application.Json)
-                setBody(MonthlyMoneyStatusUpdate(status))
+                setBody(status)
             }.body()
 
     override suspend fun importRecurringItems(month: String): MonthlyMoney = client.post("/api/money/$month/import-by-tag").body()

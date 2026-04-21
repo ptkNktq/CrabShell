@@ -12,7 +12,6 @@ import io.ktor.server.util.getOrFail
 import model.MoneyTags
 import model.MonthlyMoney
 import model.MonthlyMoneyStatus
-import model.MonthlyMoneyStatusUpdate
 import model.PaymentRecord
 import org.koin.ktor.ext.inject
 import server.auth.adminOnly
@@ -96,7 +95,7 @@ fun Route.moneyRoutes() {
                 summary = "月次ステータス更新（admin）"
                 request {
                     pathParameter<String>("month") { description = "月（YYYY-MM）" }
-                    body<MonthlyMoneyStatusUpdate>()
+                    body<MonthlyMoneyStatus>()
                 }
                 response {
                     code(HttpStatusCode.OK) {
@@ -105,9 +104,9 @@ fun Route.moneyRoutes() {
                 }
             }) {
                 val month = call.parameters.getOrFail("month")
-                val body = call.receive<MonthlyMoneyStatusUpdate>()
+                val newStatus = call.receive<MonthlyMoneyStatus>()
                 val existing = moneyRepository.getMonthlyMoney(month) ?: MonthlyMoney(month = month)
-                val updated = existing.copy(status = body.status)
+                val updated = existing.copy(status = newStatus)
                 moneyRepository.saveMonthlyMoney(month, updated)
                 call.respond(updated)
             }
