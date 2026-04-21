@@ -67,6 +67,9 @@ fun Route.moneyRoutes() {
             put({
                 tags = listOf("money")
                 summary = "月次お金データ保存（admin）"
+                description =
+                    "items / paymentRecords を保存する。body.status は無視され、既存値（新規月は PENDING）が維持される。" +
+                    "status を変更する場合は PATCH /status を使うこと。"
                 request {
                     pathParameter<String>("month") { description = "月（YYYY-MM）" }
                     body<MonthlyMoney>()
@@ -85,7 +88,8 @@ fun Route.moneyRoutes() {
                     return@put
                 }
                 val body = call.receive<MonthlyMoney>()
-                // status フィールドはこのエンドポイントでは変更しない（専用 PATCH /status で更新）
+                // status はこのエンドポイントでは変更しない（専用 PATCH /status で更新）。
+                // 新規月の場合 existing.status は PENDING になる点に注意。
                 val normalized = body.copy(status = existing.status)
                 moneyRepository.saveMonthlyMoney(month, normalized)
                 call.respond(normalized)
