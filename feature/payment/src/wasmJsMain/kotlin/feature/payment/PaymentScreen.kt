@@ -466,7 +466,7 @@ private fun SummaryCard(
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatusBadge(status = status)
+                    MonthlyMoneyStatusBadge(status = status)
                     if (remaining <= 0 && totalAllocated > 0) {
                         Surface(
                             color = MaterialTheme.colorScheme.primary,
@@ -622,7 +622,7 @@ private fun ItemBreakdownCard(
 }
 
 @Composable
-private fun StatusBadge(status: MonthlyMoneyStatus) {
+private fun MonthlyMoneyStatusBadge(status: MonthlyMoneyStatus) {
     val (container, onContainer) =
         when (status) {
             MonthlyMoneyStatus.PENDING ->
