@@ -169,4 +169,17 @@ class MoneyParsingTest {
     fun parseStatusFallsBackToPendingForUnknownStringWhenLegacyAbsent() {
         assertEquals(MonthlyMoneyStatus.PENDING, parseStatus("UNKNOWN_VALUE", null))
     }
+
+    @Test
+    fun parseStatusTreatsBlankStringAsAbsent() {
+        assertEquals(MonthlyMoneyStatus.PENDING, parseStatus("", null))
+        assertEquals(MonthlyMoneyStatus.PENDING, parseStatus("   ", null))
+        assertEquals(MonthlyMoneyStatus.FROZEN, parseStatus("", true))
+    }
+
+    @Test
+    fun parseStatusTrimsSurroundingWhitespace() {
+        assertEquals(MonthlyMoneyStatus.CONFIRMED, parseStatus(" CONFIRMED ", null))
+        assertEquals(MonthlyMoneyStatus.FROZEN, parseStatus("\tFROZEN\n", null))
+    }
 }

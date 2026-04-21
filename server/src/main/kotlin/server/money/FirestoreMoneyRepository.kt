@@ -144,10 +144,11 @@ internal fun parseStatus(
     statusRaw: String?,
     legacyLocked: Boolean?,
 ): MonthlyMoneyStatus {
-    if (statusRaw != null) {
-        val parsed = runCatching { MonthlyMoneyStatus.valueOf(statusRaw) }.getOrNull()
+    val normalized = statusRaw?.trim()?.takeIf { it.isNotEmpty() }
+    if (normalized != null) {
+        val parsed = runCatching { MonthlyMoneyStatus.valueOf(normalized) }.getOrNull()
         if (parsed != null) return parsed
-        logger.warn("Unknown MonthlyMoneyStatus value: {} — falling back to legacy locked", statusRaw)
+        logger.warn("Unknown MonthlyMoneyStatus value: {} — falling back to legacy locked", normalized)
     }
     return if (legacyLocked == true) MonthlyMoneyStatus.FROZEN else MonthlyMoneyStatus.PENDING
 }
