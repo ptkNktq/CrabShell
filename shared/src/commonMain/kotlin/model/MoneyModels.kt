@@ -1,5 +1,6 @@
 package model
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -32,16 +33,35 @@ object MoneyTags {
     const val CARRY_OVER = "繰越"
 }
 
+/**
+ * 月次支払いの状態。
+ *
+ * 各 enum 値には Firestore / JSON 保存時に使うワイヤ値 [wireValue] を持たせている。
+ * Kotlin 側の enum 名称を将来リネームしても [wireValue] を保持すれば既存データは
+ * 壊れない。JSON シリアライズも [SerialName] で [wireValue] に揃えているため、
+ * Firestore / API / 保存形式の 3 つで表現を一元管理できる。
+ */
 @Serializable
-enum class MonthlyMoneyStatus {
+enum class MonthlyMoneyStatus(
+    val wireValue: String,
+) {
     /** 支払い内容を組み立て中。ユーザーには「確定前」として表示する。 */
-    PENDING,
+    @SerialName("PENDING")
+    PENDING("PENDING"),
 
     /** 支払い内容が確定済み。ユーザーへの告知目的のみで、操作制約は掛からない。 */
-    CONFIRMED,
+    @SerialName("CONFIRMED")
+    CONFIRMED("CONFIRMED"),
 
     /** 月跨ぎ等で凍結済み。項目編集・支払い記録のすべてを拒否する。 */
-    FROZEN,
+    @SerialName("FROZEN")
+    FROZEN("FROZEN"),
+    ;
+
+    companion object {
+        /** ワイヤ値から enum を復元する。未知の値は null を返す。 */
+        fun fromWireValue(value: String): MonthlyMoneyStatus? = entries.firstOrNull { it.wireValue == value }
+    }
 }
 
 @Serializable
