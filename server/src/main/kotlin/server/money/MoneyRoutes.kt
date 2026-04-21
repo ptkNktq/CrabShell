@@ -86,8 +86,9 @@ fun Route.moneyRoutes() {
                 }
                 val body = call.receive<MonthlyMoney>()
                 // status フィールドはこのエンドポイントでは変更しない（専用 PATCH /status で更新）
-                moneyRepository.saveMonthlyMoney(month, body.copy(status = existing.status))
-                call.respond(body.copy(status = existing.status))
+                val normalized = body.copy(status = existing.status)
+                moneyRepository.saveMonthlyMoney(month, normalized)
+                call.respond(normalized)
             }
 
             patch("status", {
