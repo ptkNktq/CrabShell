@@ -266,10 +266,6 @@ docker compose pull && docker compose up -d
 
 - **Popup 系コンポーネント（AlertDialog, DropdownMenu 等）は使用禁止。** Compose for WASM の描画システム上、Popup の DOM teardown とリスト recomposition が同時に走ると高確率で UI フリーズが発生するため。入力フォームはインライン（Card ベース）、選択 UI はインライン（FilterChip 等）で実装すること。
 
-## API Design
-
-- **リクエスト body は 1 フィールドでも必ず DTO でラップする。** `setBody(status)` のように enum / プリミティブを直接渡すと、JSON ルートが裸の文字列 (`"FROZEN"`) やリテラルになり、クライアント実装者にとって直感に反する。また将来フィールドを追加する場合に互換性が壊れる。`MonthlyMoneyStatusUpdate(status)` のような単一フィールド DTO を `shared/` に定義して `{ "status": "..." }` 形式で送受信すること。Swagger UI の body 表示も自然になる。
-
 ## Testing
 
 ```bash
