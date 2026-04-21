@@ -156,7 +156,17 @@ class MoneyParsingTest {
     }
 
     @Test
-    fun parseStatusFallsBackToPendingForUnknownString() {
-        assertEquals(MonthlyMoneyStatus.PENDING, parseStatus("UNKNOWN_VALUE", true))
+    fun parseStatusFallsBackToFrozenForUnknownStringWhenLegacyLocked() {
+        assertEquals(MonthlyMoneyStatus.FROZEN, parseStatus("UNKNOWN_VALUE", true))
+    }
+
+    @Test
+    fun parseStatusFallsBackToPendingForUnknownStringWhenLegacyUnlocked() {
+        assertEquals(MonthlyMoneyStatus.PENDING, parseStatus("UNKNOWN_VALUE", false))
+    }
+
+    @Test
+    fun parseStatusFallsBackToPendingForUnknownStringWhenLegacyAbsent() {
+        assertEquals(MonthlyMoneyStatus.PENDING, parseStatus("UNKNOWN_VALUE", null))
     }
 }

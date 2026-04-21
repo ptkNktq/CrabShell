@@ -8,6 +8,7 @@ import model.MonthlyMoney
 import model.MonthlyMoneyStatus
 import model.Payment
 import model.PaymentRecord
+import org.slf4j.LoggerFactory
 import server.cache.Cacheable
 import server.util.await
 import java.time.YearMonth
@@ -16,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
 private const val MONEY_COLLECTION = "money"
+private val logger = LoggerFactory.getLogger("server.money.FirestoreMoneyRepository")
 
 class FirestoreMoneyRepository(
     private val firestore: Firestore,
@@ -127,16 +129,18 @@ class FirestoreMoneyRepository(
 
 /**
  * Firestore の生フィールドから MonthlyMoneyStatus を復元する。
- * 新形式は `status: "FROZEN"` 等の文字列。旧形式（`locked: Boolean` のみ）からは
- * `locked=true → FROZEN`, `locked=false → PENDING` にフォールバックする。
+ * 新形式は `status: "FROZEN"` 等の文字列。未知の値や status 未設定の場合は
+ * 旧形式（`locked: Boolean`）にフォールバックし、`locked=true → FROZEN`,
+ * それ以外は PENDING として扱う。未知の status 文字列は WARN ログを出す。
  */
 internal fun parseStatus(
     statusRaw: String?,
     legacyLocked: Boolean?,
 ): MonthlyMoneyStatus {
     if (statusRaw != null) {
-        return runCatching { MonthlyMoneyStatus.valueOf(statusRaw) }
-            .getOrDefault(MonthlyMoneyStatus.PENDING)
+        val parsed = runCatching { MonthlyMoneyStatus.valueOf(statusRaw) }.getOrNull()
+        if (parsed != null) return parsed
+        logger.warn("Unknown MonthlyMoneyStatus value: {} — falling back to legacy locked", statusRaw)
     }
     return if (legacyLocked == true) MonthlyMoneyStatus.FROZEN else MonthlyMoneyStatus.PENDING
 }
