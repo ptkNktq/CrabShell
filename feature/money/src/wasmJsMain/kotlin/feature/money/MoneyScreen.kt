@@ -367,7 +367,7 @@ private fun MoneyItemForm(
     formKey: Int,
     users: List<User>,
     saving: Boolean,
-    frozen: Boolean = false,
+    frozen: Boolean,
     onSave: (String, Long, String, List<Payment>, List<String>) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
@@ -791,7 +791,7 @@ private fun MoneyItemCard(
     onMovePrev: () -> Unit,
     onMoveNext: () -> Unit,
     isCompact: Boolean,
-    frozen: Boolean = false,
+    frozen: Boolean,
 ) {
     val paymentTotal = item.payments.sumOf { it.amount }
     val mismatch = paymentTotal != item.amount && item.payments.isNotEmpty()
