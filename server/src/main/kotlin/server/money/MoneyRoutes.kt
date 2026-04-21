@@ -69,8 +69,8 @@ fun Route.moneyRoutes() {
                 tags = listOf("money")
                 summary = "月次お金データ保存（admin）"
                 description =
-                    "items / paymentRecords を保存する。body.status は無視され、既存値（新規月は PENDING）が維持される。 " +
-                    "status を変更する場合は PATCH /status を使うこと。"
+                    "items / paymentRecords を保存する。body.status は無視され、" +
+                    "既存値（新規月は PENDING）が維持される。status を変更する場合は PATCH /status を使うこと。"
                 request {
                     pathParameter<String>("month") { description = "月（YYYY-MM）" }
                     body<MonthlyMoney>()
