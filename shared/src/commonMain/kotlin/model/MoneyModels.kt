@@ -52,11 +52,6 @@ data class MonthlyMoney(
     val status: MonthlyMoneyStatus = MonthlyMoneyStatus.PENDING,
 )
 
-/**
- * PATCH /api/money/{month}/status の body。
- * 単一フィールドでも DTO としてラップすることで、API の body 構造を
- * `{ "status": "..." }` に統一する（プロジェクト方針: CLAUDE.md 参照）。
- */
 @Serializable
 data class MonthlyMoneyStatusUpdate(
     val status: MonthlyMoneyStatus,
