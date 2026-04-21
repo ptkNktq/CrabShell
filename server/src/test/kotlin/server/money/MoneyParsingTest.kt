@@ -129,9 +129,9 @@ class MoneyParsingTest {
     }
 
     @Test
-    fun parseStatusFromExplicitWireValue() {
+    fun parseStatusFromExplicitString() {
         for (status in MonthlyMoneyStatus.entries) {
-            assertEquals(status, parseStatus(status.wireValue, null))
+            assertEquals(status, parseStatus(status.name, null))
         }
     }
 

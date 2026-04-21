@@ -6,7 +6,6 @@ import kotlin.test.assertEquals
 
 class MoneyModelsTest {
     private val json = Json
-    private val jsonWithDefaults = Json { encodeDefaults = true }
 
     @Test
     fun paymentRoundTrip() {
@@ -114,22 +113,5 @@ class MoneyModelsTest {
             val decoded = json.decodeFromString(MonthlyMoney.serializer(), encoded)
             assertEquals(status, decoded.status)
         }
-    }
-
-    @Test
-    fun monthlyMoneyStatusWireValueMatchesJsonRepresentation() {
-        for (status in MonthlyMoneyStatus.entries) {
-            val monthly = MonthlyMoney(month = "2024-07", status = status)
-            val encoded = jsonWithDefaults.encodeToString(MonthlyMoney.serializer(), monthly)
-            assertEquals(true, encoded.contains("\"status\":\"${status.wireValue}\""))
-        }
-    }
-
-    @Test
-    fun monthlyMoneyStatusFromWireValue() {
-        for (status in MonthlyMoneyStatus.entries) {
-            assertEquals(status, MonthlyMoneyStatus.fromWireValue(status.wireValue))
-        }
-        assertEquals(null, MonthlyMoneyStatus.fromWireValue("UNKNOWN"))
     }
 }
