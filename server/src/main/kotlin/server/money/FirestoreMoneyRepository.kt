@@ -76,7 +76,7 @@ class FirestoreMoneyRepository(
         firestore
             .collection(MONEY_COLLECTION)
             .document(month)
-            .set(mapOf("month" to month, "items" to items, "paymentRecords" to records, "status" to data.status.name))
+            .set(mapOf("month" to month, "items" to items, "paymentRecords" to records, "status" to data.status.wireValue))
             .await()
 
         cache[month] = data
@@ -129,16 +129,23 @@ class FirestoreMoneyRepository(
 
 /**
  * Firestore の生フィールドから MonthlyMoneyStatus を復元する。
- * 新形式は `status: "FROZEN"` 等の文字列。未知の値や status 未設定の場合は
- * 旧形式（`locked: Boolean`）にフォールバックし、`locked=true → FROZEN`,
- * それ以外は PENDING として扱う。未知の status 文字列は WARN ログを出す。
+ *
+ * - 新形式: `status: "FROZEN"` 等の文字列。[MonthlyMoneyStatus.wireValue] 経由で復元する。
+ * - 未知の文字列: WARN ログを出した上で旧形式にフォールバックする。
+ * - 旧形式 (`locked: Boolean`): `locked=true → FROZEN` に変換する。
+ *
+ * それ以外（status 未設定 + locked=false または未設定）は [MonthlyMoneyStatus.PENDING] を
+ * デフォルトとして返す。旧運用では `locked=false` は単に「編集可能」を意味し、新 3 状態の
+ * 「確定済みか未確定か」という情報は存在しなかったため、安全側に倒して PENDING とする。
+ * 既に運用上確定していた月は、マイグレーション後に admin が手動で CONFIRMED に切り替える
+ * ことを想定する。
  */
 internal fun parseStatus(
     statusRaw: String?,
     legacyLocked: Boolean?,
 ): MonthlyMoneyStatus {
     if (statusRaw != null) {
-        val parsed = runCatching { MonthlyMoneyStatus.valueOf(statusRaw) }.getOrNull()
+        val parsed = MonthlyMoneyStatus.fromWireValue(statusRaw)
         if (parsed != null) return parsed
         logger.warn("Unknown MonthlyMoneyStatus value: {} — falling back to legacy locked", statusRaw)
     }
