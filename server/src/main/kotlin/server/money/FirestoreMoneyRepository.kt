@@ -49,6 +49,15 @@ class FirestoreMoneyRepository(
         return data
     }
 
+    /**
+     * 月次お金データを Firestore に保存する。
+     *
+     * `set(Map)` は `SetOptions.merge()` を指定しないためドキュメント全体を置換する。
+     * これにより、旧スキーマの `locked: Boolean` フィールドを持つドキュメントを保存した際に
+     * `locked` が自動で削除され、legacy フィールドが残留しない。
+     * 将来この呼び出しを `merge` に変える場合は、`"locked" to FieldValue.delete()` を明示的に
+     * 含めて legacy フィールドの除去を維持すること。
+     */
     override suspend fun saveMonthlyMoney(
         month: String,
         data: MonthlyMoney,
