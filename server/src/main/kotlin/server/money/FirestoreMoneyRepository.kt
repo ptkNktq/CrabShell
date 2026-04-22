@@ -5,8 +5,10 @@ import com.google.cloud.firestore.Firestore
 import model.MoneyItem
 import model.MoneyTags
 import model.MonthlyMoney
+import model.MonthlyMoneyStatus
 import model.Payment
 import model.PaymentRecord
+import org.slf4j.LoggerFactory
 import server.cache.Cacheable
 import server.util.await
 import java.time.YearMonth
@@ -15,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
 private const val MONEY_COLLECTION = "money"
+private val logger = LoggerFactory.getLogger("server.money.FirestoreMoneyRepository")
 
 class FirestoreMoneyRepository(
     private val firestore: Firestore,
@@ -46,6 +49,15 @@ class FirestoreMoneyRepository(
         return data
     }
 
+    /**
+     * 月次お金データを Firestore に保存する。
+     *
+     * `set(Map)` は `SetOptions.merge()` を指定しないためドキュメント全体を置換する。
+     * これにより、旧スキーマの `locked: Boolean` フィールドを持つドキュメントを保存した際に
+     * `locked` が自動で削除され、legacy フィールドが残留しない。
+     * 将来この呼び出しを `merge` に変える場合は、`"locked" to FieldValue.delete()` を明示的に
+     * 含めて legacy フィールドの除去を維持すること。
+     */
     override suspend fun saveMonthlyMoney(
         month: String,
         data: MonthlyMoney,
@@ -73,7 +85,7 @@ class FirestoreMoneyRepository(
         firestore
             .collection(MONEY_COLLECTION)
             .document(month)
-            .set(mapOf("month" to month, "items" to items, "paymentRecords" to records, "locked" to data.locked))
+            .set(mapOf("month" to month, "items" to items, "paymentRecords" to records, "status" to data.status.name))
             .await()
 
         cache[month] = data
@@ -119,9 +131,35 @@ class FirestoreMoneyRepository(
     ): MonthlyMoney {
         val items = parseItems(doc.get("items"))
         val records = parsePaymentRecords(doc.get("paymentRecords"))
-        val locked = doc.getBoolean("locked") ?: false
-        return MonthlyMoney(month = month, items = items, paymentRecords = records, locked = locked)
+        val status = parseStatus(doc.getString("status"), doc.getBoolean("locked"))
+        return MonthlyMoney(month = month, items = items, paymentRecords = records, status = status)
     }
+}
+
+/**
+ * Firestore の生フィールドから MonthlyMoneyStatus を復元する。
+ *
+ * - 新形式: `status: "FROZEN"` 等の文字列。enum の name で復元する。
+ * - 未知の文字列: WARN ログを出した上で旧形式にフォールバックする。
+ * - 旧形式 (`locked: Boolean`): `locked=true → FROZEN` に変換する。
+ *
+ * それ以外（status 未設定 + locked=false または未設定）は [MonthlyMoneyStatus.PENDING] を
+ * デフォルトとして返す。旧運用では `locked=false` は単に「編集可能」を意味し、新 3 状態の
+ * 「確定済みか未確定か」という情報は存在しなかったため、安全側に倒して PENDING とする。
+ * 既に運用上確定していた月は、マイグレーション後に admin が手動で CONFIRMED に切り替える
+ * ことを想定する。
+ */
+internal fun parseStatus(
+    statusRaw: String?,
+    legacyLocked: Boolean?,
+): MonthlyMoneyStatus {
+    val normalized = statusRaw?.trim()?.takeIf { it.isNotEmpty() }
+    if (normalized != null) {
+        val parsed = runCatching { MonthlyMoneyStatus.valueOf(normalized) }.getOrNull()
+        if (parsed != null) return parsed
+        logger.warn("Unknown MonthlyMoneyStatus value: {} — falling back to legacy locked", normalized)
+    }
+    return if (legacyLocked == true) MonthlyMoneyStatus.FROZEN else MonthlyMoneyStatus.PENDING
 }
 
 /** Map リストから MoneyItem リストをパースする（テスト用に internal） */

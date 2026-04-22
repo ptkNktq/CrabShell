@@ -99,17 +99,19 @@ class MoneyModelsTest {
     }
 
     @Test
-    fun monthlyMoneyLockedDefault() {
+    fun monthlyMoneyStatusDefault() {
         val jsonStr = """{"month":"2024-07"}"""
         val decoded = json.decodeFromString(MonthlyMoney.serializer(), jsonStr)
-        assertEquals(false, decoded.locked)
+        assertEquals(MonthlyMoneyStatus.PENDING, decoded.status)
     }
 
     @Test
-    fun monthlyMoneyLockedRoundTrip() {
-        val monthly = MonthlyMoney(month = "2024-07", locked = true)
-        val encoded = json.encodeToString(MonthlyMoney.serializer(), monthly)
-        val decoded = json.decodeFromString(MonthlyMoney.serializer(), encoded)
-        assertEquals(true, decoded.locked)
+    fun monthlyMoneyStatusRoundTrip() {
+        for (status in MonthlyMoneyStatus.entries) {
+            val monthly = MonthlyMoney(month = "2024-07", status = status)
+            val encoded = json.encodeToString(MonthlyMoney.serializer(), monthly)
+            val decoded = json.decodeFromString(MonthlyMoney.serializer(), encoded)
+            assertEquals(status, decoded.status)
+        }
     }
 }

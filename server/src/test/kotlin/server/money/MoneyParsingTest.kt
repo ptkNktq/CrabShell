@@ -1,6 +1,7 @@
 package server.money
 
 import model.MoneyTags
+import model.MonthlyMoneyStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -125,5 +126,60 @@ class MoneyParsingTest {
     @Test
     fun parsePaymentRecordsReturnsEmptyForNull() {
         assertEquals(emptyList(), parsePaymentRecords(null))
+    }
+
+    @Test
+    fun parseStatusFromExplicitString() {
+        for (status in MonthlyMoneyStatus.entries) {
+            assertEquals(status, parseStatus(status.name, null))
+        }
+    }
+
+    @Test
+    fun parseStatusFallsBackToLegacyLockedTrue() {
+        assertEquals(MonthlyMoneyStatus.FROZEN, parseStatus(null, true))
+    }
+
+    @Test
+    fun parseStatusFallsBackToLegacyLockedFalse() {
+        assertEquals(MonthlyMoneyStatus.PENDING, parseStatus(null, false))
+    }
+
+    @Test
+    fun parseStatusDefaultsToPendingWhenAbsent() {
+        assertEquals(MonthlyMoneyStatus.PENDING, parseStatus(null, null))
+    }
+
+    @Test
+    fun parseStatusStringTakesPrecedenceOverLegacyLocked() {
+        assertEquals(MonthlyMoneyStatus.CONFIRMED, parseStatus("CONFIRMED", true))
+    }
+
+    @Test
+    fun parseStatusFallsBackToFrozenForUnknownStringWhenLegacyLocked() {
+        assertEquals(MonthlyMoneyStatus.FROZEN, parseStatus("UNKNOWN_VALUE", true))
+    }
+
+    @Test
+    fun parseStatusFallsBackToPendingForUnknownStringWhenLegacyUnlocked() {
+        assertEquals(MonthlyMoneyStatus.PENDING, parseStatus("UNKNOWN_VALUE", false))
+    }
+
+    @Test
+    fun parseStatusFallsBackToPendingForUnknownStringWhenLegacyAbsent() {
+        assertEquals(MonthlyMoneyStatus.PENDING, parseStatus("UNKNOWN_VALUE", null))
+    }
+
+    @Test
+    fun parseStatusTreatsBlankStringAsAbsent() {
+        assertEquals(MonthlyMoneyStatus.PENDING, parseStatus("", null))
+        assertEquals(MonthlyMoneyStatus.PENDING, parseStatus("   ", null))
+        assertEquals(MonthlyMoneyStatus.FROZEN, parseStatus("", true))
+    }
+
+    @Test
+    fun parseStatusTrimsSurroundingWhitespace() {
+        assertEquals(MonthlyMoneyStatus.CONFIRMED, parseStatus(" CONFIRMED ", null))
+        assertEquals(MonthlyMoneyStatus.FROZEN, parseStatus("\tFROZEN\n", null))
     }
 }

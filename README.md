@@ -285,6 +285,14 @@ docker compose up -d
 docker compose pull && docker compose up -d
 ```
 
+## API 設計
+
+### リクエスト body の DTO ラップ
+
+リクエスト body は 1 フィールドでも必ず DTO でラップする。`setBody(status)` のように enum / プリミティブを直接渡すと、JSON ルートが裸の文字列（`"FROZEN"` など）やリテラルになり、クライアント実装者にとって直感に反する。また将来フィールドを追加する場合に互換性が壊れる。
+
+`MonthlyMoneyStatusUpdate(status)` のような単一フィールド DTO を `shared/` に定義して `{ "status": "..." }` 形式で送受信する。Swagger UI の body 表示も自然になる。
+
 ## セキュリティ
 
 ### CORS

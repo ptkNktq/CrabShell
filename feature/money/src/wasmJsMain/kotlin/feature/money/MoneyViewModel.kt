@@ -13,6 +13,7 @@ import core.network.UserRepository
 import kotlinx.coroutines.launch
 import model.MoneyItem
 import model.MonthlyMoney
+import model.MonthlyMoneyStatus
 import model.Payment
 import model.User
 
@@ -119,10 +120,11 @@ class MoneyViewModel(
         onLoadMonth(shiftMonthJs(uiState.currentMonth.toJsString(), 1).toString())
     }
 
-    fun onToggleLock() {
+    fun onUpdateStatus(status: MonthlyMoneyStatus) {
+        if (uiState.monthlyMoney.status == status) return
         viewModelScope.launch {
             try {
-                val updated = moneyRepository.toggleLock(uiState.currentMonth)
+                val updated = moneyRepository.updateStatus(uiState.currentMonth, status)
                 uiState = uiState.copy(monthlyMoney = updated)
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)

@@ -5,6 +5,8 @@ import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import model.MonthlyMoney
+import model.MonthlyMoneyStatus
+import model.MonthlyMoneyStatusUpdate
 import model.PaymentRecord
 
 interface MoneyRepository {
@@ -19,7 +21,10 @@ interface MoneyRepository {
         record: PaymentRecord,
     ): MonthlyMoney
 
-    suspend fun toggleLock(month: String): MonthlyMoney
+    suspend fun updateStatus(
+        month: String,
+        status: MonthlyMoneyStatus,
+    ): MonthlyMoney
 
     suspend fun importRecurringItems(month: String): MonthlyMoney
 }
@@ -48,7 +53,15 @@ class MoneyRepositoryImpl(
                 setBody(record)
             }.body()
 
-    override suspend fun toggleLock(month: String): MonthlyMoney = client.patch("/api/money/$month/lock").body()
+    override suspend fun updateStatus(
+        month: String,
+        status: MonthlyMoneyStatus,
+    ): MonthlyMoney =
+        client
+            .patch("/api/money/$month/status") {
+                contentType(ContentType.Application.Json)
+                setBody(MonthlyMoneyStatusUpdate(status))
+            }.body()
 
     override suspend fun importRecurringItems(month: String): MonthlyMoney = client.post("/api/money/$month/import-by-tag").body()
 }

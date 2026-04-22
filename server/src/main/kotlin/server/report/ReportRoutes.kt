@@ -13,6 +13,7 @@ import model.ExpenseReport
 import model.MoneyTags
 import model.MonthlyExpenseSummary
 import model.MonthlyMoney
+import model.MonthlyMoneyStatus
 import model.OverpaymentRedemptionRequest
 import model.PaymentRecord
 import model.UserBalance
@@ -118,7 +119,7 @@ fun Route.reportRoutes() {
                     body<Map<String, String>>()
                 }
                 code(HttpStatusCode.BadRequest) { description = "不正なリクエスト" }
-                code(HttpStatusCode.Conflict) { description = "ロック中" }
+                code(HttpStatusCode.Conflict) { description = "凍結中" }
             }
         }) {
             val req = call.receive<OverpaymentRedemptionRequest>()
@@ -133,8 +134,8 @@ fun Route.reportRoutes() {
             }
 
             val data = moneyRepository.getMonthlyMoney(req.month) ?: MonthlyMoney(month = req.month)
-            if (data.locked) {
-                call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is locked"))
+            if (data.status == MonthlyMoneyStatus.FROZEN) {
+                call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is frozen"))
                 return@post
             }
             val record =

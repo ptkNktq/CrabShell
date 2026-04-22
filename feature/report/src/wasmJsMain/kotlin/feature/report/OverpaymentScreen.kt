@@ -20,7 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -142,7 +142,7 @@ private fun RedemptionInlineCard(
     modifier: Modifier = Modifier,
 ) {
     val inputEnabled = !form.isSaving
-    val locked = form.isMonthLocked
+    val frozen = form.isMonthFrozen
 
     Card(
         modifier = modifier,
@@ -212,20 +212,20 @@ private fun RedemptionInlineCard(
                 enabled = inputEnabled,
             )
 
-            // ロック警告
-            if (locked) {
+            // 凍結警告
+            if (frozen) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Icon(
-                        Icons.Default.Lock,
+                        Icons.Default.Block,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(16.dp),
                     )
                     Text(
-                        text = "この月はロックされています",
+                        text = "この月は凍結されています",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
@@ -243,12 +243,12 @@ private fun RedemptionInlineCard(
                     label = { Text("金額 (円)") },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
-                    enabled = inputEnabled && !locked,
+                    enabled = inputEnabled && !frozen,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
                 OutlinedButton(
                     onClick = onFillRemaining,
-                    enabled = inputEnabled && !locked && form.selectedUid.isNotEmpty(),
+                    enabled = inputEnabled && !frozen && form.selectedUid.isNotEmpty(),
                     contentPadding = PaddingValues(horizontal = 8.dp),
                 ) {
                     Text("残額全額", style = MaterialTheme.typography.labelSmall)
@@ -262,7 +262,7 @@ private fun RedemptionInlineCard(
                 label = { Text("備考") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                enabled = inputEnabled && !locked,
+                enabled = inputEnabled && !frozen,
             )
 
             // エラー表示

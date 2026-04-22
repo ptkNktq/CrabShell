@@ -2,6 +2,7 @@ package server.money
 
 import model.MoneyItem
 import model.MonthlyMoney
+import model.MonthlyMoneyStatus
 import model.Payment
 import model.PaymentRecord
 import kotlin.test.Test
@@ -48,16 +49,18 @@ class MoneyFiltersTest {
     }
 
     @Test
-    fun filterPreservesLockedState() {
-        val data =
-            MonthlyMoney(
-                month = "2024-06",
-                items = emptyList(),
-                paymentRecords = emptyList(),
-                locked = true,
-            )
-        val filtered = data.filterForUser("u1")
-        assertEquals(true, filtered.locked)
+    fun filterPreservesStatus() {
+        for (status in MonthlyMoneyStatus.entries) {
+            val data =
+                MonthlyMoney(
+                    month = "2024-06",
+                    items = emptyList(),
+                    paymentRecords = emptyList(),
+                    status = status,
+                )
+            val filtered = data.filterForUser("u1")
+            assertEquals(status, filtered.status)
+        }
     }
 
     @Test

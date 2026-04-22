@@ -33,9 +33,26 @@ object MoneyTags {
 }
 
 @Serializable
+enum class MonthlyMoneyStatus {
+    /** 支払い内容を組み立て中。ユーザーには「確定前」として表示する。 */
+    PENDING,
+
+    /** 支払い内容が確定済み。ユーザーへの告知目的のみで、操作制約は掛からない。 */
+    CONFIRMED,
+
+    /** 月跨ぎ等で凍結済み。項目編集・支払い記録のすべてを拒否する。 */
+    FROZEN,
+}
+
+@Serializable
 data class MonthlyMoney(
     val month: String,
     val items: List<MoneyItem> = emptyList(),
     val paymentRecords: List<PaymentRecord> = emptyList(),
-    val locked: Boolean = false,
+    val status: MonthlyMoneyStatus = MonthlyMoneyStatus.PENDING,
+)
+
+@Serializable
+data class MonthlyMoneyStatusUpdate(
+    val status: MonthlyMoneyStatus,
 )

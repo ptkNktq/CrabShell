@@ -13,8 +13,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -30,10 +28,13 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
+import core.ui.extensions.displayName
+import core.ui.extensions.icon
 import core.ui.formatYen
 import model.MoneyItem
 import model.MoneyTags
 import model.MonthlyMoney
+import model.MonthlyMoneyStatus
 import model.Payment
 import model.PaymentRecord
 import model.User
@@ -59,7 +60,7 @@ fun MoneyScreen(vm: MoneyViewModel = koinViewModel()) {
         onDeleteItem = vm::onDeleteItem,
         onMoveItem = vm::onMoveItem,
         onSaveItem = vm::onSaveItem,
-        onToggleLock = vm::onToggleLock,
+        onUpdateStatus = vm::onUpdateStatus,
         onImportRecurringItems = vm::onImportRecurringItems,
         windowSizeClass = windowSizeClass,
     )
@@ -82,11 +83,12 @@ internal fun MoneyContent(
     onDeleteItem: (MoneyItem) -> Unit,
     onMoveItem: (MoneyItem, Int) -> Unit,
     onSaveItem: (String, Long, String, List<Payment>, List<String>) -> Unit,
-    onToggleLock: () -> Unit,
+    onUpdateStatus: (MonthlyMoneyStatus) -> Unit,
     onImportRecurringItems: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
-    val locked = monthlyMoney.locked
+    val status = monthlyMoney.status
+    val frozen = status == MonthlyMoneyStatus.FROZEN
     val isCompact = windowSizeClass == WindowSizeClass.Compact
     // Compact 用: フォーム表示切替
     var showFormCompact by remember { mutableStateOf(false) }
@@ -125,7 +127,7 @@ internal fun MoneyContent(
                         formKey = formKey,
                         users = users,
                         saving = saving,
-                        locked = locked,
+                        frozen = frozen,
                         onSave = onSaveItem,
                         onCancel = {
                             onClearForm()
@@ -148,28 +150,16 @@ internal fun MoneyContent(
                         color = MaterialTheme.colorScheme.primary,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        MonthSelector(
-                            month = currentMonth,
-                            onPrevious = onPreviousMonth,
-                            onNext = onNextMonth,
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
-                        IconButton(onClick = onToggleLock) {
-                            Icon(
-                                if (locked) Icons.Default.Lock else Icons.Default.LockOpen,
-                                contentDescription = if (locked) "ロック解除" else "ロック",
-                                tint =
-                                    if (locked) {
-                                        MaterialTheme.colorScheme.error
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    },
-                            )
-                        }
-                    }
+                    MonthSelector(
+                        month = currentMonth,
+                        onPrevious = onPreviousMonth,
+                        onNext = onNextMonth,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    MonthStatusSelector(
+                        status = status,
+                        onStatusChange = onUpdateStatus,
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
 
                     // 追加ボタン + インポートボタン
@@ -180,12 +170,13 @@ internal fun MoneyContent(
                                 showFormCompact = true
                             },
                             modifier = Modifier.fillMaxWidth(),
+                            enabled = !frozen,
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("項目を追加")
                         }
-                        if (!locked) {
+                        if (!frozen) {
                             Spacer(modifier = Modifier.height(4.dp))
                             OutlinedButton(
                                 onClick = onImportRecurringItems,
@@ -204,7 +195,7 @@ internal fun MoneyContent(
                         error = error,
                         users = users,
                         isCompact = true,
-                        locked = locked,
+                        frozen = frozen,
                         onEditItem = { item ->
                             onEditItem(item)
                             showFormCompact = true
@@ -231,27 +222,18 @@ internal fun MoneyContent(
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     MonthSelector(
                         month = currentMonth,
                         onPrevious = onPreviousMonth,
                         onNext = onNextMonth,
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    IconButton(onClick = onToggleLock) {
-                        Icon(
-                            if (locked) Icons.Default.Lock else Icons.Default.LockOpen,
-                            contentDescription = if (locked) "ロック解除" else "ロック",
-                            tint =
-                                if (locked) {
-                                    MaterialTheme.colorScheme.error
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                        )
-                    }
-                    if (!locked && !loading && error == null) {
-                        Spacer(modifier = Modifier.width(8.dp))
+                    MonthStatusSelector(
+                        status = status,
+                        onStatusChange = onUpdateStatus,
+                    )
+                    if (!frozen && !loading && error == null) {
                         OutlinedButton(
                             onClick = onImportRecurringItems,
                             enabled = !saving,
@@ -270,7 +252,7 @@ internal fun MoneyContent(
                         error = error,
                         users = users,
                         isCompact = false,
-                        locked = locked,
+                        frozen = frozen,
                         onEditItem = onEditItem,
                         onDeleteItem = onDeleteItem,
                         onMoveItem = onMoveItem,
@@ -284,7 +266,7 @@ internal fun MoneyContent(
                         formKey = formKey,
                         users = users,
                         saving = saving,
-                        locked = locked,
+                        frozen = frozen,
                         onSave = onSaveItem,
                         onCancel = onClearForm,
                         modifier = Modifier.width(400.dp),
@@ -307,7 +289,7 @@ private fun MoneyListContent(
     error: String?,
     users: List<User>,
     isCompact: Boolean,
-    locked: Boolean,
+    frozen: Boolean,
     onEditItem: (MoneyItem) -> Unit,
     onDeleteItem: (MoneyItem) -> Unit,
     onMoveItem: (MoneyItem, Int) -> Unit,
@@ -370,7 +352,7 @@ private fun MoneyListContent(
                         onMovePrev = { onMoveItem(item, -1) },
                         onMoveNext = { onMoveItem(item, 1) },
                         isCompact = isCompact,
-                        locked = locked,
+                        frozen = frozen,
                     )
                 }
             }
@@ -384,7 +366,7 @@ private fun MoneyItemForm(
     formKey: Int,
     users: List<User>,
     saving: Boolean,
-    locked: Boolean = false,
+    frozen: Boolean,
     onSave: (String, Long, String, List<Payment>, List<String>) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
@@ -577,19 +559,19 @@ private fun MoneyItemForm(
                 }
             }
 
-            if (locked) {
+            if (frozen) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Icon(
-                        Icons.Default.Lock,
+                        MonthlyMoneyStatus.FROZEN.icon,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(16.dp),
                     )
                     Text(
-                        text = "この月はロックされています",
+                        text = "この月は凍結されています",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
@@ -607,7 +589,7 @@ private fun MoneyItemForm(
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
                     onClick = { onSave(name, amount, note, payments, selectedTags) },
-                    enabled = name.isNotBlank() && isAmountValid && !saving && !locked,
+                    enabled = name.isNotBlank() && isAmountValid && !saving && !frozen,
                 ) {
                     Text(if (isEditing) "保存" else "追加")
                 }
@@ -638,6 +620,35 @@ private fun MonthSelector(
         )
         IconButton(onClick = onNext) {
             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "翌月")
+        }
+    }
+}
+
+@Composable
+private fun MonthStatusSelector(
+    status: MonthlyMoneyStatus,
+    onStatusChange: (MonthlyMoneyStatus) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    FlowRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        for (candidate in MonthlyMoneyStatus.entries) {
+            val selected = candidate == status
+            FilterChip(
+                selected = selected,
+                onClick = { if (!selected) onStatusChange(candidate) },
+                label = { Text(candidate.displayName, style = MaterialTheme.typography.labelMedium) },
+                leadingIcon = {
+                    Icon(
+                        candidate.icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                },
+            )
         }
     }
 }
@@ -779,7 +790,7 @@ private fun MoneyItemCard(
     onMovePrev: () -> Unit,
     onMoveNext: () -> Unit,
     isCompact: Boolean,
-    locked: Boolean = false,
+    frozen: Boolean,
 ) {
     val paymentTotal = item.payments.sumOf { it.amount }
     val mismatch = paymentTotal != item.amount && item.payments.isNotEmpty()
@@ -831,7 +842,7 @@ private fun MoneyItemCard(
                 }
 
                 Row {
-                    if (!locked) {
+                    if (!frozen) {
                         IconButton(onClick = onMovePrev) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,

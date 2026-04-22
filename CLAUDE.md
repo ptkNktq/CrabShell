@@ -116,6 +116,7 @@ server/              → Ktor server (Netty, JVM)
                        Koin DI でリポジトリ注入（ServerModule）
                        Repository 層: interface + Firestore 実装 class
                        ルートハンドラは HTTP 処理 + ビジネスルール判定のみ
+                       ※ API 設計方針（リクエスト body の DTO ラップ等）は README.md の「API 設計」セクションを参照
 
 core/common/         → 環境判定（isDevEnvironment）、AppLogger、TabResumedEvent など横断的ユーティリティ (commonMain)
                        wasmJs: window.location.port による開発環境判定、PageVisibility (visibilitychange)
