@@ -224,6 +224,8 @@ git tag v1.x.x && git push origin v1.x.x
 
 Dockerfile はマルチステージビルド（Gradle でビルド → JRE Alpine で実行）。ビルドステージで WASM フロントエンド + fat JAR を生成し、実行ステージは `eclipse-temurin:21-jre-alpine` 上で `app.jar` を起動する。ポート 8080 を公開。GHCR 経由で本番デプロイする（リバースプロキシ前提）。HEALTHCHECK 付き。詳細は README.md の「Docker」セクションを参照。
 
+ビルドステージでは CI runner の OOM 回避のため Gradle daemon `-Xmx2g` + Kotlin compiler daemon `-Xmx4g` + `parallel=false` で起動する。`compileProductionExecutableKotlinWasmJs` は別プロセス（Kotlin compiler daemon）で動くため、`org.gradle.jvmargs` ではなく `kotlin.daemon.jvmargs` を増やす必要がある。
+
 ```bash
 # 手動ビルド & push（通常は CD ワークフローが自動実行するため不要）
 docker build --build-arg COMMIT_HASH=$(git rev-parse --short HEAD) \
