@@ -208,7 +208,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 GitHub Actions で CI/CD を構成。
 
 - **CI** (`.github/workflows/ci.yml`): PR・main push 時に lint / test / build を実行。Renovate の patch auto-merge は `platformAutomerge: false` により CI pass 後に Renovate 自身がマージする。
-- **CD** (`.github/workflows/cd.yml`): `v*` タグ push 時に Docker イメージをビルドし GHCR に push。`:latest` と `:v1.x.x` の2タグ。
+- **CD** (`.github/workflows/cd.yml`): `v*` タグ push 時に Docker イメージをビルドし GHCR に push。`:latest` と `:v1.x.x` の2タグ。完了後に Discord へ成否通知（GitHub Secret `DISCORD_WEBHOOK_URL` が必要。未設定時は通知をスキップ）。
 
 ### デプロイフロー
 
@@ -217,12 +217,15 @@ PR マージ → main 更新（CI 検証済み）
   ↓ 任意のタイミングでタグ push
 git tag v1.x.x && git push origin v1.x.x
   ↓ CD が GHCR にイメージ push
+  ↓ Discord に成否通知
   ↓ 本番サーバーが定期的に pull → 自動反映
 ```
 
 ## Docker
 
 Dockerfile はマルチステージビルド（Gradle でビルド → JRE Alpine で実行）。ビルドステージで WASM フロントエンド + fat JAR を生成し、実行ステージは `eclipse-temurin:21-jre-alpine` 上で `app.jar` を起動する。ポート 8080 を公開。GHCR 経由で本番デプロイする（リバースプロキシ前提）。HEALTHCHECK 付き。詳細は README.md の「Docker」セクションを参照。
+
+ビルドステージでは CI runner の OOM 回避のため Gradle daemon `-Xmx2g` + Kotlin compiler daemon `-Xmx4g` + `parallel=false` で起動する。`compileProductionExecutableKotlinWasmJs` は別プロセス（Kotlin compiler daemon）で動くため、`org.gradle.jvmargs` ではなく `kotlin.daemon.jvmargs` を増やす必要がある。
 
 ```bash
 # 手動ビルド & push（通常は CD ワークフローが自動実行するため不要）
