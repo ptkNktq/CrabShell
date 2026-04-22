@@ -208,7 +208,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 GitHub Actions で CI/CD を構成。
 
 - **CI** (`.github/workflows/ci.yml`): PR・main push 時に lint / test / build を実行。Renovate の patch auto-merge は `platformAutomerge: false` により CI pass 後に Renovate 自身がマージする。
-- **CD** (`.github/workflows/cd.yml`): `v*` タグ push 時に Docker イメージをビルドし GHCR に push。`:latest` と `:v1.x.x` の2タグ。
+- **CD** (`.github/workflows/cd.yml`): `v*` タグ push 時に Docker イメージをビルドし GHCR に push。`:latest` と `:v1.x.x` の2タグ。完了後に Discord へ成否通知（GitHub Secret `DISCORD_WEBHOOK_URL` が必要。未設定時は通知をスキップ）。
 
 ### デプロイフロー
 
@@ -217,6 +217,7 @@ PR マージ → main 更新（CI 検証済み）
   ↓ 任意のタイミングでタグ push
 git tag v1.x.x && git push origin v1.x.x
   ↓ CD が GHCR にイメージ push
+  ↓ Discord に成否通知
   ↓ 本番サーバーが定期的に pull → 自動反映
 ```
 

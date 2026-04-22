@@ -25,3 +25,46 @@ jobs:
             -t ghcr.io/ptknktq/crabshell:${{ github.ref_name }} .
           docker push ghcr.io/ptknktq/crabshell:latest
           docker push ghcr.io/ptknktq/crabshell:${{ github.ref_name }}
+      - name: Notify Discord
+        if: always()
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          STATUS: ${{ job.status }}
+          REF_NAME: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          SERVER_URL: ${{ github.server_url }}
+        run: |
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "DISCORD_WEBHOOK_URL is not set; skipping notification."
+            exit 0
+          fi
+          if [ "$STATUS" = "success" ]; then
+            title="CD 成功"
+            color=3066993
+          else
+            title="CD 失敗"
+            color=15158332
+          fi
+          short_sha="${SHA:0:7}"
+          payload=$(jq -n \
+            --arg title "$title" \
+            --argjson color "$color" \
+            --arg ref "$REF_NAME" \
+            --arg sha "$short_sha" \
+            --arg commit_url "$SERVER_URL/$REPO/commit/$SHA" \
+            --arg run_url "$SERVER_URL/$REPO/actions/runs/$RUN_ID" \
+            '{
+              embeds: [{
+                title: $title,
+                color: $color,
+                fields: [
+                  {name: "タグ", value: $ref, inline: true},
+                  {name: "コミット", value: ("[`" + $sha + "`](" + $commit_url + ")"), inline: true},
+                  {name: "ワークフロー", value: ("[実行ログを開く](" + $run_url + ")"), inline: false}
+                ],
+                timestamp: (now | todate)
+              }]
+            }')
+          curl -sSf -H "Content-Type: application/json" -d "$payload" "$WEBHOOK_URL"
