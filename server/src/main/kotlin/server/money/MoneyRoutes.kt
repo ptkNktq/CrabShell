@@ -21,6 +21,7 @@ import server.auth.firebasePrincipal
 
 fun Route.moneyRoutes() {
     val moneyRepository by inject<MoneyRepository>()
+    val moneyWebhookService by inject<MoneyWebhookService>()
 
     route("/money/{yearMonth}") {
         // 管理者: データ取得・全体保存
@@ -119,6 +120,10 @@ fun Route.moneyRoutes() {
                 // FROZEN からの遷移も含めて admin に任意の状態遷移を許可する（凍結解除の唯一経路）。
                 val updated = existing.copy(status = body.status)
                 moneyRepository.saveMonthlyMoney(yearMonth, updated)
+                // 同一ステータスへの冪等 PATCH での連打通知を避けるため、実際に遷移した場合のみ送信。
+                if (existing.status != body.status && body.status == MonthlyMoneyStatus.CONFIRMED) {
+                    moneyWebhookService.notifyConfirmed(yearMonth)
+                }
                 call.respond(updated)
             }
         }

@@ -111,7 +111,7 @@ shared/              → Kotlin Multiplatform library
 
 server/              → Ktor server (Netty, JVM)
                        Depends on :shared
-                       Routes: /api/{firebase-config,users,pets,feeding,garbage,money,report,quest,point,quest-webhook,cache,login-history,passkey}
+                       Routes: /api/{firebase-config,users,pets,feeding,garbage,money,money-webhook,report,quest,point,quest-webhook,cache,login-history,passkey}
                        Firebase Auth verification
                        Koin DI でリポジトリ注入（ServerModule）
                        Repository 層: interface + Firestore 実装 class

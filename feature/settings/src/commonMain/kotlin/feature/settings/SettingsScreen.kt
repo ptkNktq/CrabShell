@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Cached
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeleteSweep
@@ -72,6 +73,7 @@ internal enum class SettingsCategory(
     Pet("ペット", Icons.Default.Pets, adminOnly = true),
     Garbage("ゴミ出し", Icons.Default.DeleteSweep, adminOnly = true),
     Quest("クエスト", Icons.Default.Star, adminOnly = true),
+    Money("お金", Icons.Default.AccountBalance, adminOnly = true),
     Cache("サーバーキャッシュ", Icons.Default.Cached, adminOnly = true),
 }
 
@@ -87,6 +89,7 @@ fun SettingsScreen(
     val userNameVm = remember(isAdmin) { if (isAdmin) koin.get<UserNameViewModel>() else null }
     val garbageVm = remember(isAdmin) { if (isAdmin) koin.get<GarbageScheduleViewModel>() else null }
     val questWebhookVm = remember(isAdmin) { if (isAdmin) koin.get<QuestWebhookViewModel>() else null }
+    val moneyWebhookVm = remember(isAdmin) { if (isAdmin) koin.get<MoneyWebhookViewModel>() else null }
     val cacheVm = remember(isAdmin) { if (isAdmin) koin.get<CacheRefreshViewModel>() else null }
     val petSettingsVm = remember(isAdmin) { if (isAdmin) koin.get<PetSettingsViewModel>() else null }
     val windowSizeClass = LocalWindowSizeClass.current
@@ -161,6 +164,19 @@ fun SettingsScreen(
         onQuestWebhookToggleEvent = { questWebhookVm?.onToggleEvent(it) },
         onSaveQuestWebhook = { questWebhookVm?.onSave() },
         onRetryQuestWebhook = { questWebhookVm?.loadSettings() },
+        moneyWebhookLoading = moneyWebhookVm?.uiState?.isLoading ?: false,
+        moneyWebhookLoadError = moneyWebhookVm?.uiState?.loadError ?: false,
+        moneyWebhookLoadErrorMessage = moneyWebhookVm?.uiState?.loadErrorMessage,
+        moneyWebhookUrl = moneyWebhookVm?.uiState?.url ?: "",
+        moneyWebhookEnabled = moneyWebhookVm?.uiState?.enabled ?: false,
+        moneyWebhookMessage = moneyWebhookVm?.uiState?.message ?: "",
+        moneyWebhookSaving = moneyWebhookVm?.uiState?.isSaving ?: false,
+        moneyWebhookStatusMessage = moneyWebhookVm?.uiState?.statusMessage,
+        onMoneyWebhookUrlChanged = { moneyWebhookVm?.onUrlChanged(it) },
+        onMoneyWebhookEnabledChanged = { moneyWebhookVm?.onEnabledChanged(it) },
+        onMoneyWebhookMessageChanged = { moneyWebhookVm?.onMessageChanged(it) },
+        onSaveMoneyWebhook = { moneyWebhookVm?.onSave() },
+        onRetryMoneyWebhook = { moneyWebhookVm?.loadSettings() },
         cacheClearing = cacheVm?.uiState?.isClearing ?: false,
         cacheMessage = cacheVm?.uiState?.message,
         onClearCache = { cacheVm?.onClearCache() },
@@ -261,6 +277,19 @@ internal fun SettingsContent(
     onQuestWebhookToggleEvent: (String) -> Unit = {},
     onSaveQuestWebhook: () -> Unit = {},
     onRetryQuestWebhook: () -> Unit = {},
+    moneyWebhookLoading: Boolean = false,
+    moneyWebhookLoadError: Boolean = false,
+    moneyWebhookLoadErrorMessage: String? = null,
+    moneyWebhookUrl: String = "",
+    moneyWebhookEnabled: Boolean = false,
+    moneyWebhookMessage: String = "",
+    moneyWebhookSaving: Boolean = false,
+    moneyWebhookStatusMessage: String? = null,
+    onMoneyWebhookUrlChanged: (String) -> Unit = {},
+    onMoneyWebhookEnabledChanged: (Boolean) -> Unit = {},
+    onMoneyWebhookMessageChanged: (String) -> Unit = {},
+    onSaveMoneyWebhook: () -> Unit = {},
+    onRetryMoneyWebhook: () -> Unit = {},
     cacheClearing: Boolean = false,
     cacheMessage: String? = null,
     onClearCache: () -> Unit = {},
@@ -439,6 +468,24 @@ internal fun SettingsContent(
                     onToggleEvent = onQuestWebhookToggleEvent,
                     onSave = onSaveQuestWebhook,
                     onRetry = onRetryQuestWebhook,
+                    modifier = cardModifier,
+                )
+            }
+            SettingsCategory.Money -> {
+                MoneyWebhookSettingsCard(
+                    isLoading = moneyWebhookLoading,
+                    loadError = moneyWebhookLoadError,
+                    loadErrorMessage = moneyWebhookLoadErrorMessage,
+                    url = moneyWebhookUrl,
+                    enabled = moneyWebhookEnabled,
+                    message = moneyWebhookMessage,
+                    isSaving = moneyWebhookSaving,
+                    statusMessage = moneyWebhookStatusMessage,
+                    onUrlChanged = onMoneyWebhookUrlChanged,
+                    onEnabledChanged = onMoneyWebhookEnabledChanged,
+                    onMessageChanged = onMoneyWebhookMessageChanged,
+                    onSave = onSaveMoneyWebhook,
+                    onRetry = onRetryMoneyWebhook,
                     modifier = cardModifier,
                 )
             }
@@ -1189,6 +1236,107 @@ private fun QuestWebhookSettingsCard(
                 if (message != null) {
                     Text(
                         text = message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+
+                Button(
+                    onClick = onSave,
+                    modifier = Modifier.height(48.dp),
+                    enabled = !isSaving,
+                ) {
+                    if (isSaving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    } else {
+                        Text("保存する")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MoneyWebhookSettingsCard(
+    isLoading: Boolean,
+    loadError: Boolean = false,
+    loadErrorMessage: String? = null,
+    url: String,
+    enabled: Boolean,
+    message: String,
+    isSaving: Boolean,
+    statusMessage: String?,
+    onUrlChanged: (String) -> Unit,
+    onEnabledChanged: (Boolean) -> Unit,
+    onMessageChanged: (String) -> Unit,
+    onSave: () -> Unit,
+    onRetry: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier,
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
+    ) {
+        LoadableCardContent(
+            isLoading = isLoading,
+            loadError = loadError,
+            loadErrorMessage = loadErrorMessage,
+            onRetry = onRetry,
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("ステータス確定通知", style = MaterialTheme.typography.titleSmall)
+                    Switch(
+                        checked = enabled,
+                        onCheckedChange = onEnabledChanged,
+                        enabled = !isSaving,
+                    )
+                }
+
+                Text(
+                    text = "月のお金ステータスを「確定済み」に切り替えた際に Webhook で通知します。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = onUrlChanged,
+                    label = { Text("Webhook URL") },
+                    placeholder = { Text("https://discord.com/api/webhooks/...") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isSaving,
+                )
+
+                OutlinedTextField(
+                    value = message,
+                    onValueChange = onMessageChanged,
+                    label = { Text("通知テキスト") },
+                    placeholder = { Text("@everyone") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isSaving,
+                )
+
+                if (statusMessage != null) {
+                    Text(
+                        text = statusMessage,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary,
                     )
