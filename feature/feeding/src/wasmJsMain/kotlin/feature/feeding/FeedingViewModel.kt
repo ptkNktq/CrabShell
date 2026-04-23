@@ -13,6 +13,7 @@ import core.network.FeedingSettingsRepository
 import core.network.PetRepository
 import core.ui.util.feedingDateJs
 import core.ui.util.shiftDateJs
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import model.FeedingLog
@@ -82,6 +83,9 @@ class FeedingViewModel(
                 try {
                     val settings = feedingSettingsRepository.getSettings()
                     uiState = uiState.copy(mealOrder = settings.mealOrder)
+                } catch (e: CancellationException) {
+                    // 次回 load の cancel による正常中断は失敗扱いにしない
+                    throw e
                 } catch (e: Exception) {
                     AppLogger.w(TAG, "feeding settings load failed: ${e.message}")
                 }

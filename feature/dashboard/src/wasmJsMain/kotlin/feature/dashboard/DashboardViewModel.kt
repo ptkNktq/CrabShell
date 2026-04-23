@@ -21,6 +21,7 @@ import core.ui.util.todayDateJs
 import core.ui.util.tomorrowDayOfWeekIndexJs
 import core.ui.util.tomorrowWeekOfMonthJs
 import core.ui.util.weekOfMonthJs
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
@@ -114,6 +115,9 @@ class DashboardViewModel(
                 try {
                     val settings = feedingSettingsRepository.getSettings()
                     uiState = uiState.copy(mealOrder = settings.mealOrder)
+                } catch (e: CancellationException) {
+                    // 次回 load の cancel による正常中断は失敗扱いにしない
+                    throw e
                 } catch (e: Exception) {
                     AppLogger.w(TAG, "feeding settings load failed: ${e.message}")
                 }
