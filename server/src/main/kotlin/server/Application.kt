@@ -25,6 +25,7 @@ import io.ktor.server.request.path
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.SerializationException
 import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
@@ -78,8 +79,10 @@ fun Application.module() {
 
     install(Koin) { modules(serverModule) }
 
+    // 同期実行: マイグレーション完了前に HTTP リクエストを受け付けないようにする。
+    // 失敗時は例外を伝播させてサーバー起動自体を中断し、未移行のまま運用を開始しない。
     val firestoreMigrations by inject<FirestoreMigrations>()
-    launch { firestoreMigrations.runAll() }
+    runBlocking { firestoreMigrations.runAll() }
 
     val petRepository by inject<PetRepository>()
     petRepository.seedDefaultPet()
