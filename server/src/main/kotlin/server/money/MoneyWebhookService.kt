@@ -3,6 +3,7 @@ package server.money
 import com.google.cloud.firestore.Firestore
 import com.google.cloud.firestore.SetOptions
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -26,7 +27,12 @@ private val logger = LoggerFactory.getLogger("MoneyWebhookService")
 
 class MoneyWebhookService(
     private val firestore: Firestore,
-    private val client: HttpClient = HttpClient(),
+    private val client: HttpClient =
+        HttpClient {
+            install(HttpTimeout) {
+                requestTimeoutMillis = 10_000
+            }
+        },
     dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
     private val moneySettingsDoc get() = firestore.collection("settings").document("money")
