@@ -33,6 +33,7 @@ import core.ui.extensions.label
 import model.MealTime
 import model.Pet
 
+/** 順序プリセット: 現実的な巡回パターンのみ */
 private val mealOrderPresets =
     listOf(
         listOf(MealTime.MORNING, MealTime.LUNCH, MealTime.EVENING) to "朝→昼→晩",

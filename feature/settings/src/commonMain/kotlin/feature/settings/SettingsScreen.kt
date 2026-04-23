@@ -37,6 +37,7 @@ import core.ui.extensions.color
 import core.ui.extensions.icon
 import core.ui.extensions.label
 import model.CollectionFrequency
+import model.FeedingSettings
 import model.GarbageType
 import model.GarbageTypeSchedule
 import model.LoginEvent
@@ -166,7 +167,7 @@ fun SettingsScreen(
         petSettingsLoading = petSettingsVm?.uiState?.isLoading ?: false,
         pets = petSettingsVm?.uiState?.pets ?: emptyList(),
         editingPetNames = petSettingsVm?.uiState?.editingPetNames ?: emptyMap(),
-        mealOrder = petSettingsVm?.uiState?.mealOrder ?: MealTime.entries.toList(),
+        mealOrder = petSettingsVm?.uiState?.mealOrder ?: FeedingSettings.DEFAULT_MEAL_ORDER,
         mealTimes = petSettingsVm?.uiState?.mealTimes ?: emptyMap(),
         feedingReminderEnabled = petSettingsVm?.uiState?.reminderEnabled ?: false,
         feedingReminderWebhookUrl = petSettingsVm?.uiState?.reminderWebhookUrl ?: "",
@@ -266,7 +267,7 @@ internal fun SettingsContent(
     petSettingsLoading: Boolean = false,
     pets: List<Pet> = emptyList(),
     editingPetNames: Map<String, String> = emptyMap(),
-    mealOrder: List<MealTime> = MealTime.entries.toList(),
+    mealOrder: List<MealTime> = FeedingSettings.DEFAULT_MEAL_ORDER,
     mealTimes: Map<MealTime, String> = emptyMap(),
     feedingReminderEnabled: Boolean = false,
     feedingReminderWebhookUrl: String = "",

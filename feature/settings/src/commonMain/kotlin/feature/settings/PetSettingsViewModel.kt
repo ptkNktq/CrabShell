@@ -16,7 +16,7 @@ data class PetSettingsUiState(
     val isLoading: Boolean = true,
     val pets: List<Pet> = emptyList(),
     val editingPetNames: Map<String, String> = emptyMap(),
-    val mealOrder: List<MealTime> = MealTime.entries.toList(),
+    val mealOrder: List<MealTime> = FeedingSettings.DEFAULT_MEAL_ORDER,
     val mealTimes: Map<MealTime, String> = emptyMap(),
     val reminderEnabled: Boolean = false,
     val reminderWebhookUrl: String = "",

@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import core.common.TabResumedEvent
 import core.network.FeedingRepository
 import core.network.FeedingSettingsRepository
 import core.network.PetRepository
@@ -12,6 +13,7 @@ import core.ui.util.feedingDateJs
 import core.ui.util.shiftDateJs
 import kotlinx.coroutines.launch
 import model.FeedingLog
+import model.FeedingSettings
 import model.MealTime
 import model.Pet
 
@@ -23,10 +25,11 @@ data class FeedingUiState(
     val noteDraft: String = "",
     val pet: Pet? = null,
     val editingMealTime: MealTime? = null,
-    val mealOrder: List<MealTime> = listOf(MealTime.LUNCH, MealTime.EVENING, MealTime.MORNING),
+    val mealOrder: List<MealTime> = FeedingSettings.DEFAULT_MEAL_ORDER,
 )
 
 class FeedingViewModel(
+    tabResumedEvent: TabResumedEvent,
     private val petRepository: PetRepository,
     private val feedingRepository: FeedingRepository,
     private val feedingSettingsRepository: FeedingSettingsRepository,
@@ -49,6 +52,16 @@ class FeedingViewModel(
                 uiState = uiState.copy(error = e.message, isLoading = false)
             }
         }
+        loadFeedingSettings()
+        // タブ復帰時: 設定画面で変更された mealOrder 等をリロードなしで反映する
+        viewModelScope.launch {
+            tabResumedEvent.events.collect {
+                loadFeedingSettings()
+            }
+        }
+    }
+
+    private fun loadFeedingSettings() {
         viewModelScope.launch {
             try {
                 val settings = feedingSettingsRepository.getSettings()

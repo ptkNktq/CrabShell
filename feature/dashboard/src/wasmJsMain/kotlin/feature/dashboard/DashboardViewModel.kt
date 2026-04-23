@@ -24,6 +24,7 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import model.FeedingLog
+import model.FeedingSettings
 import model.GarbageType
 import model.GarbageTypeSchedule
 import model.MealTime
@@ -35,7 +36,7 @@ data class DashboardUiState(
     val feedingError: String? = null,
     val feedingActionError: String? = null,
     val petName: String? = null,
-    val mealOrder: List<MealTime> = listOf(MealTime.LUNCH, MealTime.EVENING, MealTime.MORNING),
+    val mealOrder: List<MealTime> = FeedingSettings.DEFAULT_MEAL_ORDER,
     val todayGarbageTypes: List<GarbageType> = emptyList(),
     val garbageUpdateLabel: String = "毎日 10:00 更新",
     val currentTime: String = "",
