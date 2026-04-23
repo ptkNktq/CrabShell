@@ -46,7 +46,7 @@ fun MoneyScreen(vm: MoneyViewModel = koinViewModel()) {
 
     MoneyContent(
         monthlyMoney = vm.uiState.monthlyMoney,
-        currentMonth = vm.uiState.currentMonth,
+        currentYearMonth = vm.uiState.currentYearMonth,
         loading = vm.uiState.isLoading,
         saving = vm.uiState.isSaving,
         error = vm.uiState.error,
@@ -69,7 +69,7 @@ fun MoneyScreen(vm: MoneyViewModel = koinViewModel()) {
 @Composable
 internal fun MoneyContent(
     monthlyMoney: MonthlyMoney,
-    currentMonth: String,
+    currentYearMonth: String,
     loading: Boolean,
     saving: Boolean,
     error: String?,
@@ -151,7 +151,7 @@ internal fun MoneyContent(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     MonthSelector(
-                        month = currentMonth,
+                        yearMonth = currentYearMonth,
                         onPrevious = onPreviousMonth,
                         onNext = onNextMonth,
                     )
@@ -225,7 +225,7 @@ internal fun MoneyContent(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     MonthSelector(
-                        month = currentMonth,
+                        yearMonth = currentYearMonth,
                         onPrevious = onPreviousMonth,
                         onNext = onNextMonth,
                     )
@@ -600,11 +600,11 @@ private fun MoneyItemForm(
 
 @Composable
 private fun MonthSelector(
-    month: String,
+    yearMonth: String,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
 ) {
-    val parts = month.split("-")
+    val parts = yearMonth.split("-")
     val displayText = "${parts[0]}年${parts[1].toInt()}月"
 
     Row(

@@ -22,31 +22,31 @@ import model.MonthlyExpenseSummary
     return y + '-' + m;
 }""",
 )
-external fun currentMonthJs(): JsString
+external fun currentYearMonthJs(): JsString
 
-/** 月を offset 分ずらす */
+/** 年月を offset 月分ずらす */
 @JsFun(
-    """(monthStr, offset) => {
-    const [y, m] = monthStr.split('-').map(Number);
+    """(yearMonthStr, offset) => {
+    const [y, m] = yearMonthStr.split('-').map(Number);
     const d = new Date(y, m - 1 + offset, 1);
     const ny = d.getFullYear();
     const nm = String(d.getMonth() + 1).padStart(2, '0');
     return ny + '-' + nm;
 }""",
 )
-external fun shiftMonthJs(
-    monthStr: JsString,
+external fun shiftYearMonthJs(
+    yearMonthStr: JsString,
     offset: Int,
 ): JsString
 
 data class ReportUiState(
     val report: ExpenseReport = ExpenseReport(),
-    val selectedMonth: String = "",
+    val selectedYearMonth: String = "",
     val isLoading: Boolean = true,
     val error: String? = null,
 ) {
     val selectedSummary: MonthlyExpenseSummary?
-        get() = report.months.find { it.month == selectedMonth }
+        get() = report.months.find { it.yearMonth == selectedYearMonth }
 
     val averageAmount: Long
         get() {
@@ -57,8 +57,8 @@ data class ReportUiState(
     val previousMonthDiff: Long?
         get() {
             val current = selectedSummary ?: return null
-            val prevMonth = shiftMonthJs(selectedMonth.toJsString(), -1).toString()
-            val prev = report.months.find { it.month == prevMonth } ?: return null
+            val prevYearMonth = shiftYearMonthJs(selectedYearMonth.toJsString(), -1).toString()
+            val prev = report.months.find { it.yearMonth == prevYearMonth } ?: return null
             return current.totalAmount - prev.totalAmount
         }
 }
@@ -67,12 +67,12 @@ class ReportViewModel(
     private val reportRepository: ReportRepository,
 ) : ViewModel() {
     var uiState by mutableStateOf(
-        ReportUiState(selectedMonth = currentMonthJs().toString()),
+        ReportUiState(selectedYearMonth = currentYearMonthJs().toString()),
     )
         private set
 
     init {
-        loadReport(uiState.selectedMonth)
+        loadReport(uiState.selectedYearMonth)
     }
 
     private fun loadReport(center: String) {
@@ -88,21 +88,21 @@ class ReportViewModel(
     }
 
     fun onGoToPreviousMonth() {
-        val newMonth = shiftMonthJs(uiState.selectedMonth.toJsString(), -1).toString()
-        uiState = uiState.copy(selectedMonth = newMonth)
-        loadReport(newMonth)
+        val newYearMonth = shiftYearMonthJs(uiState.selectedYearMonth.toJsString(), -1).toString()
+        uiState = uiState.copy(selectedYearMonth = newYearMonth)
+        loadReport(newYearMonth)
     }
 
     fun onGoToNextMonth() {
-        val newMonth = shiftMonthJs(uiState.selectedMonth.toJsString(), 1).toString()
-        uiState = uiState.copy(selectedMonth = newMonth)
-        loadReport(newMonth)
+        val newYearMonth = shiftYearMonthJs(uiState.selectedYearMonth.toJsString(), 1).toString()
+        uiState = uiState.copy(selectedYearMonth = newYearMonth)
+        loadReport(newYearMonth)
     }
 
-    fun onSelectMonth(month: String) {
-        if (month != uiState.selectedMonth) {
-            uiState = uiState.copy(selectedMonth = month)
-            loadReport(month)
+    fun onSelectYearMonth(yearMonth: String) {
+        if (yearMonth != uiState.selectedYearMonth) {
+            uiState = uiState.copy(selectedYearMonth = yearMonth)
+            loadReport(yearMonth)
         }
     }
 }

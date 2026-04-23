@@ -10,58 +10,58 @@ import model.MonthlyMoneyStatusUpdate
 import model.PaymentRecord
 
 interface MoneyRepository {
-    suspend fun getMonthlyMoney(month: String): MonthlyMoney
+    suspend fun getMonthlyMoney(yearMonth: String): MonthlyMoney
 
-    suspend fun getMyMonthlyMoney(month: String): MonthlyMoney
+    suspend fun getMyMonthlyMoney(yearMonth: String): MonthlyMoney
 
     suspend fun saveMonthlyMoney(data: MonthlyMoney)
 
     suspend fun recordPayment(
-        month: String,
+        yearMonth: String,
         record: PaymentRecord,
     ): MonthlyMoney
 
     suspend fun updateStatus(
-        month: String,
+        yearMonth: String,
         status: MonthlyMoneyStatus,
     ): MonthlyMoney
 
-    suspend fun importRecurringItems(month: String): MonthlyMoney
+    suspend fun importRecurringItems(yearMonth: String): MonthlyMoney
 }
 
 class MoneyRepositoryImpl(
     private val client: HttpClient,
 ) : MoneyRepository {
-    override suspend fun getMonthlyMoney(month: String): MonthlyMoney = client.get("/api/money/$month").body()
+    override suspend fun getMonthlyMoney(yearMonth: String): MonthlyMoney = client.get("/api/money/$yearMonth").body()
 
-    override suspend fun getMyMonthlyMoney(month: String): MonthlyMoney = client.get("/api/money/$month/my").body()
+    override suspend fun getMyMonthlyMoney(yearMonth: String): MonthlyMoney = client.get("/api/money/$yearMonth/my").body()
 
     override suspend fun saveMonthlyMoney(data: MonthlyMoney) {
-        client.put("/api/money/${data.month}") {
+        client.put("/api/money/${data.yearMonth}") {
             contentType(ContentType.Application.Json)
             setBody(data)
         }
     }
 
     override suspend fun recordPayment(
-        month: String,
+        yearMonth: String,
         record: PaymentRecord,
     ): MonthlyMoney =
         client
-            .post("/api/money/$month/pay") {
+            .post("/api/money/$yearMonth/pay") {
                 contentType(ContentType.Application.Json)
                 setBody(record)
             }.body()
 
     override suspend fun updateStatus(
-        month: String,
+        yearMonth: String,
         status: MonthlyMoneyStatus,
     ): MonthlyMoney =
         client
-            .patch("/api/money/$month/status") {
+            .patch("/api/money/$yearMonth/status") {
                 contentType(ContentType.Application.Json)
                 setBody(MonthlyMoneyStatusUpdate(status))
             }.body()
 
-    override suspend fun importRecurringItems(month: String): MonthlyMoney = client.post("/api/money/$month/import-by-tag").body()
+    override suspend fun importRecurringItems(yearMonth: String): MonthlyMoney = client.post("/api/money/$yearMonth/import-by-tag").body()
 }

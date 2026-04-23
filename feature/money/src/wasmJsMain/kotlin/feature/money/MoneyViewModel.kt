@@ -26,20 +26,20 @@ import model.User
     return y + '-' + m;
 }""",
 )
-external fun currentMonthJs(): JsString
+external fun currentYearMonthJs(): JsString
 
-/** 月を offset 分ずらす (例: "2026-02", 1 → "2026-03") */
+/** 年月を offset 月分ずらす (例: "2026-02", 1 → "2026-03") */
 @JsFun(
-    """(monthStr, offset) => {
-    const [y, m] = monthStr.split('-').map(Number);
+    """(yearMonthStr, offset) => {
+    const [y, m] = yearMonthStr.split('-').map(Number);
     const d = new Date(y, m - 1 + offset, 1);
     const ny = d.getFullYear();
     const nm = String(d.getMonth() + 1).padStart(2, '0');
     return ny + '-' + nm;
 }""",
 )
-external fun shiftMonthJs(
-    monthStr: JsString,
+external fun shiftYearMonthJs(
+    yearMonthStr: JsString,
     offset: Int,
 ): JsString
 
@@ -48,8 +48,8 @@ external fun shiftMonthJs(
 external fun randomUUID(): JsString
 
 data class MoneyUiState(
-    val monthlyMoney: MonthlyMoney = MonthlyMoney(month = ""),
-    val currentMonth: String = "",
+    val monthlyMoney: MonthlyMoney = MonthlyMoney(yearMonth = ""),
+    val currentYearMonth: String = "",
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
     val error: String? = null,
@@ -64,8 +64,8 @@ class MoneyViewModel(
 ) : ViewModel() {
     var uiState by mutableStateOf(
         MoneyUiState(
-            currentMonth = currentMonthJs().toString(),
-            monthlyMoney = MonthlyMoney(month = currentMonthJs().toString()),
+            currentYearMonth = currentYearMonthJs().toString(),
+            monthlyMoney = MonthlyMoney(yearMonth = currentYearMonthJs().toString()),
         ),
     )
         private set
@@ -84,7 +84,7 @@ class MoneyViewModel(
                     emptyList()
                 }
             try {
-                val monthly = moneyRepository.getMonthlyMoney(uiState.currentMonth)
+                val monthly = moneyRepository.getMonthlyMoney(uiState.currentYearMonth)
                 uiState =
                     uiState.copy(
                         users = users,
@@ -97,13 +97,13 @@ class MoneyViewModel(
         }
     }
 
-    fun onLoadMonth(month: String) {
-        uiState = uiState.copy(currentMonth = month, isLoading = true, error = null)
+    fun onLoadYearMonth(yearMonth: String) {
+        uiState = uiState.copy(currentYearMonth = yearMonth, isLoading = true, error = null)
         viewModelScope.launch {
             try {
                 uiState =
                     uiState.copy(
-                        monthlyMoney = moneyRepository.getMonthlyMoney(month),
+                        monthlyMoney = moneyRepository.getMonthlyMoney(yearMonth),
                         isLoading = false,
                     )
             } catch (e: Exception) {
@@ -113,18 +113,18 @@ class MoneyViewModel(
     }
 
     fun onGoToPreviousMonth() {
-        onLoadMonth(shiftMonthJs(uiState.currentMonth.toJsString(), -1).toString())
+        onLoadYearMonth(shiftYearMonthJs(uiState.currentYearMonth.toJsString(), -1).toString())
     }
 
     fun onGoToNextMonth() {
-        onLoadMonth(shiftMonthJs(uiState.currentMonth.toJsString(), 1).toString())
+        onLoadYearMonth(shiftYearMonthJs(uiState.currentYearMonth.toJsString(), 1).toString())
     }
 
     fun onUpdateStatus(status: MonthlyMoneyStatus) {
         if (uiState.monthlyMoney.status == status) return
         viewModelScope.launch {
             try {
-                val updated = moneyRepository.updateStatus(uiState.currentMonth, status)
+                val updated = moneyRepository.updateStatus(uiState.currentYearMonth, status)
                 uiState = uiState.copy(monthlyMoney = updated)
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
@@ -186,7 +186,7 @@ class MoneyViewModel(
         uiState = uiState.copy(isSaving = true)
         viewModelScope.launch {
             try {
-                val updated = moneyRepository.importRecurringItems(uiState.currentMonth)
+                val updated = moneyRepository.importRecurringItems(uiState.currentYearMonth)
                 uiState = uiState.copy(monthlyMoney = updated)
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
@@ -201,12 +201,12 @@ class MoneyViewModel(
         item: MoneyItem,
         offset: Int,
     ) {
-        val targetMonth = shiftMonthJs(uiState.currentMonth.toJsString(), offset).toString()
+        val targetYearMonth = shiftYearMonthJs(uiState.currentYearMonth.toJsString(), offset).toString()
         uiState = uiState.copy(isSaving = true)
         viewModelScope.launch {
             try {
                 // 移動先の月データを取得して項目を追加
-                val targetData = moneyRepository.getMonthlyMoney(targetMonth)
+                val targetData = moneyRepository.getMonthlyMoney(targetYearMonth)
                 val updatedTarget = targetData.copy(items = targetData.items + item)
                 moneyRepository.saveMonthlyMoney(updatedTarget)
                 // 現在の月から項目を削除

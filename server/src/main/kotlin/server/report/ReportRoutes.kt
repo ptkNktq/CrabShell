@@ -34,7 +34,7 @@ fun Route.reportRoutes() {
             summary = "支出レポート取得"
             request {
                 queryParameter<String>("center") {
-                    description = "中心月（YYYY-MM）"
+                    description = "中心となる年月（YYYY-MM）"
                     required = false
                 }
                 queryParameter<Int>("range") {
@@ -63,10 +63,10 @@ fun Route.reportRoutes() {
             val summaries =
                 (-range..range).map { offset ->
                     val ym = center.plusMonths(offset.toLong())
-                    val monthStr = ym.toString()
-                    val data = moneyRepository.getMonthlyMoney(monthStr)
+                    val yearMonthStr = ym.toString()
+                    val data = moneyRepository.getMonthlyMoney(yearMonthStr)
 
-                    buildExpenseSummary(monthStr, data)
+                    buildExpenseSummary(yearMonthStr, data)
                 }
 
             call.respond(ExpenseReport(months = summaries))
@@ -102,8 +102,8 @@ fun Route.reportRoutes() {
             call.respond(
                 BalanceSummary(
                     balances = balances,
-                    periodStart = result.months.firstOrNull() ?: "",
-                    periodEnd = result.months.lastOrNull() ?: "",
+                    periodStart = result.yearMonths.firstOrNull() ?: "",
+                    periodEnd = result.yearMonths.lastOrNull() ?: "",
                 ),
             )
         }
@@ -128,12 +128,12 @@ fun Route.reportRoutes() {
                 call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Amount must be positive"))
                 return@post
             }
-            runCatching { YearMonth.parse(req.month) }.getOrElse {
-                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid month format"))
+            runCatching { YearMonth.parse(req.yearMonth) }.getOrElse {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid yearMonth format"))
                 return@post
             }
 
-            val data = moneyRepository.getMonthlyMoney(req.month) ?: MonthlyMoney(month = req.month)
+            val data = moneyRepository.getMonthlyMoney(req.yearMonth) ?: MonthlyMoney(yearMonth = req.yearMonth)
             if (data.status == MonthlyMoneyStatus.FROZEN) {
                 call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is frozen"))
                 return@post
@@ -147,7 +147,7 @@ fun Route.reportRoutes() {
                     isRedemption = true,
                 )
             val updated = data.copy(paymentRecords = data.paymentRecords + record)
-            moneyRepository.saveMonthlyMoney(req.month, updated)
+            moneyRepository.saveMonthlyMoney(req.yearMonth, updated)
 
             call.respond(mapOf("status" to "ok"))
         }
@@ -156,13 +156,13 @@ fun Route.reportRoutes() {
 
 /** MonthlyMoney から繰越タグ付き項目を除外して MonthlyExpenseSummary を構築する */
 internal fun buildExpenseSummary(
-    month: String,
+    yearMonth: String,
     data: MonthlyMoney?,
 ): MonthlyExpenseSummary {
-    if (data == null) return MonthlyExpenseSummary(month = month, totalAmount = 0L)
+    if (data == null) return MonthlyExpenseSummary(yearMonth = yearMonth, totalAmount = 0L)
     val reportItems = data.items.filter { MoneyTags.CARRY_OVER !in it.tags }
     return MonthlyExpenseSummary(
-        month = month,
+        yearMonth = yearMonth,
         totalAmount = reportItems.sumOf { it.amount },
         items = reportItems.map { ExpenseItem(name = it.name, amount = it.amount, note = it.note) },
     )

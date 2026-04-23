@@ -32,7 +32,7 @@ fun PaymentScreen(vm: PaymentViewModel = koinViewModel()) {
 
     PaymentContent(
         monthlyMoney = vm.uiState.monthlyMoney,
-        currentMonth = vm.uiState.currentMonth,
+        currentYearMonth = vm.uiState.currentYearMonth,
         currentUid = vm.uiState.viewingUid,
         loading = vm.uiState.isLoading,
         saving = vm.uiState.isSaving,
@@ -51,7 +51,7 @@ fun PaymentScreen(vm: PaymentViewModel = koinViewModel()) {
 @Composable
 internal fun PaymentContent(
     monthlyMoney: MonthlyMoney,
-    currentMonth: String,
+    currentYearMonth: String,
     currentUid: String,
     loading: Boolean,
     saving: Boolean,
@@ -107,7 +107,7 @@ internal fun PaymentContent(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 MonthSelector(
-                    month = currentMonth,
+                    yearMonth = currentYearMonth,
                     onPrevious = onPreviousMonth,
                     onNext = onNextMonth,
                 )
@@ -162,7 +162,7 @@ internal fun PaymentContent(
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 MonthSelector(
-                    month = currentMonth,
+                    yearMonth = currentYearMonth,
                     onPrevious = onPreviousMonth,
                     onNext = onNextMonth,
                 )
@@ -413,11 +413,11 @@ private fun UserSwitcher(
 
 @Composable
 private fun MonthSelector(
-    month: String,
+    yearMonth: String,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
 ) {
-    val parts = month.split("-")
+    val parts = yearMonth.split("-")
     val displayText = "${parts[0]}年${parts[1].toInt()}月"
 
     Row(

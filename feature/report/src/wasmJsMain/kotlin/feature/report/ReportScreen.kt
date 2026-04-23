@@ -49,7 +49,7 @@ fun ReportScreen(vm: ReportViewModel = koinViewModel()) {
 
     ReportContent(
         report = vm.uiState.report,
-        selectedMonth = vm.uiState.selectedMonth,
+        selectedYearMonth = vm.uiState.selectedYearMonth,
         selectedSummary = vm.uiState.selectedSummary,
         averageAmount = vm.uiState.averageAmount,
         previousMonthDiff = vm.uiState.previousMonthDiff,
@@ -57,7 +57,7 @@ fun ReportScreen(vm: ReportViewModel = koinViewModel()) {
         error = vm.uiState.error,
         onPreviousMonth = vm::onGoToPreviousMonth,
         onNextMonth = vm::onGoToNextMonth,
-        onSelectMonth = vm::onSelectMonth,
+        onSelectYearMonth = vm::onSelectYearMonth,
         windowSizeClass = windowSizeClass,
     )
 }
@@ -65,7 +65,7 @@ fun ReportScreen(vm: ReportViewModel = koinViewModel()) {
 @Composable
 internal fun ReportContent(
     report: ExpenseReport,
-    selectedMonth: String,
+    selectedYearMonth: String,
     selectedSummary: MonthlyExpenseSummary?,
     averageAmount: Long,
     previousMonthDiff: Long?,
@@ -73,7 +73,7 @@ internal fun ReportContent(
     error: String?,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
-    onSelectMonth: (String) -> Unit,
+    onSelectYearMonth: (String) -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
@@ -118,7 +118,7 @@ internal fun ReportContent(
         Spacer(modifier = Modifier.height(if (isCompact) 8.dp else 16.dp))
 
         MonthSelector(
-            month = selectedMonth,
+            yearMonth = selectedYearMonth,
             onPrevious = onPreviousMonth,
             onNext = onNextMonth,
         )
@@ -126,13 +126,13 @@ internal fun ReportContent(
 
         ReportMainContent(
             report = report,
-            selectedMonth = selectedMonth,
+            selectedYearMonth = selectedYearMonth,
             selectedSummary = selectedSummary,
             averageAmount = averageAmount,
             previousMonthDiff = previousMonthDiff,
             isLoading = isLoading,
             error = error,
-            onSelectMonth = onSelectMonth,
+            onSelectYearMonth = onSelectYearMonth,
             isCompact = isCompact,
             modifier = Modifier.weight(1f),
         )
@@ -142,13 +142,13 @@ internal fun ReportContent(
 @Composable
 private fun ReportMainContent(
     report: ExpenseReport,
-    selectedMonth: String,
+    selectedYearMonth: String,
     selectedSummary: MonthlyExpenseSummary?,
     averageAmount: Long,
     previousMonthDiff: Long?,
     isLoading: Boolean,
     error: String?,
-    onSelectMonth: (String) -> Unit,
+    onSelectYearMonth: (String) -> Unit,
     isCompact: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -187,8 +187,8 @@ private fun ReportMainContent(
                 item(key = "chart") {
                     MonthlyBarChart(
                         months = report.months,
-                        selectedMonth = selectedMonth,
-                        onMonthClick = onSelectMonth,
+                        selectedYearMonth = selectedYearMonth,
+                        onYearMonthClick = onSelectYearMonth,
                         modifier = Modifier.widthIn(max = 600.dp),
                     )
                 }
@@ -207,13 +207,13 @@ private fun ReportMainContent(
 
 @Composable
 private fun MonthSelector(
-    month: String,
+    yearMonth: String,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
 ) {
-    val parts = month.split("-")
+    val parts = yearMonth.split("-")
     val displayText =
-        if (parts.size == 2) "${parts[0]}年${parts[1].toInt()}月" else month
+        if (parts.size == 2) "${parts[0]}年${parts[1].toInt()}月" else yearMonth
 
     Row(
         verticalAlignment = Alignment.CenterVertically,

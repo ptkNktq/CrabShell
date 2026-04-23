@@ -5,16 +5,16 @@ import model.MonthlyMoney
 /** Money データのリポジトリインターフェース */
 interface MoneyRepository {
     /** 月データを取得。ドキュメントが存在しない場合は null */
-    suspend fun getMonthlyMoney(month: String): MonthlyMoney?
+    suspend fun getMonthlyMoney(yearMonth: String): MonthlyMoney?
 
     suspend fun saveMonthlyMoney(
-        month: String,
+        yearMonth: String,
         data: MonthlyMoney,
     )
 
-    /** targetMonth の前月から指定タグ付き項目を targetMonth にインポート（マージ）して返す */
+    /** targetYearMonth の前月から指定タグ付き項目を targetYearMonth にインポート（マージ）して返す */
     suspend fun importItemsByTag(
-        targetMonth: String,
+        targetYearMonth: String,
         tag: String,
     ): MonthlyMoney
 

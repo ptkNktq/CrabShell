@@ -13,7 +13,7 @@ class BalanceCalculationServiceTest {
     @Test
     fun emptyDataReturnsEmptyResult() {
         val result = service.calculateOverpayments(emptyList())
-        assertEquals(emptyList(), result.months)
+        assertEquals(emptyList(), result.yearMonths)
         assertEquals(emptyList(), result.overpayments)
     }
 
@@ -22,7 +22,7 @@ class BalanceCalculationServiceTest {
         val data =
             listOf(
                 MonthlyMoney(
-                    month = "2024-06",
+                    yearMonth = "2024-06",
                     items =
                         listOf(
                             MoneyItem(
@@ -39,7 +39,7 @@ class BalanceCalculationServiceTest {
                 ),
             )
         val result = service.calculateOverpayments(data)
-        assertEquals(listOf("2024-06"), result.months)
+        assertEquals(listOf("2024-06"), result.yearMonths)
         assertEquals(0, result.overpayments.size)
     }
 
@@ -48,7 +48,7 @@ class BalanceCalculationServiceTest {
         val data =
             listOf(
                 MonthlyMoney(
-                    month = "2024-06",
+                    yearMonth = "2024-06",
                     items =
                         listOf(
                             MoneyItem(
@@ -78,7 +78,7 @@ class BalanceCalculationServiceTest {
         val data =
             listOf(
                 MonthlyMoney(
-                    month = "2024-06",
+                    yearMonth = "2024-06",
                     items =
                         listOf(
                             MoneyItem(
@@ -99,7 +99,7 @@ class BalanceCalculationServiceTest {
                         ),
                 ),
                 MonthlyMoney(
-                    month = "2024-07",
+                    yearMonth = "2024-07",
                     items =
                         listOf(
                             MoneyItem(
@@ -121,7 +121,7 @@ class BalanceCalculationServiceTest {
                 ),
             )
         val result = service.calculateOverpayments(data)
-        assertEquals(listOf("2024-06", "2024-07"), result.months)
+        assertEquals(listOf("2024-06", "2024-07"), result.yearMonths)
 
         val u1 = result.overpayments.find { it.uid == "u1" }!!
         assertEquals(3000L, u1.overpaid) // 6月: 7000 - 4000 = 3000 過払い
@@ -137,7 +137,7 @@ class BalanceCalculationServiceTest {
         val data =
             listOf(
                 MonthlyMoney(
-                    month = "2024-06",
+                    yearMonth = "2024-06",
                     items =
                         listOf(
                             MoneyItem(
@@ -166,7 +166,7 @@ class BalanceCalculationServiceTest {
         val data =
             listOf(
                 MonthlyMoney(
-                    month = "2024-06",
+                    yearMonth = "2024-06",
                     items =
                         listOf(
                             MoneyItem(
@@ -191,15 +191,15 @@ class BalanceCalculationServiceTest {
     }
 
     @Test
-    fun monthsAreSorted() {
+    fun yearMonthsAreSorted() {
         val data =
             listOf(
-                MonthlyMoney(month = "2024-08"),
-                MonthlyMoney(month = "2024-06"),
-                MonthlyMoney(month = "2024-07"),
+                MonthlyMoney(yearMonth = "2024-08"),
+                MonthlyMoney(yearMonth = "2024-06"),
+                MonthlyMoney(yearMonth = "2024-07"),
             )
         val result = service.calculateOverpayments(data)
-        assertEquals(listOf("2024-06", "2024-07", "2024-08"), result.months)
+        assertEquals(listOf("2024-06", "2024-07", "2024-08"), result.yearMonths)
     }
 
     @Test
@@ -207,7 +207,7 @@ class BalanceCalculationServiceTest {
         val data =
             listOf(
                 MonthlyMoney(
-                    month = "2024-06",
+                    yearMonth = "2024-06",
                     items =
                         listOf(
                             MoneyItem(
@@ -233,7 +233,7 @@ class BalanceCalculationServiceTest {
         val data =
             listOf(
                 MonthlyMoney(
-                    month = "2024-06",
+                    yearMonth = "2024-06",
                     items =
                         listOf(
                             MoneyItem(
@@ -262,7 +262,7 @@ class BalanceCalculationServiceTest {
         val data =
             listOf(
                 MonthlyMoney(
-                    month = "2024-06",
+                    yearMonth = "2024-06",
                     items =
                         listOf(
                             MoneyItem(

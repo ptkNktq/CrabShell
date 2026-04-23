@@ -13,7 +13,7 @@ class MoneyFiltersTest {
     fun filterKeepsOnlyUserItems() {
         val data =
             MonthlyMoney(
-                month = "2024-06",
+                yearMonth = "2024-06",
                 items =
                     listOf(
                         MoneyItem(
@@ -41,7 +41,7 @@ class MoneyFiltersTest {
             )
 
         val filtered = data.filterForUser("u1")
-        assertEquals("2024-06", filtered.month)
+        assertEquals("2024-06", filtered.yearMonth)
         assertEquals(1, filtered.items.size)
         assertEquals("item1", filtered.items[0].id)
         assertEquals(1, filtered.paymentRecords.size)
@@ -53,7 +53,7 @@ class MoneyFiltersTest {
         for (status in MonthlyMoneyStatus.entries) {
             val data =
                 MonthlyMoney(
-                    month = "2024-06",
+                    yearMonth = "2024-06",
                     items = emptyList(),
                     paymentRecords = emptyList(),
                     status = status,
@@ -67,7 +67,7 @@ class MoneyFiltersTest {
     fun filterReturnsEmptyForUnknownUser() {
         val data =
             MonthlyMoney(
-                month = "2024-06",
+                yearMonth = "2024-06",
                 items =
                     listOf(
                         MoneyItem(
@@ -91,7 +91,7 @@ class MoneyFiltersTest {
     fun filterKeepsItemIfUserHasAnyPayment() {
         val data =
             MonthlyMoney(
-                month = "2024-06",
+                yearMonth = "2024-06",
                 items =
                     listOf(
                         MoneyItem(
@@ -117,7 +117,7 @@ class MoneyFiltersTest {
         // isRedemption=true の精算レコードも uid ベースで正しくフィルタされる
         val data =
             MonthlyMoney(
-                month = "2024-06",
+                yearMonth = "2024-06",
                 paymentRecords =
                     listOf(
                         PaymentRecord(uid = "u1", amount = 5000L, paidAt = "2024-06-01"),

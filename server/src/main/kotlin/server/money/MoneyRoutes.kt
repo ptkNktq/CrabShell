@@ -22,14 +22,14 @@ import server.auth.firebasePrincipal
 fun Route.moneyRoutes() {
     val moneyRepository by inject<MoneyRepository>()
 
-    route("/money/{month}") {
+    route("/money/{yearMonth}") {
         // 管理者: データ取得・全体保存
         adminOnly {
             get({
                 tags = listOf("money")
                 summary = "月次お金データ取得（admin）"
                 request {
-                    pathParameter<String>("month") { description = "月（YYYY-MM）" }
+                    pathParameter<String>("yearMonth") { description = "年月（YYYY-MM）" }
                 }
                 response {
                     code(HttpStatusCode.OK) {
@@ -37,16 +37,16 @@ fun Route.moneyRoutes() {
                     }
                 }
             }) {
-                val month = call.parameters.getOrFail("month")
-                val data = moneyRepository.getMonthlyMoney(month)
-                call.respond(data ?: MonthlyMoney(month = month))
+                val yearMonth = call.parameters.getOrFail("yearMonth")
+                val data = moneyRepository.getMonthlyMoney(yearMonth)
+                call.respond(data ?: MonthlyMoney(yearMonth = yearMonth))
             }
 
             post("import-by-tag", {
                 tags = listOf("money")
                 summary = "前月からタグ付き項目をインポート（admin）"
                 request {
-                    pathParameter<String>("month") { description = "月（YYYY-MM）" }
+                    pathParameter<String>("yearMonth") { description = "年月（YYYY-MM）" }
                 }
                 response {
                     code(HttpStatusCode.OK) {
@@ -55,13 +55,13 @@ fun Route.moneyRoutes() {
                     code(HttpStatusCode.Conflict) { description = "凍結中" }
                 }
             }) {
-                val month = call.parameters.getOrFail("month")
-                val existing = moneyRepository.getMonthlyMoney(month)
+                val yearMonth = call.parameters.getOrFail("yearMonth")
+                val existing = moneyRepository.getMonthlyMoney(yearMonth)
                 if (existing?.status == MonthlyMoneyStatus.FROZEN) {
                     call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is frozen"))
                     return@post
                 }
-                val updated = moneyRepository.importItemsByTag(month, MoneyTags.RECURRING)
+                val updated = moneyRepository.importItemsByTag(yearMonth, MoneyTags.RECURRING)
                 call.respond(updated)
             }
 
@@ -72,7 +72,7 @@ fun Route.moneyRoutes() {
                     "items / paymentRecords を保存する。body.status は無視され、" +
                     "既存値（新規月は PENDING）が維持される。status を変更する場合は PATCH /status を使うこと。"
                 request {
-                    pathParameter<String>("month") { description = "月（YYYY-MM）" }
+                    pathParameter<String>("yearMonth") { description = "年月（YYYY-MM）" }
                     body<MonthlyMoney>()
                 }
                 response {
@@ -82,8 +82,8 @@ fun Route.moneyRoutes() {
                     code(HttpStatusCode.Conflict) { description = "凍結中" }
                 }
             }) {
-                val month = call.parameters.getOrFail("month")
-                val existing = moneyRepository.getMonthlyMoney(month) ?: MonthlyMoney(month = month)
+                val yearMonth = call.parameters.getOrFail("yearMonth")
+                val existing = moneyRepository.getMonthlyMoney(yearMonth) ?: MonthlyMoney(yearMonth = yearMonth)
                 if (existing.status == MonthlyMoneyStatus.FROZEN) {
                     call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is frozen"))
                     return@put
@@ -92,7 +92,7 @@ fun Route.moneyRoutes() {
                 // status はこのエンドポイントでは変更しない（専用 PATCH /status で更新）。
                 // 新規月の場合 existing.status は PENDING になる点に注意。
                 val normalized = body.copy(status = existing.status)
-                moneyRepository.saveMonthlyMoney(month, normalized)
+                moneyRepository.saveMonthlyMoney(yearMonth, normalized)
                 call.respond(normalized)
             }
 
@@ -104,7 +104,7 @@ fun Route.moneyRoutes() {
                     "FROZEN の月を 409 で拒否するのに対し、このエンドポイントは FROZEN からの遷移（凍結解除）も " +
                     "含めた任意の状態遷移を admin 権限で許可する。凍結運用を admin が解除できる唯一の経路。"
                 request {
-                    pathParameter<String>("month") { description = "月（YYYY-MM）" }
+                    pathParameter<String>("yearMonth") { description = "年月（YYYY-MM）" }
                     body<MonthlyMoneyStatusUpdate>()
                 }
                 response {
@@ -113,12 +113,12 @@ fun Route.moneyRoutes() {
                     }
                 }
             }) {
-                val month = call.parameters.getOrFail("month")
+                val yearMonth = call.parameters.getOrFail("yearMonth")
                 val body = call.receive<MonthlyMoneyStatusUpdate>()
-                val existing = moneyRepository.getMonthlyMoney(month) ?: MonthlyMoney(month = month)
+                val existing = moneyRepository.getMonthlyMoney(yearMonth) ?: MonthlyMoney(yearMonth = yearMonth)
                 // FROZEN からの遷移も含めて admin に任意の状態遷移を許可する（凍結解除の唯一経路）。
                 val updated = existing.copy(status = body.status)
-                moneyRepository.saveMonthlyMoney(month, updated)
+                moneyRepository.saveMonthlyMoney(yearMonth, updated)
                 call.respond(updated)
             }
         }
@@ -129,7 +129,7 @@ fun Route.moneyRoutes() {
                 tags = listOf("money")
                 summary = "自分の月次お金データ取得"
                 request {
-                    pathParameter<String>("month") { description = "月（YYYY-MM）" }
+                    pathParameter<String>("yearMonth") { description = "年月（YYYY-MM）" }
                 }
                 response {
                     code(HttpStatusCode.OK) {
@@ -137,12 +137,12 @@ fun Route.moneyRoutes() {
                     }
                 }
             }) {
-                val month = call.parameters.getOrFail("month")
+                val yearMonth = call.parameters.getOrFail("yearMonth")
                 val uid = call.firebasePrincipal.uid
 
-                val data = moneyRepository.getMonthlyMoney(month)
+                val data = moneyRepository.getMonthlyMoney(yearMonth)
                 if (data == null) {
-                    call.respond(MonthlyMoney(month = month))
+                    call.respond(MonthlyMoney(yearMonth = yearMonth))
                     return@get
                 }
 
@@ -156,7 +156,7 @@ fun Route.moneyRoutes() {
                 tags = listOf("money")
                 summary = "支払い記録追加"
                 request {
-                    pathParameter<String>("month") { description = "月（YYYY-MM）" }
+                    pathParameter<String>("yearMonth") { description = "年月（YYYY-MM）" }
                     body<PaymentRecord>()
                 }
                 response {
@@ -167,13 +167,13 @@ fun Route.moneyRoutes() {
                     code(HttpStatusCode.Conflict) { description = "凍結中" }
                 }
             }) {
-                val month = call.parameters.getOrFail("month")
+                val yearMonth = call.parameters.getOrFail("yearMonth")
                 val uid = call.firebasePrincipal.uid
                 val record = call.receive<PaymentRecord>()
                 // uid をサーバー側で上書き（改ざん防止）
                 val safeRecord = record.copy(uid = uid)
 
-                val data = moneyRepository.getMonthlyMoney(month)
+                val data = moneyRepository.getMonthlyMoney(yearMonth)
                 if (data == null) {
                     call.respond(HttpStatusCode.NotFound, mapOf("error" to "Month not found"))
                     return@post
@@ -184,7 +184,7 @@ fun Route.moneyRoutes() {
                     return@post
                 }
                 val updated = data.copy(paymentRecords = data.paymentRecords + safeRecord)
-                moneyRepository.saveMonthlyMoney(month, updated)
+                moneyRepository.saveMonthlyMoney(yearMonth, updated)
 
                 call.respond(updated.filterForUser(uid))
             }

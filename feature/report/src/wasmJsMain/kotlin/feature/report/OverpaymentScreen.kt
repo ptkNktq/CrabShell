@@ -206,7 +206,7 @@ private fun RedemptionInlineCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             RedemptionMonthSelector(
-                month = form.selectedMonth,
+                yearMonth = form.selectedYearMonth,
                 onPrevious = onMonthPrevious,
                 onNext = onMonthNext,
                 enabled = inputEnabled,
@@ -300,12 +300,12 @@ private fun RedemptionInlineCard(
 
 @Composable
 private fun RedemptionMonthSelector(
-    month: String,
+    yearMonth: String,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     enabled: Boolean = true,
 ) {
-    val parts = month.split("-")
+    val parts = yearMonth.split("-")
     val displayText = "${parts[0]}年${parts[1].toInt()}月"
 
     Row(
