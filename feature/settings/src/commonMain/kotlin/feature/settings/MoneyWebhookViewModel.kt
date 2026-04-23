@@ -31,7 +31,13 @@ class MoneyWebhookViewModel(
     }
 
     fun loadSettings() {
-        uiState = uiState.copy(isLoading = true, loadError = false, statusMessage = null)
+        uiState =
+            uiState.copy(
+                isLoading = true,
+                loadError = false,
+                loadErrorMessage = null,
+                statusMessage = null,
+            )
         viewModelScope.launch {
             try {
                 val settings = moneyWebhookRepository.getSettings()
