@@ -21,5 +21,5 @@ val settingsModule =
         factory { GarbageScheduleViewModel(get()) }
         factory { QuestWebhookViewModel(get()) }
         factory { CacheRefreshViewModel(get()) }
-        factory { PetSettingsViewModel(get(), get()) }
+        factory { PetSettingsViewModel(get(), get(), get()) }
     }
