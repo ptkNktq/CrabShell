@@ -85,7 +85,7 @@ class MoneyWebhookService(
         yearMonth: String,
         dashboardUrl: String? = appUrl,
     ): String {
-        val description = "${formatYearMonth(yearMonth)} のお金が確定しました"
+        val description = "${formatYearMonth(yearMonth)} の支払額が確定しました"
         return when (detectWebhookService(url)) {
             WebhookServiceType.DISCORD -> {
                 json.encodeToString(
@@ -94,7 +94,7 @@ class MoneyWebhookService(
                         embeds =
                             listOf(
                                 DiscordMoneyEmbed(
-                                    title = "お金ステータス確定",
+                                    title = "支払額確定",
                                     description = description,
                                     color = DISCORD_EMBED_COLOR,
                                     url = dashboardUrl,
