@@ -26,7 +26,7 @@ class ReportModelsTest {
     fun monthlyExpenseSummaryRoundTrip() {
         val summary =
             MonthlyExpenseSummary(
-                month = "2025-01",
+                yearMonth = "2025-01",
                 totalAmount = 150000L,
                 items =
                     listOf(
@@ -41,9 +41,9 @@ class ReportModelsTest {
 
     @Test
     fun monthlyExpenseSummaryDefaultItems() {
-        val jsonStr = """{"month":"2025-02","totalAmount":50000}"""
+        val jsonStr = """{"yearMonth":"2025-02","totalAmount":50000}"""
         val decoded = json.decodeFromString(MonthlyExpenseSummary.serializer(), jsonStr)
-        assertEquals("2025-02", decoded.month)
+        assertEquals("2025-02", decoded.yearMonth)
         assertEquals(50000L, decoded.totalAmount)
         assertEquals(emptyList(), decoded.items)
     }
@@ -55,12 +55,12 @@ class ReportModelsTest {
                 months =
                     listOf(
                         MonthlyExpenseSummary(
-                            month = "2025-01",
+                            yearMonth = "2025-01",
                             totalAmount = 100000L,
                             items = listOf(ExpenseItem(name = "食費", amount = 40000L)),
                         ),
                         MonthlyExpenseSummary(
-                            month = "2025-02",
+                            yearMonth = "2025-02",
                             totalAmount = 120000L,
                         ),
                     ),

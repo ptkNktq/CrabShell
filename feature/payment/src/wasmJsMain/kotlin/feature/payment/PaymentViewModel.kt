@@ -25,20 +25,20 @@ import model.User
     return y + '-' + m;
 }""",
 )
-external fun currentMonthJs(): JsString
+external fun currentYearMonthJs(): JsString
 
-/** 月を offset 分ずらす */
+/** 年月を offset 月分ずらす */
 @JsFun(
-    """(monthStr, offset) => {
-    const [y, m] = monthStr.split('-').map(Number);
+    """(yearMonthStr, offset) => {
+    const [y, m] = yearMonthStr.split('-').map(Number);
     const d = new Date(y, m - 1 + offset, 1);
     const ny = d.getFullYear();
     const nm = String(d.getMonth() + 1).padStart(2, '0');
     return ny + '-' + nm;
 }""",
 )
-external fun shiftMonthJs(
-    monthStr: JsString,
+external fun shiftYearMonthJs(
+    yearMonthStr: JsString,
     offset: Int,
 ): JsString
 
@@ -47,8 +47,8 @@ external fun shiftMonthJs(
 external fun nowIsoJs(): JsString
 
 data class PaymentUiState(
-    val monthlyMoney: MonthlyMoney = MonthlyMoney(month = ""),
-    val currentMonth: String = "",
+    val monthlyMoney: MonthlyMoney = MonthlyMoney(yearMonth = ""),
+    val currentYearMonth: String = "",
     val currentUid: String = "",
     val viewingUid: String = "",
     val isAdmin: Boolean = false,
@@ -69,8 +69,8 @@ class PaymentViewModel(
 
     var uiState by mutableStateOf(
         PaymentUiState(
-            currentMonth = currentMonthJs().toString(),
-            monthlyMoney = MonthlyMoney(month = currentMonthJs().toString()),
+            currentYearMonth = currentYearMonthJs().toString(),
+            monthlyMoney = MonthlyMoney(yearMonth = currentYearMonthJs().toString()),
             currentUid = authUser?.uid ?: "",
             viewingUid = authUser?.uid ?: "",
             isAdmin = authUser?.isAdmin ?: false,
@@ -95,31 +95,31 @@ class PaymentViewModel(
                     emptyList()
                 }
             uiState = uiState.copy(users = users)
-            loadMonth(uiState.currentMonth)
+            loadYearMonth(uiState.currentYearMonth)
         }
     }
 
-    fun onLoadMonth(month: String) {
-        uiState = uiState.copy(currentMonth = month, isLoading = true, error = null)
-        viewModelScope.launch { loadMonth(month) }
+    fun onLoadYearMonth(yearMonth: String) {
+        uiState = uiState.copy(currentYearMonth = yearMonth, isLoading = true, error = null)
+        viewModelScope.launch { loadYearMonth(yearMonth) }
     }
 
     fun onSwitchUser(uid: String) {
         uiState = uiState.copy(viewingUid = uid, isLoading = true, error = null)
-        viewModelScope.launch { loadMonth(uiState.currentMonth) }
+        viewModelScope.launch { loadYearMonth(uiState.currentYearMonth) }
     }
 
-    private suspend fun loadMonth(month: String) {
+    private suspend fun loadYearMonth(yearMonth: String) {
         try {
             val monthly =
                 if (uiState.isViewingOther) {
-                    val full = moneyRepository.getMonthlyMoney(month)
+                    val full = moneyRepository.getMonthlyMoney(yearMonth)
                     val uid = uiState.viewingUid
                     val myItems = full.items.filter { item -> item.payments.any { it.uid == uid } }
                     val myRecords = full.paymentRecords.filter { it.uid == uid }
                     full.copy(items = myItems, paymentRecords = myRecords)
                 } else {
-                    moneyRepository.getMyMonthlyMoney(month)
+                    moneyRepository.getMyMonthlyMoney(yearMonth)
                 }
             uiState = uiState.copy(monthlyMoney = monthly, isLoading = false)
         } catch (e: Exception) {
@@ -128,11 +128,11 @@ class PaymentViewModel(
     }
 
     fun onGoToPreviousMonth() {
-        onLoadMonth(shiftMonthJs(uiState.currentMonth.toJsString(), -1).toString())
+        onLoadYearMonth(shiftYearMonthJs(uiState.currentYearMonth.toJsString(), -1).toString())
     }
 
     fun onGoToNextMonth() {
-        onLoadMonth(shiftMonthJs(uiState.currentMonth.toJsString(), 1).toString())
+        onLoadYearMonth(shiftYearMonthJs(uiState.currentYearMonth.toJsString(), 1).toString())
     }
 
     fun onRecordPayment(amount: Long) {
@@ -147,7 +147,7 @@ class PaymentViewModel(
                     )
                 uiState =
                     uiState.copy(
-                        monthlyMoney = moneyRepository.recordPayment(uiState.currentMonth, record),
+                        monthlyMoney = moneyRepository.recordPayment(uiState.currentYearMonth, record),
                     )
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)

@@ -33,19 +33,19 @@ class FirestoreMoneyRepository(
     private val cache = ConcurrentHashMap<String, MonthlyMoney>()
     private val allMonthsLoaded = AtomicBoolean(false)
 
-    override suspend fun getMonthlyMoney(month: String): MonthlyMoney? {
-        cache[month]?.let { return it }
+    override suspend fun getMonthlyMoney(yearMonth: String): MonthlyMoney? {
+        cache[yearMonth]?.let { return it }
 
         val doc =
             firestore
                 .collection(MONEY_COLLECTION)
-                .document(month)
+                .document(yearMonth)
                 .get()
                 .await()
         if (!doc.exists()) return null
 
-        val data = parseMonthlyMoney(month, doc)
-        cache[month] = data
+        val data = parseMonthlyMoney(yearMonth, doc)
+        cache[yearMonth] = data
         return data
     }
 
@@ -53,13 +53,13 @@ class FirestoreMoneyRepository(
      * 月次お金データを Firestore に保存する。
      *
      * `set(Map)` は `SetOptions.merge()` を指定しないためドキュメント全体を置換する。
-     * これにより、旧スキーマの `locked: Boolean` フィールドを持つドキュメントを保存した際に
-     * `locked` が自動で削除され、legacy フィールドが残留しない。
-     * 将来この呼び出しを `merge` に変える場合は、`"locked" to FieldValue.delete()` を明示的に
+     * これにより、旧スキーマの `locked: Boolean` や `month` フィールドを持つドキュメントを保存した際に
+     * 自動で削除され、legacy フィールドが残留しない。
+     * 将来この呼び出しを `merge` に変える場合は、`"locked" to FieldValue.delete()` などを明示的に
      * 含めて legacy フィールドの除去を維持すること。
      */
     override suspend fun saveMonthlyMoney(
-        month: String,
+        yearMonth: String,
         data: MonthlyMoney,
     ) {
         val items =
@@ -84,27 +84,27 @@ class FirestoreMoneyRepository(
 
         firestore
             .collection(MONEY_COLLECTION)
-            .document(month)
-            .set(mapOf("month" to month, "items" to items, "paymentRecords" to records, "status" to data.status.name))
+            .document(yearMonth)
+            .set(mapOf("yearMonth" to yearMonth, "items" to items, "paymentRecords" to records, "status" to data.status.name))
             .await()
 
-        cache[month] = data
+        cache[yearMonth] = data
     }
 
     override suspend fun importItemsByTag(
-        targetMonth: String,
+        targetYearMonth: String,
         tag: String,
     ): MonthlyMoney {
-        val previousMonth = YearMonth.parse(targetMonth).minusMonths(1).toString()
-        val prevData = getMonthlyMoney(previousMonth)
+        val previousYearMonth = YearMonth.parse(targetYearMonth).minusMonths(1).toString()
+        val prevData = getMonthlyMoney(previousYearMonth)
         val taggedItems =
             (prevData?.items ?: emptyList())
                 .filter { tag in it.tags }
                 .map { item -> item.copy(id = UUID.randomUUID().toString()) }
 
-        val existing = getMonthlyMoney(targetMonth) ?: MonthlyMoney(month = targetMonth)
+        val existing = getMonthlyMoney(targetYearMonth) ?: MonthlyMoney(yearMonth = targetYearMonth)
         val merged = existing.copy(items = existing.items + taggedItems)
-        saveMonthlyMoney(targetMonth, merged)
+        saveMonthlyMoney(targetYearMonth, merged)
         return merged
     }
 
@@ -120,19 +120,27 @@ class FirestoreMoneyRepository(
                 .await()
                 .documents
         val months = docs.map { doc -> parseMonthlyMoney(doc.id, doc) }
-        months.forEach { cache[it.month] = it }
+        months.forEach { cache[it.yearMonth] = it }
         allMonthsLoaded.set(true)
         return months
     }
 
+    /**
+     * Firestore ドキュメントから [MonthlyMoney] を組み立てる。
+     *
+     * 本リポジトリの不変条件として「ドキュメント ID == `yearMonth` フィールド値」を維持しており、
+     * 呼び出し側は必ず `doc.id`（または同値の引数）を [yearMonth] に渡す。ドキュメント内に保存された
+     * `"yearMonth"` フィールドは本関数では読まない（冗長保存だが、[saveMonthlyMoney] の `set` 全置換時に
+     * スキーマとして一貫させるために書き込んでいる）。
+     */
     private fun parseMonthlyMoney(
-        month: String,
+        yearMonth: String,
         doc: DocumentSnapshot,
     ): MonthlyMoney {
         val items = parseItems(doc.get("items"))
         val records = parsePaymentRecords(doc.get("paymentRecords"))
         val status = parseStatus(doc.getString("status"), doc.getBoolean("locked"))
-        return MonthlyMoney(month = month, items = items, paymentRecords = records, status = status)
+        return MonthlyMoney(yearMonth = yearMonth, items = items, paymentRecords = records, status = status)
     }
 }
 

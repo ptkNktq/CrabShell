@@ -15,6 +15,7 @@ import server.garbage.GarbageNotificationService
 import server.garbage.GarbageRepository
 import server.loginhistory.FirestoreLoginHistoryRepository
 import server.loginhistory.LoginHistoryRepository
+import server.migration.FirestoreMigrations
 import server.money.FirestoreMoneyRepository
 import server.money.MoneyRepository
 import server.pet.FirestorePetRepository
@@ -43,6 +44,7 @@ val serverModule =
         single { FeedingReminderService(get(), get(), get()) }
         single { GarbageNotificationService(get()) }
         single { BalanceCalculationService() }
+        single { FirestoreMigrations(get()) }
         single {
             CacheManager(
                 listOf(

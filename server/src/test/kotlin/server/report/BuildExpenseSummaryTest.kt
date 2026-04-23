@@ -10,7 +10,7 @@ class BuildExpenseSummaryTest {
     @Test
     fun nullDataReturnsZeroSummary() {
         val result = buildExpenseSummary("2024-06", null)
-        assertEquals("2024-06", result.month)
+        assertEquals("2024-06", result.yearMonth)
         assertEquals(0L, result.totalAmount)
         assertEquals(emptyList(), result.items)
     }
@@ -19,7 +19,7 @@ class BuildExpenseSummaryTest {
     fun normalItemsAreIncluded() {
         val data =
             MonthlyMoney(
-                month = "2024-06",
+                yearMonth = "2024-06",
                 items =
                     listOf(
                         MoneyItem(id = "i1", name = "Rent", amount = 80000L),
@@ -35,7 +35,7 @@ class BuildExpenseSummaryTest {
     fun carryOverItemsAreExcluded() {
         val data =
             MonthlyMoney(
-                month = "2024-06",
+                yearMonth = "2024-06",
                 items =
                     listOf(
                         MoneyItem(id = "i1", name = "Rent", amount = 80000L),
@@ -57,7 +57,7 @@ class BuildExpenseSummaryTest {
     fun carryOverWithRecurringTagIsExcluded() {
         val data =
             MonthlyMoney(
-                month = "2024-06",
+                yearMonth = "2024-06",
                 items =
                     listOf(
                         MoneyItem(
@@ -77,7 +77,7 @@ class BuildExpenseSummaryTest {
     fun recurringOnlyItemsAreIncluded() {
         val data =
             MonthlyMoney(
-                month = "2024-06",
+                yearMonth = "2024-06",
                 items =
                     listOf(
                         MoneyItem(
@@ -97,7 +97,7 @@ class BuildExpenseSummaryTest {
     fun allCarryOverReturnsZero() {
         val data =
             MonthlyMoney(
-                month = "2024-06",
+                yearMonth = "2024-06",
                 items =
                     listOf(
                         MoneyItem(

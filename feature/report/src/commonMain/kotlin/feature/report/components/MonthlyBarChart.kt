@@ -28,10 +28,10 @@ private val BarSpacing = 12.dp
 @Composable
 fun MonthlyBarChart(
     months: List<MonthlyExpenseSummary>,
-    selectedMonth: String,
+    selectedYearMonth: String,
     primaryColor: Color = MaterialTheme.colorScheme.primary,
     onSurfaceVariantColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    onMonthClick: (String) -> Unit,
+    onYearMonthClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val textMeasurer = rememberTextMeasurer()
@@ -48,7 +48,7 @@ fun MonthlyBarChart(
             textAlign = TextAlign.Center,
         )
 
-    val currentOnMonthClick by rememberUpdatedState(onMonthClick)
+    val currentOnYearMonthClick by rememberUpdatedState(onYearMonthClick)
 
     val density = LocalDensity.current
     val horizontalPaddingPx = remember(density) { with(density) { HorizontalPadding.toPx() } }
@@ -68,7 +68,7 @@ fun MonthlyBarChart(
                         months.forEachIndexed { index, summary ->
                             val x = horizontalPaddingPx + index * (barWidth + barSpacingPx)
                             if (offset.x in x..(x + barWidth)) {
-                                currentOnMonthClick(summary.month)
+                                currentOnYearMonthClick(summary.yearMonth)
                                 return@detectTapGestures
                             }
                         }
@@ -96,7 +96,7 @@ fun MonthlyBarChart(
             val x = horizontalPaddingPx + index * (barWidth + barSpacingPx)
             val y = topPadding + chartHeight - barHeight
 
-            val isSelected = summary.month == selectedMonth
+            val isSelected = summary.yearMonth == selectedYearMonth
             val barColor = if (isSelected) primaryColor else primaryColor.copy(alpha = 0.4f)
 
             // 棒グラフ
@@ -128,7 +128,7 @@ fun MonthlyBarChart(
             }
 
             // 月名ラベル（下部）
-            val monthLabel = formatMonthLabel(summary.month)
+            val monthLabel = formatMonthLabel(summary.yearMonth)
             val monthLayout =
                 textMeasurer.measure(
                     text = monthLabel,
@@ -153,7 +153,7 @@ private fun formatChartAmount(amount: Long): String =
         "¥$amount"
     }
 
-private fun formatMonthLabel(month: String): String {
-    val parts = month.split("-")
-    return if (parts.size == 2) "${parts[1].toInt()}月" else month
+private fun formatMonthLabel(yearMonth: String): String {
+    val parts = yearMonth.split("-")
+    return if (parts.size == 2) "${parts[1].toInt()}月" else yearMonth
 }

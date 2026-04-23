@@ -11,7 +11,7 @@ data class ExpenseItem(
 
 @Serializable
 data class MonthlyExpenseSummary(
-    val month: String,
+    val yearMonth: String,
     val totalAmount: Long,
     val items: List<ExpenseItem> = emptyList(),
 )
@@ -40,7 +40,7 @@ data class BalanceSummary(
 @Serializable
 data class OverpaymentRedemptionRequest(
     val uid: String,
-    val month: String,
+    val yearMonth: String,
     val amount: Long,
     val note: String = "",
 )

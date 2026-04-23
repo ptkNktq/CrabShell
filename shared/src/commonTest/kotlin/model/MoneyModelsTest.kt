@@ -53,7 +53,7 @@ class MoneyModelsTest {
     fun monthlyMoneyNestedRoundTrip() {
         val monthly =
             MonthlyMoney(
-                month = "2024-06",
+                yearMonth = "2024-06",
                 items =
                     listOf(
                         MoneyItem(id = "i1", name = "Water", amount = 3000L),
@@ -100,7 +100,7 @@ class MoneyModelsTest {
 
     @Test
     fun monthlyMoneyStatusDefault() {
-        val jsonStr = """{"month":"2024-07"}"""
+        val jsonStr = """{"yearMonth":"2024-07"}"""
         val decoded = json.decodeFromString(MonthlyMoney.serializer(), jsonStr)
         assertEquals(MonthlyMoneyStatus.PENDING, decoded.status)
     }
@@ -108,7 +108,7 @@ class MoneyModelsTest {
     @Test
     fun monthlyMoneyStatusRoundTrip() {
         for (status in MonthlyMoneyStatus.entries) {
-            val monthly = MonthlyMoney(month = "2024-07", status = status)
+            val monthly = MonthlyMoney(yearMonth = "2024-07", status = status)
             val encoded = json.encodeToString(MonthlyMoney.serializer(), monthly)
             val decoded = json.decodeFromString(MonthlyMoney.serializer(), encoded)
             assertEquals(status, decoded.status)

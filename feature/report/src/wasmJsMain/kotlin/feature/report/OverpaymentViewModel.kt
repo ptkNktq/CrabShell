@@ -20,7 +20,7 @@ private const val DEFAULT_REDEMPTION_NOTE = "過払い金から支払い"
 
 data class RedemptionFormState(
     val selectedUid: String = "",
-    val selectedMonth: String = "",
+    val selectedYearMonth: String = "",
     val amountText: String = "",
     val noteText: String = DEFAULT_REDEMPTION_NOTE,
     val isSaving: Boolean = false,
@@ -49,7 +49,7 @@ class OverpaymentViewModel(
 ) : ViewModel() {
     var uiState by mutableStateOf(
         OverpaymentUiState(
-            redemptionForm = RedemptionFormState(selectedMonth = currentMonthJs().toString()),
+            redemptionForm = RedemptionFormState(selectedYearMonth = currentYearMonthJs().toString()),
         ),
     )
         private set
@@ -83,10 +83,10 @@ class OverpaymentViewModel(
     }
 
     private fun loadMonthData() {
-        val month = uiState.redemptionForm.selectedMonth
+        val yearMonth = uiState.redemptionForm.selectedYearMonth
         viewModelScope.launch {
             try {
-                val data = moneyRepository.getMonthlyMoney(month)
+                val data = moneyRepository.getMonthlyMoney(yearMonth)
                 uiState =
                     uiState.copy(
                         redemptionForm = uiState.redemptionForm.copy(monthData = data),
@@ -108,10 +108,10 @@ class OverpaymentViewModel(
     }
 
     fun onClearForm() {
-        val month = currentMonthJs().toString()
+        val yearMonth = currentYearMonthJs().toString()
         uiState =
             uiState.copy(
-                redemptionForm = RedemptionFormState(selectedMonth = month),
+                redemptionForm = RedemptionFormState(selectedYearMonth = yearMonth),
             )
         loadMonthData()
     }
@@ -131,19 +131,19 @@ class OverpaymentViewModel(
     }
 
     fun onRedemptionMonthPrevious() {
-        val newMonth = shiftMonthJs(uiState.redemptionForm.selectedMonth.toJsString(), -1).toString()
+        val newYearMonth = shiftYearMonthJs(uiState.redemptionForm.selectedYearMonth.toJsString(), -1).toString()
         uiState =
             uiState.copy(
-                redemptionForm = uiState.redemptionForm.copy(selectedMonth = newMonth, monthData = null),
+                redemptionForm = uiState.redemptionForm.copy(selectedYearMonth = newYearMonth, monthData = null),
             )
         loadMonthData()
     }
 
     fun onRedemptionMonthNext() {
-        val newMonth = shiftMonthJs(uiState.redemptionForm.selectedMonth.toJsString(), 1).toString()
+        val newYearMonth = shiftYearMonthJs(uiState.redemptionForm.selectedYearMonth.toJsString(), 1).toString()
         uiState =
             uiState.copy(
-                redemptionForm = uiState.redemptionForm.copy(selectedMonth = newMonth, monthData = null),
+                redemptionForm = uiState.redemptionForm.copy(selectedYearMonth = newYearMonth, monthData = null),
             )
         loadMonthData()
     }
@@ -200,7 +200,7 @@ class OverpaymentViewModel(
                 reportRepository.redeemOverpayment(
                     OverpaymentRedemptionRequest(
                         uid = form.selectedUid,
-                        month = form.selectedMonth,
+                        yearMonth = form.selectedYearMonth,
                         amount = amount,
                         note = form.noteText,
                     ),

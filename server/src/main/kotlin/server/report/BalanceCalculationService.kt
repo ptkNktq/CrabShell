@@ -11,18 +11,18 @@ data class UserOverpayment(
 }
 
 data class BalanceResult(
-    val months: List<String>,
+    val yearMonths: List<String>,
     val overpayments: List<UserOverpayment>,
 )
 
 class BalanceCalculationService {
     fun calculateOverpayments(allMonths: List<MonthlyMoney>): BalanceResult {
-        val months = mutableListOf<String>()
+        val yearMonths = mutableListOf<String>()
         val overpaidByUser = mutableMapOf<String, Long>()
         val redeemedByUser = mutableMapOf<String, Long>()
 
         for (monthData in allMonths) {
-            months.add(monthData.month)
+            yearMonths.add(monthData.yearMonth)
 
             val monthAllocated = mutableMapOf<String, Long>()
             for (item in monthData.items) {
@@ -52,10 +52,10 @@ class BalanceCalculationService {
             }
         }
 
-        months.sort()
+        yearMonths.sort()
 
         return BalanceResult(
-            months = months,
+            yearMonths = yearMonths,
             overpayments =
                 overpaidByUser.map { (uid, overpaid) ->
                     UserOverpayment(

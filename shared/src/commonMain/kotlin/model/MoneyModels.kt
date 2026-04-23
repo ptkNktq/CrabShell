@@ -46,7 +46,7 @@ enum class MonthlyMoneyStatus {
 
 @Serializable
 data class MonthlyMoney(
-    val month: String,
+    val yearMonth: String,
     val items: List<MoneyItem> = emptyList(),
     val paymentRecords: List<PaymentRecord> = emptyList(),
     val status: MonthlyMoneyStatus = MonthlyMoneyStatus.PENDING,
