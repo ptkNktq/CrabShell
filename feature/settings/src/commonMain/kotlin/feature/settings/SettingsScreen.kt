@@ -1304,6 +1304,7 @@ private fun MoneyWebhookSettingsCard(
                     Switch(
                         checked = enabled,
                         onCheckedChange = onEnabledChanged,
+                        enabled = !isSaving,
                     )
                 }
 
