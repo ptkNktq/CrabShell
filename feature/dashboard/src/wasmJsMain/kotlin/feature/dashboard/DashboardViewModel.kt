@@ -5,8 +5,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import core.common.AppLogger
+import core.common.FeedingSettingsChangedEvent
 import core.common.TabResumedEvent
 import core.network.FeedingRepository
+import core.network.FeedingSettingsRepository
 import core.network.GarbageScheduleRepository
 import core.network.PetRepository
 import core.ui.util.currentTimeJs
@@ -18,11 +21,13 @@ import core.ui.util.todayDateJs
 import core.ui.util.tomorrowDayOfWeekIndexJs
 import core.ui.util.tomorrowWeekOfMonthJs
 import core.ui.util.weekOfMonthJs
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import model.FeedingLog
+import model.FeedingSettings
 import model.GarbageType
 import model.GarbageTypeSchedule
 import model.MealTime
@@ -34,6 +39,7 @@ data class DashboardUiState(
     val feedingError: String? = null,
     val feedingActionError: String? = null,
     val petName: String? = null,
+    val mealOrder: List<MealTime> = FeedingSettings.DEFAULT_MEAL_ORDER,
     val todayGarbageTypes: List<GarbageType> = emptyList(),
     val garbageUpdateLabel: String = "毎日 10:00 更新",
     val currentTime: String = "",
@@ -43,8 +49,10 @@ data class DashboardUiState(
 
 class DashboardViewModel(
     tabResumedEvent: TabResumedEvent,
+    feedingSettingsChangedEvent: FeedingSettingsChangedEvent,
     private val petRepository: PetRepository,
     private val feedingRepository: FeedingRepository,
+    private val feedingSettingsRepository: FeedingSettingsRepository,
     private val garbageScheduleRepository: GarbageScheduleRepository,
 ) : ViewModel() {
     private var today: String = feedingDateJs().toString()
@@ -56,6 +64,7 @@ class DashboardViewModel(
     private var garbageRefreshedToday =
         (currentTimeJs().toString().substringBefore(":").toIntOrNull() ?: 0) >= GARBAGE_SWITCH_HOUR
     private var pollingJob: Job? = null
+    private var feedingSettingsJob: Job? = null
 
     var uiState by mutableStateOf(
         DashboardUiState(
@@ -78,6 +87,7 @@ class DashboardViewModel(
                 uiState = uiState.copy(feedingError = e.message, feedingLoading = false)
             }
         }
+        loadFeedingSettings()
         loadGarbageSchedule()
         viewModelScope.launch { restartDateChangePolling() }
         // バックグラウンド復帰時: ブラウザの throttle / freeze により遅れた表示を即座に追い付かせ、
@@ -86,9 +96,32 @@ class DashboardViewModel(
             tabResumedEvent.events.collect {
                 refreshTimeAndGarbage()
                 onRefreshFeeding()
+                loadFeedingSettings()
                 restartDateChangePolling()
             }
         }
+        // 設定画面でごはん設定が保存された瞬間に、同一タブ内でも mealOrder を即時反映する
+        viewModelScope.launch {
+            feedingSettingsChangedEvent.events.collect {
+                loadFeedingSettings()
+            }
+        }
+    }
+
+    private fun loadFeedingSettings() {
+        feedingSettingsJob?.cancel()
+        feedingSettingsJob =
+            viewModelScope.launch {
+                try {
+                    val settings = feedingSettingsRepository.getSettings()
+                    uiState = uiState.copy(mealOrder = settings.mealOrder)
+                } catch (e: CancellationException) {
+                    // 次回 load の cancel による正常中断は失敗扱いにしない
+                    throw e
+                } catch (e: Exception) {
+                    AppLogger.w(TAG, "feeding settings load failed: ${e.message}")
+                }
+            }
     }
 
     /**
@@ -240,6 +273,8 @@ class DashboardViewModel(
     }
 
     companion object {
+        private const val TAG = "DashboardViewModel"
+
         /** ダッシュボードのゴミ情報を「今日→明日」に切り替える時刻（固定） */
         private const val GARBAGE_SWITCH_HOUR = 10
     }

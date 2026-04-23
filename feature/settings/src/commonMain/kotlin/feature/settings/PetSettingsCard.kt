@@ -1,27 +1,37 @@
-package feature.petmanagement
+package feature.settings
 
-import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.ScrollbarStyle
-import androidx.compose.foundation.VerticalScrollbar
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.rememberScrollbarAdapter
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import core.ui.LocalWindowSizeClass
-import core.ui.WindowSizeClass
 import core.ui.extensions.label
 import model.MealTime
 import model.Pet
-import org.koin.compose.viewmodel.koinViewModel
 
 /** 順序プリセット: 現実的な巡回パターンのみ */
 private val mealOrderPresets =
@@ -32,153 +42,7 @@ private val mealOrderPresets =
     )
 
 @Composable
-fun PetManagementScreen(viewModel: PetManagementViewModel = koinViewModel()) {
-    val scrollState = rememberScrollState()
-    val windowSizeClass = LocalWindowSizeClass.current
-
-    PetManagementContent(
-        scrollState = scrollState,
-        pets = viewModel.uiState.pets,
-        editingPetNames = viewModel.uiState.editingPetNames,
-        mealOrder = viewModel.uiState.mealOrder,
-        mealTimes = viewModel.uiState.mealTimes,
-        reminderEnabled = viewModel.uiState.reminderEnabled,
-        reminderWebhookUrl = viewModel.uiState.reminderWebhookUrl,
-        reminderDelayMinutes = viewModel.uiState.reminderDelayMinutes,
-        reminderPrefix = viewModel.uiState.reminderPrefix,
-        isLoading = viewModel.uiState.isLoading,
-        isSaving = viewModel.uiState.isSaving,
-        isTesting = viewModel.uiState.isTesting,
-        message = viewModel.uiState.message,
-        onPetNameChanged = viewModel::onPetNameChanged,
-        onSavePetName = viewModel::onSavePetName,
-        onMealOrderChanged = viewModel::onMealOrderChanged,
-        onMealTimeChanged = viewModel::onMealTimeChanged,
-        onReminderEnabledChanged = viewModel::onReminderEnabledChanged,
-        onReminderWebhookUrlChanged = viewModel::onReminderWebhookUrlChanged,
-        onReminderDelayMinutesChanged = viewModel::onReminderDelayMinutesChanged,
-        onReminderPrefixChanged = viewModel::onReminderPrefixChanged,
-        onSaveFeedingSettings = viewModel::onSaveFeedingSettings,
-        onTestReminder = viewModel::onTestReminder,
-        windowSizeClass = windowSizeClass,
-    )
-}
-
-@Composable
-internal fun PetManagementContent(
-    scrollState: ScrollState,
-    pets: List<Pet>,
-    editingPetNames: Map<String, String>,
-    mealOrder: List<MealTime>,
-    mealTimes: Map<MealTime, String>,
-    reminderEnabled: Boolean,
-    reminderWebhookUrl: String,
-    reminderDelayMinutes: Int,
-    reminderPrefix: String,
-    isLoading: Boolean,
-    isSaving: Boolean,
-    isTesting: Boolean = false,
-    message: String?,
-    onPetNameChanged: (String, String) -> Unit,
-    onSavePetName: (String) -> Unit,
-    onMealOrderChanged: (List<MealTime>) -> Unit,
-    onMealTimeChanged: (MealTime, String) -> Unit,
-    onReminderEnabledChanged: (Boolean) -> Unit,
-    onReminderWebhookUrlChanged: (String) -> Unit,
-    onReminderDelayMinutesChanged: (Int) -> Unit,
-    onReminderPrefixChanged: (String) -> Unit,
-    onSaveFeedingSettings: () -> Unit,
-    onTestReminder: () -> Unit = {},
-    windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
-) {
-    val isCompact = windowSizeClass == WindowSizeClass.Compact
-
-    if (isLoading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-        return
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(if (isCompact) 16.dp else 24.dp)
-                    .verticalScroll(scrollState),
-            horizontalAlignment = if (isCompact) Alignment.Start else Alignment.CenterHorizontally,
-        ) {
-            val cardModifier = if (isCompact) Modifier.fillMaxWidth() else Modifier.widthIn(max = 480.dp)
-
-            // ペット名セクション
-            SectionTitle("ペット名")
-            PetNameCard(
-                pets = pets,
-                editingPetNames = editingPetNames,
-                isSaving = isSaving,
-                onPetNameChanged = onPetNameChanged,
-                onSavePetName = onSavePetName,
-                modifier = cardModifier,
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // ごはん設定セクション
-            SectionTitle("ごはん設定")
-            FeedingSettingsCard(
-                mealOrder = mealOrder,
-                mealTimes = mealTimes,
-                reminderEnabled = reminderEnabled,
-                reminderWebhookUrl = reminderWebhookUrl,
-                reminderDelayMinutes = reminderDelayMinutes,
-                reminderPrefix = reminderPrefix,
-                isSaving = isSaving,
-                isTesting = isTesting,
-                message = message,
-                onMealOrderChanged = onMealOrderChanged,
-                onMealTimeChanged = onMealTimeChanged,
-                onReminderEnabledChanged = onReminderEnabledChanged,
-                onReminderWebhookUrlChanged = onReminderWebhookUrlChanged,
-                onReminderDelayMinutesChanged = onReminderDelayMinutesChanged,
-                onReminderPrefixChanged = onReminderPrefixChanged,
-                onSave = onSaveFeedingSettings,
-                onTestReminder = onTestReminder,
-                modifier = cardModifier,
-            )
-        }
-
-        VerticalScrollbar(
-            adapter = rememberScrollbarAdapter(scrollState),
-            modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
-            style =
-                ScrollbarStyle(
-                    minimalHeight = 48.dp,
-                    thickness = 8.dp,
-                    shape = MaterialTheme.shapes.small,
-                    hoverDurationMillis = 300,
-                    unhoverColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                    hoverColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                ),
-        )
-    }
-}
-
-@Composable
-private fun SectionTitle(title: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-        )
-    }
-    Spacer(modifier = Modifier.height(12.dp))
-}
-
-@Composable
-private fun PetNameCard(
+internal fun PetNameCard(
     pets: List<Pet>,
     editingPetNames: Map<String, String>,
     isSaving: Boolean,
@@ -194,6 +58,7 @@ private fun PetNameCard(
             modifier = Modifier.padding(24.dp).fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            Text("ペット名", style = MaterialTheme.typography.titleSmall)
             for (pet in pets) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -221,7 +86,7 @@ private fun PetNameCard(
 }
 
 @Composable
-private fun FeedingSettingsCard(
+internal fun FeedingSettingsCard(
     mealOrder: List<MealTime>,
     mealTimes: Map<MealTime, String>,
     reminderEnabled: Boolean,
@@ -229,7 +94,7 @@ private fun FeedingSettingsCard(
     reminderDelayMinutes: Int,
     reminderPrefix: String,
     isSaving: Boolean,
-    isTesting: Boolean = false,
+    isTesting: Boolean,
     message: String?,
     onMealOrderChanged: (List<MealTime>) -> Unit,
     onMealTimeChanged: (MealTime, String) -> Unit,
@@ -238,7 +103,7 @@ private fun FeedingSettingsCard(
     onReminderDelayMinutesChanged: (Int) -> Unit,
     onReminderPrefixChanged: (String) -> Unit,
     onSave: () -> Unit,
-    onTestReminder: () -> Unit = {},
+    onTestReminder: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -249,8 +114,10 @@ private fun FeedingSettingsCard(
             modifier = Modifier.padding(24.dp).fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            Text("ごはん設定", style = MaterialTheme.typography.titleSmall)
+
             // --- 表示順 ---
-            Text("表示順", style = MaterialTheme.typography.titleSmall)
+            Text("表示順", style = MaterialTheme.typography.bodyMedium)
             Text(
                 text = "ごはん画面での表示順を設定します",
                 style = MaterialTheme.typography.bodySmall,
@@ -275,7 +142,7 @@ private fun FeedingSettingsCard(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
             // --- 時刻 ---
-            Text("予定時刻", style = MaterialTheme.typography.titleSmall)
+            Text("予定時刻", style = MaterialTheme.typography.bodyMedium)
             for (mealTime in MealTime.entries) {
                 val timeStr = mealTimes[mealTime] ?: "00:00"
                 val parts = timeStr.split(":")
@@ -324,13 +191,12 @@ private fun FeedingSettingsCard(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
             // --- リマインダー通知 ---
-            Text("リマインダー通知", style = MaterialTheme.typography.titleSmall)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("有効", style = MaterialTheme.typography.bodyMedium)
+                Text("リマインダー通知", style = MaterialTheme.typography.bodyMedium)
                 Switch(
                     checked = reminderEnabled,
                     onCheckedChange = onReminderEnabledChanged,
@@ -377,7 +243,6 @@ private fun FeedingSettingsCard(
                 )
             }
 
-            // --- メッセージ＋保存 ---
             if (message != null) {
                 Text(
                     text = message,

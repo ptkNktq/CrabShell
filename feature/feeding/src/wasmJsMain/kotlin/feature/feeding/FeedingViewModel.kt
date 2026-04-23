@@ -5,12 +5,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import core.common.AppLogger
+import core.common.FeedingSettingsChangedEvent
+import core.common.TabResumedEvent
 import core.network.FeedingRepository
+import core.network.FeedingSettingsRepository
 import core.network.PetRepository
 import core.ui.util.feedingDateJs
 import core.ui.util.shiftDateJs
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import model.FeedingLog
+import model.FeedingSettings
 import model.MealTime
 import model.Pet
 
@@ -22,11 +29,15 @@ data class FeedingUiState(
     val noteDraft: String = "",
     val pet: Pet? = null,
     val editingMealTime: MealTime? = null,
+    val mealOrder: List<MealTime> = FeedingSettings.DEFAULT_MEAL_ORDER,
 )
 
 class FeedingViewModel(
+    tabResumedEvent: TabResumedEvent,
+    feedingSettingsChangedEvent: FeedingSettingsChangedEvent,
     private val petRepository: PetRepository,
     private val feedingRepository: FeedingRepository,
+    private val feedingSettingsRepository: FeedingSettingsRepository,
 ) : ViewModel() {
     var uiState by mutableStateOf(
         FeedingUiState(
@@ -35,6 +46,8 @@ class FeedingViewModel(
         ),
     )
         private set
+
+    private var feedingSettingsJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -46,6 +59,37 @@ class FeedingViewModel(
                 uiState = uiState.copy(error = e.message, isLoading = false)
             }
         }
+        loadFeedingSettings()
+        // タブ復帰時: 設定変更の反映に加え、バックグラウンドで経過した分を補うため
+        // 選択中日付のログも再取得する（Dashboard の onRefreshFeeding と対称）
+        viewModelScope.launch {
+            tabResumedEvent.events.collect {
+                loadFeedingSettings()
+                onLoadLog(uiState.selectedDate)
+            }
+        }
+        // 設定画面で保存された瞬間、同一タブ内でも mealOrder を即時反映する
+        viewModelScope.launch {
+            feedingSettingsChangedEvent.events.collect {
+                loadFeedingSettings()
+            }
+        }
+    }
+
+    private fun loadFeedingSettings() {
+        feedingSettingsJob?.cancel()
+        feedingSettingsJob =
+            viewModelScope.launch {
+                try {
+                    val settings = feedingSettingsRepository.getSettings()
+                    uiState = uiState.copy(mealOrder = settings.mealOrder)
+                } catch (e: CancellationException) {
+                    // 次回 load の cancel による正常中断は失敗扱いにしない
+                    throw e
+                } catch (e: Exception) {
+                    AppLogger.w(TAG, "feeding settings load failed: ${e.message}")
+                }
+            }
     }
 
     fun onLoadLog(date: String) {
@@ -145,5 +189,9 @@ class FeedingViewModel(
 
     fun onGoToNextDay() {
         onLoadLog(shiftDateJs(uiState.selectedDate.toJsString(), 1).toString())
+    }
+
+    companion object {
+        private const val TAG = "FeedingViewModel"
     }
 }

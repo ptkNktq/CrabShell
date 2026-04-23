@@ -149,9 +149,8 @@ feature/quest/       → QuestCategory enum (commonMain)
 feature/report/      → ReportSummaryCard + MonthlyBarChart + CategoryBreakdown (commonMain)
                        ReportViewModel + ReportScreen (wasmJsMain)
                        Depends on :core:ui, :shared + wasmJs: :core:auth, :core:network
-feature/pet-management/ → PetManagementViewModel + PetManagementScreen (commonMain)
-                       Depends on :core:network, :core:ui, :shared
 feature/settings/    → 全ファイル commonMain (wasmJs 固有 API 不使用)
+                       ペット設定（ペット名・ごはん設定）も settings カテゴリとして統合
                        Depends on :core:auth, :core:network, :core:ui, :shared
 
 app/                 → Screen enum + Sidebar + DrawerContent + NavigationItems (commonMain)
@@ -190,8 +189,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Core UI (wasmJsMain): `core/ui/src/wasmJsMain/kotlin/core/ui/` (DateUtils.kt, CalendarView.kt)
 - Feature auth (commonMain): `feature/auth/src/commonMain/kotlin/feature/auth/` (LoginViewModel, LoginScreen)
 - Feature auth (wasmJsMain): `feature/auth/src/wasmJsMain/kotlin/feature/auth/` (AuthenticatedApp, PasskeySetupViewModel)
-- Feature pet-management (commonMain): `feature/pet-management/src/commonMain/kotlin/feature/petmanagement/` (PetManagementViewModel, PetManagementScreen)
-- Feature settings (commonMain): `feature/settings/src/commonMain/kotlin/feature/settings/` (全ファイル)
+- Feature settings (commonMain): `feature/settings/src/commonMain/kotlin/feature/settings/` (全ファイル。ペット設定も PetSettingsViewModel / PetSettingsCard として同居)
 - Feature dashboard: `feature/dashboard/src/wasmJsMain/kotlin/feature/dashboard/` (DashboardViewModel, DashboardScreen)
 - Feature feeding: `feature/feeding/src/wasmJsMain/kotlin/feature/feeding/` (FeedingViewModel, FeedingScreen)
 - Feature money: `feature/money/src/wasmJsMain/kotlin/feature/money/` (MoneyViewModel, MoneyScreen)

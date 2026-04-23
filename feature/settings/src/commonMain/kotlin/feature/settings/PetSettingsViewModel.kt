@@ -1,10 +1,11 @@
-package feature.petmanagement
+package feature.settings
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import core.common.FeedingSettingsChangedEvent
 import core.network.FeedingSettingsRepository
 import core.network.PetRepository
 import kotlinx.coroutines.launch
@@ -12,11 +13,11 @@ import model.FeedingSettings
 import model.MealTime
 import model.Pet
 
-data class PetManagementUiState(
+data class PetSettingsUiState(
     val isLoading: Boolean = true,
     val pets: List<Pet> = emptyList(),
     val editingPetNames: Map<String, String> = emptyMap(),
-    val mealOrder: List<MealTime> = MealTime.entries.toList(),
+    val mealOrder: List<MealTime> = FeedingSettings.DEFAULT_MEAL_ORDER,
     val mealTimes: Map<MealTime, String> = emptyMap(),
     val reminderEnabled: Boolean = false,
     val reminderWebhookUrl: String = "",
@@ -27,11 +28,12 @@ data class PetManagementUiState(
     val message: String? = null,
 )
 
-class PetManagementViewModel(
+class PetSettingsViewModel(
     private val petRepository: PetRepository,
     private val feedingSettingsRepository: FeedingSettingsRepository,
+    private val feedingSettingsChangedEvent: FeedingSettingsChangedEvent,
 ) : ViewModel() {
-    var uiState by mutableStateOf(PetManagementUiState())
+    var uiState by mutableStateOf(PetSettingsUiState())
         private set
 
     init {
@@ -145,6 +147,7 @@ class PetManagementViewModel(
                     )
                 feedingSettingsRepository.updateSettings(settings)
                 uiState = uiState.copy(isSaving = false, message = "設定を保存しました")
+                feedingSettingsChangedEvent.emit()
             } catch (e: Exception) {
                 uiState = uiState.copy(isSaving = false, message = "保存失敗: ${e.message}")
             }
