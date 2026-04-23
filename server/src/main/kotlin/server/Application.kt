@@ -42,6 +42,7 @@ import server.feeding.feedingRoutes
 import server.garbage.GarbageNotificationService
 import server.garbage.garbageRoutes
 import server.loginhistory.loginHistoryRoutes
+import server.migration.FirestoreMigrations
 import server.money.moneyRoutes
 import server.passkey.PasskeyDatabase
 import server.passkey.passkeyRoutes
@@ -76,6 +77,9 @@ fun Application.module() {
     PasskeyDatabase.initialize()
 
     install(Koin) { modules(serverModule) }
+
+    val firestoreMigrations by inject<FirestoreMigrations>()
+    launch { firestoreMigrations.runAll() }
 
     val petRepository by inject<PetRepository>()
     petRepository.seedDefaultPet()
