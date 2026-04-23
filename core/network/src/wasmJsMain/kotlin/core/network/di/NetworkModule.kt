@@ -12,6 +12,8 @@ import core.network.LoginHistoryRepository
 import core.network.LoginHistoryRepositoryImpl
 import core.network.MoneyRepository
 import core.network.MoneyRepositoryImpl
+import core.network.MoneyWebhookRepository
+import core.network.MoneyWebhookRepositoryImpl
 import core.network.PasskeyRepository
 import core.network.PasskeyRepositoryImpl
 import core.network.PetRepository
@@ -47,6 +49,7 @@ val networkModule =
         single<UserRepository> { UserRepositoryImpl(get()) }
         single<PasskeyRepository> { PasskeyRepositoryImpl(get()) }
         single<QuestWebhookRepository> { QuestWebhookRepositoryImpl(get()) }
+        single<MoneyWebhookRepository> { MoneyWebhookRepositoryImpl(get()) }
         single<CacheRepository> { CacheRepositoryImpl(get()) }
         single<LoginHistoryRepository> { LoginHistoryRepositoryImpl(get()) }
     }

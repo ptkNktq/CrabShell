@@ -3,6 +3,7 @@ package feature.settings.di
 import feature.settings.CacheRefreshViewModel
 import feature.settings.GarbageScheduleViewModel
 import feature.settings.LoginHistoryViewModel
+import feature.settings.MoneyWebhookViewModel
 import feature.settings.PasskeyManagementViewModel
 import feature.settings.PasswordChangeViewModel
 import feature.settings.PetSettingsViewModel
@@ -20,6 +21,7 @@ val settingsModule =
         factory { UserNameViewModel(get()) }
         factory { GarbageScheduleViewModel(get()) }
         factory { QuestWebhookViewModel(get()) }
+        factory { MoneyWebhookViewModel(get()) }
         factory { CacheRefreshViewModel(get()) }
         factory { PetSettingsViewModel(get(), get(), get()) }
     }

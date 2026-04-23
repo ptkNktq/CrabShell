@@ -46,6 +46,7 @@ import server.garbage.garbageRoutes
 import server.loginhistory.loginHistoryRoutes
 import server.migration.FirestoreMigrations
 import server.money.moneyRoutes
+import server.money.moneyWebhookRoutes
 import server.passkey.PasskeyDatabase
 import server.passkey.passkeyRoutes
 import server.pet.PetAccessDeniedException
@@ -194,6 +195,7 @@ fun Application.module() {
             feedingRoutes()
             garbageRoutes()
             moneyRoutes()
+            moneyWebhookRoutes()
             reportRoutes()
             questRoutes()
             pointRoutes()

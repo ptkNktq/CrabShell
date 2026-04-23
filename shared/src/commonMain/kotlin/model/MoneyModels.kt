@@ -56,3 +56,10 @@ data class MonthlyMoney(
 data class MonthlyMoneyStatusUpdate(
     val status: MonthlyMoneyStatus,
 )
+
+@Serializable
+data class MoneyWebhookSettings(
+    val url: String = "",
+    val enabled: Boolean = false,
+    val message: String = "",
+)
