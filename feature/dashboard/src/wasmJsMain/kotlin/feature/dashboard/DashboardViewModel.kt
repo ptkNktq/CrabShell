@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import core.common.TabResumedEvent
 import core.network.FeedingRepository
+import core.network.FeedingSettingsRepository
 import core.network.GarbageScheduleRepository
 import core.network.PetRepository
 import core.ui.util.currentTimeJs
@@ -34,6 +35,7 @@ data class DashboardUiState(
     val feedingError: String? = null,
     val feedingActionError: String? = null,
     val petName: String? = null,
+    val mealOrder: List<MealTime> = listOf(MealTime.LUNCH, MealTime.EVENING, MealTime.MORNING),
     val todayGarbageTypes: List<GarbageType> = emptyList(),
     val garbageUpdateLabel: String = "毎日 10:00 更新",
     val currentTime: String = "",
@@ -45,6 +47,7 @@ class DashboardViewModel(
     tabResumedEvent: TabResumedEvent,
     private val petRepository: PetRepository,
     private val feedingRepository: FeedingRepository,
+    private val feedingSettingsRepository: FeedingSettingsRepository,
     private val garbageScheduleRepository: GarbageScheduleRepository,
 ) : ViewModel() {
     private var today: String = feedingDateJs().toString()
@@ -78,6 +81,7 @@ class DashboardViewModel(
                 uiState = uiState.copy(feedingError = e.message, feedingLoading = false)
             }
         }
+        loadFeedingSettings()
         loadGarbageSchedule()
         viewModelScope.launch { restartDateChangePolling() }
         // バックグラウンド復帰時: ブラウザの throttle / freeze により遅れた表示を即座に追い付かせ、
@@ -86,7 +90,19 @@ class DashboardViewModel(
             tabResumedEvent.events.collect {
                 refreshTimeAndGarbage()
                 onRefreshFeeding()
+                loadFeedingSettings()
                 restartDateChangePolling()
+            }
+        }
+    }
+
+    private fun loadFeedingSettings() {
+        viewModelScope.launch {
+            try {
+                val settings = feedingSettingsRepository.getSettings()
+                uiState = uiState.copy(mealOrder = settings.mealOrder)
+            } catch (_: Exception) {
+                // 設定取得失敗時はデフォルト順序を維持（ごはん機能自体は動作させる）
             }
         }
     }

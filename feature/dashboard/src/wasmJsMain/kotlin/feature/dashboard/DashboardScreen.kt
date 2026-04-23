@@ -19,7 +19,6 @@ import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
 import core.ui.extensions.FeedingDoneColor
 import core.ui.extensions.color
-import core.ui.extensions.displayOrder
 import core.ui.extensions.icon
 import core.ui.extensions.label
 import core.ui.theme.displayExLarge
@@ -41,6 +40,7 @@ fun DashboardScreen(vm: DashboardViewModel = koinViewModel()) {
         feedingActionError = vm.uiState.feedingActionError,
         feedingLog = vm.uiState.feedingLog,
         petName = vm.uiState.petName,
+        mealOrder = vm.uiState.mealOrder,
         todayGarbageTypes = vm.uiState.todayGarbageTypes,
         garbageUpdateLabel = vm.uiState.garbageUpdateLabel,
         currentTime = vm.uiState.currentTime,
@@ -59,6 +59,7 @@ internal fun DashboardContent(
     feedingActionError: String?,
     feedingLog: FeedingLog,
     petName: String?,
+    mealOrder: List<MealTime>,
     todayGarbageTypes: List<GarbageType>,
     garbageUpdateLabel: String,
     currentTime: String,
@@ -95,6 +96,7 @@ internal fun DashboardContent(
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                     feedingLog = feedingLog,
                     petName = petName,
+                    mealOrder = mealOrder,
                     isLoading = feedingLoading,
                     error = feedingError,
                     actionError = feedingActionError,
@@ -122,6 +124,7 @@ internal fun DashboardContent(
                     modifier = Modifier.fillMaxWidth(),
                     feedingLog = feedingLog,
                     petName = petName,
+                    mealOrder = mealOrder,
                     isLoading = feedingLoading,
                     error = feedingError,
                     actionError = feedingActionError,
@@ -243,6 +246,7 @@ fun DateTimeCard(
 fun DailyFeedingCard(
     feedingLog: FeedingLog,
     petName: String?,
+    mealOrder: List<MealTime>,
     isLoading: Boolean,
     error: String?,
     actionError: String?,
@@ -320,7 +324,7 @@ fun DailyFeedingCard(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        for (mealTime in MealTime.displayOrder) {
+                        for (mealTime in mealOrder) {
                             val feeding = feedingLog.feedings[mealTime]
                             FeedingSection(
                                 label = mealTime.label,

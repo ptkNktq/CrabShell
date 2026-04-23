@@ -14,10 +14,6 @@ val LunchColor = Color(0xFFFBC02D)
 val EveningColor = Color(0xFF5C6BC0)
 val FeedingDoneColor = Color(0xFF4CAF50)
 
-/** UI 上の表示順（昼→晩→朝） */
-val MealTime.Companion.displayOrder: List<MealTime>
-    get() = listOf(MealTime.LUNCH, MealTime.EVENING, MealTime.MORNING)
-
 val MealTime.label: String
     get() =
         when (this) {

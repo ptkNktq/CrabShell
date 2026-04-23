@@ -22,7 +22,6 @@ import core.ui.WindowSizeClass
 import core.ui.components.CalendarView
 import core.ui.extensions.FeedingDoneColor
 import core.ui.extensions.color
-import core.ui.extensions.displayOrder
 import core.ui.extensions.icon
 import core.ui.extensions.label
 import core.ui.util.dayOfWeekShortJs
@@ -47,6 +46,7 @@ fun FeedingScreen(vm: FeedingViewModel = koinViewModel()) {
         loading = vm.uiState.isLoading,
         error = vm.uiState.error,
         log = vm.uiState.log,
+        mealOrder = vm.uiState.mealOrder,
         noteDraft = vm.uiState.noteDraft,
         editingMealTime = vm.uiState.editingMealTime,
         onDateSelected = vm::onLoadLog,
@@ -70,6 +70,7 @@ internal fun FeedingContent(
     loading: Boolean,
     error: String?,
     log: FeedingLog,
+    mealOrder: List<MealTime>,
     noteDraft: String,
     editingMealTime: MealTime?,
     onDateSelected: (String) -> Unit,
@@ -115,6 +116,7 @@ internal fun FeedingContent(
                     loading = loading,
                     error = error,
                     log = log,
+                    mealOrder = mealOrder,
                     noteDraft = noteDraft,
                     editingMealTime = editingMealTime,
                     onPreviousDay = onPreviousDay,
@@ -138,6 +140,7 @@ internal fun FeedingContent(
                         loading = loading,
                         error = error,
                         log = log,
+                        mealOrder = mealOrder,
                         noteDraft = noteDraft,
                         editingMealTime = editingMealTime,
                         onPreviousDay = onPreviousDay,
@@ -170,6 +173,7 @@ private fun FeedingDetailSection(
     loading: Boolean,
     error: String?,
     log: FeedingLog,
+    mealOrder: List<MealTime>,
     noteDraft: String,
     editingMealTime: MealTime?,
     onPreviousDay: () -> Unit,
@@ -202,7 +206,7 @@ private fun FeedingDetailSection(
 
         else -> {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                for (mealTime in MealTime.displayOrder) {
+                for (mealTime in mealOrder) {
                     MealCard(
                         mealTime = mealTime,
                         feeding = log.feedings[mealTime] ?: Feeding(),
