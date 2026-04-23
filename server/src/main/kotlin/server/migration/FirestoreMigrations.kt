@@ -15,29 +15,6 @@ private const val FIRESTORE_BATCH_LIMIT = 500
 
 private val logger = LoggerFactory.getLogger("server.migration.FirestoreMigrations")
 
-/** money.month → yearMonth マイグレーションにおける 1 ドキュメントの扱い。 */
-internal enum class MoneyMigrationAction {
-    /** 対象外。新フィールドのみ保持済み、または両方未設定。 */
-    SKIP,
-
-    /** 新旧両方保持しているため、旧 `month` フィールドのみ削除する。 */
-    DELETE_LEGACY,
-
-    /** 旧 `month` フィールドのみ保持しているため、`yearMonth` を `doc.id` からセット & 旧 `month` を削除する。 */
-    SET_NEW_AND_DELETE_LEGACY,
-}
-
-/** money ドキュメントの旧/新スキーマ保有状況から、必要なマイグレーション操作を判定する。 */
-internal fun classifyMoneyMigration(
-    hasLegacyMonth: Boolean,
-    hasYearMonth: Boolean,
-): MoneyMigrationAction =
-    when {
-        !hasLegacyMonth -> MoneyMigrationAction.SKIP
-        hasYearMonth -> MoneyMigrationAction.DELETE_LEGACY
-        else -> MoneyMigrationAction.SET_NEW_AND_DELETE_LEGACY
-    }
-
 /**
  * Firestore の一回きりマイグレーションをサーバー起動時に実行する。
  *
@@ -51,6 +28,18 @@ internal fun classifyMoneyMigration(
 class FirestoreMigrations(
     private val firestore: Firestore,
 ) {
+    /** money.month → yearMonth マイグレーションにおける 1 ドキュメントの扱い。 */
+    internal enum class MoneyMigrationAction {
+        /** 対象外。新フィールドのみ保持済み、または両方未設定。 */
+        SKIP,
+
+        /** 新旧両方保持しているため、旧 `month` フィールドのみ削除する。 */
+        DELETE_LEGACY,
+
+        /** 旧 `month` フィールドのみ保持しているため、`yearMonth` を `doc.id` からセット & 旧 `month` を削除する。 */
+        SET_NEW_AND_DELETE_LEGACY,
+    }
+
     suspend fun runAll() {
         runIfNeeded("money-month-to-year-month") { migrateMoneyMonthToYearMonth() }
     }
@@ -119,6 +108,17 @@ class FirestoreMigrations(
             }
         }
     }
+
+    /** money ドキュメントの旧/新スキーマ保有状況から、必要なマイグレーション操作を判定する。 */
+    internal fun classifyMoneyMigration(
+        hasLegacyMonth: Boolean,
+        hasYearMonth: Boolean,
+    ): MoneyMigrationAction =
+        when {
+            !hasLegacyMonth -> MoneyMigrationAction.SKIP
+            hasYearMonth -> MoneyMigrationAction.DELETE_LEGACY
+            else -> MoneyMigrationAction.SET_NEW_AND_DELETE_LEGACY
+        }
 
     /**
      * [docs] に対して [buildUpdate] が返す更新内容を [FIRESTORE_BATCH_LIMIT] 件ずつ WriteBatch でコミットする。
