@@ -125,6 +125,14 @@ class FirestoreMoneyRepository(
         return months
     }
 
+    /**
+     * Firestore ドキュメントから [MonthlyMoney] を組み立てる。
+     *
+     * 本リポジトリの不変条件として「ドキュメント ID == `yearMonth` フィールド値」を維持しており、
+     * 呼び出し側は必ず `doc.id`（または同値の引数）を [yearMonth] に渡す。ドキュメント内に保存された
+     * `"yearMonth"` フィールドは本関数では読まない（冗長保存だが、[saveMonthlyMoney] の `set` 全置換時に
+     * スキーマとして一貫させるために書き込んでいる）。
+     */
     private fun parseMonthlyMoney(
         yearMonth: String,
         doc: DocumentSnapshot,
