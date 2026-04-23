@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -39,6 +40,8 @@ import model.CollectionFrequency
 import model.GarbageType
 import model.GarbageTypeSchedule
 import model.LoginEvent
+import model.MealTime
+import model.Pet
 import model.QuestWebhookEvent
 import model.User
 import org.koin.compose.getKoin
@@ -65,6 +68,7 @@ internal enum class SettingsCategory(
 ) {
     Account("アカウント", Icons.Default.Person),
     UserManagement("ユーザー管理", Icons.Default.Group, adminOnly = true),
+    Pet("ペット", Icons.Default.Pets, adminOnly = true),
     Garbage("ゴミ出し", Icons.Default.DeleteSweep, adminOnly = true),
     Quest("クエスト", Icons.Default.Star, adminOnly = true),
     Cache("サーバーキャッシュ", Icons.Default.Cached, adminOnly = true),
@@ -83,6 +87,7 @@ fun SettingsScreen(
     val garbageVm = remember(isAdmin) { if (isAdmin) koin.get<GarbageScheduleViewModel>() else null }
     val questWebhookVm = remember(isAdmin) { if (isAdmin) koin.get<QuestWebhookViewModel>() else null }
     val cacheVm = remember(isAdmin) { if (isAdmin) koin.get<CacheRefreshViewModel>() else null }
+    val petSettingsVm = remember(isAdmin) { if (isAdmin) koin.get<PetSettingsViewModel>() else null }
     val windowSizeClass = LocalWindowSizeClass.current
 
     SettingsContent(
@@ -158,6 +163,28 @@ fun SettingsScreen(
         cacheClearing = cacheVm?.uiState?.isClearing ?: false,
         cacheMessage = cacheVm?.uiState?.message,
         onClearCache = { cacheVm?.onClearCache() },
+        petSettingsLoading = petSettingsVm?.uiState?.isLoading ?: false,
+        pets = petSettingsVm?.uiState?.pets ?: emptyList(),
+        editingPetNames = petSettingsVm?.uiState?.editingPetNames ?: emptyMap(),
+        mealOrder = petSettingsVm?.uiState?.mealOrder ?: MealTime.entries.toList(),
+        mealTimes = petSettingsVm?.uiState?.mealTimes ?: emptyMap(),
+        feedingReminderEnabled = petSettingsVm?.uiState?.reminderEnabled ?: false,
+        feedingReminderWebhookUrl = petSettingsVm?.uiState?.reminderWebhookUrl ?: "",
+        feedingReminderDelayMinutes = petSettingsVm?.uiState?.reminderDelayMinutes ?: 30,
+        feedingReminderPrefix = petSettingsVm?.uiState?.reminderPrefix ?: "",
+        petSettingsSaving = petSettingsVm?.uiState?.isSaving ?: false,
+        petSettingsTesting = petSettingsVm?.uiState?.isTesting ?: false,
+        petSettingsMessage = petSettingsVm?.uiState?.message,
+        onPetNameChanged = { id, name -> petSettingsVm?.onPetNameChanged(id, name) },
+        onSavePetName = { petSettingsVm?.onSavePetName(it) },
+        onMealOrderChanged = { petSettingsVm?.onMealOrderChanged(it) },
+        onMealTimeChanged = { t, v -> petSettingsVm?.onMealTimeChanged(t, v) },
+        onFeedingReminderEnabledChanged = { petSettingsVm?.onReminderEnabledChanged(it) },
+        onFeedingReminderWebhookUrlChanged = { petSettingsVm?.onReminderWebhookUrlChanged(it) },
+        onFeedingReminderDelayMinutesChanged = { petSettingsVm?.onReminderDelayMinutesChanged(it) },
+        onFeedingReminderPrefixChanged = { petSettingsVm?.onReminderPrefixChanged(it) },
+        onSaveFeedingSettings = { petSettingsVm?.onSaveFeedingSettings() },
+        onTestFeedingReminder = { petSettingsVm?.onTestReminder() },
         windowSizeClass = windowSizeClass,
     )
 }
@@ -236,6 +263,28 @@ internal fun SettingsContent(
     cacheClearing: Boolean = false,
     cacheMessage: String? = null,
     onClearCache: () -> Unit = {},
+    petSettingsLoading: Boolean = false,
+    pets: List<Pet> = emptyList(),
+    editingPetNames: Map<String, String> = emptyMap(),
+    mealOrder: List<MealTime> = MealTime.entries.toList(),
+    mealTimes: Map<MealTime, String> = emptyMap(),
+    feedingReminderEnabled: Boolean = false,
+    feedingReminderWebhookUrl: String = "",
+    feedingReminderDelayMinutes: Int = 30,
+    feedingReminderPrefix: String = "",
+    petSettingsSaving: Boolean = false,
+    petSettingsTesting: Boolean = false,
+    petSettingsMessage: String? = null,
+    onPetNameChanged: (String, String) -> Unit = { _, _ -> },
+    onSavePetName: (String) -> Unit = {},
+    onMealOrderChanged: (List<MealTime>) -> Unit = {},
+    onMealTimeChanged: (MealTime, String) -> Unit = { _, _ -> },
+    onFeedingReminderEnabledChanged: (Boolean) -> Unit = {},
+    onFeedingReminderWebhookUrlChanged: (String) -> Unit = {},
+    onFeedingReminderDelayMinutesChanged: (Int) -> Unit = {},
+    onFeedingReminderPrefixChanged: (String) -> Unit = {},
+    onSaveFeedingSettings: () -> Unit = {},
+    onTestFeedingReminder: () -> Unit = {},
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
@@ -305,6 +354,40 @@ internal fun SettingsContent(
                     onRetry = onRetryUsers,
                     modifier = cardModifier,
                 )
+            }
+            SettingsCategory.Pet -> {
+                if (petSettingsLoading) {
+                    CircularProgressIndicator()
+                } else {
+                    PetNameCard(
+                        pets = pets,
+                        editingPetNames = editingPetNames,
+                        isSaving = petSettingsSaving,
+                        onPetNameChanged = onPetNameChanged,
+                        onSavePetName = onSavePetName,
+                        modifier = cardModifier,
+                    )
+                    FeedingSettingsCard(
+                        mealOrder = mealOrder,
+                        mealTimes = mealTimes,
+                        reminderEnabled = feedingReminderEnabled,
+                        reminderWebhookUrl = feedingReminderWebhookUrl,
+                        reminderDelayMinutes = feedingReminderDelayMinutes,
+                        reminderPrefix = feedingReminderPrefix,
+                        isSaving = petSettingsSaving,
+                        isTesting = petSettingsTesting,
+                        message = petSettingsMessage,
+                        onMealOrderChanged = onMealOrderChanged,
+                        onMealTimeChanged = onMealTimeChanged,
+                        onReminderEnabledChanged = onFeedingReminderEnabledChanged,
+                        onReminderWebhookUrlChanged = onFeedingReminderWebhookUrlChanged,
+                        onReminderDelayMinutesChanged = onFeedingReminderDelayMinutesChanged,
+                        onReminderPrefixChanged = onFeedingReminderPrefixChanged,
+                        onSave = onSaveFeedingSettings,
+                        onTestReminder = onTestFeedingReminder,
+                        modifier = cardModifier,
+                    )
+                }
             }
             SettingsCategory.Garbage -> {
                 GarbageScheduleCard(

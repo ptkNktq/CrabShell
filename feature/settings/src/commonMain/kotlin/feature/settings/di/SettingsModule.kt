@@ -5,6 +5,7 @@ import feature.settings.GarbageScheduleViewModel
 import feature.settings.LoginHistoryViewModel
 import feature.settings.PasskeyManagementViewModel
 import feature.settings.PasswordChangeViewModel
+import feature.settings.PetSettingsViewModel
 import feature.settings.QuestWebhookViewModel
 import feature.settings.UserNameViewModel
 import org.koin.core.module.dsl.viewModel
@@ -20,4 +21,5 @@ val settingsModule =
         factory { GarbageScheduleViewModel(get()) }
         factory { QuestWebhookViewModel(get()) }
         factory { CacheRefreshViewModel(get()) }
+        factory { PetSettingsViewModel(get(), get()) }
     }
