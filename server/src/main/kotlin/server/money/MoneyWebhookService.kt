@@ -131,13 +131,13 @@ class MoneyWebhookService(
     companion object {
         private val appUrl: String? = EnvConfig["APP_URL"]
 
-        /** "YYYY-MM" を "YYYY年M月" 表記に整形。パース失敗時は入力をそのまま返す。 */
+        /** "YYYY-MM" を "YYYY年MM月" 表記（月は 0 埋め 2 桁）に整形。パース失敗時は入力をそのまま返す。 */
         internal fun formatYearMonth(yearMonth: String): String {
             val parts = yearMonth.split("-")
             if (parts.size != 2) return yearMonth
             val year = parts[0].toIntOrNull() ?: return yearMonth
             val month = parts[1].toIntOrNull() ?: return yearMonth
-            return "${year}年${month}月"
+            return "%d年%02d月".format(year, month)
         }
     }
 }

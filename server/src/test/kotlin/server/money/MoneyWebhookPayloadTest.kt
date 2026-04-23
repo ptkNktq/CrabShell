@@ -40,7 +40,7 @@ class MoneyWebhookPayloadTest {
         val embed = embeds[0].jsonObject
         assertEquals("支払額確定", embed["title"]!!.jsonPrimitive.content)
         val description = embed["description"]!!.jsonPrimitive.content
-        assertTrue(description.contains("2026年4月"), "description should contain '2026年4月': $description")
+        assertTrue(description.contains("2026年04月"), "description should contain '2026年04月': $description")
     }
 
     @Test
@@ -104,7 +104,7 @@ class MoneyWebhookPayloadTest {
 
         val text = json["text"]!!.jsonPrimitive.content
         assertTrue(text.contains("確定しました"), "text should contain message: $text")
-        assertTrue(text.contains("2026年4月"), "text should contain '2026年4月': $text")
+        assertTrue(text.contains("2026年04月"), "text should contain '2026年04月': $text")
         assertTrue(
             text.contains("<https://example.com/|ダッシュボードを開く>"),
             "text should contain Slack-style link: $text",
@@ -124,7 +124,7 @@ class MoneyWebhookPayloadTest {
             )
 
         val text = json["text"]!!.jsonPrimitive.content
-        assertTrue(text.contains("2026年4月"), "text should contain year-month: $text")
+        assertTrue(text.contains("2026年04月"), "text should contain year-month: $text")
         assertTrue(!text.contains("ダッシュボードを開く"), "text should not contain dashboard link: $text")
     }
 
@@ -182,7 +182,7 @@ class MoneyWebhookPayloadTest {
 
     @Test
     fun formatYearMonthValidInput() {
-        assertEquals("2026年4月", formatYearMonth("2026-04"))
+        assertEquals("2026年04月", formatYearMonth("2026-04"))
         assertEquals("2026年12月", formatYearMonth("2026-12"))
     }
 
