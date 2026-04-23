@@ -26,6 +26,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerializationException
 import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
@@ -65,6 +66,11 @@ fun main() {
 
 private val logger = LoggerFactory.getLogger("server.Application")
 
+// Firestore マイグレーションの最大待ち時間。
+// Dockerfile の HEALTHCHECK start-period=15s 以下に収める必要があるため、初回実行時間 + 余裕分を確保。
+// 大量データで収まらなくなった場合は HEALTHCHECK 側と併せて再調整すること。
+private val MIGRATION_TIMEOUT = 60.seconds
+
 fun Application.module() {
     // dotenv-java の値を Logback に反映（logback.xml は OS 環境変数のみ参照するため）
     EnvConfig["LOG_LEVEL"]?.let { level ->
@@ -81,8 +87,11 @@ fun Application.module() {
 
     // 同期実行: マイグレーション完了前に HTTP リクエストを受け付けないようにする。
     // 失敗時は例外を伝播させてサーバー起動自体を中断し、未移行のまま運用を開始しない。
+    // Firestore のネットワーク不通・認証失敗で無期限ブロックしないよう withTimeout で守る。
     val firestoreMigrations by inject<FirestoreMigrations>()
-    runBlocking { firestoreMigrations.runAll() }
+    runBlocking {
+        withTimeout(MIGRATION_TIMEOUT) { firestoreMigrations.runAll() }
+    }
 
     val petRepository by inject<PetRepository>()
     petRepository.seedDefaultPet()
