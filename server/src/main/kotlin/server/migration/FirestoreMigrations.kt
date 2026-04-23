@@ -27,10 +27,7 @@ internal enum class MoneyMigrationAction {
     SET_NEW_AND_DELETE_LEGACY,
 }
 
-/**
- * money ドキュメントの旧/新スキーマ保有状況から、必要なマイグレーション操作を判定する純粋関数。
- * Firestore I/O を伴わないためユニットテスト可能。
- */
+/** money ドキュメントの旧/新スキーマ保有状況から、必要なマイグレーション操作を判定する。 */
 internal fun classifyMoneyMigration(
     hasLegacyMonth: Boolean,
     hasYearMonth: Boolean,
