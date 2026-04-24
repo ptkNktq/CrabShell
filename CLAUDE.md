@@ -206,7 +206,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 GitHub Actions で CI/CD を構成。
 
 - **CI** (`.github/workflows/ci.yml`): PR・main push 時に lint / test / build を実行。Renovate の patch auto-merge は `platformAutomerge: false` により CI pass 後に Renovate 自身がマージする。
-- **CD** (`.github/workflows/cd.yml`): `v*` タグ push 時に Docker イメージをビルドし GHCR に push。`:latest` と `:v1.x.x` の2タグ。完了後に Discord へ成否通知（GitHub Secret `DISCORD_WEBHOOK_URL` が必要。未設定時は通知をスキップ）。`DISCORD_WEBHOOK_PREFIX` を設定するとタイトルに prefix を前置できる（例: `[PROD]` → `[PROD] CD 成功`）。複数環境の通知を同一 Discord チャンネルで区別する用途向け。
+- **CD** (`.github/workflows/cd.yml`): `v*` タグ push 時に Docker イメージをビルドし GHCR に push。`:latest` と `:v1.x.x` の2タグ。完了後に Discord へ成否通知（GitHub Secret `DISCORD_WEBHOOK_URL` が必要。未設定時は通知をスキップ）。`DISCORD_WEBHOOK_PREFIX` を設定すると embed 外のメッセージ本文として送信される（例: `[PROD]`）。embed 内タイトルは常に `CD 成功` / `CD 失敗`。複数環境の通知を同一 Discord チャンネルで区別する用途向け。
 
 ### デプロイフロー
 
