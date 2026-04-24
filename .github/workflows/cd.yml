@@ -48,11 +48,9 @@ jobs:
             title="CD 失敗"
             color=15158332
           fi
-          if [ -n "$PREFIX" ]; then
-            title="$PREFIX $title"
-          fi
           short_sha="${SHA:0:7}"
           payload=$(jq -n \
+            --arg content "$PREFIX" \
             --arg title "$title" \
             --argjson color "$color" \
             --arg ref "$REF_NAME" \
@@ -60,6 +58,7 @@ jobs:
             --arg commit_url "$SERVER_URL/$REPO/commit/$SHA" \
             --arg run_url "$SERVER_URL/$REPO/actions/runs/$RUN_ID" \
             '{
+              content: $content,
               embeds: [{
                 title: $title,
                 color: $color,
