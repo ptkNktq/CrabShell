@@ -152,15 +152,14 @@ internal fun formatLocation(
     country: String?,
     region: String?,
     city: String?,
-): String? {
-    val parts =
-        buildList {
-            if (!city.isNullOrBlank()) add(city)
-            if (!region.isNullOrBlank() && region != city) add(region)
-            if (!country.isNullOrBlank()) add(country)
-        }
-    return parts.takeIf { it.isNotEmpty() }?.joinToString(", ")
-}
+): String? =
+    listOfNotNull(
+        city,
+        region?.takeUnless { it == city },
+        country,
+    ).filter { it.isNotBlank() }
+        .takeIf { it.isNotEmpty() }
+        ?.joinToString(", ")
 
 @Composable
 private fun LoginMethodBadge(loginMethod: LoginMethod) {
