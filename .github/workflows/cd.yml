@@ -19,8 +19,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push Docker image
+        env:
+          MAXMIND_LICENSE_KEY: ${{ secrets.MAXMIND_LICENSE_KEY }}
         run: |
           docker build --build-arg COMMIT_HASH=${GITHUB_SHA::7} \
+            --build-arg MAXMIND_LICENSE_KEY="$MAXMIND_LICENSE_KEY" \
             -t ghcr.io/ptknktq/crabshell:latest \
             -t ghcr.io/ptknktq/crabshell:${{ github.ref_name }} .
           docker push ghcr.io/ptknktq/crabshell:latest
