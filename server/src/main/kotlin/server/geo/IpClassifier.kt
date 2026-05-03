@@ -3,9 +3,11 @@ package server.geo
 import java.net.InetAddress
 
 /**
- * GeoIP 解決対象から除外すべき IP アドレスを判定する。
+ * 信頼できない経路（X-Forwarded-For など）から渡された IP 文字列を安全に [InetAddress] に変換し、
+ * GeoIP 解決の対象としてふさわしいかを判定する。
  *
- * 除外対象:
+ * 除外対象（[parsePublicAddress] が null を返すケース）:
+ * - null / blank / IP リテラルでない文字列（ホスト名等。DNS ルックアップを誘発しないように事前に弾く）
  * - ループバック（127.0.0.0/8, ::1）
  * - リンクローカル（169.254.0.0/16, fe80::/10）
  * - RFC1918 プライベート（10/8, 172.16/12, 192.168/16）
@@ -17,19 +19,46 @@ import java.net.InetAddress
  * 走り [com.maxmind.geoip2.exception.AddressNotFoundException] が出るだけ。先に弾く。
  */
 object IpClassifier {
-    fun isPrivateOrLoopback(ip: String?): Boolean {
-        if (ip.isNullOrBlank()) return true
+    /**
+     * GeoIP 解決対象としてふさわしい IP なら parse 済み [InetAddress] を返す。
+     * それ以外（不正入力 / プライベート / ループバック等）は null。
+     *
+     * IP リテラルでない（ホスト名のような）入力は [InetAddress.getByName] による DNS ルックアップを
+     * 誘発するため、先に [looksLikeIpLiteral] で弾く。
+     */
+    fun parsePublicAddress(ip: String?): InetAddress? {
+        if (ip.isNullOrBlank()) return null
         // IPv6 zone identifier（"fe80::1%eth0"）を除去
         val normalized = ip.substringBefore('%')
-        return runCatching {
-            val addr = InetAddress.getByName(normalized)
-            addr.isAnyLocalAddress ||
-                addr.isLoopbackAddress ||
-                addr.isLinkLocalAddress ||
-                addr.isSiteLocalAddress ||
-                addr.isInCgnatRange() ||
-                addr.isInIpv6UniqueLocalRange()
-        }.getOrDefault(true)
+        if (!looksLikeIpLiteral(normalized)) return null
+        val addr = runCatching { InetAddress.getByName(normalized) }.getOrNull() ?: return null
+        if (addr.isAnyLocalAddress ||
+            addr.isLoopbackAddress ||
+            addr.isLinkLocalAddress ||
+            addr.isSiteLocalAddress ||
+            addr.isInCgnatRange() ||
+            addr.isInIpv6UniqueLocalRange()
+        ) {
+            return null
+        }
+        return addr
+    }
+
+    /**
+     * 数値 IP リテラルらしき文字列か判定する。`InetAddress.getByName` にホスト名を渡すと
+     * DNS ルックアップ（ブロッキング I/O）が走るため、その手前で文字種を絞る。
+     * - IPv6: `:` を含み、かつ hex / `:` / `.`(IPv4-mapped) のみ
+     * - IPv4: `.` のみで区切られ、digit と `.` のみ、ドットは 3 個
+     */
+    private fun looksLikeIpLiteral(s: String): Boolean {
+        if (s.isEmpty()) return false
+        if (':' in s) {
+            return s.all { it == ':' || it == '.' || it in '0'..'9' || it in 'a'..'f' || it in 'A'..'F' }
+        }
+        if (s.all { it == '.' || it in '0'..'9' }) {
+            return s.count { it == '.' } == 3
+        }
+        return false
     }
 
     /** RFC6598 100.64.0.0/10 (CGNAT) は [InetAddress.isSiteLocalAddress] では検出されないため自前で判定。 */

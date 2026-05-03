@@ -5,5 +5,5 @@ package server.geo
  * 常に null を返してジオロケーションをスキップする。
  */
 object NoOpIpGeolocationService : IpGeolocationService {
-    override fun lookup(ip: String?): GeoLocation? = null
+    override suspend fun lookup(ip: String?): GeoLocation? = null
 }
