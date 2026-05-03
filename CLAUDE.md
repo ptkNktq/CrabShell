@@ -81,6 +81,7 @@ cp .env.example .env
 | `GEMINI_API_KEY` | Google AI Studio の API キー（クエスト AI テキスト生成用） | いいえ（未設定時は AI 生成ボタン非表示） |
 | `GEMINI_MODEL` | Gemini モデル名（デフォルト: `gemini-2.5-flash`） | いいえ |
 | `PASSKEY_DB_PATH` | Passkey SQLite DB のパス（デフォルト: `data/passkey.db`） | いいえ |
+| `GEOIP_DB_PATH` | MaxMind GeoLite2-City `.mmdb` のパス（デフォルト: `data/GeoLite2-City.mmdb`、Docker では `/app/data/GeoLite2-City.mmdb`）。ファイル不在時は IP ジオロケーション無効 | いいえ |
 | `APP_URL` | アプリケーションの公開 URL（給餌リマインダー Webhook のリンクに使用） | いいえ（未設定時はリンクなし） |
 | `SWAGGER_ENABLED` | `true` で Swagger UI (`/swagger`) を有効化（本番では設定しない） | いいえ |
 | `LOG_LEVEL` | サーバーのログレベル（デフォルト: `INFO`、開発時は `DEBUG` 推奨） | いいえ |
@@ -112,6 +113,7 @@ shared/              → Kotlin Multiplatform library
 server/              → Ktor server (Netty, JVM)
                        Depends on :shared
                        Routes: /api/{firebase-config,users,pets,feeding,garbage,money,money-webhook,report,quest,point,quest-webhook,cache,login-history,passkey}
+                       IP ジオロケーション: server/geo/ (MaxMind GeoLite2-City オフライン DB、ファイル不在時は NoOp)
                        Firebase Auth verification
                        Koin DI でリポジトリ注入（ServerModule）
                        Repository 層: interface + Firestore 実装 class
@@ -179,6 +181,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Server entry point: `server/src/main/kotlin/server/Application.kt`
 - Server DI: `server/src/main/kotlin/server/di/ServerModule.kt`
 - Server repositories: `server/src/main/kotlin/server/{money,quest,feeding,garbage,pet,loginhistory}/` (interface + Firestore 実装)
+- Server geo: `server/src/main/kotlin/server/geo/` (IpClassifier, IpGeolocationService, MaxMind/NoOp 実装)
 - Core common: `core/common/src/commonMain/kotlin/core/common/` (Environment.kt, AppLogger.kt, TabResumedEvent.kt)
 - Core common (wasmJsMain): `core/common/src/wasmJsMain/kotlin/core/common/` (Environment.kt, AppLogger.wasmJs.kt, PageVisibility.kt)
 - Core auth (commonMain): `core/auth/src/commonMain/kotlin/core/auth/` (AuthRepository interface, AuthState)

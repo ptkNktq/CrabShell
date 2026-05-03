@@ -363,7 +363,7 @@ node -e "
 1. **初回**: メール/パスワードでログイン → パスキー登録を案内
 2. **以降**: メールアドレス入力 → パスキーでログイン（パスワード不要）
 
-ログイン成功時にサーバーへログイン履歴を記録する（IP アドレス・UserAgent・ログイン方法）。設定画面のアカウントカテゴリから直近の履歴を確認できる。履歴は Firestore の `users/{uid}/loginHistory/{docId}` に保存し、各ドキュメントの `expireAt` フィールドを基準に 90 日で自動削除する。
+ログイン成功時にサーバーへログイン履歴を記録する（IP アドレス・UserAgent・ログイン方法・IP から解決した大まかな国/地域/都市）。設定画面のアカウントカテゴリから直近の履歴を確認できる。履歴は Firestore の `users/{uid}/loginHistory/{docId}` に保存し、各ドキュメントの `expireAt` フィールドを基準に 90 日で自動削除する。
 
 > **Important:** 自動削除を有効化するには Firestore 側で TTL ポリシーの設定が必要です（書き込み時に `expireAt` を埋めているだけでは削除されません）。初回セットアップ時に一度だけ、対象コレクション `loginHistory` の `expireAt` フィールドに対して TTL を有効化してください。
 >
@@ -376,6 +376,35 @@ node -e "
 > ```
 >
 > もしくは [Firebase Console → Firestore → TTL](https://console.firebase.google.com/project/_/firestore/ttl) から `loginHistory` / `expireAt` で TTL ポリシーを作成します。
+
+### IP ジオロケーション（任意）
+
+ログイン履歴に「どこからログインしたか」を表示するため、MaxMind の **GeoLite2-City** オフライン DB を使ってログイン IP から国・地域・都市を解決する。外部 API への問い合わせは行わず、`.mmdb` ファイルをプロセス内で直接引くため、ログイン IP が外部サービスに送信されることはない。
+
+DB ファイルが存在しない場合はジオロケーション機能が自動で無効化され、サーバーは通常どおり起動する（履歴の geo フィールドが空になるだけ）。
+
+#### 本番（Docker / CD）
+
+CD ワークフローは GitHub Secret `MAXMIND_LICENSE_KEY` を Docker build 時に渡す。これが設定されていれば build ステージで `.mmdb` を DL し、ランタイムイメージに `/app/data/GeoLite2-City.mmdb` として同梱される。
+
+セットアップ手順:
+
+1. [MaxMind 無料アカウント](https://www.maxmind.com/en/geolite2/signup) を作成
+2. アカウントポータルで **License Key** を発行（GeoLite2 用にチェックを入れる）
+3. リポジトリの GitHub Secrets に `MAXMIND_LICENSE_KEY` として登録
+4. 次回タグ push 時の CD で DB が同梱されたイメージが GHCR に push される
+
+> **Note:** GeoLite2 は MaxMind 製品から派生したデータで、CC BY-SA 4.0 ライセンス。再配布する場合は出典表示が必要だが、本リポジトリは DB ファイルそのものを公開していない（CD で取得→イメージ内に同梱）ため、追加の表示義務はない。
+
+#### 開発（手動 DL）
+
+ローカル開発でジオロケーションを動かしたい場合、`.mmdb` を手動で配置する:
+
+1. MaxMind ポータルから `GeoLite2-City.mmdb` を DL
+2. プロジェクトルート直下の `data/GeoLite2-City.mmdb` に置く（`data/` は gitignore 済み）
+3. サーバーを再起動
+
+別パスに置きたい場合は `.env` に `GEOIP_DB_PATH=/path/to/GeoLite2-City.mmdb` を設定する。
 
 ### 環境変数
 
@@ -390,6 +419,7 @@ node -e "
 | `WEBAUTHN_RP_ID` | **必須** | Relying Party ID（例: `localhost`, `example.com`） |
 | `WEBAUTHN_ORIGIN` | **必須** | 許可するオリジン（カンマ区切り。例: `https://example.com`） |
 | `PASSKEY_DB_PATH` | | SQLite ファイルパス（デフォルト: `data/passkey.db`） |
+| `GEOIP_DB_PATH` | | MaxMind GeoLite2-City `.mmdb` のパス（デフォルト: `data/GeoLite2-City.mmdb`、Docker では `/app/data/GeoLite2-City.mmdb`）。ファイル不在時はジオロケーション無効 |
 | `GEMINI_API_KEY` | | Google AI Studio の API キー（クエスト AI テキスト生成用。未設定時は AI 生成ボタン非表示） |
 | `GEMINI_MODEL` | | Gemini モデル名（デフォルト: `gemini-2.5-flash`） |
 | `SWAGGER_ENABLED` | | `true` で Swagger UI (`/swagger`) を有効化（本番では設定しない） |
