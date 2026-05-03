@@ -12,6 +12,9 @@ data class RecordLoginInput(
     val ipAddress: String?,
     val userAgent: String?,
     val loginMethod: LoginMethod?,
+    val country: String? = null,
+    val region: String? = null,
+    val city: String? = null,
 )
 
 interface LoginHistoryRepository {

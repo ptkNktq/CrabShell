@@ -14,6 +14,7 @@ import model.RecordLoginRequest
 import org.koin.ktor.ext.inject
 import server.auth.authenticated
 import server.auth.firebasePrincipal
+import server.geo.IpGeolocationService
 import server.ratelimit.RateLimitNames
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -25,6 +26,7 @@ private const val MAX_LIMIT = 50
 
 fun Route.loginHistoryRoutes() {
     val loginHistoryRepository by inject<LoginHistoryRepository>()
+    val geolocation by inject<IpGeolocationService>()
 
     authenticated {
         route("/login-history") {
@@ -45,15 +47,20 @@ fun Route.loginHistoryRoutes() {
                     val uid = call.firebasePrincipal.uid
                     val body = call.receive<RecordLoginRequest>()
                     val now = Instant.now()
+                    val ipAddress = call.request.origin.remoteAddress
+                    val geo = geolocation.lookup(ipAddress)
 
                     val input =
                         RecordLoginInput(
                             docId = UUID.randomUUID().toString(),
                             timestamp = now,
                             expireAt = now.plus(TTL_DAYS, ChronoUnit.DAYS),
-                            ipAddress = call.request.origin.remoteAddress,
+                            ipAddress = ipAddress,
                             userAgent = call.request.headers["User-Agent"],
                             loginMethod = body.loginMethod,
+                            country = geo?.country,
+                            region = geo?.region,
+                            city = geo?.city,
                         )
 
                     loginHistoryRepository.recordLogin(uid, input)
