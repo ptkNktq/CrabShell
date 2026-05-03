@@ -145,8 +145,9 @@ private fun LoginEventRow(event: LoginEvent) {
 
 /**
  * 位置情報を「city, region, country」形式で結合する。
- * - すべて null なら null を返す（Composable 側で行ごと非表示）。
- * - region と city が同じ文字列（例: 東京都／東京）の場合は片方だけ残し重複を避ける。
+ * - すべて null（または blank のみ）なら null を返す（Composable 側で行ごと非表示）。
+ * - region と city が完全一致する場合は片方だけ残し重複を避ける（例: city="東京", region="東京"）。
+ *   接頭辞・接尾辞での包含関係（"東京都" ⊃ "東京"）は対象外。
  */
 internal fun formatLocation(
     country: String?,
