@@ -81,7 +81,7 @@ cp .env.example .env
 | `GEMINI_API_KEY` | Google AI Studio の API キー（クエスト AI テキスト生成用） | いいえ（未設定時は AI 生成ボタン非表示） |
 | `GEMINI_MODEL` | Gemini モデル名（デフォルト: `gemini-2.5-flash`） | いいえ |
 | `PASSKEY_DB_PATH` | Passkey SQLite DB のパス（デフォルト: `data/passkey.db`） | いいえ |
-| `GEOIP_DB_PATH` | MaxMind GeoLite2-City `.mmdb` のパス（デフォルト: `data/GeoLite2-City.mmdb`、Docker では `/app/data/GeoLite2-City.mmdb`）。ファイル不在時は IP ジオロケーション無効 | いいえ |
+| `GEOIP_DB_PATH` | MaxMind GeoLite2-City `.mmdb` のパス（デフォルト: `data/GeoLite2-City.mmdb`）。ファイル不在時は IP ジオロケーション無効 | いいえ |
 | `APP_URL` | アプリケーションの公開 URL（給餌リマインダー Webhook のリンクに使用） | いいえ（未設定時はリンクなし） |
 | `SWAGGER_ENABLED` | `true` で Swagger UI (`/swagger`) を有効化（本番では設定しない） | いいえ |
 | `LOG_LEVEL` | サーバーのログレベル（デフォルト: `INFO`、開発時は `DEBUG` 推奨） | いいえ |
