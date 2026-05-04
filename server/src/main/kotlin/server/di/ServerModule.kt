@@ -60,7 +60,9 @@ private fun loadGeolocationService(): IpGeolocationService {
 val serverModule =
     module {
         single<Firestore> { FirestoreClient.getFirestore() }
-        single<IpGeolocationService> { loadGeolocationService() }
+        // GeoLite2 DB のロード状態を起動時ログに出すため createdAtStart で eager 初期化する。
+        // 遅延評価だと初回ログイン時まで「DB が読めているか / NoOp に落ちているか」が分からない。
+        single<IpGeolocationService>(createdAtStart = true) { loadGeolocationService() }
         single<MoneyRepository> { FirestoreMoneyRepository(get()) }
         single<QuestRepository> { FirestoreQuestRepository(get()) }
         single<PointRepository> { FirestorePointRepository(get()) }
