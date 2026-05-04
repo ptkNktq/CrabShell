@@ -88,4 +88,21 @@ class IpClassifierTest {
     fun `public v6 is accepted and parsed`() {
         assertNotNull(IpClassifier.parsePublicAddress("2001:4860:4860::8888"))
     }
+
+    @Test
+    fun `IPv4-mapped IPv6 private literal is rejected`() {
+        // ::ffff:a.b.c.d 形式は InetAddress により Inet4Address に正規化されるため、
+        // 配下の RFC1918 / loopback 判定が機能して弾かれることを保証する。
+        assertNull(IpClassifier.parsePublicAddress("::ffff:192.168.1.1"))
+        assertNull(IpClassifier.parsePublicAddress("::ffff:127.0.0.1"))
+        assertNull(IpClassifier.parsePublicAddress("::ffff:10.0.0.1"))
+    }
+
+    @Test
+    fun `IPv4-mapped IPv6 public literal is accepted and normalized to v4`() {
+        // ::ffff:8.8.8.8 は Inet4Address に正規化され、hostAddress は IPv4 表記になる。
+        val parsed = IpClassifier.parsePublicAddress("::ffff:8.8.8.8")
+        assertNotNull(parsed)
+        assertEquals("8.8.8.8", parsed.hostAddress)
+    }
 }
