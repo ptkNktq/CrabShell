@@ -2,6 +2,7 @@ package server.geo
 
 import com.maxmind.geoip2.DatabaseReader
 import com.maxmind.geoip2.model.CityResponse
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
@@ -32,6 +33,9 @@ class MaxMindIpGeolocationService(
         return withContext(Dispatchers.IO) {
             try {
                 reader.tryCity(addr).orElse(null)?.toGeoLocation()
+            } catch (e: CancellationException) {
+                // コルーチンキャンセルは握り潰さず親に伝播させる。
+                throw e
             } catch (e: Exception) {
                 // DB 破損、I/O エラー等。サーバー全体は止めず、ジオロケーションだけスキップする。
                 logger.warn("GeoIP lookup failed for '$ip': ${e.message}")
