@@ -31,6 +31,12 @@ class IpClassifierTest {
     }
 
     @Test
+    fun `any-local addresses are rejected`() {
+        assertNull(IpClassifier.parsePublicAddress("0.0.0.0"))
+        assertNull(IpClassifier.parsePublicAddress("::"))
+    }
+
+    @Test
     fun `link local v4 is rejected`() {
         assertNull(IpClassifier.parsePublicAddress("169.254.1.1"))
     }
