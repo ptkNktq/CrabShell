@@ -9,7 +9,9 @@ import org.slf4j.LoggerFactory
 /**
  * MaxMind GeoLite2-City `.mmdb` を引いて [GeoLocation] を返す実装。
  *
- * - 国名・地域名・都市名は **日本語ロケール** を優先し、欠けていれば英語 (`en`) にフォールバックする。
+ * - 国名・地域名・都市名は **日本語ロケール** を優先し、欠けていれば英語 (`en`) → 現地語表記
+ *   （マップ内の任意のブランクでない値）の順でフォールバックする。MaxMind がサポートロケールを
+ *   追加した場合もコード変更なしで自動的に拾える。
  * - プライベート IP / 不正入力は [IpClassifier] で先に弾く（DB に含まれず無駄なクエリになるため）。
  * - DB に未登録の IP は MaxMind 公式推奨の [DatabaseReader.tryCity] を使い、例外ではなく
  *   `Optional.empty()` で受ける（ホットパスでスタックトレース生成のコストを払わない）。
@@ -47,6 +49,18 @@ class MaxMindIpGeolocationService(
         return GeoLocation(country = countryName, region = regionName, city = cityName)
     }
 
-    /** GeoLite2 の names マップから日本語名 → 英語名の順で取得。両方なければ null。 */
-    private fun com.maxmind.geoip2.record.AbstractNamedRecord.localizedName(): String? = names["ja"] ?: names["en"]
+    /**
+     * GeoLite2 の names マップから日本語 → 英語 → 現地語表記（マップ内任意のブランクでない値）の順で取得。
+     * すべてブランク / マップ自体が空なら null。
+     *
+     * 「ja も en も無いが他言語のみ存在する」レコードはマイナーな現地名（例: `de` のみ持つ
+     * ドイツの地名、`zh-CN` のみ持つ中国の地名）が大半で、その値は現地語表記として表示する
+     * 価値がある。MaxMind のサポートロケール（`de` / `en` / `es` / `fr` / `ja` / `pt-BR` /
+     * `ru` / `zh-CN`）が将来拡張されてもコード変更なしで自動追従するため、明示チェーンではなく
+     * `names.values` の最終フォールバックを採用する。
+     */
+    private fun com.maxmind.geoip2.record.AbstractNamedRecord.localizedName(): String? =
+        names["ja"]?.takeIf { it.isNotBlank() }
+            ?: names["en"]?.takeIf { it.isNotBlank() }
+            ?: names.values.firstOrNull { it.isNotBlank() }
 }

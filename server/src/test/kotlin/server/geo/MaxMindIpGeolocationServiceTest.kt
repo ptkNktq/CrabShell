@@ -96,6 +96,45 @@ class MaxMindIpGeolocationServiceTest {
         }
 
     @Test
+    fun `falls back to local-language name when ja and en are both absent`() =
+        runTest {
+            val reader = mockk<DatabaseReader>()
+            // MaxMind が ja/en 双方を持たないマイナー地名を想定（ドイツ語のみ等）
+            val response =
+                stubResponse(
+                    country = mapOf("de" to "Deutschland"),
+                    region = mapOf("de" to "Nordrhein-Westfalen"),
+                    city = mapOf("de" to "Münster-Hiltrup"),
+                )
+            every { reader.tryCity(any()) } returns Optional.of(response)
+
+            val result = MaxMindIpGeolocationService(reader).lookup("8.8.8.8")
+
+            assertEquals(
+                GeoLocation(country = "Deutschland", region = "Nordrhein-Westfalen", city = "Münster-Hiltrup"),
+                result,
+            )
+        }
+
+    @Test
+    fun `blank values are treated as missing across the locale chain`() =
+        runTest {
+            val reader = mockk<DatabaseReader>()
+            // ja/en が空文字、現地語が有効値というケース
+            val response =
+                stubResponse(
+                    country = mapOf("ja" to "", "en" to "  ", "ru" to "Россия"),
+                    region = emptyMap(),
+                    city = emptyMap(),
+                )
+            every { reader.tryCity(any()) } returns Optional.of(response)
+
+            val result = MaxMindIpGeolocationService(reader).lookup("8.8.8.8")
+
+            assertEquals(GeoLocation(country = "Россия", region = null, city = null), result)
+        }
+
+    @Test
     fun `all-null fields return null instead of empty GeoLocation`() =
         runTest {
             val reader = mockk<DatabaseReader>()
