@@ -17,6 +17,7 @@ ktor-openapi-tools = "5.6.0"
 mockk = "1.14.9"
 kotlinx-coroutines = "1.10.2"
 kotlinx-browser = "0.3"
+maxmind-geoip2 = "4.3.0"
 
 [libraries]
 # Koin DI
@@ -55,6 +56,7 @@ sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite-jdbc" }
 dotenv-java = { module = "io.github.cdimascio:dotenv-java", version.ref = "dotenv-java" }
 ktor-openapi = { module = "io.github.smiley4:ktor-openapi", version.ref = "ktor-openapi-tools" }
 ktor-swagger-ui = { module = "io.github.smiley4:ktor-swagger-ui", version.ref = "ktor-openapi-tools" }
+maxmind-geoip2 = { module = "com.maxmind.geoip2:geoip2", version.ref = "maxmind-geoip2" }
 
 # Coroutines
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }

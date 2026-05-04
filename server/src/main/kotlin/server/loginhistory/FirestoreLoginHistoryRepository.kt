@@ -28,6 +28,9 @@ class FirestoreLoginHistoryRepository(
                 input.ipAddress?.let { put("ipAddress", it) }
                 input.userAgent?.let { put("userAgent", it) }
                 input.loginMethod?.let { put("loginMethod", it.name) }
+                input.country?.let { put("country", it) }
+                input.region?.let { put("region", it) }
+                input.city?.let { put("city", it) }
                 put("expireAt", input.expireAt.toFirestoreTimestamp())
             }
         userCollection(uid).document(input.docId).set(data).await()

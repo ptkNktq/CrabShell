@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -119,8 +120,47 @@ private fun LoginEventRow(event: LoginEvent) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+
+        val location = formatLocation(event.country, event.region, event.city)
+        if (location != null) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LocationOn,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = location,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
+
+/**
+ * 位置情報を「city, region, country」形式で結合する。
+ * - すべて null（または blank のみ）なら null を返す（Composable 側で行ごと非表示）。
+ * - region と city が完全一致する場合は片方だけ残し重複を避ける（例: city="東京", region="東京"）。
+ *   接頭辞・接尾辞での包含関係（"東京都" ⊃ "東京"）は対象外。
+ */
+internal fun formatLocation(
+    country: String?,
+    region: String?,
+    city: String?,
+): String? =
+    listOfNotNull(
+        city,
+        region?.takeUnless { it == city },
+        country,
+    ).filter { it.isNotBlank() }
+        .takeIf { it.isNotEmpty() }
+        ?.joinToString(", ")
 
 @Composable
 private fun LoginMethodBadge(loginMethod: LoginMethod) {

@@ -14,6 +14,11 @@ services:
     env_file: .env
     volumes:
       - ./firebase-service-account.json:/app/firebase-service-account.json:ro
+      # IP ジオロケーション用 GeoLite2-City DB をホスト bind mount で配置する。
+      # ホスト側にファイルを置いて以下のコメントを外す。未配置でもサーバーは起動可能で、
+      # ジオロケーション機能だけが NoOp フォールバックで無効化される。
+      # 詳細は README.md「IP ジオロケーション (GeoIP) のセットアップ」セクションを参照。
+      # - ./GeoLite2-City.mmdb:/app/data/GeoLite2-City.mmdb:ro
     logging:
       driver: json-file
       options:
