@@ -1,7 +1,6 @@
 package server.geo
 
 import com.maxmind.geoip2.DatabaseReader
-import com.maxmind.geoip2.exception.AddressNotFoundException
 import com.maxmind.geoip2.model.CityResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -12,10 +11,12 @@ import org.slf4j.LoggerFactory
  *
  * - 国名・地域名・都市名は **日本語ロケール** を優先し、欠けていれば英語 (`en`) にフォールバックする。
  * - プライベート IP / 不正入力は [IpClassifier] で先に弾く（DB に含まれず無駄なクエリになるため）。
+ * - DB に未登録の IP は MaxMind 公式推奨の [DatabaseReader.tryCity] を使い、例外ではなく
+ *   `Optional.empty()` で受ける（ホットパスでスタックトレース生成のコストを払わない）。
  * - 全フィールドが取れなかった場合は null（=「位置情報なし」）を返す。
- * - 例外は WARN ログのみで上位に伝播させない。
+ * - 想定外の例外（DB 破損、I/O エラー等）は WARN ログのみで上位に伝播させない。
  *
- * `reader.city()` は memory-mapped file 越しの同期 I/O（cold 時はページフォルト）が起きうるため、
+ * `reader.tryCity()` は memory-mapped file 越しの同期 I/O（cold 時はページフォルト）が起きうるため、
  * [Dispatchers.IO] にディスパッチしてリクエストハンドラのスレッドを止めない。
  */
 class MaxMindIpGeolocationService(
@@ -28,9 +29,7 @@ class MaxMindIpGeolocationService(
 
         return withContext(Dispatchers.IO) {
             try {
-                reader.city(addr).toGeoLocation()
-            } catch (_: AddressNotFoundException) {
-                null
+                reader.tryCity(addr).orElse(null)?.toGeoLocation()
             } catch (e: Exception) {
                 // DB 破損、I/O エラー等。サーバー全体は止めず、ジオロケーションだけスキップする。
                 logger.warn("GeoIP lookup failed for '$ip': ${e.message}")

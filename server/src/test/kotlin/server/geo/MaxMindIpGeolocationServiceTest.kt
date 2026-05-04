@@ -1,7 +1,6 @@
 package server.geo
 
 import com.maxmind.geoip2.DatabaseReader
-import com.maxmind.geoip2.exception.AddressNotFoundException
 import com.maxmind.geoip2.model.CityResponse
 import com.maxmind.geoip2.record.City
 import com.maxmind.geoip2.record.Country
@@ -11,6 +10,7 @@ import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import java.net.InetAddress
+import java.util.Optional
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -25,7 +25,7 @@ class MaxMindIpGeolocationServiceTest {
             val result = service.lookup("192.168.1.1")
 
             assertNull(result)
-            verify(exactly = 0) { reader.city(any()) }
+            verify(exactly = 0) { reader.tryCity(any()) }
         }
 
     @Test
@@ -35,7 +35,7 @@ class MaxMindIpGeolocationServiceTest {
             val service = MaxMindIpGeolocationService(reader)
 
             assertNull(service.lookup(null))
-            verify(exactly = 0) { reader.city(any()) }
+            verify(exactly = 0) { reader.tryCity(any()) }
         }
 
     @Test
@@ -45,14 +45,14 @@ class MaxMindIpGeolocationServiceTest {
             val service = MaxMindIpGeolocationService(reader)
 
             assertNull(service.lookup("example.com"))
-            verify(exactly = 0) { reader.city(any()) }
+            verify(exactly = 0) { reader.tryCity(any()) }
         }
 
     @Test
-    fun `AddressNotFoundException is swallowed and returns null`() =
+    fun `unregistered IP returns null via empty optional`() =
         runTest {
             val reader = mockk<DatabaseReader>()
-            every { reader.city(any()) } throws AddressNotFoundException("not in DB")
+            every { reader.tryCity(any()) } returns Optional.empty()
             val service = MaxMindIpGeolocationService(reader)
 
             assertNull(service.lookup("8.8.8.8"))
@@ -68,7 +68,7 @@ class MaxMindIpGeolocationServiceTest {
                     region = mapOf("ja" to "東京都", "en" to "Tokyo"),
                     city = mapOf("ja" to "千代田区", "en" to "Chiyoda"),
                 )
-            every { reader.city(InetAddress.getByName("8.8.8.8")) } returns response
+            every { reader.tryCity(InetAddress.getByName("8.8.8.8")) } returns Optional.of(response)
 
             val result = MaxMindIpGeolocationService(reader).lookup("8.8.8.8")
 
@@ -85,7 +85,7 @@ class MaxMindIpGeolocationServiceTest {
                     region = mapOf("en" to "California"),
                     city = mapOf("en" to "Mountain View"),
                 )
-            every { reader.city(any()) } returns response
+            every { reader.tryCity(any()) } returns Optional.of(response)
 
             val result = MaxMindIpGeolocationService(reader).lookup("8.8.8.8")
 
@@ -105,7 +105,7 @@ class MaxMindIpGeolocationServiceTest {
                     region = emptyMap(),
                     city = emptyMap(),
                 )
-            every { reader.city(any()) } returns response
+            every { reader.tryCity(any()) } returns Optional.of(response)
 
             assertNull(MaxMindIpGeolocationService(reader).lookup("8.8.8.8"))
         }
@@ -114,7 +114,7 @@ class MaxMindIpGeolocationServiceTest {
     fun `unexpected exception returns null instead of propagating`() =
         runTest {
             val reader = mockk<DatabaseReader>()
-            every { reader.city(any()) } throws RuntimeException("DB corrupted")
+            every { reader.tryCity(any()) } throws RuntimeException("DB corrupted")
 
             assertNull(MaxMindIpGeolocationService(reader).lookup("8.8.8.8"))
         }
