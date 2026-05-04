@@ -69,14 +69,17 @@ internal enum class SettingsCategory(
     val icon: ImageVector,
     val adminOnly: Boolean = false,
 ) {
+    // 全員向けセクション
     Account("アカウント", Icons.Default.Person),
+    Credits("クレジット", Icons.Default.Info),
+
+    // 管理者専用セクション
     UserManagement("ユーザー管理", Icons.Default.Group, adminOnly = true),
     Pet("ペット", Icons.Default.Pets, adminOnly = true),
     Garbage("ゴミ出し", Icons.Default.DeleteSweep, adminOnly = true),
     Quest("クエスト", Icons.Default.Star, adminOnly = true),
     Money("お金", Icons.Default.AccountBalance, adminOnly = true),
     Cache("サーバーキャッシュ", Icons.Default.Cached, adminOnly = true),
-    Credits("クレジット", Icons.Default.Info),
 }
 
 @Composable
