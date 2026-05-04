@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Pets
@@ -75,6 +76,7 @@ internal enum class SettingsCategory(
     Quest("クエスト", Icons.Default.Star, adminOnly = true),
     Money("お金", Icons.Default.AccountBalance, adminOnly = true),
     Cache("サーバーキャッシュ", Icons.Default.Cached, adminOnly = true),
+    Credits("クレジット", Icons.Default.Info),
 }
 
 @Composable
@@ -496,6 +498,9 @@ internal fun SettingsContent(
                     onClearCache = onClearCache,
                     modifier = cardModifier,
                 )
+            }
+            SettingsCategory.Credits -> {
+                CreditsCard(modifier = cardModifier)
             }
         }
     }
