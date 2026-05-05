@@ -1,4 +1,4 @@
-package core.ui.util
+package core.common
 
 /**
  * 外部 URL を新しいタブ/ウィンドウで開く。

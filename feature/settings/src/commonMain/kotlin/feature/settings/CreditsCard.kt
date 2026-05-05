@@ -17,21 +17,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.LinkAnnotation
-import androidx.compose.ui.text.LinkInteractionListener
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
-import core.ui.util.openExternalUrl
-
-private val externalUrlLinkInteractionListener =
-    LinkInteractionListener { link ->
-        if (link is LinkAnnotation.Url) {
-            openExternalUrl(link.url)
-        }
-    }
+import core.ui.util.ExternalUrlLinkInteractionListener
 
 @Composable
 internal fun CreditsCard(modifier: Modifier = Modifier) {
@@ -116,7 +108,7 @@ private fun CreditEntry(
                     LinkAnnotation.Url(
                         url = providerUrl,
                         styles = linkStyles,
-                        linkInteractionListener = externalUrlLinkInteractionListener,
+                        linkInteractionListener = ExternalUrlLinkInteractionListener,
                     ),
                 ) {
                     append(provider)
@@ -149,7 +141,7 @@ private fun CreditEntry(
                     LinkAnnotation.Url(
                         url = licenseUrl,
                         styles = linkStyles,
-                        linkInteractionListener = externalUrlLinkInteractionListener,
+                        linkInteractionListener = ExternalUrlLinkInteractionListener,
                     ),
                 ) {
                     append(licenseLabel)
