@@ -2,6 +2,7 @@ package server.money
 
 import model.MoneyTags
 import model.MonthlyMoneyStatus
+import server.money.FirestoreMoneyRepository.Companion.parseStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

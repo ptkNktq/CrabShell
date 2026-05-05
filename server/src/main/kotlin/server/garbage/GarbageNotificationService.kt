@@ -20,13 +20,13 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
-private val logger = LoggerFactory.getLogger("GarbageNotificationService")
 private val JST = ZoneId.of("Asia/Tokyo")
 
 class GarbageNotificationService(
     private val garbageRepository: GarbageRepository,
     private val client: HttpClient = HttpClient(),
 ) {
+    private val logger = LoggerFactory.getLogger(GarbageNotificationService::class.java)
     private val json = Json
 
     // 通知済みの日付（JST カレンダー日付）

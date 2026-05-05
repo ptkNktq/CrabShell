@@ -23,12 +23,11 @@ import server.util.await
 import server.util.detectWebhookService
 import java.time.Instant
 
-private val logger = LoggerFactory.getLogger("QuestWebhookService")
-
 class QuestWebhookService(
     private val firestore: Firestore,
     dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
+    private val logger = LoggerFactory.getLogger(QuestWebhookService::class.java)
     private val questSettingsDoc get() = firestore.collection("settings").document("quest")
     private val scope = CoroutineScope(dispatcher)
 

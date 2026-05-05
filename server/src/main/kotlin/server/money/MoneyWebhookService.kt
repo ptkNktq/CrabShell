@@ -23,8 +23,6 @@ import server.util.WebhookServiceType
 import server.util.await
 import server.util.detectWebhookService
 
-private val logger = LoggerFactory.getLogger("MoneyWebhookService")
-
 class MoneyWebhookService(
     private val firestore: Firestore,
     private val client: HttpClient =
@@ -35,6 +33,7 @@ class MoneyWebhookService(
         },
     dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
+    private val logger = LoggerFactory.getLogger(MoneyWebhookService::class.java)
     private val moneySettingsDoc get() = firestore.collection("settings").document("money")
     private val scope = CoroutineScope(dispatcher)
 
