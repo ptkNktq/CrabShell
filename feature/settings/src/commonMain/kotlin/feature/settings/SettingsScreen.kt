@@ -8,10 +8,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Cached
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Copyright
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Pets
@@ -71,7 +71,7 @@ internal enum class SettingsCategory(
 ) {
     // 全員向けセクション
     Account("アカウント", Icons.Default.Person),
-    Credits("クレジット", Icons.Default.Info),
+    Credits("クレジット", Icons.Default.Copyright),
 
     // 管理者専用セクション
     UserManagement("ユーザー管理", Icons.Default.Group, adminOnly = true),
