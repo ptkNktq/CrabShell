@@ -13,15 +13,18 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.LinkInteractionListener
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
+import core.ui.util.openExternalUrl
 
 @Composable
 internal fun CreditsCard(modifier: Modifier = Modifier) {
@@ -65,6 +68,7 @@ internal fun CreditsCard(modifier: Modifier = Modifier) {
                 description = "ログイン履歴に表示する国・地域・都市のジオロケーション情報",
                 licenseLabel = "CC BY-SA 4.0",
                 licenseUrl = "https://creativecommons.org/licenses/by-sa/4.0/",
+                attribution = "This product includes GeoLite2 Data created by MaxMind, available from https://www.maxmind.com.",
             )
         }
     }
@@ -78,15 +82,27 @@ private fun CreditEntry(
     description: String,
     licenseLabel: String,
     licenseUrl: String,
+    attribution: String? = null,
 ) {
+    val primaryColor = MaterialTheme.colorScheme.primary
     val linkStyles =
-        TextLinkStyles(
-            style =
-                SpanStyle(
-                    color = MaterialTheme.colorScheme.primary,
-                    textDecoration = TextDecoration.Underline,
-                ),
-        )
+        remember(primaryColor) {
+            TextLinkStyles(
+                style =
+                    SpanStyle(
+                        color = primaryColor,
+                        textDecoration = TextDecoration.Underline,
+                    ),
+            )
+        }
+    val linkInteractionListener =
+        remember {
+            LinkInteractionListener { link ->
+                if (link is LinkAnnotation.Url) {
+                    openExternalUrl(link.url)
+                }
+            }
+        }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -95,7 +111,13 @@ private fun CreditEntry(
             buildAnnotatedString {
                 append(name)
                 append(" by ")
-                withLink(LinkAnnotation.Url(url = providerUrl, styles = linkStyles)) {
+                withLink(
+                    LinkAnnotation.Url(
+                        url = providerUrl,
+                        styles = linkStyles,
+                        linkInteractionListener = linkInteractionListener,
+                    ),
+                ) {
                     append(provider)
                 }
             }
@@ -111,10 +133,24 @@ private fun CreditEntry(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
+        if (attribution != null) {
+            Text(
+                text = attribution,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
         val license =
             buildAnnotatedString {
                 append("ライセンス: ")
-                withLink(LinkAnnotation.Url(url = licenseUrl, styles = linkStyles)) {
+                withLink(
+                    LinkAnnotation.Url(
+                        url = licenseUrl,
+                        styles = linkStyles,
+                        linkInteractionListener = linkInteractionListener,
+                    ),
+                ) {
                     append(licenseLabel)
                 }
             }
