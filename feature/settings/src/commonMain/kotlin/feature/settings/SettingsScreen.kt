@@ -8,6 +8,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Cached
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Copyright
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Group
@@ -68,7 +69,11 @@ internal enum class SettingsCategory(
     val icon: ImageVector,
     val adminOnly: Boolean = false,
 ) {
+    // 全員向けセクション
     Account("アカウント", Icons.Default.Person),
+    Credits("クレジット", Icons.Default.Copyright),
+
+    // 管理者専用セクション
     UserManagement("ユーザー管理", Icons.Default.Group, adminOnly = true),
     Pet("ペット", Icons.Default.Pets, adminOnly = true),
     Garbage("ゴミ出し", Icons.Default.DeleteSweep, adminOnly = true),
@@ -496,6 +501,9 @@ internal fun SettingsContent(
                     onClearCache = onClearCache,
                     modifier = cardModifier,
                 )
+            }
+            SettingsCategory.Credits -> {
+                CreditsCard(modifier = cardModifier)
             }
         }
     }
