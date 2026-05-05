@@ -26,8 +26,27 @@ import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import core.ui.util.openExternalUrl
 
+private val externalUrlLinkInteractionListener =
+    LinkInteractionListener { link ->
+        if (link is LinkAnnotation.Url) {
+            openExternalUrl(link.url)
+        }
+    }
+
 @Composable
 internal fun CreditsCard(modifier: Modifier = Modifier) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val linkStyles =
+        remember(primaryColor) {
+            TextLinkStyles(
+                style =
+                    SpanStyle(
+                        color = primaryColor,
+                        textDecoration = TextDecoration.Underline,
+                    ),
+            )
+        }
+
     Card(
         modifier = modifier,
         colors =
@@ -69,6 +88,7 @@ internal fun CreditsCard(modifier: Modifier = Modifier) {
                 licenseLabel = "CC BY-SA 4.0",
                 licenseUrl = "https://creativecommons.org/licenses/by-sa/4.0/",
                 attribution = "This product includes GeoLite2 Data created by MaxMind, available from https://www.maxmind.com.",
+                linkStyles = linkStyles,
             )
         }
     }
@@ -82,28 +102,9 @@ private fun CreditEntry(
     description: String,
     licenseLabel: String,
     licenseUrl: String,
+    linkStyles: TextLinkStyles,
     attribution: String? = null,
 ) {
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val linkStyles =
-        remember(primaryColor) {
-            TextLinkStyles(
-                style =
-                    SpanStyle(
-                        color = primaryColor,
-                        textDecoration = TextDecoration.Underline,
-                    ),
-            )
-        }
-    val linkInteractionListener =
-        remember {
-            LinkInteractionListener { link ->
-                if (link is LinkAnnotation.Url) {
-                    openExternalUrl(link.url)
-                }
-            }
-        }
-
     Column(
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -115,7 +116,7 @@ private fun CreditEntry(
                     LinkAnnotation.Url(
                         url = providerUrl,
                         styles = linkStyles,
-                        linkInteractionListener = linkInteractionListener,
+                        linkInteractionListener = externalUrlLinkInteractionListener,
                     ),
                 ) {
                     append(provider)
@@ -148,7 +149,7 @@ private fun CreditEntry(
                     LinkAnnotation.Url(
                         url = licenseUrl,
                         styles = linkStyles,
-                        linkInteractionListener = linkInteractionListener,
+                        linkInteractionListener = externalUrlLinkInteractionListener,
                     ),
                 ) {
                     append(licenseLabel)
