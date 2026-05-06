@@ -154,12 +154,24 @@ class PetSettingsViewModel(
         }
     }
 
+    fun onTestScheduled() {
+        uiState = uiState.copy(isTesting = true, message = null)
+        viewModelScope.launch {
+            try {
+                feedingSettingsRepository.testScheduled()
+                uiState = uiState.copy(isTesting = false, message = "定刻通知をテスト送信しました")
+            } catch (e: Exception) {
+                uiState = uiState.copy(isTesting = false, message = "テスト送信失敗: ${e.message}")
+            }
+        }
+    }
+
     fun onTestReminder() {
         uiState = uiState.copy(isTesting = true, message = null)
         viewModelScope.launch {
             try {
                 feedingSettingsRepository.testReminder()
-                uiState = uiState.copy(isTesting = false, message = "テスト送信しました")
+                uiState = uiState.copy(isTesting = false, message = "リマインダーをテスト送信しました")
             } catch (e: Exception) {
                 uiState = uiState.copy(isTesting = false, message = "テスト送信失敗: ${e.message}")
             }

@@ -103,6 +103,7 @@ internal fun FeedingSettingsCard(
     onReminderDelayMinutesChanged: (Int) -> Unit,
     onReminderPrefixChanged: (String) -> Unit,
     onSave: () -> Unit,
+    onTestScheduled: () -> Unit,
     onTestReminder: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -267,10 +268,11 @@ internal fun FeedingSettingsCard(
                         Text("保存する")
                     }
                 }
+                val testEnabled = !isSaving && !isTesting && reminderEnabled && reminderWebhookUrl.isNotBlank()
                 OutlinedButton(
-                    onClick = onTestReminder,
+                    onClick = onTestScheduled,
                     modifier = Modifier.height(48.dp),
-                    enabled = !isSaving && !isTesting && reminderEnabled && reminderWebhookUrl.isNotBlank(),
+                    enabled = testEnabled,
                 ) {
                     if (isTesting) {
                         CircularProgressIndicator(
@@ -278,7 +280,21 @@ internal fun FeedingSettingsCard(
                             strokeWidth = 2.dp,
                         )
                     } else {
-                        Text("テスト送信")
+                        Text("定刻テスト")
+                    }
+                }
+                OutlinedButton(
+                    onClick = onTestReminder,
+                    modifier = Modifier.height(48.dp),
+                    enabled = testEnabled,
+                ) {
+                    if (isTesting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        Text("リマインダーテスト")
                     }
                 }
             }

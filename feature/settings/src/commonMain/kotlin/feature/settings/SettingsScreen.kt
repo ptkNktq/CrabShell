@@ -206,6 +206,7 @@ fun SettingsScreen(
         onFeedingReminderDelayMinutesChanged = { petSettingsVm?.onReminderDelayMinutesChanged(it) },
         onFeedingReminderPrefixChanged = { petSettingsVm?.onReminderPrefixChanged(it) },
         onSaveFeedingSettings = { petSettingsVm?.onSaveFeedingSettings() },
+        onTestFeedingScheduled = { petSettingsVm?.onTestScheduled() },
         onTestFeedingReminder = { petSettingsVm?.onTestReminder() },
         windowSizeClass = windowSizeClass,
     )
@@ -319,6 +320,7 @@ internal fun SettingsContent(
     onFeedingReminderDelayMinutesChanged: (Int) -> Unit = {},
     onFeedingReminderPrefixChanged: (String) -> Unit = {},
     onSaveFeedingSettings: () -> Unit = {},
+    onTestFeedingScheduled: () -> Unit = {},
     onTestFeedingReminder: () -> Unit = {},
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
@@ -419,6 +421,7 @@ internal fun SettingsContent(
                         onReminderDelayMinutesChanged = onFeedingReminderDelayMinutesChanged,
                         onReminderPrefixChanged = onFeedingReminderPrefixChanged,
                         onSave = onSaveFeedingSettings,
+                        onTestScheduled = onTestFeedingScheduled,
                         onTestReminder = onTestFeedingReminder,
                         modifier = cardModifier,
                     )
