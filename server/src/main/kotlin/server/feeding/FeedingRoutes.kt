@@ -144,9 +144,9 @@ fun Route.feedingRoutes() {
                 }
             }
         }) {
-            val feedingReminderService by inject<FeedingReminderService>()
+            val feedingNotificationService by inject<FeedingNotificationService>()
             try {
-                feedingReminderService.sendTestNotification(FeedingNotificationPhase.SCHEDULED)
+                feedingNotificationService.sendTestNotification(FeedingNotificationPhase.SCHEDULED)
                 call.respond(mapOf("status" to "sent"))
             } catch (e: Exception) {
                 call.respond(HttpStatusCode.BadRequest, mapOf("error" to (e.message ?: "送信失敗")))
@@ -162,9 +162,9 @@ fun Route.feedingRoutes() {
                 }
             }
         }) {
-            val feedingReminderService by inject<FeedingReminderService>()
+            val feedingNotificationService by inject<FeedingNotificationService>()
             try {
-                feedingReminderService.sendTestNotification(FeedingNotificationPhase.REMINDER)
+                feedingNotificationService.sendTestNotification(FeedingNotificationPhase.REMINDER)
                 call.respond(mapOf("status" to "sent"))
             } catch (e: Exception) {
                 call.respond(HttpStatusCode.BadRequest, mapOf("error" to (e.message ?: "送信失敗")))

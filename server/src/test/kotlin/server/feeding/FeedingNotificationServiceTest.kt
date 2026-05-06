@@ -23,7 +23,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class FeedingReminderServiceTest {
+class FeedingNotificationServiceTest {
     private val feedingRepository = mockk<FeedingRepository>()
     private val feedingSettingsRepository = mockk<FeedingSettingsRepository>()
     private val petRepository = mockk<PetRepository>()
@@ -42,8 +42,8 @@ class FeedingReminderServiceTest {
             }
         }
 
-    private fun createService(): FeedingReminderService =
-        FeedingReminderService(
+    private fun createService(): FeedingNotificationService =
+        FeedingNotificationService(
             feedingRepository = feedingRepository,
             feedingSettingsRepository = feedingSettingsRepository,
             petRepository = petRepository,
@@ -270,13 +270,13 @@ class FeedingReminderServiceTest {
     @Test
     fun feedingDateBefore5amReturnsPreviousDay() {
         val jstNow = ZonedDateTime.of(2026, 3, 14, 4, 59, 0, 0, ZoneId.of("Asia/Tokyo"))
-        assertEquals("2026-03-13", FeedingReminderService.feedingDate(jstNow))
+        assertEquals("2026-03-13", FeedingNotificationService.feedingDate(jstNow))
     }
 
     @Test
     fun feedingDateAt5amReturnsCurrentDay() {
         val jstNow = ZonedDateTime.of(2026, 3, 14, 5, 0, 0, 0, ZoneId.of("Asia/Tokyo"))
-        assertEquals("2026-03-14", FeedingReminderService.feedingDate(jstNow))
+        assertEquals("2026-03-14", FeedingNotificationService.feedingDate(jstNow))
     }
 
     // --- isPastTime ---
@@ -284,7 +284,7 @@ class FeedingReminderServiceTest {
     @Test
     fun isPastTimeAfterTarget() {
         assertTrue(
-            FeedingReminderService.isPastTime(
+            FeedingNotificationService.isPastTime(
                 currentTime = LocalTime.of(12, 31),
                 target = LocalTime.of(12, 30),
             ),
@@ -294,7 +294,7 @@ class FeedingReminderServiceTest {
     @Test
     fun isPastTimeBeforeTarget() {
         assertFalse(
-            FeedingReminderService.isPastTime(
+            FeedingNotificationService.isPastTime(
                 currentTime = LocalTime.of(12, 29),
                 target = LocalTime.of(12, 30),
             ),

@@ -27,7 +27,7 @@ private val JST = ZoneId.of("Asia/Tokyo")
 /** 給餌通知のフェーズ。SCHEDULED は予定時刻の告知、REMINDER は遅延後の催促。 */
 enum class FeedingNotificationPhase { SCHEDULED, REMINDER }
 
-class FeedingReminderService(
+class FeedingNotificationService(
     private val feedingRepository: FeedingRepository,
     private val feedingSettingsRepository: FeedingSettingsRepository,
     private val petRepository: PetRepository,
@@ -38,7 +38,7 @@ class FeedingReminderService(
             }
         },
 ) {
-    private val logger = LoggerFactory.getLogger(FeedingReminderService::class.java)
+    private val logger = LoggerFactory.getLogger(FeedingNotificationService::class.java)
     private val json = Json
 
     // 単一コルーチンからのみアクセスされるため通常の HashMap で十分
@@ -189,11 +189,11 @@ class FeedingReminderService(
         return when (detectWebhookService(url)) {
             WebhookServiceType.DISCORD -> {
                 val discord =
-                    DiscordReminderPayload(
+                    DiscordNotificationPayload(
                         content = prefix.ifBlank { null },
                         embeds =
                             listOf(
-                                DiscordReminderEmbed(
+                                DiscordNotificationEmbed(
                                     title = title,
                                     description = message,
                                     color = DISCORD_EMBED_COLOR,
@@ -207,11 +207,11 @@ class FeedingReminderService(
                 val text = if (prefix.isBlank()) message else "$prefix $message"
                 val withLink =
                     if (feedingPageUrl != null) "$text\n<$feedingPageUrl|ごはんページを開く>" else text
-                json.encodeToString(SlackReminderPayload(text = withLink))
+                json.encodeToString(SlackNotificationPayload(text = withLink))
             }
             WebhookServiceType.GENERIC -> {
                 json.encodeToString(
-                    GenericReminderPayload(
+                    GenericNotificationPayload(
                         event = event,
                         prefix = prefix.ifBlank { null },
                         petId = petId,
@@ -273,13 +273,13 @@ class FeedingReminderService(
 // --- Discord ペイロード ---
 
 @Serializable
-internal data class DiscordReminderPayload(
+internal data class DiscordNotificationPayload(
     val content: String? = null,
-    val embeds: List<DiscordReminderEmbed>,
+    val embeds: List<DiscordNotificationEmbed>,
 )
 
 @Serializable
-internal data class DiscordReminderEmbed(
+internal data class DiscordNotificationEmbed(
     val title: String,
     val description: String,
     val color: Int,
@@ -289,14 +289,14 @@ internal data class DiscordReminderEmbed(
 // --- Slack ペイロード ---
 
 @Serializable
-internal data class SlackReminderPayload(
+internal data class SlackNotificationPayload(
     val text: String,
 )
 
 // --- 汎用ペイロード ---
 
 @Serializable
-internal data class GenericReminderPayload(
+internal data class GenericNotificationPayload(
     val event: String,
     val prefix: String? = null,
     val petId: String,
