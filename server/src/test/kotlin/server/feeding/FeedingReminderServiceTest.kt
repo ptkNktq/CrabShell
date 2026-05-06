@@ -119,20 +119,43 @@ class FeedingReminderServiceTest {
     @Test
     fun pastScheduledBeforeReminderSendsScheduledOnly() =
         runTest {
+            coEvery { feedingSettingsRepository.getSettings() } returns
+                FeedingSettings(
+                    reminderEnabled = true,
+                    reminderWebhookUrl = "https://discord.com/api/webhooks/x/y",
+                    mealTimes = mapOf(MealTime.LUNCH to "12:00"),
+                    reminderDelayMinutes = 30,
+                )
+            coEvery { petRepository.getPets() } returns listOf(Pet(id = "pet1", name = "ポチ"))
+            coEvery { feedingRepository.getFeedingLog("pet1", "2026-03-14") } returns
+                FeedingLog(date = "2026-03-14")
+
+            val service = createService()
+            // 12:15 → LUNCH 12:00 を過ぎ、12:30 リマインダー前。SCHEDULED のみ発火
+            service.checkAndNotify(jstInstant(12, 15))
+
+            assertEquals(1, webhookRequests.size)
+            assertTrue(webhookBodies.last().contains("給餌時間"))
+            assertFalse(webhookBodies.last().contains("給餌リマインダー"))
+        }
+
+    // --- 食事ごとに phase が混在しても並行発火する ---
+
+    @Test
+    fun differentMealsCanFireDifferentPhasesSimultaneously() =
+        runTest {
             coEvery { feedingSettingsRepository.getSettings() } returns defaultSettings()
             coEvery { petRepository.getPets() } returns listOf(Pet(id = "pet1", name = "ポチ"))
             coEvery { feedingRepository.getFeedingLog("pet1", "2026-03-14") } returns
                 FeedingLog(date = "2026-03-14")
 
             val service = createService()
-            // 12:15 → LUNCH 12:00 を過ぎ、12:30 リマインダー前。MORNING は既に reminder 過ぎ。
-            // ただし MORNING も REMINDER 1件 + LUNCH SCHEDULED 1件で計 2 件発火する。
+            // 12:15 → MORNING は REMINDER（12:15 >= 7:30）、LUNCH は SCHEDULED（12:00 <= 12:15 < 12:30）
             service.checkAndNotify(jstInstant(12, 15))
 
-            // MORNING は REMINDER（12:15 >= 7:30）、LUNCH は SCHEDULED（12:00 <= 12:15 < 12:30）
             assertEquals(2, webhookRequests.size)
-            assertTrue(webhookBodies.any { it.contains("給餌時間") }, "SCHEDULED 文言が含まれる")
-            assertTrue(webhookBodies.any { it.contains("給餌リマインダー") }, "REMINDER 文言が含まれる")
+            assertTrue(webhookBodies.any { it.contains("給餌時間") }, "LUNCH の SCHEDULED 文言が含まれる")
+            assertTrue(webhookBodies.any { it.contains("給餌リマインダー") }, "MORNING の REMINDER 文言が含まれる")
         }
 
     // --- リマインダー時刻到達 & 未記録 → REMINDER 通知 ---
