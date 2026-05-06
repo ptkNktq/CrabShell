@@ -94,7 +94,7 @@ internal fun FeedingSettingsCard(
     reminderDelayMinutes: Int,
     reminderPrefix: String,
     isSaving: Boolean,
-    isTesting: Boolean,
+    testingPhase: FeedingTestPhase?,
     message: String?,
     onMealOrderChanged: (List<MealTime>) -> Unit,
     onMealTimeChanged: (MealTime, String) -> Unit,
@@ -253,6 +253,7 @@ internal fun FeedingSettingsCard(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val isTesting = testingPhase != null
                 Button(
                     onClick = onSave,
                     modifier = Modifier.height(48.dp),
@@ -274,7 +275,7 @@ internal fun FeedingSettingsCard(
                     modifier = Modifier.height(48.dp),
                     enabled = testEnabled,
                 ) {
-                    if (isTesting) {
+                    if (testingPhase == FeedingTestPhase.SCHEDULED) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
                             strokeWidth = 2.dp,
@@ -288,7 +289,7 @@ internal fun FeedingSettingsCard(
                     modifier = Modifier.height(48.dp),
                     enabled = testEnabled,
                 ) {
-                    if (isTesting) {
+                    if (testingPhase == FeedingTestPhase.REMINDER) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
                             strokeWidth = 2.dp,
