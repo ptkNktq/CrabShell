@@ -24,6 +24,9 @@ import java.time.ZonedDateTime
 
 private val JST = ZoneId.of("Asia/Tokyo")
 
+/** 給餌通知のフェーズ。SCHEDULED は予定時刻の告知、REMINDER は遅延後の催促。 */
+enum class FeedingNotificationPhase { SCHEDULED, REMINDER }
+
 class FeedingReminderService(
     private val feedingRepository: FeedingRepository,
     private val feedingSettingsRepository: FeedingSettingsRepository,
@@ -39,8 +42,8 @@ class FeedingReminderService(
     private val json = Json
 
     // 単一コルーチンからのみアクセスされるため通常の HashMap で十分
-    // key: "petId:date", value: 通知済みの MealTime セット
-    internal val notifiedMap = HashMap<String, MutableSet<MealTime>>()
+    // key: "petId:date", value: 通知済みの (MealTime, Phase) セット
+    internal val notifiedMap = HashMap<String, MutableSet<Pair<MealTime, FeedingNotificationPhase>>>()
 
     /** Application のコルーチンスコープから呼び出す。キャンセルで停止する。 */
     suspend fun runPollingLoop() {
@@ -75,34 +78,51 @@ class FeedingReminderService(
                 val scheduledTime = parseTime(scheduledTimeStr) ?: continue
                 val reminderTime = scheduledTime.plusMinutes(settings.reminderDelayMinutes.toLong())
 
-                // 現在時刻がリマインダー時刻を過ぎているか（5時境界を考慮）
-                if (!isPastReminderTime(currentTime, reminderTime)) continue
-
                 // 既に給餌済み
                 val feeding = log.feedings[mealTime]
                 if (feeding != null && feeding.done) continue
 
-                // 既に通知済み
                 val key = "${pet.id}:$feedingDate"
                 val notified = notifiedMap.getOrPut(key) { mutableSetOf() }
-                if (mealTime in notified) continue
+                val scheduledKey = mealTime to FeedingNotificationPhase.SCHEDULED
+                val reminderKey = mealTime to FeedingNotificationPhase.REMINDER
 
-                // 通知送信
-                sendWebhook(
-                    url = settings.reminderWebhookUrl,
-                    prefix = settings.reminderPrefix,
-                    petId = pet.id,
-                    petName = pet.name,
-                    mealTime = mealTime,
-                    scheduledTime = scheduledTimeStr,
-                )
-                notified.add(mealTime)
+                when {
+                    // REMINDER 時刻を過ぎている: REMINDER を送信し、SCHEDULED もマーク
+                    // （取りこぼし時の遅延通知や重複回避のため）
+                    isPastTime(currentTime, reminderTime) && reminderKey !in notified -> {
+                        sendWebhook(
+                            url = settings.reminderWebhookUrl,
+                            prefix = settings.reminderPrefix,
+                            phase = FeedingNotificationPhase.REMINDER,
+                            petId = pet.id,
+                            petName = pet.name,
+                            mealTime = mealTime,
+                            scheduledTime = scheduledTimeStr,
+                        )
+                        notified += reminderKey
+                        notified += scheduledKey
+                    }
+                    // SCHEDULED 時刻を過ぎているが REMINDER 時刻前: SCHEDULED のみ送信
+                    isPastTime(currentTime, scheduledTime) && scheduledKey !in notified -> {
+                        sendWebhook(
+                            url = settings.reminderWebhookUrl,
+                            prefix = settings.reminderPrefix,
+                            phase = FeedingNotificationPhase.SCHEDULED,
+                            petId = pet.id,
+                            petName = pet.name,
+                            mealTime = mealTime,
+                            scheduledTime = scheduledTimeStr,
+                        )
+                        notified += scheduledKey
+                    }
+                }
             }
         }
     }
 
-    /** テスト送信: 保存済み設定を使って最初のペット・最初の食事でリマインダーを即時送信 */
-    suspend fun sendTestReminder() {
+    /** テスト送信: 保存済み設定を使って最初のペット・最初の食事で指定 phase を即時送信 */
+    suspend fun sendTestNotification(phase: FeedingNotificationPhase) {
         val settings = feedingSettingsRepository.getSettings()
         require(settings.reminderWebhookUrl.isNotBlank()) { "Webhook URL が設定されていません" }
         val pet = petRepository.getPets().firstOrNull() ?: error("ペットが登録されていません")
@@ -111,6 +131,7 @@ class FeedingReminderService(
         sendWebhook(
             url = settings.reminderWebhookUrl,
             prefix = settings.reminderPrefix,
+            phase = phase,
             petId = pet.id,
             petName = pet.name,
             mealTime = mealTime,
@@ -121,32 +142,50 @@ class FeedingReminderService(
     internal suspend fun sendWebhook(
         url: String,
         prefix: String,
+        phase: FeedingNotificationPhase,
         petId: String,
         petName: String,
         mealTime: MealTime,
         scheduledTime: String,
     ) {
         val mealLabel = mealTimeLabel(mealTime)
-        val payload = buildPayload(url, prefix, petId, petName, mealLabel, scheduledTime)
+        val payload = buildPayload(url, prefix, phase, petId, petName, mealLabel, scheduledTime)
         try {
             client.post(url) {
                 setBody(TextContent(payload, ContentType.Application.Json))
             }
         } catch (e: Exception) {
-            logger.warn("Feeding reminder webhook failed", e)
+            logger.warn("Feeding notification webhook failed (phase=$phase)", e)
         }
     }
 
     internal fun buildPayload(
         url: String,
         prefix: String,
+        phase: FeedingNotificationPhase,
         petId: String,
         petName: String,
         mealLabel: String,
         scheduledTime: String,
         feedingPageUrl: String? = appUrl?.let { "${it.trimEnd('/')}/feeding" },
     ): String {
-        val message = "${petName}の${mealLabel}ごはん（予定: $scheduledTime）がまだ記録されていません"
+        val title =
+            when (phase) {
+                FeedingNotificationPhase.SCHEDULED -> "給餌時間"
+                FeedingNotificationPhase.REMINDER -> "給餌リマインダー"
+            }
+        val message =
+            when (phase) {
+                FeedingNotificationPhase.SCHEDULED ->
+                    "${petName}の${mealLabel}ごはんの時間です（予定: $scheduledTime）"
+                FeedingNotificationPhase.REMINDER ->
+                    "${petName}の${mealLabel}ごはん（予定: $scheduledTime）がまだ記録されていません"
+            }
+        val event =
+            when (phase) {
+                FeedingNotificationPhase.SCHEDULED -> "feeding_scheduled"
+                FeedingNotificationPhase.REMINDER -> "feeding_reminder"
+            }
         return when (detectWebhookService(url)) {
             WebhookServiceType.DISCORD -> {
                 val discord =
@@ -155,7 +194,7 @@ class FeedingReminderService(
                         embeds =
                             listOf(
                                 DiscordReminderEmbed(
-                                    title = "給餌リマインダー",
+                                    title = title,
                                     description = message,
                                     color = DISCORD_EMBED_COLOR,
                                     url = feedingPageUrl,
@@ -173,7 +212,7 @@ class FeedingReminderService(
             WebhookServiceType.GENERIC -> {
                 json.encodeToString(
                     GenericReminderPayload(
-                        event = "feeding_reminder",
+                        event = event,
                         prefix = prefix.ifBlank { null },
                         petId = petId,
                         petName = petName,
@@ -211,20 +250,21 @@ class FeedingReminderService(
             }
 
         /**
-         * 5時境界を考慮して、現在時刻がリマインダー時刻を過ぎているか判定。
-         * 朝5時が1日の開始。reminderTime が 5:00 未満なら翌日扱い。
+         * 5時境界を考慮して、現在時刻が target 時刻を過ぎているか判定。
+         * 朝5時が1日の開始。target が 5:00 未満なら翌日扱い。
+         * SCHEDULED / REMINDER 双方の判定で使う。
          */
-        internal fun isPastReminderTime(
+        internal fun isPastTime(
             currentTime: LocalTime,
-            reminderTime: LocalTime,
+            target: LocalTime,
         ): Boolean {
             val dayStart = LocalTime.of(5, 0)
-            return if (reminderTime >= dayStart) {
-                // リマインダーが 5:00 以降: 現在時刻も 5:00 以降で、かつ過ぎている
-                currentTime >= dayStart && currentTime >= reminderTime
+            return if (target >= dayStart) {
+                // target が 5:00 以降: 現在時刻も 5:00 以降で、かつ過ぎている
+                currentTime >= dayStart && currentTime >= target
             } else {
-                // リマインダーが 5:00 未満（深夜帯）: 現在時刻が 5:00 前で過ぎている、または既に 5:00 以降
-                currentTime < dayStart && currentTime >= reminderTime
+                // target が 5:00 未満（深夜帯）: 現在時刻が 5:00 前で過ぎている
+                currentTime < dayStart && currentTime >= target
             }
         }
     }

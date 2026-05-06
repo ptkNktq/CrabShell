@@ -4,6 +4,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.TextContent
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -27,12 +28,15 @@ class FeedingReminderServiceTest {
     private val feedingSettingsRepository = mockk<FeedingSettingsRepository>()
     private val petRepository = mockk<PetRepository>()
     private val webhookRequests = mutableListOf<String>()
+    private val webhookBodies = mutableListOf<String>()
 
     private val mockClient =
         HttpClient(MockEngine) {
             engine {
                 addHandler { request ->
                     webhookRequests.add(request.url.toString())
+                    val body = (request.body as? TextContent)?.text ?: ""
+                    webhookBodies.add(body)
                     respond("ok", HttpStatusCode.OK)
                 }
             }
@@ -57,13 +61,22 @@ class FeedingReminderServiceTest {
             .of(year, month, day, hour, minute, 0, 0, ZoneId.of("Asia/Tokyo"))
             .toInstant()
 
+    private fun defaultSettings(
+        enabled: Boolean = true,
+        url: String = "https://discord.com/api/webhooks/x/y",
+        delay: Int = 30,
+    ) = FeedingSettings(
+        reminderEnabled = enabled,
+        reminderWebhookUrl = url,
+        reminderDelayMinutes = delay,
+    )
+
     // --- reminderEnabled = false → 通知なし ---
 
     @Test
     fun disabledReminderDoesNotNotify() =
         runTest {
-            coEvery { feedingSettingsRepository.getSettings() } returns
-                FeedingSettings(reminderEnabled = false, reminderWebhookUrl = "https://discord.com/api/webhooks/x/y")
+            coEvery { feedingSettingsRepository.getSettings() } returns defaultSettings(enabled = false)
 
             val service = createService()
             service.checkAndNotify(jstInstant(13, 0))
@@ -76,8 +89,7 @@ class FeedingReminderServiceTest {
     @Test
     fun emptyWebhookUrlDoesNotNotify() =
         runTest {
-            coEvery { feedingSettingsRepository.getSettings() } returns
-                FeedingSettings(reminderEnabled = true, reminderWebhookUrl = "")
+            coEvery { feedingSettingsRepository.getSettings() } returns defaultSettings(url = "")
 
             val service = createService()
             service.checkAndNotify(jstInstant(13, 0))
@@ -85,61 +97,115 @@ class FeedingReminderServiceTest {
             assertTrue(webhookRequests.isEmpty())
         }
 
-    // --- 予定時刻+遅延 未到達 → 通知なし ---
+    // --- 予定時刻前 → 通知なし ---
 
     @Test
-    fun beforeDelayDoesNotNotify() =
+    fun beforeScheduledDoesNotNotify() =
         runTest {
-            coEvery { feedingSettingsRepository.getSettings() } returns
-                FeedingSettings(
-                    reminderEnabled = true,
-                    reminderWebhookUrl = "https://discord.com/api/webhooks/x/y",
-                    reminderDelayMinutes = 30,
-                )
+            coEvery { feedingSettingsRepository.getSettings() } returns defaultSettings()
             coEvery { petRepository.getPets() } returns listOf(Pet(id = "pet1", name = "ポチ"))
             coEvery { feedingRepository.getFeedingLog("pet1", "2026-03-14") } returns
                 FeedingLog(date = "2026-03-14")
 
             val service = createService()
-            // 最も早い MORNING 7:00 + 30min = 7:30, 現在 7:29 → まだ通知しない
-            service.checkAndNotify(jstInstant(7, 29))
+            // 6:59 → MORNING 7:00 前。どの食事も予定時刻に達していない
+            service.checkAndNotify(jstInstant(6, 59))
 
             assertTrue(webhookRequests.isEmpty())
         }
 
-    // --- 予定時刻+遅延 経過 & 未記録 → 通知あり ---
+    // --- 予定時刻到達（リマインダー時刻前） → SCHEDULED 通知 ---
 
     @Test
-    fun pastDelayAndUnrecordedSendsNotification() =
+    fun pastScheduledBeforeReminderSendsScheduledOnly() =
         runTest {
-            coEvery { feedingSettingsRepository.getSettings() } returns
-                FeedingSettings(
-                    reminderEnabled = true,
-                    reminderWebhookUrl = "https://discord.com/api/webhooks/x/y",
-                    reminderDelayMinutes = 30,
-                )
+            coEvery { feedingSettingsRepository.getSettings() } returns defaultSettings()
             coEvery { petRepository.getPets() } returns listOf(Pet(id = "pet1", name = "ポチ"))
             coEvery { feedingRepository.getFeedingLog("pet1", "2026-03-14") } returns
                 FeedingLog(date = "2026-03-14")
 
             val service = createService()
-            // 12:00 + 30min = 12:30, 現在 12:31 → 通知する
-            service.checkAndNotify(jstInstant(12, 31))
+            // 12:15 → LUNCH 12:00 を過ぎ、12:30 リマインダー前。MORNING は既に reminder 過ぎ。
+            // ただし MORNING も REMINDER 1件 + LUNCH SCHEDULED 1件で計 2 件発火する。
+            service.checkAndNotify(jstInstant(12, 15))
 
-            assertTrue(webhookRequests.isNotEmpty())
+            // MORNING は REMINDER（12:15 >= 7:30）、LUNCH は SCHEDULED（12:00 <= 12:15 < 12:30）
+            assertEquals(2, webhookRequests.size)
+            assertTrue(webhookBodies.any { it.contains("給餌時間") }, "SCHEDULED 文言が含まれる")
+            assertTrue(webhookBodies.any { it.contains("給餌リマインダー") }, "REMINDER 文言が含まれる")
         }
 
-    // --- 既に記録済み → 通知なし ---
+    // --- リマインダー時刻到達 & 未記録 → REMINDER 通知 ---
+
+    @Test
+    fun pastReminderAndUnrecordedSendsReminder() =
+        runTest {
+            coEvery { feedingSettingsRepository.getSettings() } returns defaultSettings()
+            coEvery { petRepository.getPets() } returns listOf(Pet(id = "pet1", name = "ポチ"))
+            coEvery { feedingRepository.getFeedingLog("pet1", "2026-03-14") } returns
+                FeedingLog(date = "2026-03-14")
+
+            val service = createService()
+            // 12:31 → MORNING / LUNCH の REMINDER（7:30 / 12:30）を過ぎている。EVENING は未到達。
+            service.checkAndNotify(jstInstant(12, 31))
+
+            assertEquals(2, webhookRequests.size)
+            assertTrue(webhookBodies.all { it.contains("給餌リマインダー") })
+        }
+
+    // --- SCHEDULED 送信後、REMINDER 時刻到達で REMINDER のみ追加送信 ---
+
+    @Test
+    fun scheduledThenReminderSendsBoth() =
+        runTest {
+            coEvery { feedingSettingsRepository.getSettings() } returns defaultSettings()
+            coEvery { petRepository.getPets() } returns listOf(Pet(id = "pet1", name = "ポチ"))
+            coEvery { feedingRepository.getFeedingLog("pet1", "2026-03-14") } returns
+                FeedingLog(date = "2026-03-14")
+
+            val service = createService()
+            // 7:00: MORNING SCHEDULED 発火（LUNCH/EVENING はまだ）
+            service.checkAndNotify(jstInstant(7, 0))
+            assertEquals(1, webhookRequests.size)
+            assertTrue(webhookBodies.last().contains("給餌時間"))
+
+            // 7:31: MORNING REMINDER 発火、SCHEDULED 重複なし
+            service.checkAndNotify(jstInstant(7, 31))
+            assertEquals(2, webhookRequests.size)
+            assertTrue(webhookBodies.last().contains("給餌リマインダー"))
+
+            // 7:35: 既に REMINDER 通知済み、追加送信なし
+            service.checkAndNotify(jstInstant(7, 35))
+            assertEquals(2, webhookRequests.size)
+        }
+
+    // --- リマインダー時刻直行: SCHEDULED は取りこぼし扱いでマークのみ ---
+
+    @Test
+    fun jumpingPastReminderSendsReminderOnceAndSuppressesScheduled() =
+        runTest {
+            coEvery { feedingSettingsRepository.getSettings() } returns defaultSettings()
+            coEvery { petRepository.getPets() } returns listOf(Pet(id = "pet1", name = "ポチ"))
+            coEvery { feedingRepository.getFeedingLog("pet1", "2026-03-14") } returns
+                FeedingLog(date = "2026-03-14")
+
+            val service = createService()
+            // 7:31: いきなり REMINDER 時刻を過ぎている → REMINDER 発火、SCHEDULED は遅れて来ない
+            service.checkAndNotify(jstInstant(7, 31))
+            assertEquals(1, webhookRequests.size)
+            assertTrue(webhookBodies.last().contains("給餌リマインダー"))
+
+            // 7:32: SCHEDULED も REMINDER も追加送信されない
+            service.checkAndNotify(jstInstant(7, 32))
+            assertEquals(1, webhookRequests.size)
+        }
+
+    // --- 既に記録済み → どの phase も通知しない ---
 
     @Test
     fun alreadyRecordedDoesNotNotify() =
         runTest {
-            coEvery { feedingSettingsRepository.getSettings() } returns
-                FeedingSettings(
-                    reminderEnabled = true,
-                    reminderWebhookUrl = "https://discord.com/api/webhooks/x/y",
-                    reminderDelayMinutes = 30,
-                )
+            coEvery { feedingSettingsRepository.getSettings() } returns defaultSettings()
             coEvery { petRepository.getPets() } returns listOf(Pet(id = "pet1", name = "ポチ"))
             coEvery { feedingRepository.getFeedingLog("pet1", "2026-03-14") } returns
                 FeedingLog(
@@ -158,27 +224,20 @@ class FeedingReminderServiceTest {
             assertTrue(webhookRequests.isEmpty())
         }
 
-    // --- 同日重複通知なし（notifiedMap） ---
+    // --- 同一 phase の重複通知なし ---
 
     @Test
     fun doesNotSendDuplicateNotification() =
         runTest {
-            coEvery { feedingSettingsRepository.getSettings() } returns
-                FeedingSettings(
-                    reminderEnabled = true,
-                    reminderWebhookUrl = "https://discord.com/api/webhooks/x/y",
-                    reminderDelayMinutes = 30,
-                )
+            coEvery { feedingSettingsRepository.getSettings() } returns defaultSettings()
             coEvery { petRepository.getPets() } returns listOf(Pet(id = "pet1", name = "ポチ"))
             coEvery { feedingRepository.getFeedingLog("pet1", "2026-03-14") } returns
                 FeedingLog(date = "2026-03-14")
 
             val service = createService()
-            // 1回目: 通知される
             service.checkAndNotify(jstInstant(12, 31))
             val firstCount = webhookRequests.size
 
-            // 2回目: 重複通知されない
             service.checkAndNotify(jstInstant(12, 35))
             assertEquals(firstCount, webhookRequests.size)
         }
@@ -197,37 +256,38 @@ class FeedingReminderServiceTest {
         assertEquals("2026-03-14", FeedingReminderService.feedingDate(jstNow))
     }
 
-    // --- isPastReminderTime ---
+    // --- isPastTime ---
 
     @Test
-    fun isPastReminderTimeAfterSchedule() {
+    fun isPastTimeAfterTarget() {
         assertTrue(
-            FeedingReminderService.isPastReminderTime(
+            FeedingReminderService.isPastTime(
                 currentTime = LocalTime.of(12, 31),
-                reminderTime = LocalTime.of(12, 30),
+                target = LocalTime.of(12, 30),
             ),
         )
     }
 
     @Test
-    fun isPastReminderTimeBeforeSchedule() {
+    fun isPastTimeBeforeTarget() {
         assertFalse(
-            FeedingReminderService.isPastReminderTime(
+            FeedingReminderService.isPastTime(
                 currentTime = LocalTime.of(12, 29),
-                reminderTime = LocalTime.of(12, 30),
+                target = LocalTime.of(12, 30),
             ),
         )
     }
 
-    // --- Webhook ペイロード ---
+    // --- Webhook ペイロード（REMINDER） ---
 
     @Test
-    fun discordPayloadContainsEmbed() {
+    fun discordReminderPayloadContainsTitle() {
         val service = createService()
         val payload =
             service.buildPayload(
                 url = "https://discord.com/api/webhooks/x/y",
                 prefix = "@everyone",
+                phase = FeedingNotificationPhase.REMINDER,
                 petId = "pet1",
                 petName = "ポチ",
                 mealLabel = "昼",
@@ -237,9 +297,30 @@ class FeedingReminderServiceTest {
         assertTrue(payload.contains("embeds"))
         assertTrue(payload.contains("@everyone"))
         assertTrue(payload.contains("ポチ"))
+        assertTrue(payload.contains("給餌リマインダー"))
+        assertTrue(payload.contains("まだ記録されていません"))
         assertTrue(payload.contains("https://example.com/feeding"))
-        // fields が含まれていないこと
         assertFalse(payload.contains("fields"))
+    }
+
+    @Test
+    fun discordScheduledPayloadContainsScheduledTitle() {
+        val service = createService()
+        val payload =
+            service.buildPayload(
+                url = "https://discord.com/api/webhooks/x/y",
+                prefix = "",
+                phase = FeedingNotificationPhase.SCHEDULED,
+                petId = "pet1",
+                petName = "ポチ",
+                mealLabel = "朝",
+                scheduledTime = "07:00",
+                feedingPageUrl = "https://example.com/feeding",
+            )
+        assertTrue(payload.contains("給餌時間"))
+        assertTrue(payload.contains("ごはんの時間です"))
+        assertFalse(payload.contains("給餌リマインダー"))
+        assertFalse(payload.contains("まだ記録されていません"))
     }
 
     @Test
@@ -249,6 +330,7 @@ class FeedingReminderServiceTest {
             service.buildPayload(
                 url = "https://hooks.slack.com/services/x/y/z",
                 prefix = "",
+                phase = FeedingNotificationPhase.REMINDER,
                 petId = "pet1",
                 petName = "ポチ",
                 mealLabel = "朝",
@@ -261,21 +343,58 @@ class FeedingReminderServiceTest {
     }
 
     @Test
-    fun genericPayloadContainsUrl() {
+    fun slackScheduledPayloadHasScheduledMessage() {
+        val service = createService()
+        val payload =
+            service.buildPayload(
+                url = "https://hooks.slack.com/services/x/y/z",
+                prefix = "",
+                phase = FeedingNotificationPhase.SCHEDULED,
+                petId = "pet1",
+                petName = "ポチ",
+                mealLabel = "晩",
+                scheduledTime = "18:00",
+                feedingPageUrl = null,
+            )
+        assertTrue(payload.contains("ごはんの時間です"))
+        assertFalse(payload.contains("まだ記録されていません"))
+    }
+
+    @Test
+    fun genericReminderPayloadHasReminderEvent() {
         val service = createService()
         val payload =
             service.buildPayload(
                 url = "https://example.com/webhook",
                 prefix = "",
+                phase = FeedingNotificationPhase.REMINDER,
                 petId = "pet1",
                 petName = "ポチ",
                 mealLabel = "晩",
                 scheduledTime = "18:00",
                 feedingPageUrl = "https://example.com/feeding",
             )
-        assertTrue(payload.contains("feeding_reminder"))
+        assertTrue(payload.contains("\"event\":\"feeding_reminder\""))
         assertTrue(payload.contains("ポチ"))
         assertTrue(payload.contains("https://example.com/feeding"))
+    }
+
+    @Test
+    fun genericScheduledPayloadHasScheduledEvent() {
+        val service = createService()
+        val payload =
+            service.buildPayload(
+                url = "https://example.com/webhook",
+                prefix = "",
+                phase = FeedingNotificationPhase.SCHEDULED,
+                petId = "pet1",
+                petName = "ポチ",
+                mealLabel = "朝",
+                scheduledTime = "07:00",
+                feedingPageUrl = null,
+            )
+        assertTrue(payload.contains("\"event\":\"feeding_scheduled\""))
+        assertFalse(payload.contains("\"event\":\"feeding_reminder\""))
     }
 
     @Test
@@ -285,6 +404,7 @@ class FeedingReminderServiceTest {
             service.buildPayload(
                 url = "https://example.com/webhook",
                 prefix = "@channel",
+                phase = FeedingNotificationPhase.REMINDER,
                 petId = "pet1",
                 petName = "ポチ",
                 mealLabel = "朝",
@@ -300,6 +420,7 @@ class FeedingReminderServiceTest {
             service.buildPayload(
                 url = "https://example.com/webhook",
                 prefix = "",
+                phase = FeedingNotificationPhase.REMINDER,
                 petId = "pet1",
                 petName = "ポチ",
                 mealLabel = "朝",
@@ -309,12 +430,13 @@ class FeedingReminderServiceTest {
     }
 
     @Test
-    fun payloadWithoutAppUrl() {
+    fun discordPayloadWithoutAppUrlOmitsLink() {
         val service = createService()
         val payload =
             service.buildPayload(
                 url = "https://discord.com/api/webhooks/x/y",
                 prefix = "",
+                phase = FeedingNotificationPhase.REMINDER,
                 petId = "pet1",
                 petName = "ポチ",
                 mealLabel = "昼",
@@ -322,7 +444,7 @@ class FeedingReminderServiceTest {
                 feedingPageUrl = null,
             )
         assertTrue(payload.contains("embeds"))
-        // url フィールドが null なので含まれない
-        assertFalse(payload.contains("feeding"))
+        // embed.url が null なので、リンク (https://example.com/feeding) は payload に出ない
+        assertFalse(payload.contains("example.com"))
     }
 }

@@ -135,6 +135,24 @@ fun Route.feedingRoutes() {
     }
 
     adminOnly {
+        post("/feeding/test-scheduled", {
+            tags = listOf("feeding")
+            summary = "給餌定刻通知テスト送信（admin）"
+            response {
+                code(HttpStatusCode.OK) {
+                    body<Map<String, String>>()
+                }
+            }
+        }) {
+            val feedingReminderService by inject<FeedingReminderService>()
+            try {
+                feedingReminderService.sendTestNotification(FeedingNotificationPhase.SCHEDULED)
+                call.respond(mapOf("status" to "sent"))
+            } catch (e: Exception) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to (e.message ?: "送信失敗")))
+            }
+        }
+
         post("/feeding/test-reminder", {
             tags = listOf("feeding")
             summary = "給餌リマインダーテスト送信（admin）"
@@ -146,7 +164,7 @@ fun Route.feedingRoutes() {
         }) {
             val feedingReminderService by inject<FeedingReminderService>()
             try {
-                feedingReminderService.sendTestReminder()
+                feedingReminderService.sendTestNotification(FeedingNotificationPhase.REMINDER)
                 call.respond(mapOf("status" to "sent"))
             } catch (e: Exception) {
                 call.respond(HttpStatusCode.BadRequest, mapOf("error" to (e.message ?: "送信失敗")))
