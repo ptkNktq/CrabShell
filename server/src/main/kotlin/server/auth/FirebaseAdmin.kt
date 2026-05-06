@@ -9,9 +9,8 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.FileInputStream
 
-private val logger = LoggerFactory.getLogger("FirebaseAdmin")
-
 object FirebaseAdmin {
+    private val logger = LoggerFactory.getLogger(FirebaseAdmin::class.java)
     private var initialized = false
 
     fun initialize() {

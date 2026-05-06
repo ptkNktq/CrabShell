@@ -26,7 +26,7 @@ import server.auth.firebasePrincipal
 import server.ratelimit.RateLimitNames
 import java.util.Base64
 
-private val logger = LoggerFactory.getLogger("PasskeyRoutes")
+private val logger = LoggerFactory.getLogger("server.passkey.PasskeyRoutes")
 
 /** WebAuthn オプション JSON 用。デフォルト値（type="public-key" 等）もシリアライズする */
 private val webAuthnJson = Json { encodeDefaults = true }

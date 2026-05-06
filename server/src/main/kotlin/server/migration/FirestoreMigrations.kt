@@ -13,8 +13,6 @@ private const val MONEY_COLLECTION = "money"
 // https://firebase.google.com/docs/firestore/manage-data/transactions#batched-writes
 private const val FIRESTORE_BATCH_LIMIT = 500
 
-private val logger = LoggerFactory.getLogger("server.migration.FirestoreMigrations")
-
 /**
  * Firestore の一回きりマイグレーションをサーバー起動時に実行する。
  *
@@ -28,6 +26,8 @@ private val logger = LoggerFactory.getLogger("server.migration.FirestoreMigratio
 class FirestoreMigrations(
     private val firestore: Firestore,
 ) {
+    private val logger = LoggerFactory.getLogger(FirestoreMigrations::class.java)
+
     /** money.month → yearMonth マイグレーションにおける 1 ドキュメントの扱い。 */
     internal enum class MoneyMigrationAction {
         /** 対象外。新フィールドのみ保持済み、または両方未設定。 */

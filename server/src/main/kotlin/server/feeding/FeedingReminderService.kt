@@ -22,7 +22,6 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
-private val logger = LoggerFactory.getLogger("FeedingReminderService")
 private val JST = ZoneId.of("Asia/Tokyo")
 
 class FeedingReminderService(
@@ -36,6 +35,7 @@ class FeedingReminderService(
             }
         },
 ) {
+    private val logger = LoggerFactory.getLogger(FeedingReminderService::class.java)
     private val json = Json
 
     // 単一コルーチンからのみアクセスされるため通常の HashMap で十分

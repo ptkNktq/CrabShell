@@ -17,12 +17,13 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
 private const val MONEY_COLLECTION = "money"
-private val logger = LoggerFactory.getLogger("server.money.FirestoreMoneyRepository")
 
 class FirestoreMoneyRepository(
     private val firestore: Firestore,
 ) : MoneyRepository,
     Cacheable {
+    private val logger = LoggerFactory.getLogger(FirestoreMoneyRepository::class.java)
+
     override val cacheName: String = "money"
 
     override fun clearCache() {
@@ -142,72 +143,72 @@ class FirestoreMoneyRepository(
         val status = parseStatus(doc.getString("status"), doc.getBoolean("locked"))
         return MonthlyMoney(yearMonth = yearMonth, items = items, paymentRecords = records, status = status)
     }
-}
 
-/**
- * Firestore の生フィールドから MonthlyMoneyStatus を復元する。
- *
- * - 新形式: `status: "FROZEN"` 等の文字列。enum の name で復元する。
- * - 未知の文字列: WARN ログを出した上で旧形式にフォールバックする。
- * - 旧形式 (`locked: Boolean`): `locked=true → FROZEN` に変換する。
- *
- * それ以外（status 未設定 + locked=false または未設定）は [MonthlyMoneyStatus.PENDING] を
- * デフォルトとして返す。旧運用では `locked=false` は単に「編集可能」を意味し、新 3 状態の
- * 「確定済みか未確定か」という情報は存在しなかったため、安全側に倒して PENDING とする。
- * 既に運用上確定していた月は、マイグレーション後に admin が手動で CONFIRMED に切り替える
- * ことを想定する。
- */
-internal fun parseStatus(
-    statusRaw: String?,
-    legacyLocked: Boolean?,
-): MonthlyMoneyStatus {
-    val normalized = statusRaw?.trim()?.takeIf { it.isNotEmpty() }
-    if (normalized != null) {
-        val parsed = runCatching { MonthlyMoneyStatus.valueOf(normalized) }.getOrNull()
-        if (parsed != null) return parsed
-        logger.warn("Unknown MonthlyMoneyStatus value: {} — falling back to legacy locked", normalized)
+    /**
+     * Firestore の生フィールドから MonthlyMoneyStatus を復元する。
+     *
+     * - 新形式: `status: "FROZEN"` 等の文字列。enum の name で復元する。
+     * - 未知の文字列: WARN ログを出した上で旧形式にフォールバックする。
+     * - 旧形式 (`locked: Boolean`): `locked=true → FROZEN` に変換する。
+     *
+     * それ以外（status 未設定 + locked=false または未設定）は [MonthlyMoneyStatus.PENDING] を
+     * デフォルトとして返す。旧運用では `locked=false` は単に「編集可能」を意味し、新 3 状態の
+     * 「確定済みか未確定か」という情報は存在しなかったため、安全側に倒して PENDING とする。
+     * 既に運用上確定していた月は、マイグレーション後に admin が手動で CONFIRMED に切り替える
+     * ことを想定する。
+     */
+    internal fun parseStatus(
+        statusRaw: String?,
+        legacyLocked: Boolean?,
+    ): MonthlyMoneyStatus {
+        val normalized = statusRaw?.trim()?.takeIf { it.isNotEmpty() }
+        if (normalized != null) {
+            val parsed = runCatching { MonthlyMoneyStatus.valueOf(normalized) }.getOrNull()
+            if (parsed != null) return parsed
+            logger.warn("Unknown MonthlyMoneyStatus value: {} — falling back to legacy locked", normalized)
+        }
+        return if (legacyLocked == true) MonthlyMoneyStatus.FROZEN else MonthlyMoneyStatus.PENDING
     }
-    return if (legacyLocked == true) MonthlyMoneyStatus.FROZEN else MonthlyMoneyStatus.PENDING
-}
 
-/** Map リストから MoneyItem リストをパースする（テスト用に internal） */
-@Suppress("UNCHECKED_CAST")
-internal fun parseItems(raw: Any?): List<MoneyItem> {
-    val itemsRaw = raw as? List<Map<String, Any?>> ?: return emptyList()
-    return itemsRaw.map { entry ->
-        val paymentsRaw = entry["payments"] as? List<Map<String, Any?>> ?: emptyList()
-        // tags フィールドを読み取り。レガシーデータ対応: recurring=true → tags=["毎月"]
-        val tags =
-            (entry["tags"] as? List<String>)
-                ?: if (entry["recurring"] as? Boolean == true) listOf(MoneyTags.RECURRING) else emptyList()
-        MoneyItem(
-            id = entry["id"] as String,
-            name = entry["name"] as String,
-            amount = (entry["amount"] as Number).toLong(),
-            note = entry["note"] as? String ?: "",
-            tags = tags,
-            payments =
-                paymentsRaw.map { p ->
-                    Payment(
-                        uid = p["uid"] as String,
-                        amount = (p["amount"] as Number).toLong(),
-                    )
-                },
-        )
+    /** Map リストから MoneyItem リストをパースする（テスト用に internal） */
+    @Suppress("UNCHECKED_CAST")
+    internal fun parseItems(raw: Any?): List<MoneyItem> {
+        val itemsRaw = raw as? List<Map<String, Any?>> ?: return emptyList()
+        return itemsRaw.map { entry ->
+            val paymentsRaw = entry["payments"] as? List<Map<String, Any?>> ?: emptyList()
+            // tags フィールドを読み取り。レガシーデータ対応: recurring=true → tags=["毎月"]
+            val tags =
+                (entry["tags"] as? List<String>)
+                    ?: if (entry["recurring"] as? Boolean == true) listOf(MoneyTags.RECURRING) else emptyList()
+            MoneyItem(
+                id = entry["id"] as String,
+                name = entry["name"] as String,
+                amount = (entry["amount"] as Number).toLong(),
+                note = entry["note"] as? String ?: "",
+                tags = tags,
+                payments =
+                    paymentsRaw.map { p ->
+                        Payment(
+                            uid = p["uid"] as String,
+                            amount = (p["amount"] as Number).toLong(),
+                        )
+                    },
+            )
+        }
     }
-}
 
-/** Map リストから PaymentRecord リストをパースする（テスト用に internal） */
-@Suppress("UNCHECKED_CAST")
-internal fun parsePaymentRecords(raw: Any?): List<PaymentRecord> {
-    val recordsRaw = raw as? List<Map<String, Any?>> ?: return emptyList()
-    return recordsRaw.map { r ->
-        PaymentRecord(
-            uid = r["uid"] as String,
-            amount = (r["amount"] as Number).toLong(),
-            paidAt = r["paidAt"] as String,
-            note = r["note"] as? String ?: "",
-            isRedemption = r["isRedemption"] as? Boolean ?: false,
-        )
+    /** Map リストから PaymentRecord リストをパースする（テスト用に internal） */
+    @Suppress("UNCHECKED_CAST")
+    internal fun parsePaymentRecords(raw: Any?): List<PaymentRecord> {
+        val recordsRaw = raw as? List<Map<String, Any?>> ?: return emptyList()
+        return recordsRaw.map { r ->
+            PaymentRecord(
+                uid = r["uid"] as String,
+                amount = (r["amount"] as Number).toLong(),
+                paidAt = r["paidAt"] as String,
+                note = r["note"] as? String ?: "",
+                isRedemption = r["isRedemption"] as? Boolean ?: false,
+            )
+        }
     }
 }

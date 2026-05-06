@@ -23,9 +23,8 @@ import org.slf4j.LoggerFactory
 import server.config.EnvConfig
 import java.util.Base64
 
-private val logger = LoggerFactory.getLogger("PasskeyService")
-
 object PasskeyService {
+    private val logger = LoggerFactory.getLogger(PasskeyService::class.java)
     private val webAuthnManager = WebAuthnManager.createNonStrictWebAuthnManager()
     private val objectConverter = ObjectConverter()
     private val attestedCredentialDataConverter = AttestedCredentialDataConverter(objectConverter)

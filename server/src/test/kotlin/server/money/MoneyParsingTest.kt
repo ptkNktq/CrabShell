@@ -1,11 +1,18 @@
 package server.money
 
+import com.google.cloud.firestore.Firestore
+import io.mockk.mockk
 import model.MoneyTags
 import model.MonthlyMoneyStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class MoneyParsingTest {
+    // parse 関数群は Firestore に触れない純粋関数だが、メンバ関数なので
+    // FirestoreMoneyRepository を instance 化する必要がある。relaxed = true で未使用メソッド呼び出しが
+    // 起きても no-op を返すダミー Firestore を用意する。
+    private val repository = FirestoreMoneyRepository(mockk<Firestore>(relaxed = true))
+
     @Test
     fun parseItemsWithTags() {
         val raw: List<Map<String, Any?>> =
@@ -23,7 +30,7 @@ class MoneyParsingTest {
                         ),
                 ),
             )
-        val items = parseItems(raw)
+        val items = repository.parseItems(raw)
         assertEquals(1, items.size)
         val item = items[0]
         assertEquals("item1", item.id)
@@ -48,7 +55,7 @@ class MoneyParsingTest {
                     "payments" to emptyList<Map<String, Any?>>(),
                 ),
             )
-        val items = parseItems(raw)
+        val items = repository.parseItems(raw)
         assertEquals(1, items.size)
         assertEquals(listOf(MoneyTags.RECURRING), items[0].tags)
     }
@@ -65,7 +72,7 @@ class MoneyParsingTest {
                     "payments" to emptyList<Map<String, Any?>>(),
                 ),
             )
-        val items = parseItems(raw)
+        val items = repository.parseItems(raw)
         assertEquals(1, items.size)
         assertEquals(emptyList(), items[0].tags)
     }
@@ -81,7 +88,7 @@ class MoneyParsingTest {
                     "payments" to emptyList<Map<String, Any?>>(),
                 ),
             )
-        val items = parseItems(raw)
+        val items = repository.parseItems(raw)
         assertEquals(1, items.size)
         assertEquals(emptyList(), items[0].tags)
     }
@@ -99,14 +106,14 @@ class MoneyParsingTest {
                     "payments" to emptyList<Map<String, Any?>>(),
                 ),
             )
-        val items = parseItems(raw)
+        val items = repository.parseItems(raw)
         assertEquals(1, items.size)
         assertEquals(listOf(MoneyTags.RECURRING), items[0].tags)
     }
 
     @Test
     fun parseItemsReturnsEmptyForNull() {
-        assertEquals(emptyList(), parseItems(null))
+        assertEquals(emptyList(), repository.parseItems(null))
     }
 
     @Test
@@ -116,7 +123,7 @@ class MoneyParsingTest {
                 mapOf("uid" to "u1", "amount" to 3000L, "paidAt" to "2024-06-01"),
                 mapOf("uid" to "u2", "amount" to 5000L, "paidAt" to "2024-06-02"),
             )
-        val records = parsePaymentRecords(raw)
+        val records = repository.parsePaymentRecords(raw)
         assertEquals(2, records.size)
         assertEquals("u1", records[0].uid)
         assertEquals(3000L, records[0].amount)
@@ -125,61 +132,61 @@ class MoneyParsingTest {
 
     @Test
     fun parsePaymentRecordsReturnsEmptyForNull() {
-        assertEquals(emptyList(), parsePaymentRecords(null))
+        assertEquals(emptyList(), repository.parsePaymentRecords(null))
     }
 
     @Test
     fun parseStatusFromExplicitString() {
         for (status in MonthlyMoneyStatus.entries) {
-            assertEquals(status, parseStatus(status.name, null))
+            assertEquals(status, repository.parseStatus(status.name, null))
         }
     }
 
     @Test
     fun parseStatusFallsBackToLegacyLockedTrue() {
-        assertEquals(MonthlyMoneyStatus.FROZEN, parseStatus(null, true))
+        assertEquals(MonthlyMoneyStatus.FROZEN, repository.parseStatus(null, true))
     }
 
     @Test
     fun parseStatusFallsBackToLegacyLockedFalse() {
-        assertEquals(MonthlyMoneyStatus.PENDING, parseStatus(null, false))
+        assertEquals(MonthlyMoneyStatus.PENDING, repository.parseStatus(null, false))
     }
 
     @Test
     fun parseStatusDefaultsToPendingWhenAbsent() {
-        assertEquals(MonthlyMoneyStatus.PENDING, parseStatus(null, null))
+        assertEquals(MonthlyMoneyStatus.PENDING, repository.parseStatus(null, null))
     }
 
     @Test
     fun parseStatusStringTakesPrecedenceOverLegacyLocked() {
-        assertEquals(MonthlyMoneyStatus.CONFIRMED, parseStatus("CONFIRMED", true))
+        assertEquals(MonthlyMoneyStatus.CONFIRMED, repository.parseStatus("CONFIRMED", true))
     }
 
     @Test
     fun parseStatusFallsBackToFrozenForUnknownStringWhenLegacyLocked() {
-        assertEquals(MonthlyMoneyStatus.FROZEN, parseStatus("UNKNOWN_VALUE", true))
+        assertEquals(MonthlyMoneyStatus.FROZEN, repository.parseStatus("UNKNOWN_VALUE", true))
     }
 
     @Test
     fun parseStatusFallsBackToPendingForUnknownStringWhenLegacyUnlocked() {
-        assertEquals(MonthlyMoneyStatus.PENDING, parseStatus("UNKNOWN_VALUE", false))
+        assertEquals(MonthlyMoneyStatus.PENDING, repository.parseStatus("UNKNOWN_VALUE", false))
     }
 
     @Test
     fun parseStatusFallsBackToPendingForUnknownStringWhenLegacyAbsent() {
-        assertEquals(MonthlyMoneyStatus.PENDING, parseStatus("UNKNOWN_VALUE", null))
+        assertEquals(MonthlyMoneyStatus.PENDING, repository.parseStatus("UNKNOWN_VALUE", null))
     }
 
     @Test
     fun parseStatusTreatsBlankStringAsAbsent() {
-        assertEquals(MonthlyMoneyStatus.PENDING, parseStatus("", null))
-        assertEquals(MonthlyMoneyStatus.PENDING, parseStatus("   ", null))
-        assertEquals(MonthlyMoneyStatus.FROZEN, parseStatus("", true))
+        assertEquals(MonthlyMoneyStatus.PENDING, repository.parseStatus("", null))
+        assertEquals(MonthlyMoneyStatus.PENDING, repository.parseStatus("   ", null))
+        assertEquals(MonthlyMoneyStatus.FROZEN, repository.parseStatus("", true))
     }
 
     @Test
     fun parseStatusTrimsSurroundingWhitespace() {
-        assertEquals(MonthlyMoneyStatus.CONFIRMED, parseStatus(" CONFIRMED ", null))
-        assertEquals(MonthlyMoneyStatus.FROZEN, parseStatus("\tFROZEN\n", null))
+        assertEquals(MonthlyMoneyStatus.CONFIRMED, repository.parseStatus(" CONFIRMED ", null))
+        assertEquals(MonthlyMoneyStatus.FROZEN, repository.parseStatus("\tFROZEN\n", null))
     }
 }
