@@ -39,7 +39,7 @@ import server.cache.cacheRoutes
 import server.config.EnvConfig
 import server.config.firebaseConfigRoute
 import server.di.serverModule
-import server.feeding.FeedingReminderService
+import server.feeding.FeedingNotificationService
 import server.feeding.feedingRoutes
 import server.garbage.GarbageNotificationService
 import server.garbage.garbageRoutes
@@ -97,8 +97,8 @@ fun Application.module() {
     val petRepository by inject<PetRepository>()
     petRepository.seedDefaultPet()
 
-    val feedingReminderService by inject<FeedingReminderService>()
-    launch { feedingReminderService.runPollingLoop() }
+    val feedingNotificationService by inject<FeedingNotificationService>()
+    launch { feedingNotificationService.runPollingLoop() }
 
     val garbageNotificationService by inject<GarbageNotificationService>()
     launch { garbageNotificationService.runPollingLoop() }

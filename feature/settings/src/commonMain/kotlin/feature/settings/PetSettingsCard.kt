@@ -94,7 +94,7 @@ internal fun FeedingSettingsCard(
     reminderDelayMinutes: Int,
     reminderPrefix: String,
     isSaving: Boolean,
-    isTesting: Boolean,
+    testingPhase: FeedingTestPhase?,
     message: String?,
     onMealOrderChanged: (List<MealTime>) -> Unit,
     onMealTimeChanged: (MealTime, String) -> Unit,
@@ -103,6 +103,7 @@ internal fun FeedingSettingsCard(
     onReminderDelayMinutesChanged: (Int) -> Unit,
     onReminderPrefixChanged: (String) -> Unit,
     onSave: () -> Unit,
+    onTestScheduled: () -> Unit,
     onTestReminder: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -251,35 +252,51 @@ internal fun FeedingSettingsCard(
                 )
             }
 
+            val isTesting = testingPhase != null
+            val testEnabled = !isSaving && !isTesting && reminderEnabled && reminderWebhookUrl.isNotBlank()
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = onSave,
+                OutlinedButton(
+                    onClick = onTestScheduled,
                     modifier = Modifier.height(48.dp),
-                    enabled = !isSaving && !isTesting,
+                    enabled = testEnabled,
                 ) {
-                    if (isSaving) {
+                    if (testingPhase == FeedingTestPhase.SCHEDULED) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
                             strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary,
                         )
                     } else {
-                        Text("保存する")
+                        Text("定刻テスト")
                     }
                 }
                 OutlinedButton(
                     onClick = onTestReminder,
                     modifier = Modifier.height(48.dp),
-                    enabled = !isSaving && !isTesting && reminderEnabled && reminderWebhookUrl.isNotBlank(),
+                    enabled = testEnabled,
                 ) {
-                    if (isTesting) {
+                    if (testingPhase == FeedingTestPhase.REMINDER) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
                             strokeWidth = 2.dp,
                         )
                     } else {
-                        Text("テスト送信")
+                        Text("リマインダーテスト")
                     }
+                }
+            }
+            Button(
+                onClick = onSave,
+                modifier = Modifier.height(48.dp),
+                enabled = !isSaving && !isTesting,
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                } else {
+                    Text("保存する")
                 }
             }
         }

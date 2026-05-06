@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory
 import server.cache.CacheManager
 import server.cache.Cacheable
 import server.config.EnvConfig
-import server.feeding.FeedingReminderService
+import server.feeding.FeedingNotificationService
 import server.feeding.FeedingRepository
 import server.feeding.FeedingSettingsRepository
 import server.feeding.FirestoreFeedingRepository
@@ -74,7 +74,7 @@ val serverModule =
         single { QuestWebhookService(get()) }
         single { MoneyWebhookService(get()) }
         single { QuestService(get(), get(), get()) }
-        single { FeedingReminderService(get(), get(), get()) }
+        single { FeedingNotificationService(get(), get(), get()) }
         single { GarbageNotificationService(get()) }
         single { BalanceCalculationService() }
         single { FirestoreMigrations(get()) }

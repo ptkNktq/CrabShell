@@ -13,6 +13,9 @@ import model.FeedingSettings
 import model.MealTime
 import model.Pet
 
+/** どのテスト送信ボタンが処理中かを表す。null なら全ボタン待機中。 */
+enum class FeedingTestPhase { SCHEDULED, REMINDER }
+
 data class PetSettingsUiState(
     val isLoading: Boolean = true,
     val pets: List<Pet> = emptyList(),
@@ -24,7 +27,7 @@ data class PetSettingsUiState(
     val reminderDelayMinutes: Int = 30,
     val reminderPrefix: String = "",
     val isSaving: Boolean = false,
-    val isTesting: Boolean = false,
+    val testingPhase: FeedingTestPhase? = null,
     val message: String? = null,
 )
 
@@ -154,14 +157,26 @@ class PetSettingsViewModel(
         }
     }
 
+    fun onTestScheduled() {
+        uiState = uiState.copy(testingPhase = FeedingTestPhase.SCHEDULED, message = null)
+        viewModelScope.launch {
+            try {
+                feedingSettingsRepository.testScheduled()
+                uiState = uiState.copy(testingPhase = null, message = "定刻通知をテスト送信しました")
+            } catch (e: Exception) {
+                uiState = uiState.copy(testingPhase = null, message = "テスト送信失敗: ${e.message}")
+            }
+        }
+    }
+
     fun onTestReminder() {
-        uiState = uiState.copy(isTesting = true, message = null)
+        uiState = uiState.copy(testingPhase = FeedingTestPhase.REMINDER, message = null)
         viewModelScope.launch {
             try {
                 feedingSettingsRepository.testReminder()
-                uiState = uiState.copy(isTesting = false, message = "テスト送信しました")
+                uiState = uiState.copy(testingPhase = null, message = "リマインダーをテスト送信しました")
             } catch (e: Exception) {
-                uiState = uiState.copy(isTesting = false, message = "テスト送信失敗: ${e.message}")
+                uiState = uiState.copy(testingPhase = null, message = "テスト送信失敗: ${e.message}")
             }
         }
     }
