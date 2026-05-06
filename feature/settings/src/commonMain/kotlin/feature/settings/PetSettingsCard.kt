@@ -252,24 +252,9 @@ internal fun FeedingSettingsCard(
                 )
             }
 
+            val isTesting = testingPhase != null
+            val testEnabled = !isSaving && !isTesting && reminderEnabled && reminderWebhookUrl.isNotBlank()
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val isTesting = testingPhase != null
-                Button(
-                    onClick = onSave,
-                    modifier = Modifier.height(48.dp),
-                    enabled = !isSaving && !isTesting,
-                ) {
-                    if (isSaving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
-                    } else {
-                        Text("保存する")
-                    }
-                }
-                val testEnabled = !isSaving && !isTesting && reminderEnabled && reminderWebhookUrl.isNotBlank()
                 OutlinedButton(
                     onClick = onTestScheduled,
                     modifier = Modifier.height(48.dp),
@@ -297,6 +282,21 @@ internal fun FeedingSettingsCard(
                     } else {
                         Text("リマインダーテスト")
                     }
+                }
+            }
+            Button(
+                onClick = onSave,
+                modifier = Modifier.height(48.dp),
+                enabled = !isSaving && !isTesting,
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                } else {
+                    Text("保存する")
                 }
             }
         }
