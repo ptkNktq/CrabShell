@@ -95,18 +95,21 @@ class MoneyModelsTest {
 
     @Test
     fun payRequestRoundTrip() {
-        val request = PayRequest(amount = 3000L, paidAt = "2024-06-01")
+        val request = PayRequest(amount = 3000L)
         val encoded = json.encodeToString(PayRequest.serializer(), request)
         val decoded = json.decodeFromString(PayRequest.serializer(), encoded)
         assertEquals(request, decoded)
     }
 
     @Test
-    fun payRequestSerializesOnlyAmountAndPaidAt() {
-        // クライアントが触ってはいけない uid / isRedemption がリクエスト DTO に
-        // 露出していないことを保証する。`/api/money/{ym}/pay` の API 契約。
-        val encoded = json.encodeToString(PayRequest.serializer(), PayRequest(amount = 1000L, paidAt = "2024-06-01"))
-        assertEquals("""{"amount":1000,"paidAt":"2024-06-01"}""", encoded)
+    fun payRequestSerializesOnlyAmount() {
+        // `/api/money/{ym}/pay` の API 契約:
+        // - uid は principal から取得
+        // - isRedemption は常に false（精算は /report/balances/redeem 経由のみ）
+        // - paidAt はサーバー側で生成（クライアント時計依存・改ざんを排除）
+        // 全てクライアントには露出しないことを保証する。
+        val encoded = json.encodeToString(PayRequest.serializer(), PayRequest(amount = 1000L))
+        assertEquals("""{"amount":1000}""", encoded)
     }
 
     @Test

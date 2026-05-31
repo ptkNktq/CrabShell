@@ -42,10 +42,6 @@ external fun shiftYearMonthJs(
     offset: Int,
 ): JsString
 
-/** 現在の日時を UTC の ISO 形式で返す（サーバー送信用） */
-@JsFun("() => new Date().toISOString()")
-external fun nowIsoJs(): JsString
-
 data class PaymentUiState(
     val monthlyMoney: MonthlyMoneyResponse = MonthlyMoneyResponse(yearMonth = ""),
     val currentYearMonth: String = "",
@@ -139,11 +135,7 @@ class PaymentViewModel(
         uiState = uiState.copy(isSaving = true)
         viewModelScope.launch {
             try {
-                val request =
-                    PayRequest(
-                        amount = amount,
-                        paidAt = nowIsoJs().toString(),
-                    )
+                val request = PayRequest(amount = amount)
                 uiState =
                     uiState.copy(
                         monthlyMoney = moneyRepository.recordPayment(uiState.currentYearMonth, request),

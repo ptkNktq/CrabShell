@@ -22,6 +22,7 @@ import server.auth.authenticated
 import server.auth.firebasePrincipal
 import server.money.model.MonthlyMoneyRecord
 import server.money.model.PaymentRecord
+import java.time.Instant
 
 fun Route.moneyRoutes() {
     val moneyRepository by inject<MoneyRepository>()
@@ -191,13 +192,15 @@ fun Route.moneyRoutes() {
                     call.respond(HttpStatusCode.BadRequest, mapOf("error" to "amount must be positive"))
                     return@post
                 }
-                // 永続化レコードはサーバー側で組み立てる。uid は principal、isRedemption は
-                // /pay 経路では常に false（過払い精算は /report/balances/redeem 経由のみ）。
+                // 永続化レコードはサーバー側で組み立てる。
+                // - uid は principal
+                // - isRedemption は /pay 経路では常に false（過払い精算は /report/balances/redeem 経由のみ）
+                // - paidAt はサーバー側で生成（クライアント時計依存・改ざんを避け、/redeem と対称にする）
                 val safeRecord =
                     PaymentRecord(
                         uid = uid,
                         amount = request.amount,
-                        paidAt = request.paidAt,
+                        paidAt = Instant.now().toString(),
                         isRedemption = false,
                     )
 

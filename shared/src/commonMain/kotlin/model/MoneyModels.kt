@@ -74,13 +74,15 @@ data class PaymentRecordResponse(
 /**
  * `POST /api/money/{yearMonth}/pay` のリクエスト DTO。
  *
- * `uid` は principal から取得、`isRedemption` は `/pay` 経路では常に false（精算は
- * `/report/balances/redeem` 経由のみ）であるため、クライアントには露出しない。
+ * クライアントから受け取るのは `amount` のみ。
+ * - `uid` は principal から取得
+ * - `isRedemption` は `/pay` 経路では常に false（精算は `/report/balances/redeem` 経由のみ）
+ * - `paidAt` はサーバー側で `Instant.now().toString()` を生成（クライアント時計依存・改ざんを排除、
+ *   `/report/balances/redeem` と対称な設計）
  */
 @Serializable
 data class PayRequest(
     val amount: Long,
-    val paidAt: String,
 )
 
 /**
