@@ -4,46 +4,46 @@ import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
-import model.MonthlyMoneyResponse
+import model.MonthlyMoney
 import model.MonthlyMoneySaveRequest
 import model.MonthlyMoneyStatus
 import model.MonthlyMoneyStatusUpdateRequest
 import model.PayRequest
 
 interface MoneyRepository {
-    suspend fun getMonthlyMoney(yearMonth: String): MonthlyMoneyResponse
+    suspend fun getMonthlyMoney(yearMonth: String): MonthlyMoney
 
-    suspend fun getMyMonthlyMoney(yearMonth: String): MonthlyMoneyResponse
+    suspend fun getMyMonthlyMoney(yearMonth: String): MonthlyMoney
 
     suspend fun saveMonthlyMoney(
         yearMonth: String,
         request: MonthlyMoneySaveRequest,
-    ): MonthlyMoneyResponse
+    ): MonthlyMoney
 
     suspend fun recordPayment(
         yearMonth: String,
         request: PayRequest,
-    ): MonthlyMoneyResponse
+    ): MonthlyMoney
 
     suspend fun updateStatus(
         yearMonth: String,
         status: MonthlyMoneyStatus,
-    ): MonthlyMoneyResponse
+    ): MonthlyMoney
 
-    suspend fun importRecurringItems(yearMonth: String): MonthlyMoneyResponse
+    suspend fun importRecurringItems(yearMonth: String): MonthlyMoney
 }
 
 class MoneyRepositoryImpl(
     private val client: HttpClient,
 ) : MoneyRepository {
-    override suspend fun getMonthlyMoney(yearMonth: String): MonthlyMoneyResponse = client.get("/api/money/$yearMonth").body()
+    override suspend fun getMonthlyMoney(yearMonth: String): MonthlyMoney = client.get("/api/money/$yearMonth").body()
 
-    override suspend fun getMyMonthlyMoney(yearMonth: String): MonthlyMoneyResponse = client.get("/api/money/$yearMonth/my").body()
+    override suspend fun getMyMonthlyMoney(yearMonth: String): MonthlyMoney = client.get("/api/money/$yearMonth/my").body()
 
     override suspend fun saveMonthlyMoney(
         yearMonth: String,
         request: MonthlyMoneySaveRequest,
-    ): MonthlyMoneyResponse =
+    ): MonthlyMoney =
         client
             .put("/api/money/$yearMonth") {
                 contentType(ContentType.Application.Json)
@@ -53,7 +53,7 @@ class MoneyRepositoryImpl(
     override suspend fun recordPayment(
         yearMonth: String,
         request: PayRequest,
-    ): MonthlyMoneyResponse =
+    ): MonthlyMoney =
         client
             .post("/api/money/$yearMonth/pay") {
                 contentType(ContentType.Application.Json)
@@ -63,13 +63,12 @@ class MoneyRepositoryImpl(
     override suspend fun updateStatus(
         yearMonth: String,
         status: MonthlyMoneyStatus,
-    ): MonthlyMoneyResponse =
+    ): MonthlyMoney =
         client
             .patch("/api/money/$yearMonth/status") {
                 contentType(ContentType.Application.Json)
                 setBody(MonthlyMoneyStatusUpdateRequest(status))
             }.body()
 
-    override suspend fun importRecurringItems(yearMonth: String): MonthlyMoneyResponse =
-        client.post("/api/money/$yearMonth/import-by-tag").body()
+    override suspend fun importRecurringItems(yearMonth: String): MonthlyMoney = client.post("/api/money/$yearMonth/import-by-tag").body()
 }

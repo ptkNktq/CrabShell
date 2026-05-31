@@ -11,16 +11,16 @@ import model.ExpenseItem
 import model.ExpenseReport
 import model.MoneyTags
 import model.MonthlyExpenseSummary
+import model.MonthlyMoney
 import model.MonthlyMoneyStatus
 import model.OverpaymentRedemptionRequest
+import model.Payment
 import model.UserBalance
 import org.koin.ktor.ext.inject
 import server.auth.FirebaseAdmin
 import server.auth.adminOnly
 import server.auth.authenticated
 import server.money.MoneyRepository
-import server.money.model.MonthlyMoneyRecord
-import server.money.model.PaymentRecord
 import java.time.Instant
 import java.time.YearMonth
 
@@ -128,20 +128,20 @@ fun Route.reportRoutes() {
                 return@post
             }
 
-            val data = moneyRepository.getMonthlyMoney(req.yearMonth) ?: MonthlyMoneyRecord(yearMonth = req.yearMonth)
+            val data = moneyRepository.getMonthlyMoney(req.yearMonth) ?: MonthlyMoney(yearMonth = req.yearMonth)
             if (data.status == MonthlyMoneyStatus.FROZEN) {
                 call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is frozen"))
                 return@post
             }
-            val record =
-                PaymentRecord(
+            val payment =
+                Payment(
                     uid = req.uid,
                     amount = req.amount,
                     paidAt = Instant.now().toString(),
                     note = req.note,
                     isRedemption = true,
                 )
-            val updated = data.copy(paymentRecords = data.paymentRecords + record)
+            val updated = data.copy(payments = data.payments + payment)
             moneyRepository.saveMonthlyMoney(req.yearMonth, updated)
 
             call.respond(mapOf("status" to "ok"))
@@ -149,10 +149,10 @@ fun Route.reportRoutes() {
     }
 }
 
-/** [MonthlyMoneyRecord] から繰越タグ付き項目を除外して MonthlyExpenseSummary を構築する */
+/** [MonthlyMoney] から繰越タグ付き項目を除外して MonthlyExpenseSummary を構築する */
 internal fun buildExpenseSummary(
     yearMonth: String,
-    data: MonthlyMoneyRecord?,
+    data: MonthlyMoney?,
 ): MonthlyExpenseSummary {
     if (data == null) return MonthlyExpenseSummary(yearMonth = yearMonth, totalAmount = 0L)
     val reportItems = data.items.filter { MoneyTags.CARRY_OVER !in it.tags }

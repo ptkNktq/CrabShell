@@ -11,10 +11,10 @@ import core.auth.toJsString
 import core.network.MoneyRepository
 import core.network.UserRepository
 import kotlinx.coroutines.launch
-import model.MoneyItemResponse
-import model.MonthlyMoneyResponse
+import model.MoneyItem
+import model.MonthlyMoney
 import model.MonthlyMoneyStatus
-import model.PaymentResponse
+import model.Share
 import model.User
 import model.toSaveRequest
 
@@ -49,13 +49,13 @@ external fun shiftYearMonthJs(
 external fun randomUUID(): JsString
 
 data class MoneyUiState(
-    val monthlyMoney: MonthlyMoneyResponse = MonthlyMoneyResponse(yearMonth = ""),
+    val monthlyMoney: MonthlyMoney = MonthlyMoney(yearMonth = ""),
     val currentYearMonth: String = "",
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
     val error: String? = null,
     val users: List<User> = emptyList(),
-    val editingItem: MoneyItemResponse? = null,
+    val editingItem: MoneyItem? = null,
     val formKey: Int = 0,
 )
 
@@ -66,7 +66,7 @@ class MoneyViewModel(
     var uiState by mutableStateOf(
         MoneyUiState(
             currentYearMonth = currentYearMonthJs().toString(),
-            monthlyMoney = MonthlyMoneyResponse(yearMonth = currentYearMonthJs().toString()),
+            monthlyMoney = MonthlyMoney(yearMonth = currentYearMonthJs().toString()),
         ),
     )
         private set
@@ -133,7 +133,7 @@ class MoneyViewModel(
         }
     }
 
-    fun onEditItem(item: MoneyItemResponse) {
+    fun onEditItem(item: MoneyItem) {
         uiState = uiState.copy(editingItem = item)
     }
 
@@ -145,21 +145,21 @@ class MoneyViewModel(
         name: String,
         amount: Long,
         note: String,
-        payments: List<PaymentResponse>,
+        shares: List<Share>,
         tags: List<String>,
     ) {
         val existing = uiState.editingItem
 
         val newItem =
             if (existing != null) {
-                existing.copy(name = name, amount = amount, note = note, payments = payments, tags = tags)
+                existing.copy(name = name, amount = amount, note = note, shares = shares, tags = tags)
             } else {
-                MoneyItemResponse(
+                MoneyItem(
                     id = randomUUID().toString(),
                     name = name,
                     amount = amount,
                     note = note,
-                    payments = payments,
+                    shares = shares,
                     tags = tags,
                 )
             }
@@ -177,7 +177,7 @@ class MoneyViewModel(
         }
     }
 
-    fun onDeleteItem(item: MoneyItemResponse) {
+    fun onDeleteItem(item: MoneyItem) {
         val updatedItems = uiState.monthlyMoney.items.filter { it.id != item.id }
         if (uiState.editingItem?.id == item.id) onClearForm()
         persistAndThen(uiState.monthlyMoney.copy(items = updatedItems)) {}
@@ -199,7 +199,7 @@ class MoneyViewModel(
 
     /** 項目を前月または次月に移動する（一時機能） */
     fun onMoveItem(
-        item: MoneyItemResponse,
+        item: MoneyItem,
         offset: Int,
     ) {
         val targetYearMonth = shiftYearMonthJs(uiState.currentYearMonth.toJsString(), offset).toString()
@@ -227,7 +227,7 @@ class MoneyViewModel(
     }
 
     private fun persistAndThen(
-        data: MonthlyMoneyResponse,
+        data: MonthlyMoney,
         onSuccess: () -> Unit,
     ) {
         uiState = uiState.copy(isSaving = true)

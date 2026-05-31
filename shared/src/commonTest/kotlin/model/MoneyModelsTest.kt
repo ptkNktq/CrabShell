@@ -8,83 +8,83 @@ class MoneyModelsTest {
     private val json = Json
 
     // ---------------------------------------------------------------------------------
-    // Response DTO の round-trip
+    // ドメインモデルの round-trip
     // ---------------------------------------------------------------------------------
 
     @Test
-    fun paymentResponseRoundTrip() {
-        val payment = PaymentResponse(uid = "u1", amount = 5000L)
-        val encoded = json.encodeToString(PaymentResponse.serializer(), payment)
-        val decoded = json.decodeFromString(PaymentResponse.serializer(), encoded)
+    fun shareRoundTrip() {
+        val share = Share(uid = "u1", amount = 5000L)
+        val encoded = json.encodeToString(Share.serializer(), share)
+        val decoded = json.decodeFromString(Share.serializer(), encoded)
+        assertEquals(share, decoded)
+    }
+
+    @Test
+    fun paymentRoundTrip() {
+        val payment = Payment(uid = "u1", amount = 3000L, paidAt = "2024-06-01")
+        val encoded = json.encodeToString(Payment.serializer(), payment)
+        val decoded = json.decodeFromString(Payment.serializer(), encoded)
         assertEquals(payment, decoded)
     }
 
     @Test
-    fun paymentRecordResponseRoundTrip() {
-        val record = PaymentRecordResponse(uid = "u1", amount = 3000L, paidAt = "2024-06-01")
-        val encoded = json.encodeToString(PaymentRecordResponse.serializer(), record)
-        val decoded = json.decodeFromString(PaymentRecordResponse.serializer(), encoded)
-        assertEquals(record, decoded)
-    }
-
-    @Test
-    fun moneyItemResponseRoundTripWithDefaults() {
+    fun moneyItemRoundTripWithDefaults() {
         val jsonStr = """{"id":"m1","name":"Rent","amount":100000}"""
-        val decoded = json.decodeFromString(MoneyItemResponse.serializer(), jsonStr)
+        val decoded = json.decodeFromString(MoneyItem.serializer(), jsonStr)
         assertEquals("m1", decoded.id)
         assertEquals("", decoded.note)
-        assertEquals(emptyList(), decoded.payments)
+        assertEquals(emptyList(), decoded.shares)
         assertEquals(emptyList(), decoded.tags)
     }
 
     @Test
-    fun moneyItemResponseFullRoundTrip() {
+    fun moneyItemFullRoundTrip() {
         val item =
-            MoneyItemResponse(
+            MoneyItem(
                 id = "m2",
                 name = "Electric",
                 amount = 8000L,
                 note = "June",
-                payments = listOf(PaymentResponse(uid = "u1", amount = 4000L), PaymentResponse(uid = "u2", amount = 4000L)),
+                shares = listOf(Share(uid = "u1", amount = 4000L), Share(uid = "u2", amount = 4000L)),
                 tags = listOf(MoneyTags.RECURRING),
             )
-        val encoded = json.encodeToString(MoneyItemResponse.serializer(), item)
-        val decoded = json.decodeFromString(MoneyItemResponse.serializer(), encoded)
+        val encoded = json.encodeToString(MoneyItem.serializer(), item)
+        val decoded = json.decodeFromString(MoneyItem.serializer(), encoded)
         assertEquals(item, decoded)
     }
 
     @Test
-    fun monthlyMoneyResponseNestedRoundTrip() {
+    fun monthlyMoneyNestedRoundTrip() {
         val monthly =
-            MonthlyMoneyResponse(
+            MonthlyMoney(
                 yearMonth = "2024-06",
                 items =
                     listOf(
-                        MoneyItemResponse(id = "i1", name = "Water", amount = 3000L),
+                        MoneyItem(id = "i1", name = "Water", amount = 3000L),
                     ),
-                paymentRecords =
+                payments =
                     listOf(
-                        PaymentRecordResponse(uid = "u1", amount = 3000L, paidAt = "2024-06-15"),
+                        Payment(uid = "u1", amount = 3000L, paidAt = "2024-06-15"),
                     ),
             )
-        val encoded = json.encodeToString(MonthlyMoneyResponse.serializer(), monthly)
-        val decoded = json.decodeFromString(MonthlyMoneyResponse.serializer(), encoded)
+        val encoded = json.encodeToString(MonthlyMoney.serializer(), monthly)
+        val decoded = json.decodeFromString(MonthlyMoney.serializer(), encoded)
         assertEquals(monthly, decoded)
     }
 
     @Test
-    fun monthlyMoneyResponseStatusDefault() {
+    fun monthlyMoneyStatusDefault() {
         val jsonStr = """{"yearMonth":"2024-07"}"""
-        val decoded = json.decodeFromString(MonthlyMoneyResponse.serializer(), jsonStr)
+        val decoded = json.decodeFromString(MonthlyMoney.serializer(), jsonStr)
         assertEquals(MonthlyMoneyStatus.PENDING, decoded.status)
     }
 
     @Test
-    fun monthlyMoneyResponseStatusRoundTrip() {
+    fun monthlyMoneyStatusRoundTrip() {
         for (status in MonthlyMoneyStatus.entries) {
-            val monthly = MonthlyMoneyResponse(yearMonth = "2024-07", status = status)
-            val encoded = json.encodeToString(MonthlyMoneyResponse.serializer(), monthly)
-            val decoded = json.decodeFromString(MonthlyMoneyResponse.serializer(), encoded)
+            val monthly = MonthlyMoney(yearMonth = "2024-07", status = status)
+            val encoded = json.encodeToString(MonthlyMoney.serializer(), monthly)
+            val decoded = json.decodeFromString(MonthlyMoney.serializer(), encoded)
             assertEquals(status, decoded.status)
         }
     }
@@ -122,7 +122,7 @@ class MoneyModelsTest {
                             id = "i1",
                             name = "Rent",
                             amount = 80000L,
-                            payments = listOf(PaymentSaveRequest(uid = "u1", amount = 80000L)),
+                            shares = listOf(ShareSaveRequest(uid = "u1", amount = 80000L)),
                             tags = listOf(MoneyTags.RECURRING),
                         ),
                     ),
@@ -133,10 +133,10 @@ class MoneyModelsTest {
     }
 
     @Test
-    fun monthlyMoneySaveRequestSerializesWithoutStatusAndPaymentRecords() {
+    fun monthlyMoneySaveRequestSerializesWithoutStatusAndPayments() {
         // PUT /money/{ym} の API 契約:
         // - status はリクエスト body に含まれない（PATCH /status 専用）
-        // - paymentRecords も含まれない（入金は POST /pay、精算は POST /report/balances/redeem 経由のみ）
+        // - payments も含まれない（入金は POST /pay、精算は POST /report/balances/redeem 経由のみ）
         val encoded =
             json.encodeToString(
                 MonthlyMoneySaveRequest.serializer(),
@@ -156,39 +156,39 @@ class MoneyModelsTest {
     }
 
     // ---------------------------------------------------------------------------------
-    // Response → SaveRequest 変換
+    // ドメインモデル → SaveRequest 変換
     // ---------------------------------------------------------------------------------
 
     @Test
-    fun monthlyMoneyResponseToSaveRequestPreservesItemsOnly() {
-        // toSaveRequest は items のみマッピングする。paymentRecords は PUT 経路で
+    fun monthlyMoneyToSaveRequestPreservesItemsOnly() {
+        // toSaveRequest は items のみマッピングする。payments は PUT 経路で
         // クライアントから送らない契約のため SaveRequest 側に存在しない。
-        val response =
-            MonthlyMoneyResponse(
+        val source =
+            MonthlyMoney(
                 yearMonth = "2024-06",
                 items =
                     listOf(
-                        MoneyItemResponse(
+                        MoneyItem(
                             id = "i1",
                             name = "Rent",
                             amount = 80000L,
                             note = "June",
-                            payments = listOf(PaymentResponse(uid = "u1", amount = 80000L)),
+                            shares = listOf(Share(uid = "u1", amount = 80000L)),
                             tags = listOf(MoneyTags.RECURRING),
                         ),
                     ),
-                paymentRecords =
+                payments =
                     listOf(
-                        PaymentRecordResponse(uid = "u1", amount = 50000L, paidAt = "2024-06-01", note = "card"),
+                        Payment(uid = "u1", amount = 50000L, paidAt = "2024-06-01", note = "card"),
                     ),
                 status = MonthlyMoneyStatus.CONFIRMED,
             )
-        val request = response.toSaveRequest()
+        val request = source.toSaveRequest()
         assertEquals(1, request.items.size)
         assertEquals("i1", request.items[0].id)
         assertEquals("Rent", request.items[0].name)
         assertEquals("June", request.items[0].note)
-        assertEquals(1, request.items[0].payments.size)
-        assertEquals("u1", request.items[0].payments[0].uid)
+        assertEquals(1, request.items[0].shares.size)
+        assertEquals("u1", request.items[0].shares[0].uid)
     }
 }

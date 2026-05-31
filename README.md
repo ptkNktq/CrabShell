@@ -289,19 +289,20 @@ docker compose pull && docker compose up -d
 
 `MonthlyMoneyStatusUpdateRequest(status)` のような単一フィールド DTO を `shared/` に定義して `{ "status": "..." }` 形式で送受信する。Swagger UI の body 表示も自然になる。
 
-### 3 層分離（Request / Response / Record）
+### Request DTO の分離（永続化モデルとの境界）
 
-Money 系 API（PR #208 で全エンドポイントに適用）は、永続化レコードと API DTO を別型として明示的に分離する。
+Money 系 API（PR #208 で全エンドポイントに適用）は、クライアントが送る入力フィールドのみを露出させる Request DTO を、永続化／レスポンス兼用ドメインモデルとは別型として明示的に分離する。
 
 | Layer | 配置 | 命名 | 役割 |
 |---|---|---|---|
-| **Request** | `shared/` | `~Request` | クライアント → サーバー（公開すべき入力フィールドのみ） |
-| **Response** | `shared/` | `~Response` | サーバー → クライアント（公開してよい出力フィールドのみ） |
-| **Record** | `server/<feature>/model/` | `~Record` | サーバー内部の永続化／ドメインモデル。クライアントから不可視 |
+| **Request** | `shared/` | `~Request` / `~SaveRequest` | クライアント → サーバー（公開すべき入力フィールドのみ） |
+| **ドメインモデル** | `shared/` | `MonthlyMoney`, `MoneyItem` 等 | 永続化と API レスポンスを兼ねるシリアライズ可能型 |
 
-サーバー側で Record ⇔ Request/Response の変換を `server/<feature>/<Feature>ModelConversions.kt` に集約する。
+サーバー側で `~Request → ドメインモデル` の変換を `server/<feature>/<Feature>ModelConversions.kt` に集約する。レスポンスはドメインモデルを直接返す（CrabShell はエンベロープパターンを採用しないため、`~Response` 型は基本的に切らない）。
 
-**Why:** クライアントが触ってはいけないフィールド（`uid`, `isRedemption`, ステータス管理フィールド等）を構造的に API 契約から消すため。Swagger UI 上の API spec が「公開すべきフィールドだけ」を表示し、永続化スキーマ変更が API 互換性を直撃しなくなる。新規 API は本パターンを採用する。
+**Why:** クライアントが触ってはいけないフィールド（`uid`, `isRedemption`, ステータス管理フィールド, 振込ログ等）を構造的に API 契約から消すため。Swagger UI 上の API spec が「公開すべきフィールドだけ」を表示する。永続化／レスポンス側を 2 層に分けないのは、CrabShell のレスポンスが基本ドメインモデル直返しで、型を分けても今のところ divergence が発生せず boilerplate だけ残るため。将来レスポンス側に divergence が必要になったときは `~Response` 型を別途切る。
+
+新規 API は本パターンを採用する。
 
 ## セキュリティ
 

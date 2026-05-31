@@ -12,7 +12,7 @@ import core.auth.toJsString
 import core.network.MoneyRepository
 import core.network.UserRepository
 import kotlinx.coroutines.launch
-import model.MonthlyMoneyResponse
+import model.MonthlyMoney
 import model.PayRequest
 import model.User
 
@@ -43,7 +43,7 @@ external fun shiftYearMonthJs(
 ): JsString
 
 data class PaymentUiState(
-    val monthlyMoney: MonthlyMoneyResponse = MonthlyMoneyResponse(yearMonth = ""),
+    val monthlyMoney: MonthlyMoney = MonthlyMoney(yearMonth = ""),
     val currentYearMonth: String = "",
     val currentUid: String = "",
     val viewingUid: String = "",
@@ -66,7 +66,7 @@ class PaymentViewModel(
     var uiState by mutableStateOf(
         PaymentUiState(
             currentYearMonth = currentYearMonthJs().toString(),
-            monthlyMoney = MonthlyMoneyResponse(yearMonth = currentYearMonthJs().toString()),
+            monthlyMoney = MonthlyMoney(yearMonth = currentYearMonthJs().toString()),
             currentUid = authUser?.uid ?: "",
             viewingUid = authUser?.uid ?: "",
             isAdmin = authUser?.isAdmin ?: false,
@@ -111,9 +111,9 @@ class PaymentViewModel(
                 if (uiState.isViewingOther) {
                     val full = moneyRepository.getMonthlyMoney(yearMonth)
                     val uid = uiState.viewingUid
-                    val myItems = full.items.filter { item -> item.payments.any { it.uid == uid } }
-                    val myRecords = full.paymentRecords.filter { it.uid == uid }
-                    full.copy(items = myItems, paymentRecords = myRecords)
+                    val myItems = full.items.filter { item -> item.shares.any { it.uid == uid } }
+                    val myPayments = full.payments.filter { it.uid == uid }
+                    full.copy(items = myItems, payments = myPayments)
                 } else {
                     moneyRepository.getMyMonthlyMoney(yearMonth)
                 }

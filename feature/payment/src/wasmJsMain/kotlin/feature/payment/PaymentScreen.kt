@@ -19,10 +19,10 @@ import core.ui.WindowSizeClass
 import core.ui.extensions.displayName
 import core.ui.extensions.icon
 import core.ui.formatYen
-import model.MoneyItemResponse
-import model.MonthlyMoneyResponse
+import model.MoneyItem
+import model.MonthlyMoney
 import model.MonthlyMoneyStatus
-import model.PaymentRecordResponse
+import model.Payment
 import model.User
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -50,7 +50,7 @@ fun PaymentScreen(vm: PaymentViewModel = koinViewModel()) {
 
 @Composable
 internal fun PaymentContent(
-    monthlyMoney: MonthlyMoneyResponse,
+    monthlyMoney: MonthlyMoney,
     currentYearMonth: String,
     currentUid: String,
     loading: Boolean,
@@ -70,10 +70,10 @@ internal fun PaymentContent(
     // 自分の割当合計
     val totalAllocated =
         monthlyMoney.items.sumOf { item ->
-            item.payments.filter { it.uid == currentUid }.sumOf { it.amount }
+            item.shares.filter { it.uid == currentUid }.sumOf { it.amount }
         }
     // 支払い済み合計
-    val totalPaid = monthlyMoney.paymentRecords.sumOf { it.amount }
+    val totalPaid = monthlyMoney.payments.sumOf { it.amount }
     val remaining = totalAllocated - totalPaid
     val status = monthlyMoney.status
     val frozen = status == MonthlyMoneyStatus.FROZEN
@@ -208,7 +208,7 @@ internal fun PaymentContent(
 
 @Composable
 private fun PaymentListContent(
-    monthlyMoney: MonthlyMoneyResponse,
+    monthlyMoney: MonthlyMoney,
     currentUid: String,
     totalAllocated: Long,
     totalPaid: Long,
@@ -254,7 +254,7 @@ private fun PaymentListContent(
                 }
 
                 // 支払い履歴
-                if (monthlyMoney.paymentRecords.isNotEmpty()) {
+                if (monthlyMoney.payments.isNotEmpty()) {
                     item(key = "history-header") {
                         Text(
                             text = "支払い履歴",
@@ -263,7 +263,7 @@ private fun PaymentListContent(
                         )
                     }
                     items(
-                        monthlyMoney.paymentRecords.sortedByDescending { it.paidAt },
+                        monthlyMoney.payments.sortedByDescending { it.paidAt },
                         key = { "${it.paidAt}-${it.amount}" },
                     ) { record ->
                         PaymentRecordCard(record = record, isCompact = isCompact)
@@ -533,7 +533,7 @@ private fun SummaryCard(
 
 @Composable
 private fun PaymentRecordCard(
-    record: PaymentRecordResponse,
+    record: Payment,
     isCompact: Boolean,
 ) {
     val hasNote = record.note.isNotEmpty()
@@ -578,11 +578,11 @@ private fun PaymentRecordCard(
 
 @Composable
 private fun ItemBreakdownCard(
-    item: MoneyItemResponse,
+    item: MoneyItem,
     currentUid: String,
     isCompact: Boolean,
 ) {
-    val myAllocation = item.payments.filter { it.uid == currentUid }.sumOf { it.amount }
+    val myAllocation = item.shares.filter { it.uid == currentUid }.sumOf { it.amount }
     if (myAllocation == 0L) return
 
     Card(

@@ -11,7 +11,7 @@ import core.auth.toJsString
 import core.network.MoneyRepository
 import core.network.ReportRepository
 import kotlinx.coroutines.launch
-import model.MonthlyMoneyResponse
+import model.MonthlyMoney
 import model.MonthlyMoneyStatus
 import model.OverpaymentRedemptionRequest
 import model.UserBalance
@@ -25,7 +25,7 @@ data class RedemptionFormState(
     val noteText: String = DEFAULT_REDEMPTION_NOTE,
     val isSaving: Boolean = false,
     val error: String? = null,
-    val monthData: MonthlyMoneyResponse? = null,
+    val monthData: MonthlyMoney? = null,
 ) {
     val isMonthFrozen: Boolean get() = monthData?.status == MonthlyMoneyStatus.FROZEN
     val canSubmit: Boolean
@@ -155,10 +155,10 @@ class OverpaymentViewModel(
         val data = form.monthData ?: return
         val allocated =
             data.items
-                .flatMap { it.payments }
+                .flatMap { it.shares }
                 .filter { it.uid == uid }
                 .sumOf { it.amount }
-        val paid = data.paymentRecords.filter { it.uid == uid }.sumOf { it.amount }
+        val paid = data.payments.filter { it.uid == uid }.sumOf { it.amount }
         val remaining = (allocated - paid).coerceAtLeast(0L)
         uiState =
             uiState.copy(

@@ -1,23 +1,23 @@
 package server.money
 
-import server.money.model.MonthlyMoneyRecord
+import model.MonthlyMoney
 
 /** Money データのリポジトリインターフェース */
 interface MoneyRepository {
     /** 月データを取得。ドキュメントが存在しない場合は null */
-    suspend fun getMonthlyMoney(yearMonth: String): MonthlyMoneyRecord?
+    suspend fun getMonthlyMoney(yearMonth: String): MonthlyMoney?
 
     suspend fun saveMonthlyMoney(
         yearMonth: String,
-        data: MonthlyMoneyRecord,
+        data: MonthlyMoney,
     )
 
     /** targetYearMonth の前月から指定タグ付き項目を targetYearMonth にインポート（マージ）して返す */
     suspend fun importItemsByTag(
         targetYearMonth: String,
         tag: String,
-    ): MonthlyMoneyRecord
+    ): MonthlyMoney
 
     /** レポート用: 全月のデータを取得 */
-    suspend fun getAllMonths(): List<MonthlyMoneyRecord>
+    suspend fun getAllMonths(): List<MonthlyMoney>
 }
