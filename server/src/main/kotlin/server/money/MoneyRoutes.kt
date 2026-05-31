@@ -211,7 +211,6 @@ fun Route.moneyRoutes() {
                         yearMonth = yearMonth,
                         payerName = payerName,
                         amount = safeRecord.amount,
-                        note = safeRecord.note,
                     )
                 }
 

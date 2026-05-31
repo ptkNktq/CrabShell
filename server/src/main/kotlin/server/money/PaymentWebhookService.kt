@@ -71,7 +71,6 @@ class PaymentWebhookService(
         yearMonth: String,
         payerName: String,
         amount: Long,
-        note: String,
     ) {
         scope.launch {
             try {
@@ -85,7 +84,6 @@ class PaymentWebhookService(
                         yearMonth = yearMonth,
                         payerName = payerName,
                         amount = amount,
-                        note = note,
                     )
 
                 client.post(settings.url) {
@@ -103,7 +101,6 @@ class PaymentWebhookService(
         yearMonth: String,
         payerName: String,
         amount: Long,
-        note: String,
         dashboardUrl: String? = appUrl,
     ): String {
         val formattedYearMonth = formatYearMonth(yearMonth)
@@ -112,14 +109,11 @@ class PaymentWebhookService(
         return when (detectWebhookService(url)) {
             WebhookServiceType.DISCORD -> {
                 val fields =
-                    buildList {
-                        add(DiscordPaymentField(name = "支払者", value = payerName, inline = true))
-                        add(DiscordPaymentField(name = "金額", value = formattedAmount, inline = true))
-                        add(DiscordPaymentField(name = "対象月", value = formattedYearMonth, inline = true))
-                        if (note.isNotBlank()) {
-                            add(DiscordPaymentField(name = "メモ", value = note, inline = false))
-                        }
-                    }
+                    listOf(
+                        DiscordPaymentField(name = "支払者", value = payerName, inline = true),
+                        DiscordPaymentField(name = "金額", value = formattedAmount, inline = true),
+                        DiscordPaymentField(name = "対象月", value = formattedYearMonth, inline = true),
+                    )
                 json.encodeToString(
                     DiscordPaymentPayload(
                         content = message.ifBlank { null },
@@ -137,11 +131,9 @@ class PaymentWebhookService(
                 )
             }
             WebhookServiceType.SLACK -> {
-                val noteSuffix = if (note.isNotBlank()) "\nメモ: $note" else ""
                 val base = if (message.isBlank()) description else "$message\n$description"
-                val withNote = "$base$noteSuffix"
                 val withLink =
-                    if (dashboardUrl != null) "$withNote\n<$dashboardUrl|ダッシュボードを開く>" else withNote
+                    if (dashboardUrl != null) "$base\n<$dashboardUrl|ダッシュボードを開く>" else base
                 json.encodeToString(SlackPaymentPayload(text = withLink))
             }
             WebhookServiceType.GENERIC -> {
@@ -151,7 +143,6 @@ class PaymentWebhookService(
                         yearMonth = yearMonth,
                         payerName = payerName,
                         amount = amount,
-                        note = note.ifBlank { null },
                         message = message,
                         dashboardUrl = dashboardUrl,
                     ),
@@ -216,7 +207,6 @@ internal data class GenericPaymentPayload(
     val yearMonth: String,
     val payerName: String,
     val amount: Long,
-    val note: String? = null,
     val message: String,
     val dashboardUrl: String? = null,
 )
