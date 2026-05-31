@@ -1464,7 +1464,7 @@ private fun PaymentWebhookSettingsCard(
                 }
 
                 Text(
-                    text = "支払い記録が追加された際に Webhook で通知します（過払い精算は除外）。",
+                    text = "ユーザーが入金を登録した際に Webhook で通知します。",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

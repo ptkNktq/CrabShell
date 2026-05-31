@@ -150,6 +150,31 @@ class PaymentWebhookViewModelTest {
         }
 
     @Test
+    fun `save sends edited values to repository`() =
+        runTest {
+            val viewModel = createViewModel()
+            advanceUntilIdle()
+
+            coEvery { paymentWebhookRepository.updateSettings(any()) } returns testSettings
+
+            viewModel.onUrlChanged("https://updated.example.com")
+            viewModel.onEnabledChanged(false)
+            viewModel.onMessageChanged("更新後メッセージ")
+            viewModel.onSave()
+            advanceUntilIdle()
+
+            coVerify {
+                paymentWebhookRepository.updateSettings(
+                    PaymentWebhookSettings(
+                        url = "https://updated.example.com",
+                        enabled = false,
+                        message = "更新後メッセージ",
+                    ),
+                )
+            }
+        }
+
+    @Test
     fun `save failure shows error in status message`() =
         runTest {
             val viewModel = createViewModel()

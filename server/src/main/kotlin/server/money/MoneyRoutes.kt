@@ -177,6 +177,13 @@ fun Route.moneyRoutes() {
                 val yearMonth = call.parameters.getOrFail("yearMonth")
                 val uid = call.firebasePrincipal.uid
                 val record = call.receive<PaymentRecord>()
+                // 0 円・負額の入金は残債計算 (BalanceCalculationService) を歪めるうえ、
+                // 0 円連投で Webhook 通知洪水を引き起こせるため、サーバー側で弾く。
+                // /report/balances/redeem (ReportRoutes) と対称な制約。
+                if (record.amount <= 0L) {
+                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to "amount must be positive"))
+                    return@post
+                }
                 // /pay は通常入金の専用エンドポイントで、過払い精算 (isRedemption=true) は
                 // ReportRoutes 経由でのみ永続化される。クライアントが isRedemption=true を
                 // 送ると BalanceCalculationService 上で「過払い引き出し済み」扱いになり残債
