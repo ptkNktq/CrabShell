@@ -5,13 +5,10 @@ import model.MonthlyMoneyStatus
 /**
  * 月次お金データの永続化レコード。
  *
- * 3 層分離方針:
- * - Request DTO (`shared/`): クライアントが送るフィールドのみ露出
- * - Response DTO (`shared/`): クライアントに返すフィールドのみ露出
- * - Record（本ファイル, `server/`）: 永続化レイヤ・サーバードメイン用。クライアントには見えない
- *
  * Firestore とのマッピングは [server.money.FirestoreMoneyRepository] が手書きで行うため、
  * Record 型自体に `@Serializable` は不要。
+ *
+ * 3 層分離（Request / Response / Record）の方針は README「API 設計」セクションを参照。
  */
 data class MonthlyMoneyRecord(
     val yearMonth: String,
