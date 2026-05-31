@@ -177,8 +177,12 @@ fun Route.moneyRoutes() {
                 val yearMonth = call.parameters.getOrFail("yearMonth")
                 val uid = call.firebasePrincipal.uid
                 val record = call.receive<PaymentRecord>()
-                // uid をサーバー側で上書き（改ざん防止）
-                val safeRecord = record.copy(uid = uid)
+                // /pay は通常入金の専用エンドポイントで、過払い精算 (isRedemption=true) は
+                // ReportRoutes 経由でのみ永続化される。クライアントが isRedemption=true を
+                // 送ると BalanceCalculationService 上で「過払い引き出し済み」扱いになり残債
+                // 計算が崩れるうえ、入金通知バイパスにも使えるため、サーバー側で false に
+                // 強制上書きする。uid も同様に改ざん防止のため上書き。
+                val safeRecord = record.copy(uid = uid, isRedemption = false)
 
                 val data = moneyRepository.getMonthlyMoney(yearMonth)
                 if (data == null) {
@@ -193,17 +197,14 @@ fun Route.moneyRoutes() {
                 val updated = data.copy(paymentRecords = data.paymentRecords + safeRecord)
                 moneyRepository.saveMonthlyMoney(yearMonth, updated)
 
-                // 通常の入金のみ通知。isRedemption=true は過払い金の精算（ユーザーへ戻る方向）なので除外する。
-                if (!safeRecord.isRedemption) {
-                    // displayName 未設定時に Firebase UID を Webhook 経路で外部チャネル（Discord/Slack）に
-                    // 流すと逆引き材料になりうるため、表示用フォールバックに置き換える。
-                    val payerName = FirebaseAdmin.getDisplayName(uid) ?: "不明なユーザー"
-                    paymentWebhookService.notifyPayment(
-                        yearMonth = yearMonth,
-                        payerName = payerName,
-                        amount = safeRecord.amount,
-                    )
-                }
+                // displayName 未設定時に Firebase UID を Webhook 経路で外部チャネル（Discord/Slack）に
+                // 流すと逆引き材料になりうるため、表示用フォールバックに置き換える。
+                val payerName = FirebaseAdmin.getDisplayName(uid) ?: "不明なユーザー"
+                paymentWebhookService.notifyPayment(
+                    yearMonth = yearMonth,
+                    payerName = payerName,
+                    amount = safeRecord.amount,
+                )
 
                 call.respond(updated.filterForUser(uid))
             }
