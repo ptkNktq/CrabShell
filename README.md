@@ -287,7 +287,21 @@ docker compose pull && docker compose up -d
 
 リクエスト body は 1 フィールドでも必ず DTO でラップする。`setBody(status)` のように enum / プリミティブを直接渡すと、JSON ルートが裸の文字列（`"FROZEN"` など）やリテラルになり、クライアント実装者にとって直感に反する。また将来フィールドを追加する場合に互換性が壊れる。
 
-`MonthlyMoneyStatusUpdate(status)` のような単一フィールド DTO を `shared/` に定義して `{ "status": "..." }` 形式で送受信する。Swagger UI の body 表示も自然になる。
+`MonthlyMoneyStatusUpdateRequest(status)` のような単一フィールド DTO を `shared/` に定義して `{ "status": "..." }` 形式で送受信する。Swagger UI の body 表示も自然になる。
+
+### 3 層分離（Request / Response / Record）
+
+Money 系 API（PR #208 で全エンドポイントに適用）は、永続化レコードと API DTO を別型として明示的に分離する。
+
+| Layer | 配置 | 命名 | 役割 |
+|---|---|---|---|
+| **Request** | `shared/` | `~Request` | クライアント → サーバー（公開すべき入力フィールドのみ） |
+| **Response** | `shared/` | `~Response` | サーバー → クライアント（公開してよい出力フィールドのみ） |
+| **Record** | `server/<feature>/model/` | `~Record` | サーバー内部の永続化／ドメインモデル。クライアントから不可視 |
+
+サーバー側で Record ⇔ Request/Response の変換を `server/<feature>/<Feature>ModelConversions.kt` に集約する。
+
+**Why:** クライアントが触ってはいけないフィールド（`uid`, `isRedemption`, ステータス管理フィールド等）を構造的に API 契約から消すため。Swagger UI 上の API spec が「公開すべきフィールドだけ」を表示し、永続化スキーマ変更が API 互換性を直撃しなくなる。新規 API は本パターンを採用する。
 
 ## セキュリティ
 

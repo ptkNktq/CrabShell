@@ -75,11 +75,11 @@ fun Route.moneyRoutes() {
                 tags = listOf("money")
                 summary = "月次お金データ保存（admin）"
                 description =
-                    "items を保存する（追加・編集・削除）。status は本エンドポイントでは変更しない " +
-                    "（既存値、新規月は PENDING を維持。変更は PATCH /status 専用）。" +
-                    "paymentRecords も本エンドポイントでは変更しない（既存値を温存。入金は POST /pay、" +
-                    "過払い精算は POST /report/balances/redeem 経由のみ）。" +
-                    "クライアントは `MonthlyMoneyResponse.toSaveRequest()` で SaveRequest に変換して送る運用。"
+                    "items を保存する（追加・編集・削除）。" +
+                    "status は本エンドポイントでは変更されず、既存値（新規月は PENDING）が維持される。" +
+                    "status を変更する場合は PATCH /status を使うこと。" +
+                    "paymentRecords も本エンドポイントでは変更されず、既存値が温存される。" +
+                    "入金の追加は POST /pay、過払い精算の追加は POST /report/balances/redeem 経由のみ。"
                 request {
                     pathParameter<String>("yearMonth") { description = "年月（YYYY-MM）" }
                     body<MonthlyMoneySaveRequest>()
