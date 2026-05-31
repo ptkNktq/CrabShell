@@ -13,7 +13,7 @@ import core.network.MoneyRepository
 import core.network.UserRepository
 import kotlinx.coroutines.launch
 import model.MonthlyMoney
-import model.PaymentRecord
+import model.PayRequest
 import model.User
 
 /** 現在の年月を "YYYY-MM" 形式で返す */
@@ -139,15 +139,14 @@ class PaymentViewModel(
         uiState = uiState.copy(isSaving = true)
         viewModelScope.launch {
             try {
-                val record =
-                    PaymentRecord(
-                        uid = uiState.currentUid,
+                val request =
+                    PayRequest(
                         amount = amount,
                         paidAt = nowIsoJs().toString(),
                     )
                 uiState =
                     uiState.copy(
-                        monthlyMoney = moneyRepository.recordPayment(uiState.currentYearMonth, record),
+                        monthlyMoney = moneyRepository.recordPayment(uiState.currentYearMonth, request),
                     )
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)

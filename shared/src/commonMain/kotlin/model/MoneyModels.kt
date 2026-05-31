@@ -57,6 +57,20 @@ data class MonthlyMoneyStatusUpdate(
     val status: MonthlyMoneyStatus,
 )
 
+/**
+ * `/api/money/{yearMonth}/pay` のリクエスト DTO。
+ *
+ * 永続化モデル PaymentRecord と分離する理由:
+ * - `uid` は呼び出し元 principal から取得（クライアント指定不可）
+ * - `isRedemption` は /pay 経路では常に false（過払い精算は /report/balances/redeem 経由のみ）
+ * - クライアント側に「触れていいフィールド」だけを露出させる
+ */
+@Serializable
+data class PayRequest(
+    val amount: Long,
+    val paidAt: String,
+)
+
 @Serializable
 data class MoneyWebhookSettings(
     val url: String = "",

@@ -13,6 +13,7 @@ import model.MoneyTags
 import model.MonthlyMoney
 import model.MonthlyMoneyStatus
 import model.MonthlyMoneyStatusUpdate
+import model.PayRequest
 import model.PaymentRecord
 import org.koin.ktor.ext.inject
 import server.auth.FirebaseAdmin
@@ -164,7 +165,7 @@ fun Route.moneyRoutes() {
                 summary = "支払い記録追加"
                 request {
                     pathParameter<String>("yearMonth") { description = "年月（YYYY-MM）" }
-                    body<PaymentRecord>()
+                    body<PayRequest>()
                 }
                 response {
                     code(HttpStatusCode.OK) {
@@ -176,20 +177,23 @@ fun Route.moneyRoutes() {
             }) {
                 val yearMonth = call.parameters.getOrFail("yearMonth")
                 val uid = call.firebasePrincipal.uid
-                val record = call.receive<PaymentRecord>()
+                val request = call.receive<PayRequest>()
                 // 0 円・負額の入金は残債計算 (BalanceCalculationService) を歪めるうえ、
                 // 0 円連投で Webhook 通知洪水を引き起こせるため、サーバー側で弾く。
                 // /report/balances/redeem (ReportRoutes) と対称な制約。
-                if (record.amount <= 0L) {
+                if (request.amount <= 0L) {
                     call.respond(HttpStatusCode.BadRequest, mapOf("error" to "amount must be positive"))
                     return@post
                 }
-                // /pay は通常入金の専用エンドポイントで、過払い精算 (isRedemption=true) は
-                // ReportRoutes 経由でのみ永続化される。クライアントが isRedemption=true を
-                // 送ると BalanceCalculationService 上で「過払い引き出し済み」扱いになり残債
-                // 計算が崩れるうえ、入金通知バイパスにも使えるため、サーバー側で false に
-                // 強制上書きする。uid も同様に改ざん防止のため上書き。
-                val safeRecord = record.copy(uid = uid, isRedemption = false)
+                // 永続化レコードはサーバー側で組み立てる。uid は principal、isRedemption は
+                // /pay 経路では常に false（過払い精算は /report/balances/redeem 経由のみ）。
+                val safeRecord =
+                    PaymentRecord(
+                        uid = uid,
+                        amount = request.amount,
+                        paidAt = request.paidAt,
+                        isRedemption = false,
+                    )
 
                 val data = moneyRepository.getMonthlyMoney(yearMonth)
                 if (data == null) {

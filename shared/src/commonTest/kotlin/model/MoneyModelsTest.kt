@@ -24,6 +24,22 @@ class MoneyModelsTest {
     }
 
     @Test
+    fun payRequestRoundTrip() {
+        val request = PayRequest(amount = 3000L, paidAt = "2024-06-01")
+        val encoded = json.encodeToString(PayRequest.serializer(), request)
+        val decoded = json.decodeFromString(PayRequest.serializer(), encoded)
+        assertEquals(request, decoded)
+    }
+
+    @Test
+    fun payRequestSerializesOnlyAmountAndPaidAt() {
+        // クライアントが触ってはいけない uid / isRedemption がリクエスト DTO に
+        // 露出していないことを保証する。`/api/money/{ym}/pay` の API 契約を守るため。
+        val encoded = json.encodeToString(PayRequest.serializer(), PayRequest(amount = 1000L, paidAt = "2024-06-01"))
+        assertEquals("""{"amount":1000,"paidAt":"2024-06-01"}""", encoded)
+    }
+
+    @Test
     fun moneyItemRoundTripWithDefaults() {
         val jsonStr = """{"id":"m1","name":"Rent","amount":100000}"""
         val decoded = json.decodeFromString(MoneyItem.serializer(), jsonStr)
