@@ -133,7 +133,7 @@ feature/money/       → 支出管理画面（管理者向け）
 feature/payment/     → 支払い画面（ユーザー向け）
 feature/quest/       → クエスト画面
 feature/report/      → 家計レポート画面（月別支出グラフ・内訳）
-feature/settings/    → 設定画面（パスワード変更・パスキー管理・ログイン履歴・ペット設定）
+feature/settings/    → 設定画面（パスワード変更・パスキー管理・ログイン履歴・ペット設定・各種 Webhook 通知設定）
 app/                 → アプリシェル（ルーティング・レイアウト）
 ```
 

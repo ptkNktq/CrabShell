@@ -15,6 +15,7 @@ import model.MonthlyMoneyStatus
 import model.MonthlyMoneyStatusUpdate
 import model.PaymentRecord
 import org.koin.ktor.ext.inject
+import server.auth.FirebaseAdmin
 import server.auth.adminOnly
 import server.auth.authenticated
 import server.auth.firebasePrincipal
@@ -22,6 +23,7 @@ import server.auth.firebasePrincipal
 fun Route.moneyRoutes() {
     val moneyRepository by inject<MoneyRepository>()
     val moneyWebhookService by inject<MoneyWebhookService>()
+    val paymentWebhookService by inject<PaymentWebhookService>()
 
     route("/money/{yearMonth}") {
         // 管理者: データ取得・全体保存
@@ -175,8 +177,19 @@ fun Route.moneyRoutes() {
                 val yearMonth = call.parameters.getOrFail("yearMonth")
                 val uid = call.firebasePrincipal.uid
                 val record = call.receive<PaymentRecord>()
-                // uid をサーバー側で上書き（改ざん防止）
-                val safeRecord = record.copy(uid = uid)
+                // 0 円・負額の入金は残債計算 (BalanceCalculationService) を歪めるうえ、
+                // 0 円連投で Webhook 通知洪水を引き起こせるため、サーバー側で弾く。
+                // /report/balances/redeem (ReportRoutes) と対称な制約。
+                if (record.amount <= 0L) {
+                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to "amount must be positive"))
+                    return@post
+                }
+                // /pay は通常入金の専用エンドポイントで、過払い精算 (isRedemption=true) は
+                // ReportRoutes 経由でのみ永続化される。クライアントが isRedemption=true を
+                // 送ると BalanceCalculationService 上で「過払い引き出し済み」扱いになり残債
+                // 計算が崩れるうえ、入金通知バイパスにも使えるため、サーバー側で false に
+                // 強制上書きする。uid も同様に改ざん防止のため上書き。
+                val safeRecord = record.copy(uid = uid, isRedemption = false)
 
                 val data = moneyRepository.getMonthlyMoney(yearMonth)
                 if (data == null) {
@@ -190,6 +203,15 @@ fun Route.moneyRoutes() {
                 }
                 val updated = data.copy(paymentRecords = data.paymentRecords + safeRecord)
                 moneyRepository.saveMonthlyMoney(yearMonth, updated)
+
+                // displayName 未設定時に Firebase UID を Webhook 経路で外部チャネル（Discord/Slack）に
+                // 流すと逆引き材料になりうるため、表示用フォールバックに置き換える。
+                val payerName = FirebaseAdmin.getDisplayName(uid) ?: "不明なユーザー"
+                paymentWebhookService.notifyPayment(
+                    yearMonth = yearMonth,
+                    payerName = payerName,
+                    amount = safeRecord.amount,
+                )
 
                 call.respond(updated.filterForUser(uid))
             }

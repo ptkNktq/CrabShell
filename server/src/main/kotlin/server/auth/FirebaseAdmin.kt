@@ -64,4 +64,19 @@ object FirebaseAdmin {
             null
         }
     }
+
+    /** uid から displayName を取得。未設定（null / 空文字）や取得失敗時は null を返す。 */
+    fun getDisplayName(uid: String): String? {
+        if (!initialized) return null
+        return try {
+            FirebaseAuth
+                .getInstance()
+                .getUser(uid)
+                .displayName
+                ?.takeIf { it.isNotBlank() }
+        } catch (e: Exception) {
+            logger.warn("Failed to get displayName for uid={}", uid, e)
+            null
+        }
+    }
 }

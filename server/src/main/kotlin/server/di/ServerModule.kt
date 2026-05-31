@@ -25,6 +25,7 @@ import server.migration.FirestoreMigrations
 import server.money.FirestoreMoneyRepository
 import server.money.MoneyRepository
 import server.money.MoneyWebhookService
+import server.money.PaymentWebhookService
 import server.pet.FirestorePetRepository
 import server.pet.PetRepository
 import server.quest.FirestorePointRepository
@@ -73,6 +74,7 @@ val serverModule =
         single<PetRepository> { FirestorePetRepository(get()) }
         single { QuestWebhookService(get()) }
         single { MoneyWebhookService(get()) }
+        single { PaymentWebhookService(get()) }
         single { QuestService(get(), get(), get()) }
         single { FeedingNotificationService(get(), get(), get()) }
         single { GarbageNotificationService(get()) }

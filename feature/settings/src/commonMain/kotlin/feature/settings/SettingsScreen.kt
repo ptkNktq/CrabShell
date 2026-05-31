@@ -95,6 +95,7 @@ fun SettingsScreen(
     val garbageVm = remember(isAdmin) { if (isAdmin) koin.get<GarbageScheduleViewModel>() else null }
     val questWebhookVm = remember(isAdmin) { if (isAdmin) koin.get<QuestWebhookViewModel>() else null }
     val moneyWebhookVm = remember(isAdmin) { if (isAdmin) koin.get<MoneyWebhookViewModel>() else null }
+    val paymentWebhookVm = remember(isAdmin) { if (isAdmin) koin.get<PaymentWebhookViewModel>() else null }
     val cacheVm = remember(isAdmin) { if (isAdmin) koin.get<CacheRefreshViewModel>() else null }
     val petSettingsVm = remember(isAdmin) { if (isAdmin) koin.get<PetSettingsViewModel>() else null }
     val windowSizeClass = LocalWindowSizeClass.current
@@ -182,6 +183,19 @@ fun SettingsScreen(
         onMoneyWebhookMessageChanged = { moneyWebhookVm?.onMessageChanged(it) },
         onSaveMoneyWebhook = { moneyWebhookVm?.onSave() },
         onRetryMoneyWebhook = { moneyWebhookVm?.loadSettings() },
+        paymentWebhookLoading = paymentWebhookVm?.uiState?.isLoading ?: false,
+        paymentWebhookLoadError = paymentWebhookVm?.uiState?.loadError ?: false,
+        paymentWebhookLoadErrorMessage = paymentWebhookVm?.uiState?.loadErrorMessage,
+        paymentWebhookUrl = paymentWebhookVm?.uiState?.url ?: "",
+        paymentWebhookEnabled = paymentWebhookVm?.uiState?.enabled ?: false,
+        paymentWebhookMessage = paymentWebhookVm?.uiState?.message ?: "",
+        paymentWebhookSaving = paymentWebhookVm?.uiState?.isSaving ?: false,
+        paymentWebhookStatusMessage = paymentWebhookVm?.uiState?.statusMessage,
+        onPaymentWebhookUrlChanged = { paymentWebhookVm?.onUrlChanged(it) },
+        onPaymentWebhookEnabledChanged = { paymentWebhookVm?.onEnabledChanged(it) },
+        onPaymentWebhookMessageChanged = { paymentWebhookVm?.onMessageChanged(it) },
+        onSavePaymentWebhook = { paymentWebhookVm?.onSave() },
+        onRetryPaymentWebhook = { paymentWebhookVm?.loadSettings() },
         cacheClearing = cacheVm?.uiState?.isClearing ?: false,
         cacheMessage = cacheVm?.uiState?.message,
         onClearCache = { cacheVm?.onClearCache() },
@@ -296,6 +310,19 @@ internal fun SettingsContent(
     onMoneyWebhookMessageChanged: (String) -> Unit = {},
     onSaveMoneyWebhook: () -> Unit = {},
     onRetryMoneyWebhook: () -> Unit = {},
+    paymentWebhookLoading: Boolean = false,
+    paymentWebhookLoadError: Boolean = false,
+    paymentWebhookLoadErrorMessage: String? = null,
+    paymentWebhookUrl: String = "",
+    paymentWebhookEnabled: Boolean = false,
+    paymentWebhookMessage: String = "",
+    paymentWebhookSaving: Boolean = false,
+    paymentWebhookStatusMessage: String? = null,
+    onPaymentWebhookUrlChanged: (String) -> Unit = {},
+    onPaymentWebhookEnabledChanged: (Boolean) -> Unit = {},
+    onPaymentWebhookMessageChanged: (String) -> Unit = {},
+    onSavePaymentWebhook: () -> Unit = {},
+    onRetryPaymentWebhook: () -> Unit = {},
     cacheClearing: Boolean = false,
     cacheMessage: String? = null,
     onClearCache: () -> Unit = {},
@@ -494,6 +521,22 @@ internal fun SettingsContent(
                     onMessageChanged = onMoneyWebhookMessageChanged,
                     onSave = onSaveMoneyWebhook,
                     onRetry = onRetryMoneyWebhook,
+                    modifier = cardModifier,
+                )
+                PaymentWebhookSettingsCard(
+                    isLoading = paymentWebhookLoading,
+                    loadError = paymentWebhookLoadError,
+                    loadErrorMessage = paymentWebhookLoadErrorMessage,
+                    url = paymentWebhookUrl,
+                    enabled = paymentWebhookEnabled,
+                    message = paymentWebhookMessage,
+                    isSaving = paymentWebhookSaving,
+                    statusMessage = paymentWebhookStatusMessage,
+                    onUrlChanged = onPaymentWebhookUrlChanged,
+                    onEnabledChanged = onPaymentWebhookEnabledChanged,
+                    onMessageChanged = onPaymentWebhookMessageChanged,
+                    onSave = onSavePaymentWebhook,
+                    onRetry = onRetryPaymentWebhook,
                     modifier = cardModifier,
                 )
             }
@@ -1321,6 +1364,107 @@ private fun MoneyWebhookSettingsCard(
 
                 Text(
                     text = "月のお金ステータスを「確定済み」に切り替えた際に Webhook で通知します。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = onUrlChanged,
+                    label = { Text("Webhook URL") },
+                    placeholder = { Text("https://discord.com/api/webhooks/...") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isSaving,
+                )
+
+                OutlinedTextField(
+                    value = message,
+                    onValueChange = onMessageChanged,
+                    label = { Text("通知テキスト") },
+                    placeholder = { Text("@everyone") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isSaving,
+                )
+
+                if (statusMessage != null) {
+                    Text(
+                        text = statusMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+
+                Button(
+                    onClick = onSave,
+                    modifier = Modifier.height(48.dp),
+                    enabled = !isSaving,
+                ) {
+                    if (isSaving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    } else {
+                        Text("保存する")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PaymentWebhookSettingsCard(
+    isLoading: Boolean,
+    loadError: Boolean = false,
+    loadErrorMessage: String? = null,
+    url: String,
+    enabled: Boolean,
+    message: String,
+    isSaving: Boolean,
+    statusMessage: String?,
+    onUrlChanged: (String) -> Unit,
+    onEnabledChanged: (Boolean) -> Unit,
+    onMessageChanged: (String) -> Unit,
+    onSave: () -> Unit,
+    onRetry: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier,
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
+    ) {
+        LoadableCardContent(
+            isLoading = isLoading,
+            loadError = loadError,
+            loadErrorMessage = loadErrorMessage,
+            onRetry = onRetry,
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("入金通知", style = MaterialTheme.typography.titleSmall)
+                    Switch(
+                        checked = enabled,
+                        onCheckedChange = onEnabledChanged,
+                        enabled = !isSaving,
+                    )
+                }
+
+                Text(
+                    text = "ユーザーが入金を登録した際に Webhook で通知します。",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

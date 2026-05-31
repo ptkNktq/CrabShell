@@ -63,3 +63,13 @@ data class MoneyWebhookSettings(
     val enabled: Boolean = false,
     val message: String = "",
 )
+
+// 構造は MoneyWebhookSettings と同型だが、Firestore 保存先 (settings/payment) と通知タイミング
+// （入金時 vs 月次ステータス確定時）が異なるため別型として定義している。共通化は両 webhook の
+// 設定キャッシュ・抽象化リファクタと合わせて検討する。
+@Serializable
+data class PaymentWebhookSettings(
+    val url: String = "",
+    val enabled: Boolean = false,
+    val message: String = "",
+)

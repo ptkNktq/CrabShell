@@ -1,6 +1,5 @@
 package server.report
 
-import com.google.firebase.auth.FirebaseAuth
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.HttpStatusCode
@@ -18,6 +17,7 @@ import model.OverpaymentRedemptionRequest
 import model.PaymentRecord
 import model.UserBalance
 import org.koin.ktor.ext.inject
+import server.auth.FirebaseAdmin
 import server.auth.adminOnly
 import server.auth.authenticated
 import server.money.MoneyRepository
@@ -90,12 +90,7 @@ fun Route.reportRoutes() {
             val balances =
                 result.overpayments.mapNotNull { overpayment ->
                     if (overpayment.net <= 0L) return@mapNotNull null
-                    val displayName =
-                        try {
-                            FirebaseAuth.getInstance().getUser(overpayment.uid).displayName ?: overpayment.uid
-                        } catch (_: Exception) {
-                            overpayment.uid
-                        }
+                    val displayName = FirebaseAdmin.getDisplayName(overpayment.uid) ?: overpayment.uid
                     UserBalance(overpayment.uid, displayName, 0L, 0L, overpayment.net)
                 }
 
