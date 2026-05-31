@@ -1,8 +1,8 @@
 package server.report
 
-import model.MoneyItem
 import model.MoneyTags
-import model.MonthlyMoney
+import server.money.model.MoneyItemRecord
+import server.money.model.MonthlyMoneyRecord
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -18,12 +18,12 @@ class BuildExpenseSummaryTest {
     @Test
     fun normalItemsAreIncluded() {
         val data =
-            MonthlyMoney(
+            MonthlyMoneyRecord(
                 yearMonth = "2024-06",
                 items =
                     listOf(
-                        MoneyItem(id = "i1", name = "Rent", amount = 80000L),
-                        MoneyItem(id = "i2", name = "Utilities", amount = 15000L),
+                        MoneyItemRecord(id = "i1", name = "Rent", amount = 80000L),
+                        MoneyItemRecord(id = "i2", name = "Utilities", amount = 15000L),
                     ),
             )
         val result = buildExpenseSummary("2024-06", data)
@@ -34,12 +34,12 @@ class BuildExpenseSummaryTest {
     @Test
     fun carryOverItemsAreExcluded() {
         val data =
-            MonthlyMoney(
+            MonthlyMoneyRecord(
                 yearMonth = "2024-06",
                 items =
                     listOf(
-                        MoneyItem(id = "i1", name = "Rent", amount = 80000L),
-                        MoneyItem(
+                        MoneyItemRecord(id = "i1", name = "Rent", amount = 80000L),
+                        MoneyItemRecord(
                             id = "i2",
                             name = "前月不足分",
                             amount = 5000L,
@@ -56,11 +56,11 @@ class BuildExpenseSummaryTest {
     @Test
     fun carryOverWithRecurringTagIsExcluded() {
         val data =
-            MonthlyMoney(
+            MonthlyMoneyRecord(
                 yearMonth = "2024-06",
                 items =
                     listOf(
-                        MoneyItem(
+                        MoneyItemRecord(
                             id = "i1",
                             name = "繰越項目",
                             amount = 10000L,
@@ -76,11 +76,11 @@ class BuildExpenseSummaryTest {
     @Test
     fun recurringOnlyItemsAreIncluded() {
         val data =
-            MonthlyMoney(
+            MonthlyMoneyRecord(
                 yearMonth = "2024-06",
                 items =
                     listOf(
-                        MoneyItem(
+                        MoneyItemRecord(
                             id = "i1",
                             name = "Internet",
                             amount = 5000L,
@@ -96,17 +96,17 @@ class BuildExpenseSummaryTest {
     @Test
     fun allCarryOverReturnsZero() {
         val data =
-            MonthlyMoney(
+            MonthlyMoneyRecord(
                 yearMonth = "2024-06",
                 items =
                     listOf(
-                        MoneyItem(
+                        MoneyItemRecord(
                             id = "i1",
                             name = "繰越A",
                             amount = 3000L,
                             tags = listOf(MoneyTags.CARRY_OVER),
                         ),
-                        MoneyItem(
+                        MoneyItemRecord(
                             id = "i2",
                             name = "繰越B",
                             amount = 7000L,

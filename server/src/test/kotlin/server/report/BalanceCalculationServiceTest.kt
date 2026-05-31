@@ -1,9 +1,9 @@
 package server.report
 
-import model.MoneyItem
-import model.MonthlyMoney
-import model.Payment
-import model.PaymentRecord
+import server.money.model.MoneyItemRecord
+import server.money.model.MonthlyMoneyRecord
+import server.money.model.Payment
+import server.money.model.PaymentRecord
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -21,11 +21,11 @@ class BalanceCalculationServiceTest {
     fun singleMonthNoOverpayment() {
         val data =
             listOf(
-                MonthlyMoney(
+                MonthlyMoneyRecord(
                     yearMonth = "2024-06",
                     items =
                         listOf(
-                            MoneyItem(
+                            MoneyItemRecord(
                                 id = "item1",
                                 name = "Rent",
                                 amount = 10000L,
@@ -47,11 +47,11 @@ class BalanceCalculationServiceTest {
     fun singleMonthWithOverpayment() {
         val data =
             listOf(
-                MonthlyMoney(
+                MonthlyMoneyRecord(
                     yearMonth = "2024-06",
                     items =
                         listOf(
-                            MoneyItem(
+                            MoneyItemRecord(
                                 id = "item1",
                                 name = "Rent",
                                 amount = 10000L,
@@ -77,11 +77,11 @@ class BalanceCalculationServiceTest {
     fun multipleMonthsMultipleUsers() {
         val data =
             listOf(
-                MonthlyMoney(
+                MonthlyMoneyRecord(
                     yearMonth = "2024-06",
                     items =
                         listOf(
-                            MoneyItem(
+                            MoneyItemRecord(
                                 id = "item1",
                                 name = "Rent",
                                 amount = 10000L,
@@ -98,11 +98,11 @@ class BalanceCalculationServiceTest {
                             PaymentRecord(uid = "u2", amount = 3000L, paidAt = "2024-06-01"),
                         ),
                 ),
-                MonthlyMoney(
+                MonthlyMoneyRecord(
                     yearMonth = "2024-07",
                     items =
                         listOf(
-                            MoneyItem(
+                            MoneyItemRecord(
                                 id = "item2",
                                 name = "Utilities",
                                 amount = 5000L,
@@ -136,11 +136,11 @@ class BalanceCalculationServiceTest {
     fun redemptionRecordsReduceNet() {
         val data =
             listOf(
-                MonthlyMoney(
+                MonthlyMoneyRecord(
                     yearMonth = "2024-06",
                     items =
                         listOf(
-                            MoneyItem(
+                            MoneyItemRecord(
                                 id = "item1",
                                 name = "Rent",
                                 amount = 10000L,
@@ -165,11 +165,11 @@ class BalanceCalculationServiceTest {
     fun redemptionExceedsOverpaymentClampsToZero() {
         val data =
             listOf(
-                MonthlyMoney(
+                MonthlyMoneyRecord(
                     yearMonth = "2024-06",
                     items =
                         listOf(
-                            MoneyItem(
+                            MoneyItemRecord(
                                 id = "item1",
                                 name = "Rent",
                                 amount = 10000L,
@@ -194,9 +194,9 @@ class BalanceCalculationServiceTest {
     fun yearMonthsAreSorted() {
         val data =
             listOf(
-                MonthlyMoney(yearMonth = "2024-08"),
-                MonthlyMoney(yearMonth = "2024-06"),
-                MonthlyMoney(yearMonth = "2024-07"),
+                MonthlyMoneyRecord(yearMonth = "2024-08"),
+                MonthlyMoneyRecord(yearMonth = "2024-06"),
+                MonthlyMoneyRecord(yearMonth = "2024-07"),
             )
         val result = service.calculateOverpayments(data)
         assertEquals(listOf("2024-06", "2024-07", "2024-08"), result.yearMonths)
@@ -206,11 +206,11 @@ class BalanceCalculationServiceTest {
     fun underpaymentMonthIsNotCounted() {
         val data =
             listOf(
-                MonthlyMoney(
+                MonthlyMoneyRecord(
                     yearMonth = "2024-06",
                     items =
                         listOf(
-                            MoneyItem(
+                            MoneyItemRecord(
                                 id = "item1",
                                 name = "Rent",
                                 amount = 10000L,
@@ -232,11 +232,11 @@ class BalanceCalculationServiceTest {
         // 割当なし（items の payments に uid なし）だが支払いのみあるユーザー → 全額過払い
         val data =
             listOf(
-                MonthlyMoney(
+                MonthlyMoneyRecord(
                     yearMonth = "2024-06",
                     items =
                         listOf(
-                            MoneyItem(
+                            MoneyItemRecord(
                                 id = "item1",
                                 name = "Rent",
                                 amount = 10000L,
@@ -261,17 +261,17 @@ class BalanceCalculationServiceTest {
         // 同一月に複数 item がある場合の割当額累積
         val data =
             listOf(
-                MonthlyMoney(
+                MonthlyMoneyRecord(
                     yearMonth = "2024-06",
                     items =
                         listOf(
-                            MoneyItem(
+                            MoneyItemRecord(
                                 id = "item1",
                                 name = "Rent",
                                 amount = 10000L,
                                 payments = listOf(Payment(uid = "u1", amount = 4000L)),
                             ),
-                            MoneyItem(
+                            MoneyItemRecord(
                                 id = "item2",
                                 name = "Utilities",
                                 amount = 5000L,

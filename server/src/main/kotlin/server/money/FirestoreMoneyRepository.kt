@@ -2,14 +2,14 @@ package server.money
 
 import com.google.cloud.firestore.DocumentSnapshot
 import com.google.cloud.firestore.Firestore
-import model.MoneyItem
 import model.MoneyTags
-import model.MonthlyMoney
 import model.MonthlyMoneyStatus
-import model.Payment
-import model.PaymentRecord
 import org.slf4j.LoggerFactory
 import server.cache.Cacheable
+import server.money.model.MoneyItemRecord
+import server.money.model.MonthlyMoneyRecord
+import server.money.model.Payment
+import server.money.model.PaymentRecord
 import server.util.await
 import java.time.YearMonth
 import java.util.UUID
@@ -31,10 +31,10 @@ class FirestoreMoneyRepository(
         allMonthsLoaded.set(false)
     }
 
-    private val cache = ConcurrentHashMap<String, MonthlyMoney>()
+    private val cache = ConcurrentHashMap<String, MonthlyMoneyRecord>()
     private val allMonthsLoaded = AtomicBoolean(false)
 
-    override suspend fun getMonthlyMoney(yearMonth: String): MonthlyMoney? {
+    override suspend fun getMonthlyMoney(yearMonth: String): MonthlyMoneyRecord? {
         cache[yearMonth]?.let { return it }
 
         val doc =
@@ -61,7 +61,7 @@ class FirestoreMoneyRepository(
      */
     override suspend fun saveMonthlyMoney(
         yearMonth: String,
-        data: MonthlyMoney,
+        data: MonthlyMoneyRecord,
     ) {
         val items =
             data.items.map { item ->
@@ -95,7 +95,7 @@ class FirestoreMoneyRepository(
     override suspend fun importItemsByTag(
         targetYearMonth: String,
         tag: String,
-    ): MonthlyMoney {
+    ): MonthlyMoneyRecord {
         val previousYearMonth = YearMonth.parse(targetYearMonth).minusMonths(1).toString()
         val prevData = getMonthlyMoney(previousYearMonth)
         val taggedItems =
@@ -103,13 +103,13 @@ class FirestoreMoneyRepository(
                 .filter { tag in it.tags }
                 .map { item -> item.copy(id = UUID.randomUUID().toString()) }
 
-        val existing = getMonthlyMoney(targetYearMonth) ?: MonthlyMoney(yearMonth = targetYearMonth)
+        val existing = getMonthlyMoney(targetYearMonth) ?: MonthlyMoneyRecord(yearMonth = targetYearMonth)
         val merged = existing.copy(items = existing.items + taggedItems)
         saveMonthlyMoney(targetYearMonth, merged)
         return merged
     }
 
-    override suspend fun getAllMonths(): List<MonthlyMoney> {
+    override suspend fun getAllMonths(): List<MonthlyMoneyRecord> {
         if (allMonthsLoaded.get()) {
             return cache.values.toList()
         }
@@ -127,7 +127,7 @@ class FirestoreMoneyRepository(
     }
 
     /**
-     * Firestore ドキュメントから [MonthlyMoney] を組み立てる。
+     * Firestore ドキュメントから [MonthlyMoneyRecord] を組み立てる。
      *
      * 本リポジトリの不変条件として「ドキュメント ID == `yearMonth` フィールド値」を維持しており、
      * 呼び出し側は必ず `doc.id`（または同値の引数）を [yearMonth] に渡す。ドキュメント内に保存された
@@ -137,11 +137,11 @@ class FirestoreMoneyRepository(
     private fun parseMonthlyMoney(
         yearMonth: String,
         doc: DocumentSnapshot,
-    ): MonthlyMoney {
+    ): MonthlyMoneyRecord {
         val items = parseItems(doc.get("items"))
         val records = parsePaymentRecords(doc.get("paymentRecords"))
         val status = parseStatus(doc.getString("status"), doc.getBoolean("locked"))
-        return MonthlyMoney(yearMonth = yearMonth, items = items, paymentRecords = records, status = status)
+        return MonthlyMoneyRecord(yearMonth = yearMonth, items = items, paymentRecords = records, status = status)
     }
 
     /**
@@ -170,9 +170,9 @@ class FirestoreMoneyRepository(
         return if (legacyLocked == true) MonthlyMoneyStatus.FROZEN else MonthlyMoneyStatus.PENDING
     }
 
-    /** Map リストから MoneyItem リストをパースする（テスト用に internal） */
+    /** Map リストから [MoneyItemRecord] リストをパースする（テスト用に internal） */
     @Suppress("UNCHECKED_CAST")
-    internal fun parseItems(raw: Any?): List<MoneyItem> {
+    internal fun parseItems(raw: Any?): List<MoneyItemRecord> {
         val itemsRaw = raw as? List<Map<String, Any?>> ?: return emptyList()
         return itemsRaw.map { entry ->
             val paymentsRaw = entry["payments"] as? List<Map<String, Any?>> ?: emptyList()
@@ -180,7 +180,7 @@ class FirestoreMoneyRepository(
             val tags =
                 (entry["tags"] as? List<String>)
                     ?: if (entry["recurring"] as? Boolean == true) listOf(MoneyTags.RECURRING) else emptyList()
-            MoneyItem(
+            MoneyItemRecord(
                 id = entry["id"] as String,
                 name = entry["name"] as String,
                 amount = (entry["amount"] as Number).toLong(),
@@ -197,7 +197,7 @@ class FirestoreMoneyRepository(
         }
     }
 
-    /** Map リストから PaymentRecord リストをパースする（テスト用に internal） */
+    /** Map リストから [PaymentRecord] リストをパースする（テスト用に internal） */
     @Suppress("UNCHECKED_CAST")
     internal fun parsePaymentRecords(raw: Any?): List<PaymentRecord> {
         val recordsRaw = raw as? List<Map<String, Any?>> ?: return emptyList()

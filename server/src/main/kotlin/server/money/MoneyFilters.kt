@@ -1,9 +1,9 @@
 package server.money
 
-import model.MonthlyMoney
+import server.money.model.MonthlyMoneyRecord
 
-fun MonthlyMoney.filterForUser(uid: String): MonthlyMoney {
+fun MonthlyMoneyRecord.filterForUser(uid: String): MonthlyMoneyRecord {
     val userItems = items.filter { item -> item.payments.any { it.uid == uid } }
     val userRecords = paymentRecords.filter { it.uid == uid }
-    return MonthlyMoney(yearMonth = yearMonth, items = userItems, paymentRecords = userRecords, status = status)
+    return MonthlyMoneyRecord(yearMonth = yearMonth, items = userItems, paymentRecords = userRecords, status = status)
 }

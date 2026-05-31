@@ -31,12 +31,12 @@ import core.ui.WindowSizeClass
 import core.ui.extensions.displayName
 import core.ui.extensions.icon
 import core.ui.formatYen
-import model.MoneyItem
+import model.MoneyItemResponse
 import model.MoneyTags
-import model.MonthlyMoney
+import model.MonthlyMoneyResponse
 import model.MonthlyMoneyStatus
-import model.Payment
-import model.PaymentRecord
+import model.PaymentRecordResponse
+import model.PaymentResponse
 import model.User
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -68,21 +68,21 @@ fun MoneyScreen(vm: MoneyViewModel = koinViewModel()) {
 
 @Composable
 internal fun MoneyContent(
-    monthlyMoney: MonthlyMoney,
+    monthlyMoney: MonthlyMoneyResponse,
     currentYearMonth: String,
     loading: Boolean,
     saving: Boolean,
     error: String?,
     users: List<User>,
-    editingItem: MoneyItem?,
+    editingItem: MoneyItemResponse?,
     formKey: Int,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
-    onEditItem: (MoneyItem) -> Unit,
+    onEditItem: (MoneyItemResponse) -> Unit,
     onClearForm: () -> Unit,
-    onDeleteItem: (MoneyItem) -> Unit,
-    onMoveItem: (MoneyItem, Int) -> Unit,
-    onSaveItem: (String, Long, String, List<Payment>, List<String>) -> Unit,
+    onDeleteItem: (MoneyItemResponse) -> Unit,
+    onMoveItem: (MoneyItemResponse, Int) -> Unit,
+    onSaveItem: (String, Long, String, List<PaymentResponse>, List<String>) -> Unit,
     onUpdateStatus: (MonthlyMoneyStatus) -> Unit,
     onImportRecurringItems: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
@@ -284,15 +284,15 @@ internal fun MoneyContent(
 
 @Composable
 private fun MoneyListContent(
-    monthlyMoney: MonthlyMoney,
+    monthlyMoney: MonthlyMoneyResponse,
     loading: Boolean,
     error: String?,
     users: List<User>,
     isCompact: Boolean,
     frozen: Boolean,
-    onEditItem: (MoneyItem) -> Unit,
-    onDeleteItem: (MoneyItem) -> Unit,
-    onMoveItem: (MoneyItem, Int) -> Unit,
+    onEditItem: (MoneyItemResponse) -> Unit,
+    onDeleteItem: (MoneyItemResponse) -> Unit,
+    onMoveItem: (MoneyItemResponse, Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when {
@@ -362,12 +362,12 @@ private fun MoneyListContent(
 
 @Composable
 private fun MoneyItemForm(
-    item: MoneyItem?,
+    item: MoneyItemResponse?,
     formKey: Int,
     users: List<User>,
     saving: Boolean,
     frozen: Boolean,
-    onSave: (String, Long, String, List<Payment>, List<String>) -> Unit,
+    onSave: (String, Long, String, List<PaymentResponse>, List<String>) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -397,7 +397,7 @@ private fun MoneyItemForm(
     val payments =
         paymentAmounts.mapNotNull { (uid, text) ->
             val a = text.toLongOrNull()
-            if (a != null && a != 0L) Payment(uid, a) else null
+            if (a != null && a != 0L) PaymentResponse(uid, a) else null
         }
     val paymentTotal = payments.sumOf { it.amount }
     val mismatch = payments.isNotEmpty() && paymentTotal != amount
@@ -655,9 +655,9 @@ private fun MonthStatusSelector(
 
 @Composable
 private fun SummaryCard(
-    items: List<MoneyItem>,
+    items: List<MoneyItemResponse>,
     users: List<User>,
-    paymentRecords: List<PaymentRecord>,
+    paymentRecords: List<PaymentRecordResponse>,
     isCompact: Boolean,
 ) {
     val totalAmount = items.sumOf { it.amount }
@@ -783,7 +783,7 @@ private fun SummaryCard(
 
 @Composable
 private fun MoneyItemCard(
-    item: MoneyItem,
+    item: MoneyItemResponse,
     users: List<User>,
     onEdit: () -> Unit,
     onDelete: () -> Unit,

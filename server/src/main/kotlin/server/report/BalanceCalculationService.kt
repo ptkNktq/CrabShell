@@ -1,6 +1,6 @@
 package server.report
 
-import model.MonthlyMoney
+import server.money.model.MonthlyMoneyRecord
 
 data class UserOverpayment(
     val uid: String,
@@ -16,7 +16,7 @@ data class BalanceResult(
 )
 
 class BalanceCalculationService {
-    fun calculateOverpayments(allMonths: List<MonthlyMoney>): BalanceResult {
+    fun calculateOverpayments(allMonths: List<MonthlyMoneyRecord>): BalanceResult {
         val yearMonths = mutableListOf<String>()
         val overpaidByUser = mutableMapOf<String, Long>()
         val redeemedByUser = mutableMapOf<String, Long>()

@@ -12,7 +12,7 @@ import core.auth.toJsString
 import core.network.MoneyRepository
 import core.network.UserRepository
 import kotlinx.coroutines.launch
-import model.MonthlyMoney
+import model.MonthlyMoneyResponse
 import model.PayRequest
 import model.User
 
@@ -47,7 +47,7 @@ external fun shiftYearMonthJs(
 external fun nowIsoJs(): JsString
 
 data class PaymentUiState(
-    val monthlyMoney: MonthlyMoney = MonthlyMoney(yearMonth = ""),
+    val monthlyMoney: MonthlyMoneyResponse = MonthlyMoneyResponse(yearMonth = ""),
     val currentYearMonth: String = "",
     val currentUid: String = "",
     val viewingUid: String = "",
@@ -70,7 +70,7 @@ class PaymentViewModel(
     var uiState by mutableStateOf(
         PaymentUiState(
             currentYearMonth = currentYearMonthJs().toString(),
-            monthlyMoney = MonthlyMoney(yearMonth = currentYearMonthJs().toString()),
+            monthlyMoney = MonthlyMoneyResponse(yearMonth = currentYearMonthJs().toString()),
             currentUid = authUser?.uid ?: "",
             viewingUid = authUser?.uid ?: "",
             isAdmin = authUser?.isAdmin ?: false,

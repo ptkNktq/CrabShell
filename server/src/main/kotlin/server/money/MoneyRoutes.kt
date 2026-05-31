@@ -10,16 +10,18 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.util.getOrFail
 import model.MoneyTags
-import model.MonthlyMoney
+import model.MonthlyMoneyResponse
+import model.MonthlyMoneySaveRequest
 import model.MonthlyMoneyStatus
-import model.MonthlyMoneyStatusUpdate
+import model.MonthlyMoneyStatusUpdateRequest
 import model.PayRequest
-import model.PaymentRecord
 import org.koin.ktor.ext.inject
 import server.auth.FirebaseAdmin
 import server.auth.adminOnly
 import server.auth.authenticated
 import server.auth.firebasePrincipal
+import server.money.model.MonthlyMoneyRecord
+import server.money.model.PaymentRecord
 
 fun Route.moneyRoutes() {
     val moneyRepository by inject<MoneyRepository>()
@@ -37,13 +39,13 @@ fun Route.moneyRoutes() {
                 }
                 response {
                     code(HttpStatusCode.OK) {
-                        body<MonthlyMoney>()
+                        body<MonthlyMoneyResponse>()
                     }
                 }
             }) {
                 val yearMonth = call.parameters.getOrFail("yearMonth")
-                val data = moneyRepository.getMonthlyMoney(yearMonth)
-                call.respond(data ?: MonthlyMoney(yearMonth = yearMonth))
+                val data = moneyRepository.getMonthlyMoney(yearMonth) ?: MonthlyMoneyRecord(yearMonth = yearMonth)
+                call.respond(data.toResponse())
             }
 
             post("import-by-tag", {
@@ -54,7 +56,7 @@ fun Route.moneyRoutes() {
                 }
                 response {
                     code(HttpStatusCode.OK) {
-                        body<MonthlyMoney>()
+                        body<MonthlyMoneyResponse>()
                     }
                     code(HttpStatusCode.Conflict) { description = "凍結中" }
                 }
@@ -66,38 +68,37 @@ fun Route.moneyRoutes() {
                     return@post
                 }
                 val updated = moneyRepository.importItemsByTag(yearMonth, MoneyTags.RECURRING)
-                call.respond(updated)
+                call.respond(updated.toResponse())
             }
 
             put({
                 tags = listOf("money")
                 summary = "月次お金データ保存（admin）"
                 description =
-                    "items / paymentRecords を保存する。body.status は無視され、" +
-                    "既存値（新規月は PENDING）が維持される。status を変更する場合は PATCH /status を使うこと。"
+                    "items / paymentRecords を保存する。status はこのエンドポイントでは変更しない " +
+                    "（既存値、新規月は PENDING を維持）。status を変更する場合は PATCH /status を使うこと。"
                 request {
                     pathParameter<String>("yearMonth") { description = "年月（YYYY-MM）" }
-                    body<MonthlyMoney>()
+                    body<MonthlyMoneySaveRequest>()
                 }
                 response {
                     code(HttpStatusCode.OK) {
-                        body<MonthlyMoney>()
+                        body<MonthlyMoneyResponse>()
                     }
                     code(HttpStatusCode.Conflict) { description = "凍結中" }
                 }
             }) {
                 val yearMonth = call.parameters.getOrFail("yearMonth")
-                val existing = moneyRepository.getMonthlyMoney(yearMonth) ?: MonthlyMoney(yearMonth = yearMonth)
+                val existing = moneyRepository.getMonthlyMoney(yearMonth) ?: MonthlyMoneyRecord(yearMonth = yearMonth)
                 if (existing.status == MonthlyMoneyStatus.FROZEN) {
                     call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is frozen"))
                     return@put
                 }
-                val body = call.receive<MonthlyMoney>()
-                // status はこのエンドポイントでは変更しない（専用 PATCH /status で更新）。
+                val request = call.receive<MonthlyMoneySaveRequest>()
                 // 新規月の場合 existing.status は PENDING になる点に注意。
-                val normalized = body.copy(status = existing.status)
-                moneyRepository.saveMonthlyMoney(yearMonth, normalized)
-                call.respond(normalized)
+                val updated = request.toRecord(yearMonth = yearMonth, status = existing.status)
+                moneyRepository.saveMonthlyMoney(yearMonth, updated)
+                call.respond(updated.toResponse())
             }
 
             patch("status", {
@@ -109,25 +110,25 @@ fun Route.moneyRoutes() {
                     "含めた任意の状態遷移を admin 権限で許可する。凍結運用を admin が解除できる唯一の経路。"
                 request {
                     pathParameter<String>("yearMonth") { description = "年月（YYYY-MM）" }
-                    body<MonthlyMoneyStatusUpdate>()
+                    body<MonthlyMoneyStatusUpdateRequest>()
                 }
                 response {
                     code(HttpStatusCode.OK) {
-                        body<MonthlyMoney>()
+                        body<MonthlyMoneyResponse>()
                     }
                 }
             }) {
                 val yearMonth = call.parameters.getOrFail("yearMonth")
-                val body = call.receive<MonthlyMoneyStatusUpdate>()
-                val existing = moneyRepository.getMonthlyMoney(yearMonth) ?: MonthlyMoney(yearMonth = yearMonth)
+                val request = call.receive<MonthlyMoneyStatusUpdateRequest>()
+                val existing = moneyRepository.getMonthlyMoney(yearMonth) ?: MonthlyMoneyRecord(yearMonth = yearMonth)
                 // FROZEN からの遷移も含めて admin に任意の状態遷移を許可する（凍結解除の唯一経路）。
-                val updated = existing.copy(status = body.status)
+                val updated = existing.copy(status = request.status)
                 moneyRepository.saveMonthlyMoney(yearMonth, updated)
                 // 同一ステータスへの冪等 PATCH での連打通知を避けるため、実際に遷移した場合のみ送信。
-                if (existing.status != body.status && body.status == MonthlyMoneyStatus.CONFIRMED) {
+                if (existing.status != request.status && request.status == MonthlyMoneyStatus.CONFIRMED) {
                     moneyWebhookService.notifyConfirmed(yearMonth)
                 }
-                call.respond(updated)
+                call.respond(updated.toResponse())
             }
         }
 
@@ -141,20 +142,15 @@ fun Route.moneyRoutes() {
                 }
                 response {
                     code(HttpStatusCode.OK) {
-                        body<MonthlyMoney>()
+                        body<MonthlyMoneyResponse>()
                     }
                 }
             }) {
                 val yearMonth = call.parameters.getOrFail("yearMonth")
                 val uid = call.firebasePrincipal.uid
 
-                val data = moneyRepository.getMonthlyMoney(yearMonth)
-                if (data == null) {
-                    call.respond(MonthlyMoney(yearMonth = yearMonth))
-                    return@get
-                }
-
-                call.respond(data.filterForUser(uid))
+                val data = moneyRepository.getMonthlyMoney(yearMonth) ?: MonthlyMoneyRecord(yearMonth = yearMonth)
+                call.respond(data.filterForUser(uid).toResponse())
             }
         }
 
@@ -169,7 +165,7 @@ fun Route.moneyRoutes() {
                 }
                 response {
                     code(HttpStatusCode.OK) {
-                        body<MonthlyMoney>()
+                        body<MonthlyMoneyResponse>()
                     }
                     code(HttpStatusCode.NotFound) { description = "月データ未作成" }
                     code(HttpStatusCode.Conflict) { description = "凍結中" }
@@ -217,7 +213,7 @@ fun Route.moneyRoutes() {
                     amount = safeRecord.amount,
                 )
 
-                call.respond(updated.filterForUser(uid))
+                call.respond(updated.filterForUser(uid).toResponse())
             }
         }
     }

@@ -11,11 +11,12 @@ import core.auth.toJsString
 import core.network.MoneyRepository
 import core.network.UserRepository
 import kotlinx.coroutines.launch
-import model.MoneyItem
-import model.MonthlyMoney
+import model.MoneyItemResponse
+import model.MonthlyMoneyResponse
 import model.MonthlyMoneyStatus
-import model.Payment
+import model.PaymentResponse
 import model.User
+import model.toSaveRequest
 
 /** 現在の年月を "YYYY-MM" 形式で返す */
 @JsFun(
@@ -48,13 +49,13 @@ external fun shiftYearMonthJs(
 external fun randomUUID(): JsString
 
 data class MoneyUiState(
-    val monthlyMoney: MonthlyMoney = MonthlyMoney(yearMonth = ""),
+    val monthlyMoney: MonthlyMoneyResponse = MonthlyMoneyResponse(yearMonth = ""),
     val currentYearMonth: String = "",
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
     val error: String? = null,
     val users: List<User> = emptyList(),
-    val editingItem: MoneyItem? = null,
+    val editingItem: MoneyItemResponse? = null,
     val formKey: Int = 0,
 )
 
@@ -65,7 +66,7 @@ class MoneyViewModel(
     var uiState by mutableStateOf(
         MoneyUiState(
             currentYearMonth = currentYearMonthJs().toString(),
-            monthlyMoney = MonthlyMoney(yearMonth = currentYearMonthJs().toString()),
+            monthlyMoney = MonthlyMoneyResponse(yearMonth = currentYearMonthJs().toString()),
         ),
     )
         private set
@@ -132,7 +133,7 @@ class MoneyViewModel(
         }
     }
 
-    fun onEditItem(item: MoneyItem) {
+    fun onEditItem(item: MoneyItemResponse) {
         uiState = uiState.copy(editingItem = item)
     }
 
@@ -144,7 +145,7 @@ class MoneyViewModel(
         name: String,
         amount: Long,
         note: String,
-        payments: List<Payment>,
+        payments: List<PaymentResponse>,
         tags: List<String>,
     ) {
         val existing = uiState.editingItem
@@ -153,7 +154,7 @@ class MoneyViewModel(
             if (existing != null) {
                 existing.copy(name = name, amount = amount, note = note, payments = payments, tags = tags)
             } else {
-                MoneyItem(
+                MoneyItemResponse(
                     id = randomUUID().toString(),
                     name = name,
                     amount = amount,
@@ -176,7 +177,7 @@ class MoneyViewModel(
         }
     }
 
-    fun onDeleteItem(item: MoneyItem) {
+    fun onDeleteItem(item: MoneyItemResponse) {
         val updatedItems = uiState.monthlyMoney.items.filter { it.id != item.id }
         if (uiState.editingItem?.id == item.id) onClearForm()
         persistAndThen(uiState.monthlyMoney.copy(items = updatedItems)) {}
@@ -198,7 +199,7 @@ class MoneyViewModel(
 
     /** 項目を前月または次月に移動する（一時機能） */
     fun onMoveItem(
-        item: MoneyItem,
+        item: MoneyItemResponse,
         offset: Int,
     ) {
         val targetYearMonth = shiftYearMonthJs(uiState.currentYearMonth.toJsString(), offset).toString()
@@ -208,13 +209,13 @@ class MoneyViewModel(
                 // 移動先の月データを取得して項目を追加
                 val targetData = moneyRepository.getMonthlyMoney(targetYearMonth)
                 val updatedTarget = targetData.copy(items = targetData.items + item)
-                moneyRepository.saveMonthlyMoney(updatedTarget)
+                moneyRepository.saveMonthlyMoney(targetYearMonth, updatedTarget.toSaveRequest())
                 // 現在の月から項目を削除
                 val updatedCurrent =
                     uiState.monthlyMoney.copy(
                         items = uiState.monthlyMoney.items.filter { it.id != item.id },
                     )
-                moneyRepository.saveMonthlyMoney(updatedCurrent)
+                moneyRepository.saveMonthlyMoney(uiState.currentYearMonth, updatedCurrent.toSaveRequest())
                 uiState = uiState.copy(monthlyMoney = updatedCurrent)
                 if (uiState.editingItem?.id == item.id) onClearForm()
             } catch (e: Exception) {
@@ -226,13 +227,13 @@ class MoneyViewModel(
     }
 
     private fun persistAndThen(
-        data: MonthlyMoney,
+        data: MonthlyMoneyResponse,
         onSuccess: () -> Unit,
     ) {
         uiState = uiState.copy(isSaving = true)
         viewModelScope.launch {
             try {
-                moneyRepository.saveMonthlyMoney(data)
+                moneyRepository.saveMonthlyMoney(uiState.currentYearMonth, data.toSaveRequest())
                 uiState = uiState.copy(monthlyMoney = data)
                 onSuccess()
             } catch (e: Exception) {

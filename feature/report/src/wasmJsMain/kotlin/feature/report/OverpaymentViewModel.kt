@@ -11,7 +11,7 @@ import core.auth.toJsString
 import core.network.MoneyRepository
 import core.network.ReportRepository
 import kotlinx.coroutines.launch
-import model.MonthlyMoney
+import model.MonthlyMoneyResponse
 import model.MonthlyMoneyStatus
 import model.OverpaymentRedemptionRequest
 import model.UserBalance
@@ -25,7 +25,7 @@ data class RedemptionFormState(
     val noteText: String = DEFAULT_REDEMPTION_NOTE,
     val isSaving: Boolean = false,
     val error: String? = null,
-    val monthData: MonthlyMoney? = null,
+    val monthData: MonthlyMoneyResponse? = null,
 ) {
     val isMonthFrozen: Boolean get() = monthData?.status == MonthlyMoneyStatus.FROZEN
     val canSubmit: Boolean

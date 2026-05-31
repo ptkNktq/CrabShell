@@ -1,10 +1,10 @@
 package server.money
 
-import model.MoneyItem
-import model.MonthlyMoney
 import model.MonthlyMoneyStatus
-import model.Payment
-import model.PaymentRecord
+import server.money.model.MoneyItemRecord
+import server.money.model.MonthlyMoneyRecord
+import server.money.model.Payment
+import server.money.model.PaymentRecord
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -12,11 +12,11 @@ class MoneyFiltersTest {
     @Test
     fun filterKeepsOnlyUserItems() {
         val data =
-            MonthlyMoney(
+            MonthlyMoneyRecord(
                 yearMonth = "2024-06",
                 items =
                     listOf(
-                        MoneyItem(
+                        MoneyItemRecord(
                             id = "item1",
                             name = "Rent",
                             amount = 10000L,
@@ -26,7 +26,7 @@ class MoneyFiltersTest {
                                     Payment(uid = "u2", amount = 5000L),
                                 ),
                         ),
-                        MoneyItem(
+                        MoneyItemRecord(
                             id = "item2",
                             name = "Insurance",
                             amount = 3000L,
@@ -52,7 +52,7 @@ class MoneyFiltersTest {
     fun filterPreservesStatus() {
         for (status in MonthlyMoneyStatus.entries) {
             val data =
-                MonthlyMoney(
+                MonthlyMoneyRecord(
                     yearMonth = "2024-06",
                     items = emptyList(),
                     paymentRecords = emptyList(),
@@ -66,11 +66,11 @@ class MoneyFiltersTest {
     @Test
     fun filterReturnsEmptyForUnknownUser() {
         val data =
-            MonthlyMoney(
+            MonthlyMoneyRecord(
                 yearMonth = "2024-06",
                 items =
                     listOf(
-                        MoneyItem(
+                        MoneyItemRecord(
                             id = "item1",
                             name = "Rent",
                             amount = 10000L,
@@ -90,11 +90,11 @@ class MoneyFiltersTest {
     @Test
     fun filterKeepsItemIfUserHasAnyPayment() {
         val data =
-            MonthlyMoney(
+            MonthlyMoneyRecord(
                 yearMonth = "2024-06",
                 items =
                     listOf(
-                        MoneyItem(
+                        MoneyItemRecord(
                             id = "item1",
                             name = "Rent",
                             amount = 10000L,
@@ -116,7 +116,7 @@ class MoneyFiltersTest {
     fun filterKeepsRedemptionRecordsForUser() {
         // isRedemption=true の精算レコードも uid ベースで正しくフィルタされる
         val data =
-            MonthlyMoney(
+            MonthlyMoneyRecord(
                 yearMonth = "2024-06",
                 paymentRecords =
                     listOf(

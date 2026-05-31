@@ -19,10 +19,10 @@ import core.ui.WindowSizeClass
 import core.ui.extensions.displayName
 import core.ui.extensions.icon
 import core.ui.formatYen
-import model.MoneyItem
-import model.MonthlyMoney
+import model.MoneyItemResponse
+import model.MonthlyMoneyResponse
 import model.MonthlyMoneyStatus
-import model.PaymentRecord
+import model.PaymentRecordResponse
 import model.User
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -50,7 +50,7 @@ fun PaymentScreen(vm: PaymentViewModel = koinViewModel()) {
 
 @Composable
 internal fun PaymentContent(
-    monthlyMoney: MonthlyMoney,
+    monthlyMoney: MonthlyMoneyResponse,
     currentYearMonth: String,
     currentUid: String,
     loading: Boolean,
@@ -208,7 +208,7 @@ internal fun PaymentContent(
 
 @Composable
 private fun PaymentListContent(
-    monthlyMoney: MonthlyMoney,
+    monthlyMoney: MonthlyMoneyResponse,
     currentUid: String,
     totalAllocated: Long,
     totalPaid: Long,
@@ -533,7 +533,7 @@ private fun SummaryCard(
 
 @Composable
 private fun PaymentRecordCard(
-    record: PaymentRecord,
+    record: PaymentRecordResponse,
     isCompact: Boolean,
 ) {
     val hasNote = record.note.isNotEmpty()
@@ -578,7 +578,7 @@ private fun PaymentRecordCard(
 
 @Composable
 private fun ItemBreakdownCard(
-    item: MoneyItem,
+    item: MoneyItemResponse,
     currentUid: String,
     isCompact: Boolean,
 ) {
