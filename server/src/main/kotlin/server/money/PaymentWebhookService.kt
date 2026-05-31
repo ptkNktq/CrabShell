@@ -163,7 +163,7 @@ class PaymentWebhookService(
             return "%d年%02d月".format(year, month)
         }
 
-        /** 金額を 3 桁区切り + 円付きで整形（例: 12345 → "12,345 円"）。負値は支払い取消等の意味合いで先頭に符号付き。 */
+        /** 金額を 3 桁区切り + "円" 付きで整形（例: 12345 → "12,345 円"）。 */
         internal fun formatAmount(amount: Long): String = "%,d 円".format(amount)
     }
 }

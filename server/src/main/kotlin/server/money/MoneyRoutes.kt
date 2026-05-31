@@ -195,7 +195,9 @@ fun Route.moneyRoutes() {
 
                 // 通常の入金のみ通知。isRedemption=true は過払い金の精算（ユーザーへ戻る方向）なので除外する。
                 if (!safeRecord.isRedemption) {
-                    val payerName = FirebaseAdmin.getDisplayName(uid) ?: uid
+                    // displayName 未設定時に Firebase UID を Webhook 経路で外部チャネル（Discord/Slack）に
+                    // 流すと逆引き材料になりうるため、表示用フォールバックに置き換える。
+                    val payerName = FirebaseAdmin.getDisplayName(uid) ?: "不明なユーザー"
                     paymentWebhookService.notifyPayment(
                         yearMonth = yearMonth,
                         payerName = payerName,
