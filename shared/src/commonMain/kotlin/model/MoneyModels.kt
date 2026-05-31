@@ -63,3 +63,10 @@ data class MoneyWebhookSettings(
     val enabled: Boolean = false,
     val message: String = "",
 )
+
+@Serializable
+data class PaymentWebhookSettings(
+    val url: String = "",
+    val enabled: Boolean = false,
+    val message: String = "",
+)

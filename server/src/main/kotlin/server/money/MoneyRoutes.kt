@@ -1,5 +1,6 @@
 package server.money
 
+import com.google.firebase.auth.FirebaseAuth
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.patch
 import io.github.smiley4.ktoropenapi.post
@@ -15,13 +16,25 @@ import model.MonthlyMoneyStatus
 import model.MonthlyMoneyStatusUpdate
 import model.PaymentRecord
 import org.koin.ktor.ext.inject
+import org.slf4j.LoggerFactory
 import server.auth.adminOnly
 import server.auth.authenticated
 import server.auth.firebasePrincipal
 
+private val moneyRoutesLogger = LoggerFactory.getLogger("server.money.MoneyRoutes")
+
+/** uid から Firebase Auth の displayName を解決。失敗時は uid をそのまま返して通知は止めない。 */
+private fun resolvePayerName(uid: String): String =
+    runCatching { FirebaseAuth.getInstance().getUser(uid).displayName }
+        .getOrElse { e ->
+            moneyRoutesLogger.warn("Failed to resolve payer displayName for uid=$uid", e)
+            null
+        }?.takeIf { it.isNotBlank() } ?: uid
+
 fun Route.moneyRoutes() {
     val moneyRepository by inject<MoneyRepository>()
     val moneyWebhookService by inject<MoneyWebhookService>()
+    val paymentWebhookService by inject<PaymentWebhookService>()
 
     route("/money/{yearMonth}") {
         // 管理者: データ取得・全体保存
@@ -190,6 +203,17 @@ fun Route.moneyRoutes() {
                 }
                 val updated = data.copy(paymentRecords = data.paymentRecords + safeRecord)
                 moneyRepository.saveMonthlyMoney(yearMonth, updated)
+
+                // 通常の入金のみ通知。isRedemption=true は過払い金の精算（ユーザーへ戻る方向）なので除外する。
+                if (!safeRecord.isRedemption) {
+                    val payerName = resolvePayerName(uid)
+                    paymentWebhookService.notifyPayment(
+                        yearMonth = yearMonth,
+                        payerName = payerName,
+                        amount = safeRecord.amount,
+                        note = safeRecord.note,
+                    )
+                }
 
                 call.respond(updated.filterForUser(uid))
             }
