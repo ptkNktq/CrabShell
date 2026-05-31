@@ -112,7 +112,7 @@ shared/              → Kotlin Multiplatform library
 
 server/              → Ktor server (Netty, JVM)
                        Depends on :shared
-                       Routes: /api/{firebase-config,users,pets,feeding,garbage,money,money-webhook,report,quest,point,quest-webhook,cache,login-history,passkey}
+                       Routes: /api/{firebase-config,users,pets,feeding,garbage,money,money-webhook,payment-webhook,report,quest,point,quest-webhook,cache,login-history,passkey}
                        IP ジオロケーション: server/geo/ (MaxMind GeoLite2-City オフライン DB、ファイル不在時は NoOp)
                        Firebase Auth verification
                        Koin DI でリポジトリ注入（ServerModule）
