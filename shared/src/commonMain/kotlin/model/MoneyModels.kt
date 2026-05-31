@@ -20,7 +20,7 @@ enum class MonthlyMoneyStatus {
     FROZEN,
 }
 
-/** タグ識別子（MoneyItem.tags に格納される文字列）。永続化・API の両層で共通。 */
+/** タグ識別子（`MoneyItemRecord` / `MoneyItemResponse` / `MoneyItemSaveRequest` の tags に格納される文字列）。永続化・API の両層で共通。 */
 object MoneyTags {
     const val RECURRING = "毎月"
     const val CARRY_OVER = "繰越"
@@ -86,13 +86,16 @@ data class PayRequest(
 /**
  * `PUT /api/money/{yearMonth}` のリクエスト DTO。
  *
- * `status` は本エンドポイントで変更しない（`PATCH /status` 専用）ため受け取らない。
- * `yearMonth` はパスパラメータから取得するため body には含めない。
+ * - `status` は本エンドポイントで変更しない（`PATCH /status` 専用）ため受け取らない。
+ * - `paymentRecords` は意図的に含めない: クライアント (`MoneyViewModel`) は items のみ編集する。
+ *   PUT 経路で paymentRecords を露出させると、admin が他ユーザーの uid と `isRedemption=true`
+ *   を組み合わせた精算レコードを偽装でき、`BalanceCalculationService` の過払い計算が崩れる。
+ *   入金は `POST /pay` 経由でのみ追加、精算は `POST /report/balances/redeem` 経由でのみ追加。
+ * - `yearMonth` はパスパラメータから取得するため body には含めない。
  */
 @Serializable
 data class MonthlyMoneySaveRequest(
     val items: List<MoneyItemSaveRequest> = emptyList(),
-    val paymentRecords: List<PaymentRecordSaveRequest> = emptyList(),
 )
 
 @Serializable
@@ -111,15 +114,6 @@ data class PaymentSaveRequest(
     val amount: Long,
 )
 
-@Serializable
-data class PaymentRecordSaveRequest(
-    val uid: String,
-    val amount: Long,
-    val paidAt: String,
-    val note: String = "",
-    val isRedemption: Boolean = false,
-)
-
 /** `PATCH /api/money/{yearMonth}/status` のリクエスト DTO。 */
 @Serializable
 data class MonthlyMoneyStatusUpdateRequest(
@@ -136,7 +130,6 @@ data class MonthlyMoneyStatusUpdateRequest(
 fun MonthlyMoneyResponse.toSaveRequest(): MonthlyMoneySaveRequest =
     MonthlyMoneySaveRequest(
         items = items.map { it.toSaveRequest() },
-        paymentRecords = paymentRecords.map { it.toSaveRequest() },
     )
 
 fun MoneyItemResponse.toSaveRequest(): MoneyItemSaveRequest =
@@ -150,15 +143,6 @@ fun MoneyItemResponse.toSaveRequest(): MoneyItemSaveRequest =
     )
 
 fun PaymentResponse.toSaveRequest(): PaymentSaveRequest = PaymentSaveRequest(uid = uid, amount = amount)
-
-fun PaymentRecordResponse.toSaveRequest(): PaymentRecordSaveRequest =
-    PaymentRecordSaveRequest(
-        uid = uid,
-        amount = amount,
-        paidAt = paidAt,
-        note = note,
-        isRedemption = isRedemption,
-    )
 
 // =================================================================================================
 // Webhook 設定（API request + response として共用、admin only エンドポイント）

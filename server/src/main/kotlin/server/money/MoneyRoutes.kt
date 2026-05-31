@@ -95,8 +95,15 @@ fun Route.moneyRoutes() {
                     return@put
                 }
                 val request = call.receive<MonthlyMoneySaveRequest>()
-                // 新規月の場合 existing.status は PENDING になる点に注意。
-                val updated = request.toRecord(yearMonth = yearMonth, status = existing.status)
+                // status は本エンドポイントでは変更しない（新規月は PENDING を維持）。
+                // paymentRecords は本エンドポイントでは変更しない（入金は POST /pay、
+                // 精算は POST /report/balances/redeem 経由のみ）。既存値を温存する。
+                val updated =
+                    request.toRecord(
+                        yearMonth = yearMonth,
+                        status = existing.status,
+                        existingPaymentRecords = existing.paymentRecords,
+                    )
                 moneyRepository.saveMonthlyMoney(yearMonth, updated)
                 call.respond(updated.toResponse())
             }

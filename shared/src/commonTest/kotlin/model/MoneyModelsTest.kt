@@ -123,10 +123,6 @@ class MoneyModelsTest {
                             tags = listOf(MoneyTags.RECURRING),
                         ),
                     ),
-                paymentRecords =
-                    listOf(
-                        PaymentRecordSaveRequest(uid = "u1", amount = 50000L, paidAt = "2024-06-01"),
-                    ),
             )
         val encoded = json.encodeToString(MonthlyMoneySaveRequest.serializer(), request)
         val decoded = json.decodeFromString(MonthlyMoneySaveRequest.serializer(), encoded)
@@ -134,8 +130,10 @@ class MoneyModelsTest {
     }
 
     @Test
-    fun monthlyMoneySaveRequestSerializesWithoutStatus() {
-        // PUT /money/{ym} の API 契約: status はリクエスト body に含まれない（PATCH /status 専用）
+    fun monthlyMoneySaveRequestSerializesWithoutStatusAndPaymentRecords() {
+        // PUT /money/{ym} の API 契約:
+        // - status はリクエスト body に含まれない（PATCH /status 専用）
+        // - paymentRecords も含まれない（入金は POST /pay、精算は POST /report/balances/redeem 経由のみ）
         val encoded =
             json.encodeToString(
                 MonthlyMoneySaveRequest.serializer(),
@@ -159,7 +157,9 @@ class MoneyModelsTest {
     // ---------------------------------------------------------------------------------
 
     @Test
-    fun monthlyMoneyResponseToSaveRequestPreservesNestedFields() {
+    fun monthlyMoneyResponseToSaveRequestPreservesItemsOnly() {
+        // toSaveRequest は items のみマッピングする。paymentRecords は PUT 経路で
+        // クライアントから送らない契約のため SaveRequest 側に存在しない。
         val response =
             MonthlyMoneyResponse(
                 yearMonth = "2024-06",
@@ -187,7 +187,5 @@ class MoneyModelsTest {
         assertEquals("June", request.items[0].note)
         assertEquals(1, request.items[0].payments.size)
         assertEquals("u1", request.items[0].payments[0].uid)
-        assertEquals(1, request.paymentRecords.size)
-        assertEquals("card", request.paymentRecords[0].note)
     }
 }
