@@ -29,15 +29,3 @@ data class FeedingTimestampUpdateRequest(
 data class FeedingNoteUpdateRequest(
     val note: String,
 )
-
-/** `PUT /api/pets/{petId}/feeding/{date}/note` のレスポンス DTO（編集後の値を echo）。 */
-@Serializable
-data class FeedingNoteResponse(
-    val note: String,
-)
-
-/** `POST /api/feeding/test-scheduled` / `POST /api/feeding/test-reminder` のレスポンス DTO（送信成功通知）。 */
-@Serializable
-data class FeedingTestNotificationResponse(
-    val status: String,
-)

@@ -11,10 +11,8 @@ import io.ktor.server.routing.*
 import io.ktor.server.util.getOrFail
 import model.Feeding
 import model.FeedingLog
-import model.FeedingNoteResponse
 import model.FeedingNoteUpdateRequest
 import model.FeedingSettings
-import model.FeedingTestNotificationResponse
 import model.FeedingTimestampUpdateRequest
 import model.MealTime
 import org.koin.ktor.ext.inject
@@ -115,9 +113,7 @@ fun Route.feedingRoutes() {
                     body<FeedingNoteUpdateRequest>()
                 }
                 response {
-                    code(HttpStatusCode.OK) {
-                        body<FeedingNoteResponse>()
-                    }
+                    code(HttpStatusCode.NoContent) { description = "更新成功" }
                 }
             }) {
                 val petId = call.verifyPetMember(petRepository)
@@ -126,7 +122,7 @@ fun Route.feedingRoutes() {
                 val note = call.receive<FeedingNoteUpdateRequest>().note
 
                 feedingRepository.updateNote(petId, date, note)
-                call.respond(FeedingNoteResponse(note = note))
+                call.respond(HttpStatusCode.NoContent)
             }
         }
     }
@@ -136,15 +132,13 @@ fun Route.feedingRoutes() {
             tags = listOf("feeding")
             summary = "給餌定刻通知テスト送信（admin）"
             response {
-                code(HttpStatusCode.OK) {
-                    body<FeedingTestNotificationResponse>()
-                }
+                code(HttpStatusCode.NoContent) { description = "送信成功" }
             }
         }) {
             val feedingNotificationService by inject<FeedingNotificationService>()
             try {
                 feedingNotificationService.sendTestNotification(FeedingNotificationPhase.SCHEDULED)
-                call.respond(FeedingTestNotificationResponse(status = "sent"))
+                call.respond(HttpStatusCode.NoContent)
             } catch (e: Exception) {
                 call.respond(HttpStatusCode.BadRequest, mapOf("error" to (e.message ?: "送信失敗")))
             }
@@ -154,15 +148,13 @@ fun Route.feedingRoutes() {
             tags = listOf("feeding")
             summary = "給餌リマインダーテスト送信（admin）"
             response {
-                code(HttpStatusCode.OK) {
-                    body<FeedingTestNotificationResponse>()
-                }
+                code(HttpStatusCode.NoContent) { description = "送信成功" }
             }
         }) {
             val feedingNotificationService by inject<FeedingNotificationService>()
             try {
                 feedingNotificationService.sendTestNotification(FeedingNotificationPhase.REMINDER)
-                call.respond(FeedingTestNotificationResponse(status = "sent"))
+                call.respond(HttpStatusCode.NoContent)
             } catch (e: Exception) {
                 call.respond(HttpStatusCode.BadRequest, mapOf("error" to (e.message ?: "送信失敗")))
             }

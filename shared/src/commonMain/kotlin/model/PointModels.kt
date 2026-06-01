@@ -36,9 +36,3 @@ data class CreateRewardRequest(
     val description: String = "",
     val cost: Int,
 )
-
-/** `POST /api/rewards/{id}/exchange` のレスポンス DTO（交換成功通知）。 */
-@Serializable
-data class RewardExchangeResponse(
-    val message: String,
-)
