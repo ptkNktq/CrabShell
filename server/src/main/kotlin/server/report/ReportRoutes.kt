@@ -110,9 +110,7 @@ fun Route.reportRoutes() {
                 body<OverpaymentRedemptionRequest>()
             }
             response {
-                code(HttpStatusCode.OK) {
-                    body<Map<String, String>>()
-                }
+                code(HttpStatusCode.NoContent) { description = "精算成功" }
                 code(HttpStatusCode.BadRequest) { description = "不正なリクエスト" }
                 code(HttpStatusCode.Conflict) { description = "凍結中" }
             }
@@ -144,7 +142,7 @@ fun Route.reportRoutes() {
             val updated = data.copy(payments = data.payments + payment)
             moneyRepository.saveMonthlyMoney(req.yearMonth, updated)
 
-            call.respond(mapOf("status" to "ok"))
+            call.respond(HttpStatusCode.NoContent)
         }
     }
 }

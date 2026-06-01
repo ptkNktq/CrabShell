@@ -6,6 +6,8 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import model.Feeding
 import model.FeedingLog
+import model.FeedingNoteUpdateRequest
+import model.FeedingTimestampUpdateRequest
 import model.MealTime
 
 interface FeedingRepository {
@@ -59,7 +61,7 @@ class FeedingRepositoryImpl(
     ) {
         client.put("/api/pets/$petId/feeding/$date/note") {
             contentType(ContentType.Application.Json)
-            setBody(mapOf("note" to note))
+            setBody(FeedingNoteUpdateRequest(note = note))
         }
     }
 
@@ -72,6 +74,6 @@ class FeedingRepositoryImpl(
         client
             .patch("/api/pets/$petId/feeding/$date/${mealTime.name.lowercase()}/timestamp") {
                 contentType(ContentType.Application.Json)
-                setBody(mapOf("timestamp" to timestamp))
+                setBody(FeedingTimestampUpdateRequest(timestamp = timestamp))
             }.body()
 }

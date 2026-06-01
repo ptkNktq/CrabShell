@@ -136,9 +136,7 @@ fun Route.pointRoutes() {
                     pathParameter<String>("id") { description = "報酬 ID" }
                 }
                 response {
-                    code(HttpStatusCode.OK) {
-                        body<Map<String, String>>()
-                    }
+                    code(HttpStatusCode.NoContent) { description = "交換成功" }
                     code(HttpStatusCode.NotFound) { description = "報酬未発見" }
                     code(HttpStatusCode.Conflict) { description = "ポイント不足または利用不可" }
                 }
@@ -164,7 +162,7 @@ fun Route.pointRoutes() {
                     return@post call.respond(HttpStatusCode.Conflict, mapOf("error" to "Insufficient points"))
                 }
 
-                call.respond(HttpStatusCode.OK, mapOf("message" to "Exchanged successfully"))
+                call.respond(HttpStatusCode.NoContent)
             }
         }
     }

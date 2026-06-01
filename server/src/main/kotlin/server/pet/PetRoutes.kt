@@ -7,6 +7,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import model.Pet
+import model.PetNameUpdateRequest
 import org.koin.ktor.ext.inject
 import server.auth.adminOnly
 import server.auth.authenticated
@@ -34,7 +35,7 @@ fun Route.petRoutes() {
             summary = "ペット名更新（admin）"
             request {
                 pathParameter<String>("petId") { description = "ペット ID" }
-                body<Map<String, String>> { description = "name フィールド" }
+                body<PetNameUpdateRequest>()
             }
             response {
                 code(HttpStatusCode.OK) {
@@ -43,13 +44,7 @@ fun Route.petRoutes() {
             }
         }) {
             val petId = call.verifyPetMember(petRepository)
-            val body = call.receive<Map<String, String>>()
-            val name =
-                body["name"]
-                    ?: return@put call.respond(
-                        HttpStatusCode.BadRequest,
-                        mapOf("error" to "name is required"),
-                    )
+            val name = call.receive<PetNameUpdateRequest>().name
             petRepository.updatePetName(petId, name)
             call.respond(Pet(id = petId, name = name))
         }

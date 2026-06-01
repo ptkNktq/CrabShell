@@ -14,6 +14,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import io.ktor.server.util.getOrFail
+import model.AiAvailabilityResponse
 import model.CreateQuestRequest
 import model.GenerateQuestTextRequest
 import model.GenerateQuestTextResponse
@@ -169,11 +170,11 @@ fun Route.questRoutes() {
                 summary = "AI テキスト生成の利用可否"
                 response {
                     code(HttpStatusCode.OK) {
-                        body<Map<String, Boolean>>()
+                        body<AiAvailabilityResponse>()
                     }
                 }
             }) {
-                call.respond(mapOf("available" to (questTextGenerator != null)))
+                call.respond(AiAvailabilityResponse(available = questTextGenerator != null))
             }
 
             // Gemini でクエスト説明文を AI 生成する（レートリミット適用）

@@ -66,3 +66,9 @@ data class GenerateQuestTextResponse(
     val generatedTitle: String = "",
     val generatedDescription: String = "",
 )
+
+/** `GET /api/quests/ai-available` のレスポンス DTO（AI テキスト生成機能の利用可否）。 */
+@Serializable
+data class AiAvailabilityResponse(
+    val available: Boolean,
+)

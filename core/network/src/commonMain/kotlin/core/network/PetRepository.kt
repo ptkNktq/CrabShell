@@ -5,6 +5,7 @@ import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import model.Pet
+import model.PetNameUpdateRequest
 
 interface PetRepository {
     suspend fun getPets(): List<Pet>
@@ -27,6 +28,6 @@ class PetRepositoryImpl(
         client
             .put("/api/pets/$petId") {
                 contentType(ContentType.Application.Json)
-                setBody(mapOf("name" to name))
+                setBody(PetNameUpdateRequest(name = name))
             }.body()
 }
