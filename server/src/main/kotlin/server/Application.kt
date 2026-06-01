@@ -4,7 +4,6 @@ import io.github.smiley4.ktoropenapi.OpenApi
 import io.github.smiley4.ktoropenapi.config.AuthScheme
 import io.github.smiley4.ktoropenapi.config.AuthType
 import io.github.smiley4.ktoropenapi.openApi
-import io.github.smiley4.ktorswaggerui.swaggerUI
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -186,7 +185,9 @@ fun Application.module() {
     routing {
         if (swaggerEnabled) {
             route("api.json") { openApi() }
-            route("swagger") { swaggerUI("/api.json") }
+            get("rapidoc") {
+                call.respondText(RAPIDOC_HTML, ContentType.Text.Html)
+            }
         }
 
         route("/api") {
@@ -231,3 +232,40 @@ fun Application.module() {
         }
     }
 }
+
+/**
+ * RapiDoc 単一 HTML。`/rapidoc` で配信し、CrabShell の `/api.json`（OpenAPI spec）を読み込む。
+ *
+ * - RapiDoc 本体は CDN (unpkg) から取得。`SWAGGER_ENABLED=true` は開発時のみ有効なので CDN 依存可。
+ * - primary-color はプロジェクトのブランドカラー (#E8844A) に揃える。
+ * - dark テーマ既定。light に切り替えるトグルは header の UI から可能。
+ * - allow-spec-url-load 等の入力 UI は本プロジェクトには不要なので無効化。
+ */
+private val RAPIDOC_HTML =
+    """
+    <!doctype html>
+    <html lang="ja">
+      <head>
+        <meta charset="utf-8">
+        <title>CrabShell API</title>
+        <script type="module" src="https://unpkg.com/rapidoc/dist/rapidoc-min.js"></script>
+        <style>html, body { margin: 0; padding: 0; height: 100%; }</style>
+      </head>
+      <body>
+        <rapi-doc
+          spec-url="/api.json"
+          theme="dark"
+          render-style="read"
+          schema-style="table"
+          show-header="true"
+          allow-server-selection="false"
+          allow-spec-url-load="false"
+          allow-spec-file-load="false"
+          allow-spec-file-download="false"
+          allow-authentication="true"
+          allow-try="true"
+          primary-color="#E8844A"
+        ></rapi-doc>
+      </body>
+    </html>
+    """.trimIndent()

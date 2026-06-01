@@ -59,7 +59,7 @@ cp .env.example .env
 ./gradlew :app:wasmJsBrowserDevelopmentRun
 
 # ブラウザ: http://localhost:3000
-# Swagger UI: http://localhost:3000/swagger（SWAGGER_ENABLED=true 時のみ）
+# RapiDoc (API ドキュメント): http://localhost:3000/rapidoc（SWAGGER_ENABLED=true 時のみ）
 ```
 
 - `./gradlew :server:run` は Gradle のプロジェクトロックを保持し続けるため使用不可。fat JAR で起動すること。
@@ -83,7 +83,7 @@ cp .env.example .env
 | `PASSKEY_DB_PATH` | Passkey SQLite DB のパス（デフォルト: `data/passkey.db`） | いいえ |
 | `GEOIP_DB_PATH` | MaxMind GeoLite2-City `.mmdb` のパス（デフォルト: `data/GeoLite2-City.mmdb`）。ファイル不在時は IP ジオロケーション無効 | いいえ |
 | `APP_URL` | アプリケーションの公開 URL（給餌通知 Webhook のリンクに使用） | いいえ（未設定時はリンクなし） |
-| `SWAGGER_ENABLED` | `true` で Swagger UI (`/swagger`) を有効化（本番では設定しない） | いいえ |
+| `SWAGGER_ENABLED` | `true` で API ドキュメント UI (`/rapidoc`) と OpenAPI spec (`/api.json`) を有効化（本番では設定しない） | いいえ |
 | `LOG_LEVEL` | サーバーのログレベル（デフォルト: `INFO`、開発時は `DEBUG` 推奨） | いいえ |
 
 - webpack dev server (port 3000) が `/api/*` を Ktor サーバー (port 8080) にプロキシ
@@ -169,7 +169,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - **Kotlin** 2.3.10, **Compose Multiplatform** 1.10.2, **Ktor** 3.4.1
 - **DI**: Koin 4.2.0（クライアント + サーバー共通。Kotlin 2.3.0 wasmJs 互換の唯一のバージョン）
 - **Serialization**: kotlinx-serialization-json 1.10.0
-- **API Docs**: ktor-openapi-tools 5.6.0（OpenAPI spec + Swagger UI、開発モード時のみ）
+- **API Docs**: ktor-openapi (smiley4) で OpenAPI spec を生成し、RapiDoc (CDN 配信) で閲覧。開発モード時のみ有効
 - **Logging**: サーバー: SLF4J + Logback（`LOG_LEVEL` 環境変数で制御）、フロントエンド: `AppLogger`（開発環境のみ console 出力、本番 no-op）
 - **Dependency versions**: managed in `gradle/libs.versions.toml` (bundles: `ktor-server`, `ktor-client`, `koin`, `feature`, `exposed`)
 - **Kotlin code style**: official (set in `gradle.properties`)

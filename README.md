@@ -178,7 +178,7 @@ eval "$(./dev.sh --completions)"
 ./gradlew :app:wasmJsBrowserDevelopmentRun
 
 # ブラウザ: http://localhost:3000
-# Swagger UI: http://localhost:3000/swagger（SWAGGER_ENABLED=true 時のみ）
+# RapiDoc (API ドキュメント): http://localhost:3000/rapidoc（SWAGGER_ENABLED=true 時のみ）
 ```
 
 サーバーはプロジェクトルートの `.env` ファイルから環境変数を自動読み込みする（[dotenv-java](https://github.com/cdimascio/dotenv-java) 使用）。`.env` が存在しない場合は無視される。OS の環境変数が `.env` より優先される。
@@ -287,7 +287,7 @@ docker compose pull && docker compose up -d
 
 リクエスト body は 1 フィールドでも必ず DTO でラップする。`setBody(status)` のように enum / プリミティブを直接渡すと、JSON ルートが裸の文字列（`"FROZEN"` など）やリテラルになり、クライアント実装者にとって直感に反する。また将来フィールドを追加する場合に互換性が壊れる。
 
-`MonthlyMoneyStatusUpdateRequest(status)` のような単一フィールド DTO を `shared/` に定義して `{ "status": "..." }` 形式で送受信する。Swagger UI の body 表示も自然になる。
+`MonthlyMoneyStatusUpdateRequest(status)` のような単一フィールド DTO を `shared/` に定義して `{ "status": "..." }` 形式で送受信する。API ドキュメント UI (RapiDoc) の body 表示も自然になる。
 
 ### Request DTO の分離（永続化モデルとの境界）
 
@@ -300,7 +300,7 @@ Money 系 API（PR #208 で全エンドポイントに適用）は、クライ�
 
 サーバー側で `~Request → ドメインモデル` の変換を `server/<feature>/<Feature>ModelConversions.kt` に集約する。レスポンスはドメインモデルを直接返す（CrabShell はエンベロープパターンを採用しないため、`~Response` 型は基本的に切らない）。
 
-**Why:** クライアントが触ってはいけないフィールド（`uid`, `isRedemption`, ステータス管理フィールド, 振込ログ等）を構造的に API 契約から消すため。Swagger UI 上の API spec が「公開すべきフィールドだけ」を表示する。永続化／レスポンス側を 2 層に分けないのは、CrabShell のレスポンスが基本ドメインモデル直返しで、型を分けても今のところ divergence が発生せず boilerplate だけ残るため。将来レスポンス側に divergence が必要になったときは `~Response` 型を別途切る。
+**Why:** クライアントが触ってはいけないフィールド（`uid`, `isRedemption`, ステータス管理フィールド, 振込ログ等）を構造的に API 契約から消すため。API ドキュメント UI 上の API spec が「公開すべきフィールドだけ」を表示する。永続化／レスポンス側を 2 層に分けないのは、CrabShell のレスポンスが基本ドメインモデル直返しで、型を分けても今のところ divergence が発生せず boilerplate だけ残るため。将来レスポンス側に divergence が必要になったときは `~Response` 型を別途切る。
 
 新規 API は本パターンを採用する。
 
@@ -431,7 +431,7 @@ DB ファイルが存在しない場合はジオロケーション機能が自�
 | `GEOIP_DB_PATH` | | MaxMind GeoLite2-City `.mmdb` のパス（デフォルト: `data/GeoLite2-City.mmdb`）。ファイル不在時はジオロケーション無効 |
 | `GEMINI_API_KEY` | | Google AI Studio の API キー（クエスト AI テキスト生成用。未設定時は AI 生成ボタン非表示） |
 | `GEMINI_MODEL` | | Gemini モデル名（デフォルト: `gemini-2.5-flash`） |
-| `SWAGGER_ENABLED` | | `true` で Swagger UI (`/swagger`) を有効化（本番では設定しない） |
+| `SWAGGER_ENABLED` | | `true` で API ドキュメント UI (`/rapidoc`) と OpenAPI spec (`/api.json`) を有効化（本番では設定しない） |
 | `LOG_LEVEL` | | サーバーのログレベル（デフォルト: `INFO`、開発時は `DEBUG` 推奨） |
 
 > `WEBAUTHN_RP_ID` / `WEBAUTHN_ORIGIN` が未設定の場合、パスキー機能は無効化されます（メール/パスワード認証のみ動作）。
