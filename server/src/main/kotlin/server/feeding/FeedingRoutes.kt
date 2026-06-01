@@ -11,7 +11,9 @@ import io.ktor.server.routing.*
 import io.ktor.server.util.getOrFail
 import model.Feeding
 import model.FeedingLog
+import model.FeedingNoteUpdateRequest
 import model.FeedingSettings
+import model.FeedingTimestampUpdateRequest
 import model.MealTime
 import org.koin.ktor.ext.inject
 import server.auth.adminOnly
@@ -77,7 +79,7 @@ fun Route.feedingRoutes() {
                     pathParameter<String>("petId") { description = "ペット ID" }
                     pathParameter<String>("date") { description = "日付（YYYY-MM-DD）" }
                     pathParameter<String>("mealTime") { description = "食事時間（MORNING/NOON/EVENING）" }
-                    body<Map<String, String>> { description = "timestamp フィールド" }
+                    body<FeedingTimestampUpdateRequest>()
                 }
                 response {
                     code(HttpStatusCode.OK) {
@@ -89,13 +91,7 @@ fun Route.feedingRoutes() {
                 val date = call.parameters.getOrFail("date")
                 val mealTime = call.parameters.getEnumOrFail<MealTime>("mealTime")
 
-                val body = call.receive<Map<String, String>>()
-                val timestamp =
-                    body["timestamp"]
-                        ?: return@patch call.respond(
-                            HttpStatusCode.BadRequest,
-                            mapOf("error" to "timestamp is required"),
-                        )
+                val timestamp = call.receive<FeedingTimestampUpdateRequest>().timestamp
 
                 val success = feedingRepository.updateTimestamp(petId, date, mealTime, timestamp)
                 if (!success) {
@@ -114,7 +110,7 @@ fun Route.feedingRoutes() {
                 request {
                     pathParameter<String>("petId") { description = "ペット ID" }
                     pathParameter<String>("date") { description = "日付（YYYY-MM-DD）" }
-                    body<Map<String, String>> { description = "note フィールド" }
+                    body<FeedingNoteUpdateRequest>()
                 }
                 response {
                     code(HttpStatusCode.OK) {
@@ -125,8 +121,7 @@ fun Route.feedingRoutes() {
                 val petId = call.verifyPetMember(petRepository)
                 val date = call.parameters.getOrFail("date")
 
-                val body = call.receive<Map<String, String>>()
-                val note = body["note"] ?: ""
+                val note = call.receive<FeedingNoteUpdateRequest>().note
 
                 feedingRepository.updateNote(petId, date, note)
                 call.respond(mapOf("note" to note))
