@@ -14,6 +14,7 @@ import model.MonthlyExpenseSummary
 import model.MonthlyMoney
 import model.MonthlyMoneyStatus
 import model.OverpaymentRedemptionRequest
+import model.OverpaymentRedemptionResponse
 import model.Payment
 import model.UserBalance
 import org.koin.ktor.ext.inject
@@ -111,7 +112,7 @@ fun Route.reportRoutes() {
             }
             response {
                 code(HttpStatusCode.OK) {
-                    body<Map<String, String>>()
+                    body<OverpaymentRedemptionResponse>()
                 }
                 code(HttpStatusCode.BadRequest) { description = "不正なリクエスト" }
                 code(HttpStatusCode.Conflict) { description = "凍結中" }
@@ -144,7 +145,7 @@ fun Route.reportRoutes() {
             val updated = data.copy(payments = data.payments + payment)
             moneyRepository.saveMonthlyMoney(req.yearMonth, updated)
 
-            call.respond(mapOf("status" to "ok"))
+            call.respond(OverpaymentRedemptionResponse(status = "ok"))
         }
     }
 }

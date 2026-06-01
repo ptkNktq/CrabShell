@@ -44,3 +44,9 @@ data class OverpaymentRedemptionRequest(
     val amount: Long,
     val note: String = "",
 )
+
+/** `POST /api/report/balances/redeem` のレスポンス DTO（精算成功通知）。 */
+@Serializable
+data class OverpaymentRedemptionResponse(
+    val status: String,
+)

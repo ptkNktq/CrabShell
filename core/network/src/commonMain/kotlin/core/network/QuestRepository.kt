@@ -10,6 +10,7 @@ import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import model.AiAvailabilityResponse
 import model.CreateQuestRequest
 import model.GenerateQuestTextRequest
 import model.GenerateQuestTextResponse
@@ -67,7 +68,8 @@ class QuestRepositoryImpl(
         try {
             client
                 .get("/api/quests/ai-available")
-                .body<Map<String, Boolean>>()["available"] == true
+                .body<AiAvailabilityResponse>()
+                .available
         } catch (_: Exception) {
             false
         }

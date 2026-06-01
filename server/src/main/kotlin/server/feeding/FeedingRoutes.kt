@@ -11,8 +11,10 @@ import io.ktor.server.routing.*
 import io.ktor.server.util.getOrFail
 import model.Feeding
 import model.FeedingLog
+import model.FeedingNoteResponse
 import model.FeedingNoteUpdateRequest
 import model.FeedingSettings
+import model.FeedingTestNotificationResponse
 import model.FeedingTimestampUpdateRequest
 import model.MealTime
 import org.koin.ktor.ext.inject
@@ -114,7 +116,7 @@ fun Route.feedingRoutes() {
                 }
                 response {
                     code(HttpStatusCode.OK) {
-                        body<Map<String, String>>()
+                        body<FeedingNoteResponse>()
                     }
                 }
             }) {
@@ -124,7 +126,7 @@ fun Route.feedingRoutes() {
                 val note = call.receive<FeedingNoteUpdateRequest>().note
 
                 feedingRepository.updateNote(petId, date, note)
-                call.respond(mapOf("note" to note))
+                call.respond(FeedingNoteResponse(note = note))
             }
         }
     }
@@ -135,14 +137,14 @@ fun Route.feedingRoutes() {
             summary = "給餌定刻通知テスト送信（admin）"
             response {
                 code(HttpStatusCode.OK) {
-                    body<Map<String, String>>()
+                    body<FeedingTestNotificationResponse>()
                 }
             }
         }) {
             val feedingNotificationService by inject<FeedingNotificationService>()
             try {
                 feedingNotificationService.sendTestNotification(FeedingNotificationPhase.SCHEDULED)
-                call.respond(mapOf("status" to "sent"))
+                call.respond(FeedingTestNotificationResponse(status = "sent"))
             } catch (e: Exception) {
                 call.respond(HttpStatusCode.BadRequest, mapOf("error" to (e.message ?: "送信失敗")))
             }
@@ -153,14 +155,14 @@ fun Route.feedingRoutes() {
             summary = "給餌リマインダーテスト送信（admin）"
             response {
                 code(HttpStatusCode.OK) {
-                    body<Map<String, String>>()
+                    body<FeedingTestNotificationResponse>()
                 }
             }
         }) {
             val feedingNotificationService by inject<FeedingNotificationService>()
             try {
                 feedingNotificationService.sendTestNotification(FeedingNotificationPhase.REMINDER)
-                call.respond(mapOf("status" to "sent"))
+                call.respond(FeedingTestNotificationResponse(status = "sent"))
             } catch (e: Exception) {
                 call.respond(HttpStatusCode.BadRequest, mapOf("error" to (e.message ?: "送信失敗")))
             }

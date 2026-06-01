@@ -12,6 +12,7 @@ import io.ktor.server.util.getOrFail
 import model.CreateRewardRequest
 import model.PointHistory
 import model.Reward
+import model.RewardExchangeResponse
 import model.UserPoints
 import org.koin.ktor.ext.inject
 import server.auth.authenticated
@@ -137,7 +138,7 @@ fun Route.pointRoutes() {
                 }
                 response {
                     code(HttpStatusCode.OK) {
-                        body<Map<String, String>>()
+                        body<RewardExchangeResponse>()
                     }
                     code(HttpStatusCode.NotFound) { description = "報酬未発見" }
                     code(HttpStatusCode.Conflict) { description = "ポイント不足または利用不可" }
@@ -164,7 +165,7 @@ fun Route.pointRoutes() {
                     return@post call.respond(HttpStatusCode.Conflict, mapOf("error" to "Insufficient points"))
                 }
 
-                call.respond(HttpStatusCode.OK, mapOf("message" to "Exchanged successfully"))
+                call.respond(HttpStatusCode.OK, RewardExchangeResponse(message = "Exchanged successfully"))
             }
         }
     }
