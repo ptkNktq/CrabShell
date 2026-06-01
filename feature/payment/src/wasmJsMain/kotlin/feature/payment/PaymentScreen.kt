@@ -265,8 +265,8 @@ private fun PaymentListContent(
                     items(
                         monthlyMoney.payments.sortedByDescending { it.paidAt },
                         key = { "${it.paidAt}-${it.amount}" },
-                    ) { record ->
-                        PaymentRecordCard(record = record, isCompact = isCompact)
+                    ) { payment ->
+                        PaymentCard(payment = payment, isCompact = isCompact)
                     }
                 }
 
@@ -532,11 +532,11 @@ private fun SummaryCard(
 }
 
 @Composable
-private fun PaymentRecordCard(
-    record: Payment,
+private fun PaymentCard(
+    payment: Payment,
     isCompact: Boolean,
 ) {
-    val hasNote = record.note.isNotEmpty()
+    val hasNote = payment.note.isNotEmpty()
 
     Card(
         modifier =
@@ -555,20 +555,20 @@ private fun PaymentRecordCard(
         ) {
             Column {
                 Text(
-                    text = formatDate(record.paidAt),
+                    text = formatDate(payment.paidAt),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (hasNote) {
                     Text(
-                        text = record.note,
+                        text = payment.note,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.tertiary,
                     )
                 }
             }
             Text(
-                text = formatYen(record.amount),
+                text = formatYen(payment.amount),
                 style = MaterialTheme.typography.titleMedium,
                 color = if (hasNote) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
             )

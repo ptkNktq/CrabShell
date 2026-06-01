@@ -18,7 +18,7 @@ enum class MonthlyMoneyStatus {
     FROZEN,
 }
 
-/** タグ識別子（`MoneyItem.tags` / `MoneyItemSaveRequest.tags` に格納される文字列）。 */
+/** タグ識別子。`MoneyItem.tags` 等に格納される文字列。 */
 object MoneyTags {
     const val RECURRING = "毎月"
     const val CARRY_OVER = "繰越"

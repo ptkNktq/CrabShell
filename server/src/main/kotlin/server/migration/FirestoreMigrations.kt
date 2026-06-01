@@ -114,19 +114,17 @@ class FirestoreMigrations(
      * money コレクションのフィールド名を新スキーマに揃える。
      *
      * 旧スキーマ:
-     * - トップレベル `paymentRecords` （振込ログ）
-     * - 各 `items[].payments` （項目内の負担分担）
+     * - トップレベル `paymentRecords`（振込ログ）
+     * - 各 `items[].payments`（項目内の負担分担）
      *
      * 新スキーマ:
      * - トップレベル `payments`
      * - 各 `items[].shares`
      *
-     * 両方とも旧フィールドが存在する場合は新フィールドへリネームし、旧フィールドを削除する。
-     * 一方だけ・両方とも未設定の場合はスキップ。
-     *
-     * 既に新フィールドが存在するドキュメントは、旧フィールドが残っていれば旧フィールドを削除する。
+     * トップレベルとアイテム配列は独立に判定し、どちらかだけが旧スキーマの場合でも片側だけ
+     * リネームする。具体的な状態判定とフィールド構築は [buildPaymentsAndSharesUpdate] に切り出して
+     * ユニットテストの対象としている。
      */
-    @Suppress("UNCHECKED_CAST")
     private suspend fun migrateMoneyRenamePaymentsAndShares(): Int {
         val docs =
             firestore
@@ -134,45 +132,54 @@ class FirestoreMigrations(
                 .get()
                 .await()
                 .documents
-        return commitInBatches(docs) { doc ->
-            val data = doc.data ?: return@commitInBatches null
-            val update = mutableMapOf<String, Any>()
+        return commitInBatches(docs) { doc -> buildPaymentsAndSharesUpdate(doc.data) }
+    }
 
-            // トップレベル paymentRecords → payments
-            val hasLegacyPaymentRecords = data.containsKey("paymentRecords")
-            val hasNewPayments = data.containsKey("payments")
-            if (hasLegacyPaymentRecords) {
-                if (!hasNewPayments) {
-                    update["payments"] = data["paymentRecords"] ?: emptyList<Any>()
-                }
-                update["paymentRecords"] = FieldValue.delete()
+    /**
+     * money ドキュメントのトップレベル `paymentRecords` → `payments`、`items[].payments` → `items[].shares`
+     * のフィールド rename に必要な Firestore update map を構築する純粋関数。
+     *
+     * 各フィールドの扱い:
+     * - 旧フィールドのみ存在 → 旧の値を新フィールドへコピー、旧フィールドは削除（[FieldValue.delete]）
+     * - 旧フィールドと新フィールドが同居 → 新フィールドは温存して旧フィールドだけ削除
+     * - 新フィールドのみ、または両方とも未設定 → 何もしない
+     *
+     * 全フィールドが何もしない場合は `null` を返してドキュメントを更新対象から外す。
+     */
+    @Suppress("UNCHECKED_CAST")
+    internal fun buildPaymentsAndSharesUpdate(data: Map<String, Any?>?): Map<String, Any>? {
+        if (data == null) return null
+        val update = mutableMapOf<String, Any>()
+
+        // トップレベル paymentRecords → payments
+        if (data.containsKey("paymentRecords")) {
+            if (!data.containsKey("payments")) {
+                update["payments"] = data["paymentRecords"] ?: emptyList<Any>()
             }
-
-            // items[].payments → items[].shares
-            val items = data["items"] as? List<Map<String, Any?>>
-            if (items != null) {
-                var anyItemMigrated = false
-                val newItems =
-                    items.map { item ->
-                        val itemMap = item.toMutableMap()
-                        val legacyShares = itemMap["payments"]
-                        val newShares = itemMap["shares"]
-                        if (legacyShares != null) {
-                            anyItemMigrated = true
-                            if (newShares == null) {
-                                itemMap["shares"] = legacyShares
-                            }
-                            itemMap.remove("payments")
-                        }
-                        itemMap
-                    }
-                if (anyItemMigrated) {
-                    update["items"] = newItems
-                }
-            }
-
-            if (update.isEmpty()) null else update
+            update["paymentRecords"] = FieldValue.delete()
         }
+
+        // items[].payments → items[].shares
+        val items = data["items"] as? List<Map<String, Any?>>
+        if (items != null) {
+            var anyItemMigrated = false
+            val newItems =
+                items.map { item ->
+                    if (!item.containsKey("payments")) return@map item
+                    anyItemMigrated = true
+                    val itemMap = item.toMutableMap()
+                    if (!itemMap.containsKey("shares")) {
+                        itemMap["shares"] = itemMap["payments"] ?: emptyList<Any>()
+                    }
+                    itemMap.remove("payments")
+                    itemMap
+                }
+            if (anyItemMigrated) {
+                update["items"] = newItems
+            }
+        }
+
+        return if (update.isEmpty()) null else update
     }
 
     /** money ドキュメントの旧/新スキーマ保有状況から、必要なマイグレーション操作を判定する。 */
