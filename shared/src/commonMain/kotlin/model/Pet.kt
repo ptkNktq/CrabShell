@@ -8,7 +8,7 @@ data class Pet(
     val name: String,
 )
 
-/** `PUT /pets/{petId}` のリクエスト DTO。 */
+/** `PUT /api/pets/{petId}` のリクエスト DTO。 */
 @Serializable
 data class PetNameUpdateRequest(
     val name: String,
