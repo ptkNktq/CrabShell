@@ -36,7 +36,7 @@ import model.MoneyTags
 import model.MonthlyMoney
 import model.MonthlyMoneyStatus
 import model.Payment
-import model.PaymentRecord
+import model.Share
 import model.User
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -82,7 +82,7 @@ internal fun MoneyContent(
     onClearForm: () -> Unit,
     onDeleteItem: (MoneyItem) -> Unit,
     onMoveItem: (MoneyItem, Int) -> Unit,
-    onSaveItem: (String, Long, String, List<Payment>, List<String>) -> Unit,
+    onSaveItem: (String, Long, String, List<Share>, List<String>) -> Unit,
     onUpdateStatus: (MonthlyMoneyStatus) -> Unit,
     onImportRecurringItems: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
@@ -322,7 +322,7 @@ private fun MoneyListContent(
                     SummaryCard(
                         items = monthlyMoney.items,
                         users = users,
-                        paymentRecords = monthlyMoney.paymentRecords,
+                        payments = monthlyMoney.payments,
                         isCompact = isCompact,
                     )
                 }
@@ -367,7 +367,7 @@ private fun MoneyItemForm(
     users: List<User>,
     saving: Boolean,
     frozen: Boolean,
-    onSave: (String, Long, String, List<Payment>, List<String>) -> Unit,
+    onSave: (String, Long, String, List<Share>, List<String>) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -377,12 +377,12 @@ private fun MoneyItemForm(
     var amountText by remember(key) { mutableStateOf(item?.amount?.toString() ?: "") }
     var note by remember(key) { mutableStateOf(item?.note ?: "") }
     var selectedTags by remember(key) { mutableStateOf(item?.tags ?: emptyList()) }
-    var paymentAmounts by remember(key) {
+    var shareAmounts by remember(key) {
         mutableStateOf(
             users.associate { user ->
                 user.uid to (
                     item
-                        ?.payments
+                        ?.shares
                         ?.find { it.uid == user.uid }
                         ?.amount
                         ?.toString() ?: ""
@@ -394,13 +394,13 @@ private fun MoneyItemForm(
     val parsedAmount = amountText.toLongOrNull()
     val isAmountValid = parsedAmount != null
     val amount = parsedAmount ?: 0L
-    val payments =
-        paymentAmounts.mapNotNull { (uid, text) ->
+    val shares =
+        shareAmounts.mapNotNull { (uid, text) ->
             val a = text.toLongOrNull()
-            if (a != null && a != 0L) Payment(uid, a) else null
+            if (a != null && a != 0L) Share(uid, a) else null
         }
-    val paymentTotal = payments.sumOf { it.amount }
-    val mismatch = payments.isNotEmpty() && paymentTotal != amount
+    val shareTotal = shares.sumOf { it.amount }
+    val mismatch = shares.isNotEmpty() && shareTotal != amount
     val isEditing = item != null
 
     Card(
@@ -481,10 +481,10 @@ private fun MoneyItemForm(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         OutlinedTextField(
-                            value = paymentAmounts[user.uid] ?: "",
+                            value = shareAmounts[user.uid] ?: "",
                             onValueChange = { value ->
-                                paymentAmounts =
-                                    paymentAmounts.toMutableMap().apply {
+                                shareAmounts =
+                                    shareAmounts.toMutableMap().apply {
                                         put(user.uid, value.filter { c -> c.isDigit() || c == '-' })
                                     }
                             },
@@ -497,8 +497,8 @@ private fun MoneyItemForm(
                         )
                         OutlinedButton(
                             onClick = {
-                                paymentAmounts =
-                                    paymentAmounts.toMutableMap().apply {
+                                shareAmounts =
+                                    shareAmounts.toMutableMap().apply {
                                         put(user.uid, (amount / 2).toString())
                                     }
                             },
@@ -509,8 +509,8 @@ private fun MoneyItemForm(
                         }
                         OutlinedButton(
                             onClick = {
-                                paymentAmounts =
-                                    paymentAmounts.toMutableMap().apply {
+                                shareAmounts =
+                                    shareAmounts.toMutableMap().apply {
                                         put(user.uid, amount.toString())
                                     }
                             },
@@ -522,12 +522,12 @@ private fun MoneyItemForm(
                         OutlinedButton(
                             onClick = {
                                 val othersTotal =
-                                    paymentAmounts
+                                    shareAmounts
                                         .filter { it.key != user.uid }
                                         .values
                                         .sumOf { it.toLongOrNull() ?: 0L }
-                                paymentAmounts =
-                                    paymentAmounts.toMutableMap().apply {
+                                shareAmounts =
+                                    shareAmounts.toMutableMap().apply {
                                         put(user.uid, (amount - othersTotal).toString())
                                     }
                             },
@@ -551,7 +551,7 @@ private fun MoneyItemForm(
                             modifier = Modifier.size(16.dp),
                         )
                         Text(
-                            text = "差額: ${formatYen(paymentTotal - amount)}",
+                            text = "差額: ${formatYen(shareTotal - amount)}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                         )
@@ -588,7 +588,7 @@ private fun MoneyItemForm(
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
-                    onClick = { onSave(name, amount, note, payments, selectedTags) },
+                    onClick = { onSave(name, amount, note, shares, selectedTags) },
                     enabled = name.isNotBlank() && isAmountValid && !saving && !frozen,
                 ) {
                     Text(if (isEditing) "保存" else "追加")
@@ -657,7 +657,7 @@ private fun MonthStatusSelector(
 private fun SummaryCard(
     items: List<MoneyItem>,
     users: List<User>,
-    paymentRecords: List<PaymentRecord>,
+    payments: List<Payment>,
     isCompact: Boolean,
 ) {
     val totalAmount = items.sumOf { it.amount }
@@ -665,15 +665,15 @@ private fun SummaryCard(
     // ユーザーごとの割当合計
     val userAllocated = mutableMapOf<String, Long>()
     for (item in items) {
-        for (payment in item.payments) {
-            userAllocated[payment.uid] = (userAllocated[payment.uid] ?: 0L) + payment.amount
+        for (share in item.shares) {
+            userAllocated[share.uid] = (userAllocated[share.uid] ?: 0L) + share.amount
         }
     }
 
     // ユーザーごとの支払い済み合計
     val userPaid = mutableMapOf<String, Long>()
-    for (record in paymentRecords) {
-        userPaid[record.uid] = (userPaid[record.uid] ?: 0L) + record.amount
+    for (payment in payments) {
+        userPaid[payment.uid] = (userPaid[payment.uid] ?: 0L) + payment.amount
     }
 
     // 全ユーザーが割当を満たしているかチェック
@@ -792,8 +792,8 @@ private fun MoneyItemCard(
     isCompact: Boolean,
     frozen: Boolean,
 ) {
-    val paymentTotal = item.payments.sumOf { it.amount }
-    val mismatch = paymentTotal != item.amount && item.payments.isNotEmpty()
+    val shareTotal = item.shares.sumOf { it.amount }
+    val mismatch = shareTotal != item.amount && item.shares.isNotEmpty()
 
     Card(
         modifier =
@@ -884,20 +884,20 @@ private fun MoneyItemCard(
                 )
             }
 
-            if (item.payments.isNotEmpty()) {
+            if (item.shares.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Spacer(modifier = Modifier.height(8.dp))
 
-                for (payment in item.payments) {
-                    val userName = users.find { it.uid == payment.uid }?.displayName ?: payment.uid.take(8)
+                for (share in item.shares) {
+                    val userName = users.find { it.uid == share.uid }?.displayName ?: share.uid.take(8)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Text(text = userName, style = MaterialTheme.typography.bodyMedium)
                         Text(
-                            text = formatYen(payment.amount),
+                            text = formatYen(share.amount),
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     }
@@ -916,7 +916,7 @@ private fun MoneyItemCard(
                             modifier = Modifier.size(16.dp),
                         )
                         Text(
-                            text = "差額: ${formatYen(paymentTotal - item.amount)}",
+                            text = "差額: ${formatYen(shareTotal - item.amount)}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                         )

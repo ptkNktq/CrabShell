@@ -14,7 +14,7 @@ class MoneyParsingTest {
     private val repository = FirestoreMoneyRepository(mockk<Firestore>(relaxed = true))
 
     @Test
-    fun parseItemsWithTags() {
+    fun parseItemsWithTagsAndShares() {
         val raw: List<Map<String, Any?>> =
             listOf(
                 mapOf(
@@ -23,7 +23,7 @@ class MoneyParsingTest {
                     "amount" to 100000L,
                     "note" to "Monthly",
                     "tags" to listOf(MoneyTags.RECURRING),
-                    "payments" to
+                    "shares" to
                         listOf(
                             mapOf("uid" to "u1", "amount" to 50000L),
                             mapOf("uid" to "u2", "amount" to 50000L),
@@ -38,9 +38,31 @@ class MoneyParsingTest {
         assertEquals(100000L, item.amount)
         assertEquals("Monthly", item.note)
         assertEquals(listOf(MoneyTags.RECURRING), item.tags)
-        assertEquals(2, item.payments.size)
-        assertEquals("u1", item.payments[0].uid)
-        assertEquals(50000L, item.payments[0].amount)
+        assertEquals(2, item.shares.size)
+        assertEquals("u1", item.shares[0].uid)
+        assertEquals(50000L, item.shares[0].amount)
+    }
+
+    @Test
+    fun parseItemsLegacyPaymentsFieldFallbacksToShares() {
+        // 旧スキーマ: items[].payments → 新スキーマ items[].shares への過渡期互換
+        val raw: List<Map<String, Any?>> =
+            listOf(
+                mapOf(
+                    "id" to "item1",
+                    "name" to "Rent",
+                    "amount" to 100000L,
+                    "payments" to
+                        listOf(
+                            mapOf("uid" to "u1", "amount" to 50000L),
+                        ),
+                ),
+            )
+        val items = repository.parseItems(raw)
+        assertEquals(1, items.size)
+        assertEquals(1, items[0].shares.size)
+        assertEquals("u1", items[0].shares[0].uid)
+        assertEquals(50000L, items[0].shares[0].amount)
     }
 
     @Test
@@ -52,7 +74,7 @@ class MoneyParsingTest {
                     "name" to "Rent",
                     "amount" to 100000L,
                     "recurring" to true,
-                    "payments" to emptyList<Map<String, Any?>>(),
+                    "shares" to emptyList<Map<String, Any?>>(),
                 ),
             )
         val items = repository.parseItems(raw)
@@ -69,7 +91,7 @@ class MoneyParsingTest {
                     "name" to "Groceries",
                     "amount" to 5000L,
                     "recurring" to false,
-                    "payments" to emptyList<Map<String, Any?>>(),
+                    "shares" to emptyList<Map<String, Any?>>(),
                 ),
             )
         val items = repository.parseItems(raw)
@@ -85,7 +107,7 @@ class MoneyParsingTest {
                     "id" to "item1",
                     "name" to "Groceries",
                     "amount" to 5000L,
-                    "payments" to emptyList<Map<String, Any?>>(),
+                    "shares" to emptyList<Map<String, Any?>>(),
                 ),
             )
         val items = repository.parseItems(raw)
@@ -103,7 +125,7 @@ class MoneyParsingTest {
                     "amount" to 100000L,
                     "tags" to listOf(MoneyTags.RECURRING),
                     "recurring" to true,
-                    "payments" to emptyList<Map<String, Any?>>(),
+                    "shares" to emptyList<Map<String, Any?>>(),
                 ),
             )
         val items = repository.parseItems(raw)
@@ -117,22 +139,22 @@ class MoneyParsingTest {
     }
 
     @Test
-    fun parsePaymentRecordsFromMapList() {
+    fun parsePaymentsFromMapList() {
         val raw: List<Map<String, Any?>> =
             listOf(
                 mapOf("uid" to "u1", "amount" to 3000L, "paidAt" to "2024-06-01"),
                 mapOf("uid" to "u2", "amount" to 5000L, "paidAt" to "2024-06-02"),
             )
-        val records = repository.parsePaymentRecords(raw)
-        assertEquals(2, records.size)
-        assertEquals("u1", records[0].uid)
-        assertEquals(3000L, records[0].amount)
-        assertEquals("2024-06-01", records[0].paidAt)
+        val payments = repository.parsePayments(raw)
+        assertEquals(2, payments.size)
+        assertEquals("u1", payments[0].uid)
+        assertEquals(3000L, payments[0].amount)
+        assertEquals("2024-06-01", payments[0].paidAt)
     }
 
     @Test
-    fun parsePaymentRecordsReturnsEmptyForNull() {
-        assertEquals(emptyList(), repository.parsePaymentRecords(null))
+    fun parsePaymentsReturnsEmptyForNull() {
+        assertEquals(emptyList(), repository.parsePayments(null))
     }
 
     @Test

@@ -14,7 +14,7 @@ import model.MonthlyExpenseSummary
 import model.MonthlyMoney
 import model.MonthlyMoneyStatus
 import model.OverpaymentRedemptionRequest
-import model.PaymentRecord
+import model.Payment
 import model.UserBalance
 import org.koin.ktor.ext.inject
 import server.auth.FirebaseAdmin
@@ -133,15 +133,15 @@ fun Route.reportRoutes() {
                 call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is frozen"))
                 return@post
             }
-            val record =
-                PaymentRecord(
+            val payment =
+                Payment(
                     uid = req.uid,
                     amount = req.amount,
                     paidAt = Instant.now().toString(),
                     note = req.note,
                     isRedemption = true,
                 )
-            val updated = data.copy(paymentRecords = data.paymentRecords + record)
+            val updated = data.copy(payments = data.payments + payment)
             moneyRepository.saveMonthlyMoney(req.yearMonth, updated)
 
             call.respond(mapOf("status" to "ok"))
@@ -149,7 +149,7 @@ fun Route.reportRoutes() {
     }
 }
 
-/** MonthlyMoney から繰越タグ付き項目を除外して MonthlyExpenseSummary を構築する */
+/** [MonthlyMoney] から繰越タグ付き項目を除外して MonthlyExpenseSummary を構築する */
 internal fun buildExpenseSummary(
     yearMonth: String,
     data: MonthlyMoney?,

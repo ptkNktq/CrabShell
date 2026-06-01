@@ -155,10 +155,10 @@ class OverpaymentViewModel(
         val data = form.monthData ?: return
         val allocated =
             data.items
-                .flatMap { it.payments }
+                .flatMap { it.shares }
                 .filter { it.uid == uid }
                 .sumOf { it.amount }
-        val paid = data.paymentRecords.filter { it.uid == uid }.sumOf { it.amount }
+        val paid = data.payments.filter { it.uid == uid }.sumOf { it.amount }
         val remaining = (allocated - paid).coerceAtLeast(0L)
         uiState =
             uiState.copy(

@@ -7,7 +7,7 @@ import model.MoneyTags
 import model.MonthlyMoney
 import model.MonthlyMoneyStatus
 import model.Payment
-import model.PaymentRecord
+import model.Share
 import org.slf4j.LoggerFactory
 import server.cache.Cacheable
 import server.util.await
@@ -71,22 +71,22 @@ class FirestoreMoneyRepository(
                     "amount" to item.amount,
                     "note" to item.note,
                     "tags" to item.tags,
-                    "payments" to
-                        item.payments.map { p ->
-                            mapOf("uid" to p.uid, "amount" to p.amount)
+                    "shares" to
+                        item.shares.map { s ->
+                            mapOf("uid" to s.uid, "amount" to s.amount)
                         },
                 )
             }
 
-        val records =
-            data.paymentRecords.map { r ->
-                mapOf("uid" to r.uid, "amount" to r.amount, "paidAt" to r.paidAt, "note" to r.note, "isRedemption" to r.isRedemption)
+        val payments =
+            data.payments.map { p ->
+                mapOf("uid" to p.uid, "amount" to p.amount, "paidAt" to p.paidAt, "note" to p.note, "isRedemption" to p.isRedemption)
             }
 
         firestore
             .collection(MONEY_COLLECTION)
             .document(yearMonth)
-            .set(mapOf("yearMonth" to yearMonth, "items" to items, "paymentRecords" to records, "status" to data.status.name))
+            .set(mapOf("yearMonth" to yearMonth, "items" to items, "payments" to payments, "status" to data.status.name))
             .await()
 
         cache[yearMonth] = data
@@ -139,9 +139,11 @@ class FirestoreMoneyRepository(
         doc: DocumentSnapshot,
     ): MonthlyMoney {
         val items = parseItems(doc.get("items"))
-        val records = parsePaymentRecords(doc.get("paymentRecords"))
+        // 新フィールド payments を優先、なければ旧名 paymentRecords を読む（マイグレーション過渡期の互換）
+        val rawPayments = doc.get("payments") ?: doc.get("paymentRecords")
+        val payments = parsePayments(rawPayments)
         val status = parseStatus(doc.getString("status"), doc.getBoolean("locked"))
-        return MonthlyMoney(yearMonth = yearMonth, items = items, paymentRecords = records, status = status)
+        return MonthlyMoney(yearMonth = yearMonth, items = items, payments = payments, status = status)
     }
 
     /**
@@ -170,12 +172,16 @@ class FirestoreMoneyRepository(
         return if (legacyLocked == true) MonthlyMoneyStatus.FROZEN else MonthlyMoneyStatus.PENDING
     }
 
-    /** Map リストから MoneyItem リストをパースする（テスト用に internal） */
+    /** Map リストから [MoneyItem] リストをパースする（テスト用に internal） */
     @Suppress("UNCHECKED_CAST")
     internal fun parseItems(raw: Any?): List<MoneyItem> {
         val itemsRaw = raw as? List<Map<String, Any?>> ?: return emptyList()
         return itemsRaw.map { entry ->
-            val paymentsRaw = entry["payments"] as? List<Map<String, Any?>> ?: emptyList()
+            // 新フィールド shares を優先、なければ旧名 payments を読む（マイグレーション過渡期の互換）
+            val sharesRaw =
+                (entry["shares"] as? List<Map<String, Any?>>)
+                    ?: (entry["payments"] as? List<Map<String, Any?>>)
+                    ?: emptyList()
             // tags フィールドを読み取り。レガシーデータ対応: recurring=true → tags=["毎月"]
             val tags =
                 (entry["tags"] as? List<String>)
@@ -186,28 +192,28 @@ class FirestoreMoneyRepository(
                 amount = (entry["amount"] as Number).toLong(),
                 note = entry["note"] as? String ?: "",
                 tags = tags,
-                payments =
-                    paymentsRaw.map { p ->
-                        Payment(
-                            uid = p["uid"] as String,
-                            amount = (p["amount"] as Number).toLong(),
+                shares =
+                    sharesRaw.map { s ->
+                        Share(
+                            uid = s["uid"] as String,
+                            amount = (s["amount"] as Number).toLong(),
                         )
                     },
             )
         }
     }
 
-    /** Map リストから PaymentRecord リストをパースする（テスト用に internal） */
+    /** Map リストから [Payment] リストをパースする（テスト用に internal） */
     @Suppress("UNCHECKED_CAST")
-    internal fun parsePaymentRecords(raw: Any?): List<PaymentRecord> {
-        val recordsRaw = raw as? List<Map<String, Any?>> ?: return emptyList()
-        return recordsRaw.map { r ->
-            PaymentRecord(
-                uid = r["uid"] as String,
-                amount = (r["amount"] as Number).toLong(),
-                paidAt = r["paidAt"] as String,
-                note = r["note"] as? String ?: "",
-                isRedemption = r["isRedemption"] as? Boolean ?: false,
+    internal fun parsePayments(raw: Any?): List<Payment> {
+        val paymentsRaw = raw as? List<Map<String, Any?>> ?: return emptyList()
+        return paymentsRaw.map { p ->
+            Payment(
+                uid = p["uid"] as String,
+                amount = (p["amount"] as Number).toLong(),
+                paidAt = p["paidAt"] as String,
+                note = p["note"] as? String ?: "",
+                isRedemption = p["isRedemption"] as? Boolean ?: false,
             )
         }
     }

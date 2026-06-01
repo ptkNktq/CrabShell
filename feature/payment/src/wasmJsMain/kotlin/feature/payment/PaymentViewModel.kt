@@ -13,7 +13,7 @@ import core.network.MoneyRepository
 import core.network.UserRepository
 import kotlinx.coroutines.launch
 import model.MonthlyMoney
-import model.PaymentRecord
+import model.PayRequest
 import model.User
 
 /** 現在の年月を "YYYY-MM" 形式で返す */
@@ -41,10 +41,6 @@ external fun shiftYearMonthJs(
     yearMonthStr: JsString,
     offset: Int,
 ): JsString
-
-/** 現在の日時を UTC の ISO 形式で返す（サーバー送信用） */
-@JsFun("() => new Date().toISOString()")
-external fun nowIsoJs(): JsString
 
 data class PaymentUiState(
     val monthlyMoney: MonthlyMoney = MonthlyMoney(yearMonth = ""),
@@ -115,9 +111,9 @@ class PaymentViewModel(
                 if (uiState.isViewingOther) {
                     val full = moneyRepository.getMonthlyMoney(yearMonth)
                     val uid = uiState.viewingUid
-                    val myItems = full.items.filter { item -> item.payments.any { it.uid == uid } }
-                    val myRecords = full.paymentRecords.filter { it.uid == uid }
-                    full.copy(items = myItems, paymentRecords = myRecords)
+                    val myItems = full.items.filter { item -> item.shares.any { it.uid == uid } }
+                    val myPayments = full.payments.filter { it.uid == uid }
+                    full.copy(items = myItems, payments = myPayments)
                 } else {
                     moneyRepository.getMyMonthlyMoney(yearMonth)
                 }
@@ -139,15 +135,10 @@ class PaymentViewModel(
         uiState = uiState.copy(isSaving = true)
         viewModelScope.launch {
             try {
-                val record =
-                    PaymentRecord(
-                        uid = uiState.currentUid,
-                        amount = amount,
-                        paidAt = nowIsoJs().toString(),
-                    )
+                val request = PayRequest(amount = amount)
                 uiState =
                     uiState.copy(
-                        monthlyMoney = moneyRepository.recordPayment(uiState.currentYearMonth, record),
+                        monthlyMoney = moneyRepository.recordPayment(uiState.currentYearMonth, request),
                     )
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)

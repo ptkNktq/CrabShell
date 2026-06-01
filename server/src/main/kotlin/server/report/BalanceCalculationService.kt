@@ -26,20 +26,20 @@ class BalanceCalculationService {
 
             val monthAllocated = mutableMapOf<String, Long>()
             for (item in monthData.items) {
-                for (payment in item.payments) {
-                    monthAllocated[payment.uid] =
-                        (monthAllocated[payment.uid] ?: 0L) + payment.amount
+                for (share in item.shares) {
+                    monthAllocated[share.uid] =
+                        (monthAllocated[share.uid] ?: 0L) + share.amount
                 }
             }
 
             val monthPaid = mutableMapOf<String, Long>()
-            for (record in monthData.paymentRecords) {
-                if (record.isRedemption) {
-                    redeemedByUser[record.uid] =
-                        (redeemedByUser[record.uid] ?: 0L) + record.amount
+            for (payment in monthData.payments) {
+                if (payment.isRedemption) {
+                    redeemedByUser[payment.uid] =
+                        (redeemedByUser[payment.uid] ?: 0L) + payment.amount
                 } else {
-                    monthPaid[record.uid] =
-                        (monthPaid[record.uid] ?: 0L) + record.amount
+                    monthPaid[payment.uid] =
+                        (monthPaid[payment.uid] ?: 0L) + payment.amount
                 }
             }
 

@@ -3,7 +3,7 @@ package server.report
 import model.MoneyItem
 import model.MonthlyMoney
 import model.Payment
-import model.PaymentRecord
+import model.Share
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -29,12 +29,12 @@ class BalanceCalculationServiceTest {
                                 id = "item1",
                                 name = "Rent",
                                 amount = 10000L,
-                                payments = listOf(Payment(uid = "u1", amount = 5000L)),
+                                shares = listOf(Share(uid = "u1", amount = 5000L)),
                             ),
                         ),
-                    paymentRecords =
+                    payments =
                         listOf(
-                            PaymentRecord(uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
+                            Payment(uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
                         ),
                 ),
             )
@@ -55,12 +55,12 @@ class BalanceCalculationServiceTest {
                                 id = "item1",
                                 name = "Rent",
                                 amount = 10000L,
-                                payments = listOf(Payment(uid = "u1", amount = 3000L)),
+                                shares = listOf(Share(uid = "u1", amount = 3000L)),
                             ),
                         ),
-                    paymentRecords =
+                    payments =
                         listOf(
-                            PaymentRecord(uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
+                            Payment(uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
                         ),
                 ),
             )
@@ -85,17 +85,17 @@ class BalanceCalculationServiceTest {
                                 id = "item1",
                                 name = "Rent",
                                 amount = 10000L,
-                                payments =
+                                shares =
                                     listOf(
-                                        Payment(uid = "u1", amount = 4000L),
-                                        Payment(uid = "u2", amount = 6000L),
+                                        Share(uid = "u1", amount = 4000L),
+                                        Share(uid = "u2", amount = 6000L),
                                     ),
                             ),
                         ),
-                    paymentRecords =
+                    payments =
                         listOf(
-                            PaymentRecord(uid = "u1", amount = 7000L, paidAt = "2024-06-01"),
-                            PaymentRecord(uid = "u2", amount = 3000L, paidAt = "2024-06-01"),
+                            Payment(uid = "u1", amount = 7000L, paidAt = "2024-06-01"),
+                            Payment(uid = "u2", amount = 3000L, paidAt = "2024-06-01"),
                         ),
                 ),
                 MonthlyMoney(
@@ -106,17 +106,17 @@ class BalanceCalculationServiceTest {
                                 id = "item2",
                                 name = "Utilities",
                                 amount = 5000L,
-                                payments =
+                                shares =
                                     listOf(
-                                        Payment(uid = "u1", amount = 2500L),
-                                        Payment(uid = "u2", amount = 2500L),
+                                        Share(uid = "u1", amount = 2500L),
+                                        Share(uid = "u2", amount = 2500L),
                                     ),
                             ),
                         ),
-                    paymentRecords =
+                    payments =
                         listOf(
-                            PaymentRecord(uid = "u1", amount = 2500L, paidAt = "2024-07-01"),
-                            PaymentRecord(uid = "u2", amount = 4000L, paidAt = "2024-07-01"),
+                            Payment(uid = "u1", amount = 2500L, paidAt = "2024-07-01"),
+                            Payment(uid = "u2", amount = 4000L, paidAt = "2024-07-01"),
                         ),
                 ),
             )
@@ -144,13 +144,13 @@ class BalanceCalculationServiceTest {
                                 id = "item1",
                                 name = "Rent",
                                 amount = 10000L,
-                                payments = listOf(Payment(uid = "u1", amount = 3000L)),
+                                shares = listOf(Share(uid = "u1", amount = 3000L)),
                             ),
                         ),
-                    paymentRecords =
+                    payments =
                         listOf(
-                            PaymentRecord(uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
-                            PaymentRecord(uid = "u1", amount = 1000L, paidAt = "2024-06-15", isRedemption = true),
+                            Payment(uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
+                            Payment(uid = "u1", amount = 1000L, paidAt = "2024-06-15", isRedemption = true),
                         ),
                 ),
             )
@@ -173,13 +173,13 @@ class BalanceCalculationServiceTest {
                                 id = "item1",
                                 name = "Rent",
                                 amount = 10000L,
-                                payments = listOf(Payment(uid = "u1", amount = 4000L)),
+                                shares = listOf(Share(uid = "u1", amount = 4000L)),
                             ),
                         ),
-                    paymentRecords =
+                    payments =
                         listOf(
-                            PaymentRecord(uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
-                            PaymentRecord(uid = "u1", amount = 2000L, paidAt = "2024-06-15", isRedemption = true),
+                            Payment(uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
+                            Payment(uid = "u1", amount = 2000L, paidAt = "2024-06-15", isRedemption = true),
                         ),
                 ),
             )
@@ -214,12 +214,12 @@ class BalanceCalculationServiceTest {
                                 id = "item1",
                                 name = "Rent",
                                 amount = 10000L,
-                                payments = listOf(Payment(uid = "u1", amount = 8000L)),
+                                shares = listOf(Share(uid = "u1", amount = 8000L)),
                             ),
                         ),
-                    paymentRecords =
+                    payments =
                         listOf(
-                            PaymentRecord(uid = "u1", amount = 3000L, paidAt = "2024-06-01"),
+                            Payment(uid = "u1", amount = 3000L, paidAt = "2024-06-01"),
                         ),
                 ),
             )
@@ -240,13 +240,13 @@ class BalanceCalculationServiceTest {
                                 id = "item1",
                                 name = "Rent",
                                 amount = 10000L,
-                                payments = listOf(Payment(uid = "u1", amount = 10000L)),
+                                shares = listOf(Share(uid = "u1", amount = 10000L)),
                             ),
                         ),
-                    paymentRecords =
+                    payments =
                         listOf(
-                            PaymentRecord(uid = "u1", amount = 10000L, paidAt = "2024-06-01"),
-                            PaymentRecord(uid = "u2", amount = 5000L, paidAt = "2024-06-01"),
+                            Payment(uid = "u1", amount = 10000L, paidAt = "2024-06-01"),
+                            Payment(uid = "u2", amount = 5000L, paidAt = "2024-06-01"),
                         ),
                 ),
             )
@@ -269,18 +269,18 @@ class BalanceCalculationServiceTest {
                                 id = "item1",
                                 name = "Rent",
                                 amount = 10000L,
-                                payments = listOf(Payment(uid = "u1", amount = 4000L)),
+                                shares = listOf(Share(uid = "u1", amount = 4000L)),
                             ),
                             MoneyItem(
                                 id = "item2",
                                 name = "Utilities",
                                 amount = 5000L,
-                                payments = listOf(Payment(uid = "u1", amount = 3000L)),
+                                shares = listOf(Share(uid = "u1", amount = 3000L)),
                             ),
                         ),
-                    paymentRecords =
+                    payments =
                         listOf(
-                            PaymentRecord(uid = "u1", amount = 8000L, paidAt = "2024-06-01"),
+                            Payment(uid = "u1", amount = 8000L, paidAt = "2024-06-01"),
                         ),
                 ),
             )

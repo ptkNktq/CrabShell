@@ -4,7 +4,7 @@ import model.MoneyItem
 import model.MonthlyMoney
 import model.MonthlyMoneyStatus
 import model.Payment
-import model.PaymentRecord
+import model.Share
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -20,23 +20,23 @@ class MoneyFiltersTest {
                             id = "item1",
                             name = "Rent",
                             amount = 10000L,
-                            payments =
+                            shares =
                                 listOf(
-                                    Payment(uid = "u1", amount = 5000L),
-                                    Payment(uid = "u2", amount = 5000L),
+                                    Share(uid = "u1", amount = 5000L),
+                                    Share(uid = "u2", amount = 5000L),
                                 ),
                         ),
                         MoneyItem(
                             id = "item2",
                             name = "Insurance",
                             amount = 3000L,
-                            payments = listOf(Payment(uid = "u2", amount = 3000L)),
+                            shares = listOf(Share(uid = "u2", amount = 3000L)),
                         ),
                     ),
-                paymentRecords =
+                payments =
                     listOf(
-                        PaymentRecord(uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
-                        PaymentRecord(uid = "u2", amount = 8000L, paidAt = "2024-06-01"),
+                        Payment(uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
+                        Payment(uid = "u2", amount = 8000L, paidAt = "2024-06-01"),
                     ),
             )
 
@@ -44,8 +44,8 @@ class MoneyFiltersTest {
         assertEquals("2024-06", filtered.yearMonth)
         assertEquals(1, filtered.items.size)
         assertEquals("item1", filtered.items[0].id)
-        assertEquals(1, filtered.paymentRecords.size)
-        assertEquals("u1", filtered.paymentRecords[0].uid)
+        assertEquals(1, filtered.payments.size)
+        assertEquals("u1", filtered.payments[0].uid)
     }
 
     @Test
@@ -55,7 +55,7 @@ class MoneyFiltersTest {
                 MonthlyMoney(
                     yearMonth = "2024-06",
                     items = emptyList(),
-                    paymentRecords = emptyList(),
+                    payments = emptyList(),
                     status = status,
                 )
             val filtered = data.filterForUser("u1")
@@ -74,21 +74,21 @@ class MoneyFiltersTest {
                             id = "item1",
                             name = "Rent",
                             amount = 10000L,
-                            payments = listOf(Payment(uid = "u1", amount = 10000L)),
+                            shares = listOf(Share(uid = "u1", amount = 10000L)),
                         ),
                     ),
-                paymentRecords =
+                payments =
                     listOf(
-                        PaymentRecord(uid = "u1", amount = 10000L, paidAt = "2024-06-01"),
+                        Payment(uid = "u1", amount = 10000L, paidAt = "2024-06-01"),
                     ),
             )
         val filtered = data.filterForUser("unknown")
         assertEquals(0, filtered.items.size)
-        assertEquals(0, filtered.paymentRecords.size)
+        assertEquals(0, filtered.payments.size)
     }
 
     @Test
-    fun filterKeepsItemIfUserHasAnyPayment() {
+    fun filterKeepsItemIfUserHasAnyShare() {
         val data =
             MonthlyMoney(
                 yearMonth = "2024-06",
@@ -98,35 +98,35 @@ class MoneyFiltersTest {
                             id = "item1",
                             name = "Rent",
                             amount = 10000L,
-                            payments =
+                            shares =
                                 listOf(
-                                    Payment(uid = "u1", amount = 3000L),
-                                    Payment(uid = "u2", amount = 7000L),
+                                    Share(uid = "u1", amount = 3000L),
+                                    Share(uid = "u2", amount = 7000L),
                                 ),
                         ),
                     ),
             )
         val filtered = data.filterForUser("u1")
         assertEquals(1, filtered.items.size)
-        // item は全 payments を保持（対象ユーザー分だけでなく全員分）
-        assertEquals(2, filtered.items[0].payments.size)
+        // item は全 shares を保持（対象ユーザー分だけでなく全員分）
+        assertEquals(2, filtered.items[0].shares.size)
     }
 
     @Test
-    fun filterKeepsRedemptionRecordsForUser() {
+    fun filterKeepsRedemptionPaymentsForUser() {
         // isRedemption=true の精算レコードも uid ベースで正しくフィルタされる
         val data =
             MonthlyMoney(
                 yearMonth = "2024-06",
-                paymentRecords =
+                payments =
                     listOf(
-                        PaymentRecord(uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
-                        PaymentRecord(uid = "u1", amount = 1000L, paidAt = "2024-06-15", isRedemption = true),
-                        PaymentRecord(uid = "u2", amount = 3000L, paidAt = "2024-06-01", isRedemption = true),
+                        Payment(uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
+                        Payment(uid = "u1", amount = 1000L, paidAt = "2024-06-15", isRedemption = true),
+                        Payment(uid = "u2", amount = 3000L, paidAt = "2024-06-01", isRedemption = true),
                     ),
             )
         val filtered = data.filterForUser("u1")
-        assertEquals(2, filtered.paymentRecords.size)
-        assertEquals(true, filtered.paymentRecords[1].isRedemption)
+        assertEquals(2, filtered.payments.size)
+        assertEquals(true, filtered.payments[1].isRedemption)
     }
 }

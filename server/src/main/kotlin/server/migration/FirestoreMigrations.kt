@@ -42,6 +42,7 @@ class FirestoreMigrations(
 
     suspend fun runAll() {
         runIfNeeded("money-month-to-year-month") { migrateMoneyMonthToYearMonth() }
+        runIfNeeded("money-rename-payments-and-shares") { migrateMoneyRenamePaymentsAndShares() }
     }
 
     private suspend fun runIfNeeded(
@@ -107,6 +108,81 @@ class FirestoreMigrations(
                     )
             }
         }
+    }
+
+    /**
+     * money コレクションのフィールド名を新スキーマに揃える。
+     *
+     * 旧スキーマ:
+     * - トップレベル `paymentRecords`（振込ログ）
+     * - 各 `items[].payments`（項目内の負担分担）
+     *
+     * 新スキーマ:
+     * - トップレベル `payments`
+     * - 各 `items[].shares`
+     *
+     * トップレベルとアイテム配列は独立に判定し、どちらかだけが旧スキーマの場合でも片側だけ
+     * リネームする。具体的な状態判定とフィールド構築は [buildPaymentsAndSharesUpdate] に切り出して
+     * ユニットテストの対象としている。
+     */
+    private suspend fun migrateMoneyRenamePaymentsAndShares(): Int {
+        val docs =
+            firestore
+                .collection(MONEY_COLLECTION)
+                .get()
+                .await()
+                .documents
+        return commitInBatches(docs) { doc -> buildPaymentsAndSharesUpdate(doc.data) }
+    }
+
+    /**
+     * money ドキュメントのトップレベル `paymentRecords` → `payments`、`items[].payments` → `items[].shares`
+     * のフィールド rename に必要な Firestore update map を構築する純粋関数。
+     *
+     * 各フィールドの扱い:
+     * - 旧フィールドのみ存在 → 旧の値を新フィールドへコピー、旧フィールドは削除（[FieldValue.delete]）
+     * - 旧フィールドと新フィールドが同居 → 新フィールドは温存して旧フィールドだけ削除
+     * - 新フィールドのみ、または両方とも未設定 → 何もしない
+     *
+     * 全フィールドが何もしない場合は `null` を返してドキュメントを更新対象から外す。
+     *
+     * 戻り値の `Map<String, Any>` は `Firestore.batch().update(ref, map)` がそのまま受け取る形式で、
+     * 値には `FieldValue.delete()` 等の sentinel、`List<Map<...>>`、`Map<String, Any>` が混在する。
+     */
+    @Suppress("UNCHECKED_CAST")
+    internal fun buildPaymentsAndSharesUpdate(data: Map<String, Any?>?): Map<String, Any>? {
+        if (data == null) return null
+        val update = mutableMapOf<String, Any>()
+
+        // トップレベル paymentRecords → payments
+        if (data.containsKey("paymentRecords")) {
+            if (!data.containsKey("payments")) {
+                update["payments"] = data["paymentRecords"] ?: emptyList<Any>()
+            }
+            update["paymentRecords"] = FieldValue.delete()
+        }
+
+        // items[].payments → items[].shares
+        val items = data["items"] as? List<Map<String, Any?>>
+        if (items != null) {
+            var anyItemMigrated = false
+            val newItems =
+                items.map { item ->
+                    if (!item.containsKey("payments")) return@map item
+                    anyItemMigrated = true
+                    val itemMap = item.toMutableMap()
+                    if (!itemMap.containsKey("shares")) {
+                        itemMap["shares"] = itemMap["payments"] ?: emptyList<Any>()
+                    }
+                    itemMap.remove("payments")
+                    itemMap
+                }
+            if (anyItemMigrated) {
+                update["items"] = newItems
+            }
+        }
+
+        return if (update.isEmpty()) null else update
     }
 
     /** money ドキュメントの旧/新スキーマ保有状況から、必要なマイグレーション操作を判定する。 */

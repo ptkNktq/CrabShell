@@ -11,14 +11,17 @@ import io.ktor.server.routing.*
 import io.ktor.server.util.getOrFail
 import model.MoneyTags
 import model.MonthlyMoney
+import model.MonthlyMoneySaveRequest
 import model.MonthlyMoneyStatus
-import model.MonthlyMoneyStatusUpdate
-import model.PaymentRecord
+import model.MonthlyMoneyStatusUpdateRequest
+import model.PayRequest
+import model.Payment
 import org.koin.ktor.ext.inject
 import server.auth.FirebaseAdmin
 import server.auth.adminOnly
 import server.auth.authenticated
 import server.auth.firebasePrincipal
+import java.time.Instant
 
 fun Route.moneyRoutes() {
     val moneyRepository by inject<MoneyRepository>()
@@ -41,8 +44,8 @@ fun Route.moneyRoutes() {
                 }
             }) {
                 val yearMonth = call.parameters.getOrFail("yearMonth")
-                val data = moneyRepository.getMonthlyMoney(yearMonth)
-                call.respond(data ?: MonthlyMoney(yearMonth = yearMonth))
+                val data = moneyRepository.getMonthlyMoney(yearMonth) ?: MonthlyMoney(yearMonth = yearMonth)
+                call.respond(data)
             }
 
             post("import-by-tag", {
@@ -72,11 +75,14 @@ fun Route.moneyRoutes() {
                 tags = listOf("money")
                 summary = "月次お金データ保存（admin）"
                 description =
-                    "items / paymentRecords を保存する。body.status は無視され、" +
-                    "既存値（新規月は PENDING）が維持される。status を変更する場合は PATCH /status を使うこと。"
+                    "items を保存する（追加・編集・削除）。" +
+                    "status は本エンドポイントでは変更されず、既存値（新規月は PENDING）が維持される。" +
+                    "status を変更する場合は PATCH /status を使うこと。" +
+                    "payments も本エンドポイントでは変更されず、既存値が温存される。" +
+                    "入金の追加は POST /pay、過払い精算の追加は POST /report/balances/redeem 経由のみ。"
                 request {
                     pathParameter<String>("yearMonth") { description = "年月（YYYY-MM）" }
-                    body<MonthlyMoney>()
+                    body<MonthlyMoneySaveRequest>()
                 }
                 response {
                     code(HttpStatusCode.OK) {
@@ -91,12 +97,18 @@ fun Route.moneyRoutes() {
                     call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is frozen"))
                     return@put
                 }
-                val body = call.receive<MonthlyMoney>()
-                // status はこのエンドポイントでは変更しない（専用 PATCH /status で更新）。
-                // 新規月の場合 existing.status は PENDING になる点に注意。
-                val normalized = body.copy(status = existing.status)
-                moneyRepository.saveMonthlyMoney(yearMonth, normalized)
-                call.respond(normalized)
+                val request = call.receive<MonthlyMoneySaveRequest>()
+                // status は本エンドポイントでは変更しない（新規月は PENDING を維持）。
+                // payments は本エンドポイントでは変更しない（入金は POST /pay、
+                // 精算は POST /report/balances/redeem 経由のみ）。既存値を温存する。
+                val updated =
+                    request.toDomain(
+                        yearMonth = yearMonth,
+                        status = existing.status,
+                        existingPayments = existing.payments,
+                    )
+                moneyRepository.saveMonthlyMoney(yearMonth, updated)
+                call.respond(updated)
             }
 
             patch("status", {
@@ -108,7 +120,7 @@ fun Route.moneyRoutes() {
                     "含めた任意の状態遷移を admin 権限で許可する。凍結運用を admin が解除できる唯一の経路。"
                 request {
                     pathParameter<String>("yearMonth") { description = "年月（YYYY-MM）" }
-                    body<MonthlyMoneyStatusUpdate>()
+                    body<MonthlyMoneyStatusUpdateRequest>()
                 }
                 response {
                     code(HttpStatusCode.OK) {
@@ -117,13 +129,13 @@ fun Route.moneyRoutes() {
                 }
             }) {
                 val yearMonth = call.parameters.getOrFail("yearMonth")
-                val body = call.receive<MonthlyMoneyStatusUpdate>()
+                val request = call.receive<MonthlyMoneyStatusUpdateRequest>()
                 val existing = moneyRepository.getMonthlyMoney(yearMonth) ?: MonthlyMoney(yearMonth = yearMonth)
                 // FROZEN からの遷移も含めて admin に任意の状態遷移を許可する（凍結解除の唯一経路）。
-                val updated = existing.copy(status = body.status)
+                val updated = existing.copy(status = request.status)
                 moneyRepository.saveMonthlyMoney(yearMonth, updated)
                 // 同一ステータスへの冪等 PATCH での連打通知を避けるため、実際に遷移した場合のみ送信。
-                if (existing.status != body.status && body.status == MonthlyMoneyStatus.CONFIRMED) {
+                if (existing.status != request.status && request.status == MonthlyMoneyStatus.CONFIRMED) {
                     moneyWebhookService.notifyConfirmed(yearMonth)
                 }
                 call.respond(updated)
@@ -147,12 +159,7 @@ fun Route.moneyRoutes() {
                 val yearMonth = call.parameters.getOrFail("yearMonth")
                 val uid = call.firebasePrincipal.uid
 
-                val data = moneyRepository.getMonthlyMoney(yearMonth)
-                if (data == null) {
-                    call.respond(MonthlyMoney(yearMonth = yearMonth))
-                    return@get
-                }
-
+                val data = moneyRepository.getMonthlyMoney(yearMonth) ?: MonthlyMoney(yearMonth = yearMonth)
                 call.respond(data.filterForUser(uid))
             }
         }
@@ -164,7 +171,7 @@ fun Route.moneyRoutes() {
                 summary = "支払い記録追加"
                 request {
                     pathParameter<String>("yearMonth") { description = "年月（YYYY-MM）" }
-                    body<PaymentRecord>()
+                    body<PayRequest>()
                 }
                 response {
                     code(HttpStatusCode.OK) {
@@ -176,20 +183,25 @@ fun Route.moneyRoutes() {
             }) {
                 val yearMonth = call.parameters.getOrFail("yearMonth")
                 val uid = call.firebasePrincipal.uid
-                val record = call.receive<PaymentRecord>()
+                val request = call.receive<PayRequest>()
                 // 0 円・負額の入金は残債計算 (BalanceCalculationService) を歪めるうえ、
                 // 0 円連投で Webhook 通知洪水を引き起こせるため、サーバー側で弾く。
                 // /report/balances/redeem (ReportRoutes) と対称な制約。
-                if (record.amount <= 0L) {
+                if (request.amount <= 0L) {
                     call.respond(HttpStatusCode.BadRequest, mapOf("error" to "amount must be positive"))
                     return@post
                 }
-                // /pay は通常入金の専用エンドポイントで、過払い精算 (isRedemption=true) は
-                // ReportRoutes 経由でのみ永続化される。クライアントが isRedemption=true を
-                // 送ると BalanceCalculationService 上で「過払い引き出し済み」扱いになり残債
-                // 計算が崩れるうえ、入金通知バイパスにも使えるため、サーバー側で false に
-                // 強制上書きする。uid も同様に改ざん防止のため上書き。
-                val safeRecord = record.copy(uid = uid, isRedemption = false)
+                // 永続化レコードはサーバー側で組み立てる。
+                // - uid は principal
+                // - isRedemption は /pay 経路では常に false（過払い精算は /report/balances/redeem 経由のみ）
+                // - paidAt はサーバー側で生成（クライアント時計依存・改ざんを避け、/redeem と対称にする）
+                val safePayment =
+                    Payment(
+                        uid = uid,
+                        amount = request.amount,
+                        paidAt = Instant.now().toString(),
+                        isRedemption = false,
+                    )
 
                 val data = moneyRepository.getMonthlyMoney(yearMonth)
                 if (data == null) {
@@ -201,7 +213,7 @@ fun Route.moneyRoutes() {
                     call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is frozen"))
                     return@post
                 }
-                val updated = data.copy(paymentRecords = data.paymentRecords + safeRecord)
+                val updated = data.copy(payments = data.payments + safePayment)
                 moneyRepository.saveMonthlyMoney(yearMonth, updated)
 
                 // displayName 未設定時に Firebase UID を Webhook 経路で外部チャネル（Discord/Slack）に
@@ -210,7 +222,7 @@ fun Route.moneyRoutes() {
                 paymentWebhookService.notifyPayment(
                     yearMonth = yearMonth,
                     payerName = payerName,
-                    amount = safeRecord.amount,
+                    amount = safePayment.amount,
                 )
 
                 call.respond(updated.filterForUser(uid))

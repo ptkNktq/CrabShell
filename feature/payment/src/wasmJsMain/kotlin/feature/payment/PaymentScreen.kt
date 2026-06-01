@@ -22,7 +22,7 @@ import core.ui.formatYen
 import model.MoneyItem
 import model.MonthlyMoney
 import model.MonthlyMoneyStatus
-import model.PaymentRecord
+import model.Payment
 import model.User
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -70,10 +70,10 @@ internal fun PaymentContent(
     // 自分の割当合計
     val totalAllocated =
         monthlyMoney.items.sumOf { item ->
-            item.payments.filter { it.uid == currentUid }.sumOf { it.amount }
+            item.shares.filter { it.uid == currentUid }.sumOf { it.amount }
         }
     // 支払い済み合計
-    val totalPaid = monthlyMoney.paymentRecords.sumOf { it.amount }
+    val totalPaid = monthlyMoney.payments.sumOf { it.amount }
     val remaining = totalAllocated - totalPaid
     val status = monthlyMoney.status
     val frozen = status == MonthlyMoneyStatus.FROZEN
@@ -254,7 +254,7 @@ private fun PaymentListContent(
                 }
 
                 // 支払い履歴
-                if (monthlyMoney.paymentRecords.isNotEmpty()) {
+                if (monthlyMoney.payments.isNotEmpty()) {
                     item(key = "history-header") {
                         Text(
                             text = "支払い履歴",
@@ -263,10 +263,10 @@ private fun PaymentListContent(
                         )
                     }
                     items(
-                        monthlyMoney.paymentRecords.sortedByDescending { it.paidAt },
+                        monthlyMoney.payments.sortedByDescending { it.paidAt },
                         key = { "${it.paidAt}-${it.amount}" },
-                    ) { record ->
-                        PaymentRecordCard(record = record, isCompact = isCompact)
+                    ) { payment ->
+                        PaymentCard(payment = payment, isCompact = isCompact)
                     }
                 }
 
@@ -532,11 +532,11 @@ private fun SummaryCard(
 }
 
 @Composable
-private fun PaymentRecordCard(
-    record: PaymentRecord,
+private fun PaymentCard(
+    payment: Payment,
     isCompact: Boolean,
 ) {
-    val hasNote = record.note.isNotEmpty()
+    val hasNote = payment.note.isNotEmpty()
 
     Card(
         modifier =
@@ -555,20 +555,20 @@ private fun PaymentRecordCard(
         ) {
             Column {
                 Text(
-                    text = formatDate(record.paidAt),
+                    text = formatDate(payment.paidAt),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (hasNote) {
                     Text(
-                        text = record.note,
+                        text = payment.note,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.tertiary,
                     )
                 }
             }
             Text(
-                text = formatYen(record.amount),
+                text = formatYen(payment.amount),
                 style = MaterialTheme.typography.titleMedium,
                 color = if (hasNote) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
             )
@@ -582,7 +582,7 @@ private fun ItemBreakdownCard(
     currentUid: String,
     isCompact: Boolean,
 ) {
-    val myAllocation = item.payments.filter { it.uid == currentUid }.sumOf { it.amount }
+    val myAllocation = item.shares.filter { it.uid == currentUid }.sumOf { it.amount }
     if (myAllocation == 0L) return
 
     Card(

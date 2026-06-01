@@ -14,8 +14,9 @@ import kotlinx.coroutines.launch
 import model.MoneyItem
 import model.MonthlyMoney
 import model.MonthlyMoneyStatus
-import model.Payment
+import model.Share
 import model.User
+import model.toSaveRequest
 
 /** 現在の年月を "YYYY-MM" 形式で返す */
 @JsFun(
@@ -144,21 +145,21 @@ class MoneyViewModel(
         name: String,
         amount: Long,
         note: String,
-        payments: List<Payment>,
+        shares: List<Share>,
         tags: List<String>,
     ) {
         val existing = uiState.editingItem
 
         val newItem =
             if (existing != null) {
-                existing.copy(name = name, amount = amount, note = note, payments = payments, tags = tags)
+                existing.copy(name = name, amount = amount, note = note, shares = shares, tags = tags)
             } else {
                 MoneyItem(
                     id = randomUUID().toString(),
                     name = name,
                     amount = amount,
                     note = note,
-                    payments = payments,
+                    shares = shares,
                     tags = tags,
                 )
             }
@@ -208,13 +209,13 @@ class MoneyViewModel(
                 // 移動先の月データを取得して項目を追加
                 val targetData = moneyRepository.getMonthlyMoney(targetYearMonth)
                 val updatedTarget = targetData.copy(items = targetData.items + item)
-                moneyRepository.saveMonthlyMoney(updatedTarget)
+                moneyRepository.saveMonthlyMoney(targetYearMonth, updatedTarget.toSaveRequest())
                 // 現在の月から項目を削除
                 val updatedCurrent =
                     uiState.monthlyMoney.copy(
                         items = uiState.monthlyMoney.items.filter { it.id != item.id },
                     )
-                moneyRepository.saveMonthlyMoney(updatedCurrent)
+                moneyRepository.saveMonthlyMoney(uiState.currentYearMonth, updatedCurrent.toSaveRequest())
                 uiState = uiState.copy(monthlyMoney = updatedCurrent)
                 if (uiState.editingItem?.id == item.id) onClearForm()
             } catch (e: Exception) {
@@ -232,7 +233,7 @@ class MoneyViewModel(
         uiState = uiState.copy(isSaving = true)
         viewModelScope.launch {
             try {
-                moneyRepository.saveMonthlyMoney(data)
+                moneyRepository.saveMonthlyMoney(uiState.currentYearMonth, data.toSaveRequest())
                 uiState = uiState.copy(monthlyMoney = data)
                 onSuccess()
             } catch (e: Exception) {
