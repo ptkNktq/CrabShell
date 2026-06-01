@@ -145,6 +145,9 @@ class FirestoreMigrations(
      * - 新フィールドのみ、または両方とも未設定 → 何もしない
      *
      * 全フィールドが何もしない場合は `null` を返してドキュメントを更新対象から外す。
+     *
+     * 戻り値の `Map<String, Any>` は `Firestore.batch().update(ref, map)` がそのまま受け取る形式で、
+     * 値には `FieldValue.delete()` 等の sentinel、`List<Map<...>>`、`Map<String, Any>` が混在する。
      */
     @Suppress("UNCHECKED_CAST")
     internal fun buildPaymentsAndSharesUpdate(data: Map<String, Any?>?): Map<String, Any>? {

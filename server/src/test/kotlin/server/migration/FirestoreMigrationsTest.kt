@@ -97,13 +97,11 @@ class FirestoreMigrationsTest {
                     ),
             )
         val update = firestoreMigrations.buildPaymentsAndSharesUpdate(data)
-
-        @Suppress("UNCHECKED_CAST")
-        val newItems = update?.get("items") as? List<Map<String, Any?>>
-        assertEquals(1, newItems?.size)
-        assertTrue(newItems?.get(0)?.containsKey("shares") == true)
-        assertEquals(false, newItems?.get(0)?.containsKey("payments"))
-        assertEquals(listOf(mapOf("uid" to "u1", "amount" to 500L)), newItems?.get(0)?.get("shares"))
+        val newItems = update.expectItems()
+        assertEquals(1, newItems.size)
+        assertTrue(newItems[0].containsKey("shares"))
+        assertEquals(false, newItems[0].containsKey("payments"))
+        assertEquals(listOf(mapOf("uid" to "u1", "amount" to 500L)), newItems[0]["shares"])
     }
 
     @Test
@@ -159,11 +157,9 @@ class FirestoreMigrationsTest {
                     ),
             )
         val update = firestoreMigrations.buildPaymentsAndSharesUpdate(data)
-
-        @Suppress("UNCHECKED_CAST")
-        val newItems = update?.get("items") as? List<Map<String, Any?>>
-        assertEquals(listOf(mapOf("uid" to "u1", "amount" to 9999L)), newItems?.get(0)?.get("shares"))
-        assertEquals(false, newItems?.get(0)?.containsKey("payments"))
+        val newItems = update.expectItems()
+        assertEquals(listOf(mapOf("uid" to "u1", "amount" to 9999L)), newItems[0]["shares"])
+        assertEquals(false, newItems[0].containsKey("payments"))
     }
 
     @Test
@@ -185,4 +181,14 @@ class FirestoreMigrationsTest {
         assertEquals(2, update?.size)
         assertEquals(false, update?.containsKey("items"))
     }
+}
+
+/**
+ * `update["items"]` を型付きで取り出すヘルパ。
+ * Firestore 戻り値の `Any` 混在型を assertions 側で安全に展開する。
+ */
+@Suppress("UNCHECKED_CAST")
+private fun Map<String, Any>?.expectItems(): List<Map<String, Any?>> {
+    val items = this?.get("items") ?: error("update must contain 'items' key")
+    return items as? List<Map<String, Any?>> ?: error("'items' must be List<Map<String, Any?>>")
 }
