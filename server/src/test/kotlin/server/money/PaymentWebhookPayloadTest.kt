@@ -257,6 +257,7 @@ class PaymentWebhookPayloadTest {
             )
         val text = json["text"]!!.jsonPrimitive.content
         assertTrue(!text.contains("<!channel>"), "text should not contain raw <!channel>: $text")
+        assertTrue(text.contains("&lt;!channel&gt;"), "text should contain HTML-encoded <!channel>: $text")
     }
 
     @Test
@@ -274,6 +275,7 @@ class PaymentWebhookPayloadTest {
             )
         val text = json["text"]!!.jsonPrimitive.content
         assertTrue(!text.contains("<@U"), "text should not contain raw user mention: $text")
+        assertTrue(text.contains("&lt;@U12345&gt;"), "text should contain HTML-encoded user mention: $text")
     }
 
     // --- URL によるサービス判別 ---

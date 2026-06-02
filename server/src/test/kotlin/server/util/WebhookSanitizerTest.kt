@@ -77,58 +77,62 @@ class WebhookSanitizerTest {
         assertFalse(result.contains("<@e"), "result should not contain raw <@e: $result")
     }
 
-    // --- Slack ---
+    // --- Slack (HTML エンティティ化方式) ---
 
     @Test
     fun slackBreaksChannelSpecial() {
         val result = sanitizeForSlack("<!channel>")
         assertFalse(result.contains("<!channel>"), "result should not contain <!channel>: $result")
-        assertTrue(result.contains("<$ZWS!channel>"), "result should contain ZWS-broken <!channel>: $result")
+        assertEquals("&lt;!channel&gt;", result)
     }
 
     @Test
     fun slackBreaksHere() {
-        val result = sanitizeForSlack("<!here>")
-        assertFalse(result.contains("<!here>"))
-    }
-
-    @Test
-    fun slackBreaksEveryone() {
-        val result = sanitizeForSlack("<!everyone>")
-        assertFalse(result.contains("<!everyone>"))
+        assertEquals("&lt;!here&gt;", sanitizeForSlack("<!here>"))
     }
 
     @Test
     fun slackBreaksSubteam() {
         val result = sanitizeForSlack("<!subteam^S12345>")
         assertFalse(result.contains("<!subteam"))
+        assertEquals("&lt;!subteam^S12345&gt;", result)
     }
 
     @Test
     fun slackBreaksChannelMention() {
-        val result = sanitizeForSlack("<#C12345>")
-        assertFalse(result.contains("<#"))
-        assertTrue(result.contains("<$ZWS#"))
+        assertEquals("&lt;#C12345&gt;", sanitizeForSlack("<#C12345>"))
     }
 
     @Test
     fun slackBreaksChannelMentionWithLabel() {
-        val result = sanitizeForSlack("<#C12345|general>")
-        assertFalse(result.contains("<#"))
+        assertEquals("&lt;#C12345|general&gt;", sanitizeForSlack("<#C12345|general>"))
     }
 
     @Test
     fun slackBreaksUserMention() {
-        val result = sanitizeForSlack("<@U12345>")
-        assertFalse(result.contains("<@U"), "result should not contain raw user mention: $result")
-        assertTrue(result.contains("<$ZWS@"), "result should contain ZWS-broken user mention: $result")
+        assertEquals("&lt;@U12345&gt;", sanitizeForSlack("<@U12345>"))
     }
 
     @Test
-    fun slackPreservesLinkSyntax() {
-        // Slack のリンク <URL|text> はメンション記号 (<!, <@, <#) を含まないため温存される
-        val text = "<https://example.com|ダッシュボード>"
-        assertEquals(text, sanitizeForSlack(text))
+    fun slackBreaksLinkSyntax() {
+        // HTML エンティティ化方式では <URL|text> 形式のリンクも無効化される
+        // （ユーザー入力経由で勝手にリンクが生成されないようにする副次効果）
+        val result = sanitizeForSlack("<https://example.com|ダッシュボード>")
+        assertEquals("&lt;https://example.com|ダッシュボード&gt;", result)
+    }
+
+    @Test
+    fun slackEscapesAmpersand() {
+        // & は最初にエスケープしないと <  → &lt; → &amp;lt; と二重エンコードされる
+        assertEquals("AT&amp;T", sanitizeForSlack("AT&T"))
+    }
+
+    @Test
+    fun slackEscapesAmpersandBeforeLessThan() {
+        // & が < より先にエスケープされていることを確認（順序逆だと &amp;lt; になる）
+        val result = sanitizeForSlack("<a&b>")
+        assertEquals("&lt;a&amp;b&gt;", result)
+        assertFalse(result.contains("&amp;lt;"), "must not double-encode <: $result")
     }
 
     @Test

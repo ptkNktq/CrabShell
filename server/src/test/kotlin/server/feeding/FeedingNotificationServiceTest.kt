@@ -540,6 +540,8 @@ class FeedingNotificationServiceTest {
                 feedingPageUrl = null,
             )
         assertFalse(payload.contains("<!channel>"), "payload should not contain raw <!channel>: $payload")
+        // JSON 文字列内では `<` → `&lt;` のため `<` ではなく `&lt;` がそのまま含まれる
+        assertTrue(payload.contains("&lt;!channel&gt;"), "payload should contain HTML-encoded <!channel>: $payload")
     }
 
     @Test
@@ -557,5 +559,6 @@ class FeedingNotificationServiceTest {
                 feedingPageUrl = null,
             )
         assertFalse(payload.contains("<@U"), "payload should not contain raw user mention: $payload")
+        assertTrue(payload.contains("&lt;@U12345&gt;"), "payload should contain HTML-encoded user mention: $payload")
     }
 }
