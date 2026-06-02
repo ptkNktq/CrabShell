@@ -178,6 +178,106 @@ class PaymentWebhookPayloadTest {
         assertNull(json["dashboardUrl"])
     }
 
+    // --- displayName 経由のメンションインジェクション対策 ---
+
+    @Test
+    fun discordPayerNameWithEveryoneIsSanitized() {
+        val json =
+            parseJson(
+                service.buildPayload(
+                    url = "https://discord.com/api/webhooks/12345/token",
+                    message = "",
+                    yearMonth = "2026-04",
+                    payerName = "@everyone",
+                    amount = 5000L,
+                    dashboardUrl = null,
+                ),
+            )
+        val description =
+            json["embeds"]!!
+                .jsonArray[0]
+                .jsonObject["description"]!!
+                .jsonPrimitive.content
+        assertTrue(!description.contains("@everyone"), "description should not contain raw @everyone: $description")
+    }
+
+    @Test
+    fun discordPayerNameWithUserMentionIsSanitized() {
+        val json =
+            parseJson(
+                service.buildPayload(
+                    url = "https://discord.com/api/webhooks/12345/token",
+                    message = "",
+                    yearMonth = "2026-04",
+                    payerName = "<@123456789>",
+                    amount = 5000L,
+                    dashboardUrl = null,
+                ),
+            )
+        val payerField =
+            json["embeds"]!!
+                .jsonArray[0]
+                .jsonObject["fields"]!!
+                .jsonArray
+                .first { it.jsonObject["name"]!!.jsonPrimitive.content == "支払者" }
+                .jsonObject["value"]!!
+                .jsonPrimitive.content
+        assertTrue(!payerField.contains("<@1"), "支払者 field should not contain raw user mention: $payerField")
+    }
+
+    @Test
+    fun discordAdminMessageMentionIsPreserved() {
+        val json =
+            parseJson(
+                service.buildPayload(
+                    url = "https://discord.com/api/webhooks/12345/token",
+                    message = "<@123456789> 入金確認お願い",
+                    yearMonth = "2026-04",
+                    payerName = "Alice",
+                    amount = 5000L,
+                    dashboardUrl = null,
+                ),
+            )
+        // admin が設定する message は意図的なメンションのため温存される
+        assertEquals("<@123456789> 入金確認お願い", json["content"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun slackPayerNameWithChannelIsSanitized() {
+        val json =
+            parseJson(
+                service.buildPayload(
+                    url = "https://hooks.slack.com/services/T00/B00/xxx",
+                    message = "",
+                    yearMonth = "2026-04",
+                    payerName = "<!channel>",
+                    amount = 5000L,
+                    dashboardUrl = null,
+                ),
+            )
+        val text = json["text"]!!.jsonPrimitive.content
+        assertTrue(!text.contains("<!channel>"), "text should not contain raw <!channel>: $text")
+        assertTrue(text.contains("&lt;!channel&gt;"), "text should contain HTML-encoded <!channel>: $text")
+    }
+
+    @Test
+    fun slackPayerNameWithUserMentionIsSanitized() {
+        val json =
+            parseJson(
+                service.buildPayload(
+                    url = "https://hooks.slack.com/services/T00/B00/xxx",
+                    message = "",
+                    yearMonth = "2026-04",
+                    payerName = "<@U12345>",
+                    amount = 5000L,
+                    dashboardUrl = null,
+                ),
+            )
+        val text = json["text"]!!.jsonPrimitive.content
+        assertTrue(!text.contains("<@U"), "text should not contain raw user mention: $text")
+        assertTrue(text.contains("&lt;@U12345&gt;"), "text should contain HTML-encoded user mention: $text")
+    }
+
     // --- URL によるサービス判別 ---
 
     @Test

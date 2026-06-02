@@ -133,6 +133,55 @@ class QuestWebhookPayloadTest {
         assertEquals(sampleQuest.creatorName, quest["creatorName"]!!.jsonPrimitive.content)
     }
 
+    // --- ユーザー入力経由のメンションインジェクション対策 ---
+
+    @Test
+    fun discordSanitizesQuestTitleAndDescriptionAndCreator() {
+        val maliciousQuest =
+            sampleQuest.copy(
+                title = "@everyone 緊急",
+                description = "<#999999> でやる",
+                creatorName = "<@123456789>",
+            )
+        val json =
+            parseJson(
+                service.buildPayload("https://discord.com/api/webhooks/12345/token", "quest_created", maliciousQuest),
+            )
+        val embed = json["embeds"]!!.jsonArray[0].jsonObject
+        val title = embed["title"]!!.jsonPrimitive.content
+        val description = embed["description"]!!.jsonPrimitive.content
+        val creatorField =
+            embed["fields"]!!
+                .jsonArray
+                .first { it.jsonObject["name"]!!.jsonPrimitive.content == "依頼者" }
+                .jsonObject["value"]!!
+                .jsonPrimitive.content
+        assertTrue(!title.contains("@everyone"), "title should not contain raw @everyone: $title")
+        assertTrue(!description.contains("<#9"), "description should not contain raw channel mention: $description")
+        assertTrue(!creatorField.contains("<@1"), "creatorName should not contain raw user mention: $creatorField")
+    }
+
+    @Test
+    fun slackSanitizesQuestTitleAndDescriptionAndCreator() {
+        val maliciousQuest =
+            sampleQuest.copy(
+                title = "<!channel>",
+                description = "<#C12345|general>",
+                creatorName = "<@U12345>",
+            )
+        val json =
+            parseJson(
+                service.buildPayload("https://hooks.slack.com/services/T00/B00/xxx", "quest_created", maliciousQuest),
+            )
+        val text = json["text"]!!.jsonPrimitive.content
+        assertTrue(!text.contains("<!channel>"), "text should not contain raw <!channel>: $text")
+        assertTrue(!text.contains("<#C"), "text should not contain raw channel mention: $text")
+        assertTrue(!text.contains("<@U"), "text should not contain raw user mention: $text")
+        assertTrue(text.contains("&lt;!channel&gt;"), "text should contain HTML-encoded <!channel>: $text")
+        assertTrue(text.contains("&lt;#C12345|general&gt;"), "text should contain HTML-encoded channel mention: $text")
+        assertTrue(text.contains("&lt;@U12345&gt;"), "text should contain HTML-encoded user mention: $text")
+    }
+
     // --- URL によるサービス判別 ---
 
     @Test

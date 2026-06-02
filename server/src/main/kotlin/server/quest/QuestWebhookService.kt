@@ -21,6 +21,8 @@ import server.util.DISCORD_EMBED_COLOR
 import server.util.WebhookServiceType
 import server.util.await
 import server.util.detectWebhookService
+import server.util.sanitizeForDiscord
+import server.util.sanitizeForSlack
 import java.time.Instant
 
 class QuestWebhookService(
@@ -107,17 +109,20 @@ class QuestWebhookService(
         quest: Quest,
     ): DiscordPayload {
         val prefix = eventPrefix(event)
+        val safeTitle = sanitizeForDiscord(quest.title)
+        val safeDescription = sanitizeForDiscord(quest.description)
+        val safeCreatorName = sanitizeForDiscord(quest.creatorName)
         return DiscordPayload(
             embeds =
                 listOf(
                     DiscordEmbed(
-                        title = "$prefix: ${quest.title}",
-                        description = quest.description,
+                        title = "$prefix: $safeTitle",
+                        description = safeDescription,
                         color = DISCORD_EMBED_COLOR,
                         fields =
                             listOf(
                                 DiscordField(name = "報酬", value = "${quest.rewardPoints}pt", inline = true),
-                                DiscordField(name = "依頼者", value = quest.creatorName, inline = true),
+                                DiscordField(name = "依頼者", value = safeCreatorName, inline = true),
                             ),
                     ),
                 ),
@@ -129,8 +134,11 @@ class QuestWebhookService(
         quest: Quest,
     ): SlackPayload {
         val prefix = eventPrefix(event)
+        val safeTitle = sanitizeForSlack(quest.title)
+        val safeDescription = sanitizeForSlack(quest.description)
+        val safeCreatorName = sanitizeForSlack(quest.creatorName)
         return SlackPayload(
-            text = "$prefix: ${quest.title}\n${quest.description}\n報酬: ${quest.rewardPoints}pt | 依頼者: ${quest.creatorName}",
+            text = "$prefix: $safeTitle\n$safeDescription\n報酬: ${quest.rewardPoints}pt | 依頼者: $safeCreatorName",
         )
     }
 

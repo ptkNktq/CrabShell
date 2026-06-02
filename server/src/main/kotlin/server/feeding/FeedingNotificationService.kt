@@ -17,6 +17,8 @@ import server.pet.PetRepository
 import server.util.DISCORD_EMBED_COLOR
 import server.util.WebhookServiceType
 import server.util.detectWebhookService
+import server.util.sanitizeForDiscord
+import server.util.sanitizeForSlack
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
@@ -174,17 +176,18 @@ class FeedingNotificationService(
                 FeedingNotificationPhase.SCHEDULED -> "給餌時間"
                 FeedingNotificationPhase.REMINDER -> "給餌リマインダー"
             }
-        val message =
-            when (phase) {
-                FeedingNotificationPhase.SCHEDULED ->
-                    "${petName}の${mealLabel}ごはんの時間です（予定: $scheduledTime）"
-                FeedingNotificationPhase.REMINDER ->
-                    "${petName}の${mealLabel}ごはん（予定: $scheduledTime）がまだ記録されていません"
-            }
         val event =
             when (phase) {
                 FeedingNotificationPhase.SCHEDULED -> "feeding_scheduled"
                 FeedingNotificationPhase.REMINDER -> "feeding_reminder"
+            }
+
+        fun message(safePetName: String): String =
+            when (phase) {
+                FeedingNotificationPhase.SCHEDULED ->
+                    "${safePetName}の${mealLabel}ごはんの時間です（予定: $scheduledTime）"
+                FeedingNotificationPhase.REMINDER ->
+                    "${safePetName}の${mealLabel}ごはん（予定: $scheduledTime）がまだ記録されていません"
             }
         return when (detectWebhookService(url)) {
             WebhookServiceType.DISCORD -> {
@@ -195,7 +198,7 @@ class FeedingNotificationService(
                             listOf(
                                 DiscordNotificationEmbed(
                                     title = title,
-                                    description = message,
+                                    description = message(sanitizeForDiscord(petName)),
                                     color = DISCORD_EMBED_COLOR,
                                     url = feedingPageUrl,
                                 ),
@@ -204,7 +207,9 @@ class FeedingNotificationService(
                 json.encodeToString(discord)
             }
             WebhookServiceType.SLACK -> {
-                val text = if (prefix.isBlank()) message else "$prefix $message"
+                val text =
+                    message(sanitizeForSlack(petName))
+                        .let { if (prefix.isBlank()) it else "$prefix $it" }
                 val withLink =
                     if (feedingPageUrl != null) "$text\n<$feedingPageUrl|ごはんページを開く>" else text
                 json.encodeToString(SlackNotificationPayload(text = withLink))
@@ -218,7 +223,7 @@ class FeedingNotificationService(
                         petName = petName,
                         mealTime = mealLabel,
                         scheduledTime = scheduledTime,
-                        message = message,
+                        message = message(petName),
                         feedingPageUrl = feedingPageUrl,
                     ),
                 )
