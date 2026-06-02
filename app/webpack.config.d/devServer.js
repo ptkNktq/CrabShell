@@ -11,7 +11,7 @@ if (config.devServer) {
     // webpack 5 では proxy は配列形式が必須
     config.devServer.proxy = [
         {
-            context: ['/api', '/rapidoc', '/api.json'],
+            context: ['/api', '/rapidoc', '/api.json', '/vendor'],
             target: 'http://localhost:8080',
             changeOrigin: false,
         }

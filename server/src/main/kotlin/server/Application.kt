@@ -184,7 +184,7 @@ fun Application.module() {
 
     routing {
         if (swaggerEnabled) {
-            get("api.json") { openApi() }
+            route("api.json") { openApi() }
             get("rapidoc") {
                 call.respondText(RAPIDOC_HTML, ContentType.Text.Html)
             }
