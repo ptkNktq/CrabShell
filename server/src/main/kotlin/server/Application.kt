@@ -265,6 +265,7 @@ private val RAPIDOC_HTML =
           allow-authentication="true"
           allow-try="true"
           primary-color="#E8844A"
+          font-size="large"
         ></rapi-doc>
       </body>
     </html>
