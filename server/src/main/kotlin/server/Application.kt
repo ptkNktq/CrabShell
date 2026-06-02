@@ -4,7 +4,6 @@ import io.github.smiley4.ktoropenapi.OpenApi
 import io.github.smiley4.ktoropenapi.config.AuthScheme
 import io.github.smiley4.ktoropenapi.config.AuthType
 import io.github.smiley4.ktoropenapi.openApi
-import io.github.smiley4.ktorswaggerui.swaggerUI
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -186,7 +185,9 @@ fun Application.module() {
     routing {
         if (swaggerEnabled) {
             route("api.json") { openApi() }
-            route("swagger") { swaggerUI("/api.json") }
+            get("rapidoc") {
+                call.respondText(RAPIDOC_HTML, ContentType.Text.Html)
+            }
         }
 
         route("/api") {
@@ -231,3 +232,50 @@ fun Application.module() {
         }
     }
 }
+
+/**
+ * RapiDoc 単一 HTML。`/rapidoc` で配信し、CrabShell の `/api.json`（OpenAPI spec）を読み込む。
+ *
+ * - RapiDoc 本体は `server/src/main/resources/static/vendor/rapidoc-<version>/` に同梱
+ *   （CDN 依存なし、エアギャップ環境・ネットワーク断時も動作）。バージョン bump 手順:
+ *   1. `curl -sL https://unpkg.com/rapidoc@<new-ver>/dist/rapidoc-min.js -o static/vendor/rapidoc-<new-ver>/rapidoc-min.js`
+ *   2. `curl -sL https://unpkg.com/rapidoc@<new-ver>/dist/rapidoc-min.js.LICENSE.txt -o static/vendor/rapidoc-<new-ver>/rapidoc-min.js.LICENSE.txt`
+ *   3. 旧 `static/vendor/rapidoc-<old-ver>/` を削除
+ *   4. 本 HTML の script src パスを新バージョンに更新
+ * - 同梱ファイルにはバナーコメント `/*! RapiDoc <ver> | Author - ... | License ... */` が
+ *   保持されており、隣接の `*.LICENSE.txt` に bundled 依存（buffer, js-yaml 他）の
+ *   MIT/BSD 通知が含まれる。MIT 再配布義務はこれで遵守。
+ * - primary-color はプロジェクトのブランドカラー (#E8844A) に揃える。
+ * - dark テーマ既定。light/dark の切替トグルはヘッダ右上の UI から可能。
+ * - allow-spec-url-load 等の入力 UI は本プロジェクトには不要なので無効化。
+ * - 英語 UI なので html lang="en"（lang="ja" だとスクリーンリーダーが日本語アクセントで読み上げる）。
+ */
+private val RAPIDOC_HTML =
+    """
+    <!doctype html>
+    <html lang="en">
+      <head>
+        <meta charset="utf-8">
+        <title>CrabShell API</title>
+        <script type="module" src="/vendor/rapidoc-9.3.8/rapidoc-min.js"></script>
+        <style>html, body { margin: 0; padding: 0; height: 100%; }</style>
+      </head>
+      <body>
+        <rapi-doc
+          spec-url="/api.json"
+          theme="dark"
+          render-style="read"
+          schema-style="table"
+          show-header="true"
+          allow-server-selection="false"
+          allow-spec-url-load="false"
+          allow-spec-file-load="false"
+          allow-spec-file-download="false"
+          allow-authentication="true"
+          allow-try="true"
+          primary-color="#E8844A"
+          font-size="large"
+        ></rapi-doc>
+      </body>
+    </html>
+    """.trimIndent()

@@ -34,7 +34,6 @@ dependencies {
     implementation(libs.koin.core)
     implementation(libs.koin.ktor)
     implementation(libs.ktor.openapi)
-    implementation(libs.ktor.swagger.ui)
     implementation(libs.maxmind.geoip2)
 
     // Ktor Client (Gemini API + Webhook 送信用)
