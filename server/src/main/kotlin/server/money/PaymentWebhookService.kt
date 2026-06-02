@@ -22,6 +22,8 @@ import server.util.DISCORD_EMBED_COLOR
 import server.util.WebhookServiceType
 import server.util.await
 import server.util.detectWebhookService
+import server.util.sanitizeForDiscord
+import server.util.sanitizeForSlack
 
 class PaymentWebhookService(
     private val firestore: Firestore,
@@ -105,12 +107,13 @@ class PaymentWebhookService(
     ): String {
         val formattedYearMonth = formatYearMonth(yearMonth)
         val formattedAmount = formatAmount(amount)
-        val description = "$formattedYearMonth に $payerName が $formattedAmount を支払いました"
         return when (detectWebhookService(url)) {
             WebhookServiceType.DISCORD -> {
+                val safePayerName = sanitizeForDiscord(payerName)
+                val description = "$formattedYearMonth に $safePayerName が $formattedAmount を支払いました"
                 val fields =
                     listOf(
-                        DiscordPaymentField(name = "支払者", value = payerName, inline = true),
+                        DiscordPaymentField(name = "支払者", value = safePayerName, inline = true),
                         DiscordPaymentField(name = "金額", value = formattedAmount, inline = true),
                         DiscordPaymentField(name = "対象月", value = formattedYearMonth, inline = true),
                     )
@@ -131,6 +134,8 @@ class PaymentWebhookService(
                 )
             }
             WebhookServiceType.SLACK -> {
+                val safePayerName = sanitizeForSlack(payerName)
+                val description = "$formattedYearMonth に $safePayerName が $formattedAmount を支払いました"
                 val base = if (message.isBlank()) description else "$message\n$description"
                 val withLink =
                     if (dashboardUrl != null) "$base\n<$dashboardUrl|ダッシュボードを開く>" else base
