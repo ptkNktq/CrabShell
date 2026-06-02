@@ -10,9 +10,15 @@ package server.util
  * 対象外のため、admin が `<@USER_ID>` 等のユーザー指定メンションを意図的に埋め込む運用は
  * 維持される。サニタイズはあくまで「不特定多数のユーザーが自由に書き換えられる値」が
  * Discord/Slack に渡る経路に限定する。
+ *
+ * **設計判断**: Discord の `allowed_mentions` パラメータや Slack の HTML エンティティ化
+ * (`<` → `&lt;`) も無効化手段として存在するが、いずれも payload 全体に作用するため
+ * admin message 内の `<@USER_ID>` も同時に無効化されてしまう。本プロジェクトは
+ * 「ユーザー入力フィールドのみサニタイズ・admin message は素通し」という要件のため、
+ * フィールド単位で適用できる ZWS 分断方式を採用している。
  */
 
-private const val ZWS = "​"
+internal const val ZWS = "​"
 
 /**
  * Discord 用にユーザー入力をサニタイズする。

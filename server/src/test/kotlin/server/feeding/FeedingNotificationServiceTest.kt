@@ -470,4 +470,92 @@ class FeedingNotificationServiceTest {
         // embed.url が null なので、リンク (https://example.com/feeding) は payload に出ない
         assertFalse(payload.contains("example.com"))
     }
+
+    // --- petName 経由のメンションインジェクション対策 ---
+
+    @Test
+    fun discordPetNameWithEveryoneIsSanitized() {
+        val service = createService()
+        val payload =
+            service.buildPayload(
+                url = "https://discord.com/api/webhooks/x/y",
+                prefix = "",
+                phase = FeedingNotificationPhase.REMINDER,
+                petId = "pet1",
+                petName = "@everyone",
+                mealLabel = "朝",
+                scheduledTime = "07:00",
+                feedingPageUrl = null,
+            )
+        assertFalse(payload.contains("@everyone"), "payload should not contain raw @everyone: $payload")
+    }
+
+    @Test
+    fun discordPetNameWithUserMentionIsSanitized() {
+        val service = createService()
+        val payload =
+            service.buildPayload(
+                url = "https://discord.com/api/webhooks/x/y",
+                prefix = "",
+                phase = FeedingNotificationPhase.SCHEDULED,
+                petId = "pet1",
+                petName = "<@123456789>",
+                mealLabel = "朝",
+                scheduledTime = "07:00",
+                feedingPageUrl = null,
+            )
+        assertFalse(payload.contains("<@1"), "payload should not contain raw user mention: $payload")
+    }
+
+    @Test
+    fun discordPrefixIsPreserved() {
+        // prefix は admin 設定のため温存される
+        val service = createService()
+        val payload =
+            service.buildPayload(
+                url = "https://discord.com/api/webhooks/x/y",
+                prefix = "<@123456789>",
+                phase = FeedingNotificationPhase.REMINDER,
+                petId = "pet1",
+                petName = "ポチ",
+                mealLabel = "朝",
+                scheduledTime = "07:00",
+                feedingPageUrl = null,
+            )
+        assertTrue(payload.contains("<@123456789>"), "admin prefix should be preserved: $payload")
+    }
+
+    @Test
+    fun slackPetNameWithChannelIsSanitized() {
+        val service = createService()
+        val payload =
+            service.buildPayload(
+                url = "https://hooks.slack.com/services/x/y/z",
+                prefix = "",
+                phase = FeedingNotificationPhase.REMINDER,
+                petId = "pet1",
+                petName = "<!channel>",
+                mealLabel = "朝",
+                scheduledTime = "07:00",
+                feedingPageUrl = null,
+            )
+        assertFalse(payload.contains("<!channel>"), "payload should not contain raw <!channel>: $payload")
+    }
+
+    @Test
+    fun slackPetNameWithUserMentionIsSanitized() {
+        val service = createService()
+        val payload =
+            service.buildPayload(
+                url = "https://hooks.slack.com/services/x/y/z",
+                prefix = "",
+                phase = FeedingNotificationPhase.SCHEDULED,
+                petId = "pet1",
+                petName = "<@U12345>",
+                mealLabel = "朝",
+                scheduledTime = "07:00",
+                feedingPageUrl = null,
+            )
+        assertFalse(payload.contains("<@U"), "payload should not contain raw user mention: $payload")
+    }
 }

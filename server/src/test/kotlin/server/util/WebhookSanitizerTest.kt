@@ -5,8 +5,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-private const val ZWS = "​"
-
 class WebhookSanitizerTest {
     // --- Discord ---
 
@@ -64,6 +62,19 @@ class WebhookSanitizerTest {
         assertFalse(result.contains("<@&111>"))
         assertFalse(result.contains("<#222>"))
         assertFalse(result.contains("<@333>"))
+        // 各置換に ZWS が挿入されている
+        assertTrue(result.contains("@${ZWS}everyone"), "result should contain ZWS-broken @everyone: $result")
+        assertTrue(result.contains("<$ZWS@&"), "result should contain ZWS-broken role mention: $result")
+        assertTrue(result.contains("<$ZWS#"), "result should contain ZWS-broken channel mention: $result")
+        assertTrue(result.contains("<$ZWS@3"), "result should contain ZWS-broken user mention: $result")
+    }
+
+    @Test
+    fun discordHandlesMalformedNestedPattern() {
+        // `<@everyone` のような不正記法でも、@everyone が発火しないことを保証
+        val result = sanitizeForDiscord("<@everyone")
+        assertFalse(result.contains("@everyone"), "result should not contain raw @everyone: $result")
+        assertFalse(result.contains("<@e"), "result should not contain raw <@e: $result")
     }
 
     // --- Slack ---
