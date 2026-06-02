@@ -184,7 +184,7 @@ fun Application.module() {
 
     routing {
         if (swaggerEnabled) {
-            route("api.json") { openApi() }
+            get("api.json") { openApi() }
             get("rapidoc") {
                 call.respondText(RAPIDOC_HTML, ContentType.Text.Html)
             }
@@ -236,19 +236,27 @@ fun Application.module() {
 /**
  * RapiDoc 単一 HTML。`/rapidoc` で配信し、CrabShell の `/api.json`（OpenAPI spec）を読み込む。
  *
- * - RapiDoc 本体は CDN (unpkg) から取得。`SWAGGER_ENABLED=true` は開発時のみ有効なので CDN 依存可。
+ * - RapiDoc 本体は CDN (unpkg) からバージョン固定で取得。SWAGGER_ENABLED=true は開発時のみ有効。
+ *   バージョン bump 時はあわせて SRI ハッシュ (integrity 属性) も再生成すること:
+ *   `curl -sL https://unpkg.com/rapidoc@<ver>/dist/rapidoc-min.js | openssl dgst -sha384 -binary | openssl base64 -A`
  * - primary-color はプロジェクトのブランドカラー (#E8844A) に揃える。
- * - dark テーマ既定。light に切り替えるトグルは header の UI から可能。
+ * - dark テーマ既定。light/dark の切替トグルはヘッダ右上の UI から可能。
  * - allow-spec-url-load 等の入力 UI は本プロジェクトには不要なので無効化。
+ * - 英語 UI なので html lang="en"（lang="ja" だとスクリーンリーダーが日本語アクセントで読み上げる）。
  */
 private val RAPIDOC_HTML =
     """
     <!doctype html>
-    <html lang="ja">
+    <html lang="en">
       <head>
         <meta charset="utf-8">
         <title>CrabShell API</title>
-        <script type="module" src="https://unpkg.com/rapidoc/dist/rapidoc-min.js"></script>
+        <script
+          type="module"
+          src="https://unpkg.com/rapidoc@9.3.8/dist/rapidoc-min.js"
+          integrity="sha384-szzoYhqSJqZH8X90KwbBjYL1CMLEa3U7xl/oAZg4ViKpYEY5GVhM+peBQB4u7ANM"
+          crossorigin="anonymous"
+        ></script>
         <style>html, body { margin: 0; padding: 0; height: 100%; }</style>
       </head>
       <body>
