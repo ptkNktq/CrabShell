@@ -1,69 +1,46 @@
 package server.money
 
 import com.google.cloud.firestore.Firestore
-import com.google.cloud.firestore.SetOptions
 import io.ktor.client.HttpClient
-import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.content.TextContent
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import model.MoneyWebhookSettings
-import org.slf4j.LoggerFactory
 import server.config.EnvConfig
+import server.util.AbstractWebhookService
+import server.util.AbstractWebhookService.Companion.defaultWebhookClient
 import server.util.DISCORD_EMBED_COLOR
 import server.util.WebhookServiceType
-import server.util.await
 import server.util.detectWebhookService
 import server.util.formatYearMonth
 
 class MoneyWebhookService(
-    private val firestore: Firestore,
-    private val client: HttpClient =
-        HttpClient {
-            install(HttpTimeout) {
-                requestTimeoutMillis = 10_000
-            }
-        },
+    firestore: Firestore,
+    client: HttpClient = defaultWebhookClient(),
     dispatcher: CoroutineDispatcher = Dispatchers.IO,
-) {
-    private val logger = LoggerFactory.getLogger(MoneyWebhookService::class.java)
-    private val moneySettingsDoc get() = firestore.collection("settings").document("money")
-    private val scope = CoroutineScope(dispatcher)
+) : AbstractWebhookService<MoneyWebhookSettings>(firestore, "money", client, dispatcher) {
+    override fun defaultSettings() = MoneyWebhookSettings()
 
-    @Suppress("UNCHECKED_CAST")
-    suspend fun getSettings(): MoneyWebhookSettings {
-        val doc = moneySettingsDoc.get().await()
-        if (!doc.exists()) return MoneyWebhookSettings()
-        val webhook = (doc.data?.get("webhook") as? Map<String, Any?>) ?: return MoneyWebhookSettings()
-        return MoneyWebhookSettings(
-            url = webhook["url"] as? String ?: "",
-            enabled = webhook["enabled"] as? Boolean ?: false,
-            message = webhook["message"] as? String ?: "",
+    override fun fromWebhookMap(map: Map<String, Any?>) =
+        MoneyWebhookSettings(
+            url = map["url"] as? String ?: "",
+            enabled = map["enabled"] as? Boolean ?: false,
+            message = map["message"] as? String ?: "",
         )
-    }
 
-    suspend fun updateSettings(settings: MoneyWebhookSettings) {
-        moneySettingsDoc
-            .set(
-                mapOf(
-                    "webhook" to
-                        mapOf(
-                            "url" to settings.url,
-                            "enabled" to settings.enabled,
-                            "message" to settings.message,
-                        ),
-                ),
-                SetOptions.merge(),
-            ).await()
-    }
+    override fun toWebhookMap(settings: MoneyWebhookSettings) =
+        mapOf(
+            "url" to settings.url,
+            "enabled" to settings.enabled,
+            "message" to settings.message,
+        )
 
     /** 月次ステータス確定時の通知を fire-and-forget で送信 */
     fun notifyConfirmed(yearMonth: String) {

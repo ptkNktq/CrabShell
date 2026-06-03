@@ -41,8 +41,7 @@ fun Route.moneyWebhookRoutes() {
                 }
             }) {
                 val settings = call.receive<MoneyWebhookSettings>()
-                moneyWebhookService.updateSettings(settings)
-                call.respond(moneyWebhookService.getSettings())
+                call.respond(moneyWebhookService.updateSettings(settings))
             }
         }
     }

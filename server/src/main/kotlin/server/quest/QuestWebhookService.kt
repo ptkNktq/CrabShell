@@ -1,14 +1,12 @@
 package server.quest
 
 import com.google.cloud.firestore.Firestore
-import com.google.cloud.firestore.SetOptions
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.content.TextContent
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -16,51 +14,35 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import model.Quest
 import model.QuestWebhookSettings
-import org.slf4j.LoggerFactory
+import server.util.AbstractWebhookService
+import server.util.AbstractWebhookService.Companion.defaultWebhookClient
 import server.util.DISCORD_EMBED_COLOR
 import server.util.WebhookServiceType
-import server.util.await
 import server.util.detectWebhookService
 import server.util.sanitizeForDiscord
 import server.util.sanitizeForSlack
 import java.time.Instant
 
 class QuestWebhookService(
-    private val firestore: Firestore,
+    firestore: Firestore,
+    client: HttpClient = defaultWebhookClient(),
     dispatcher: CoroutineDispatcher = Dispatchers.IO,
-) {
-    private val logger = LoggerFactory.getLogger(QuestWebhookService::class.java)
-    private val questSettingsDoc get() = firestore.collection("settings").document("quest")
-    private val scope = CoroutineScope(dispatcher)
+) : AbstractWebhookService<QuestWebhookSettings>(firestore, "quest", client, dispatcher) {
+    override fun defaultSettings() = QuestWebhookSettings()
 
-    private val client = HttpClient()
-
-    @Suppress("UNCHECKED_CAST")
-    suspend fun getSettings(): QuestWebhookSettings {
-        val doc = questSettingsDoc.get().await()
-        if (!doc.exists()) return QuestWebhookSettings()
-        val webhook = (doc.data?.get("webhook") as? Map<String, Any?>) ?: return QuestWebhookSettings()
-        return QuestWebhookSettings(
-            url = webhook["url"] as? String ?: "",
-            enabled = webhook["enabled"] as? Boolean ?: false,
-            events = (webhook["events"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+    override fun fromWebhookMap(map: Map<String, Any?>) =
+        QuestWebhookSettings(
+            url = map["url"] as? String ?: "",
+            enabled = map["enabled"] as? Boolean ?: false,
+            events = (map["events"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
         )
-    }
 
-    suspend fun updateSettings(settings: QuestWebhookSettings) {
-        questSettingsDoc
-            .set(
-                mapOf(
-                    "webhook" to
-                        mapOf(
-                            "url" to settings.url,
-                            "enabled" to settings.enabled,
-                            "events" to settings.events,
-                        ),
-                ),
-                SetOptions.merge(),
-            ).await()
-    }
+    override fun toWebhookMap(settings: QuestWebhookSettings) =
+        mapOf(
+            "url" to settings.url,
+            "enabled" to settings.enabled,
+            "events" to settings.events,
+        )
 
     /** fire-and-forget でイベントを送信 */
     fun notify(
