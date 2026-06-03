@@ -1,7 +1,5 @@
 package server.money
 
-import com.google.cloud.firestore.Firestore
-import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -15,8 +13,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class MoneyWebhookPayloadTest {
-    private val service = MoneyWebhookService(firestore = mockk<Firestore>())
-
     private fun parseJson(jsonString: String): JsonObject = Json.parseToJsonElement(jsonString).jsonObject
 
     // --- Discord ペイロード ---
@@ -25,7 +21,7 @@ class MoneyWebhookPayloadTest {
     fun discordPayloadStructure() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildMoneyPayload(
                     url = "https://discord.com/api/webhooks/12345/token",
                     message = "@everyone",
                     yearMonth = "2026-04",
@@ -47,7 +43,7 @@ class MoneyWebhookPayloadTest {
     fun discordPayloadIncludesMessageAsContent() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildMoneyPayload(
                     url = "https://discord.com/api/webhooks/12345/token",
                     message = "@everyone",
                     yearMonth = "2026-04",
@@ -62,7 +58,7 @@ class MoneyWebhookPayloadTest {
     fun discordPayloadOmitsContentWhenMessageBlank() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildMoneyPayload(
                     url = "https://discord.com/api/webhooks/12345/token",
                     message = "",
                     yearMonth = "2026-04",
@@ -78,7 +74,7 @@ class MoneyWebhookPayloadTest {
     fun discordAppUrlAlsoProducesDiscordPayload() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildMoneyPayload(
                     url = "https://discordapp.com/api/webhooks/12345/token",
                     message = "",
                     yearMonth = "2026-04",
@@ -94,7 +90,7 @@ class MoneyWebhookPayloadTest {
     fun slackPayloadTextWithMessageAndDashboard() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildMoneyPayload(
                     url = "https://hooks.slack.com/services/T00/B00/xxx",
                     message = "確定しました",
                     yearMonth = "2026-04",
@@ -115,7 +111,7 @@ class MoneyWebhookPayloadTest {
     fun slackPayloadOmitsLinkWhenDashboardUrlNull() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildMoneyPayload(
                     url = "https://hooks.slack.com/services/T00/B00/xxx",
                     message = "",
                     yearMonth = "2026-04",
@@ -134,7 +130,7 @@ class MoneyWebhookPayloadTest {
     fun genericPayloadFields() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildMoneyPayload(
                     url = "https://example.com/webhook",
                     message = "確定しました",
                     yearMonth = "2026-04",
@@ -152,7 +148,7 @@ class MoneyWebhookPayloadTest {
     fun genericPayloadOmitsDashboardUrlWhenNull() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildMoneyPayload(
                     url = "https://example.com/webhook",
                     message = "",
                     yearMonth = "2026-04",
@@ -168,7 +164,7 @@ class MoneyWebhookPayloadTest {
     fun caseInsensitiveDiscordDetection() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildMoneyPayload(
                     url = "https://DISCORD.COM/API/WEBHOOKS/12345/token",
                     message = "",
                     yearMonth = "2026-04",

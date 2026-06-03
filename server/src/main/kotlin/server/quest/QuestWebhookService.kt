@@ -34,7 +34,6 @@ class QuestWebhookService(
     private val scope = CoroutineScope(dispatcher)
 
     private val client = HttpClient()
-    private val json = Json
 
     @Suppress("UNCHECKED_CAST")
     suspend fun getSettings(): QuestWebhookSettings {
@@ -73,7 +72,7 @@ class QuestWebhookService(
                 val settings = getSettings()
                 if (!settings.enabled || settings.url.isBlank() || event !in settings.events) return@launch
 
-                val payload = buildPayload(settings.url, event, quest)
+                val payload = buildQuestPayload(settings.url, event, quest)
 
                 client.post(settings.url) {
                     setBody(TextContent(payload, ContentType.Application.Json))
@@ -83,82 +82,87 @@ class QuestWebhookService(
             }
         }
     }
-
-    /** URL パターンからサービスを判別し JSON 文字列を生成 */
-    internal fun buildPayload(
-        url: String,
-        event: String,
-        quest: Quest,
-        timestamp: String = Instant.now().toString(),
-    ): String =
-        when (detectWebhookService(url)) {
-            WebhookServiceType.DISCORD -> json.encodeToString(buildDiscordPayload(event, quest))
-            WebhookServiceType.SLACK -> json.encodeToString(buildSlackPayload(event, quest))
-            WebhookServiceType.GENERIC -> json.encodeToString(buildGenericPayload(event, quest, timestamp))
-        }
-
-    private fun eventPrefix(event: String): String =
-        when (event) {
-            "quest_created" -> "\uD83C\uDD95 新しいクエスト"
-            "quest_verified" -> "\u2705 クエスト達成"
-            else -> event
-        }
-
-    private fun buildDiscordPayload(
-        event: String,
-        quest: Quest,
-    ): DiscordPayload {
-        val prefix = eventPrefix(event)
-        val safeTitle = sanitizeForDiscord(quest.title)
-        val safeDescription = sanitizeForDiscord(quest.description)
-        val safeCreatorName = sanitizeForDiscord(quest.creatorName)
-        return DiscordPayload(
-            embeds =
-                listOf(
-                    DiscordEmbed(
-                        title = "$prefix: $safeTitle",
-                        description = safeDescription,
-                        color = DISCORD_EMBED_COLOR,
-                        fields =
-                            listOf(
-                                DiscordField(name = "報酬", value = "${quest.rewardPoints}pt", inline = true),
-                                DiscordField(name = "依頼者", value = safeCreatorName, inline = true),
-                            ),
-                    ),
-                ),
-        )
-    }
-
-    private fun buildSlackPayload(
-        event: String,
-        quest: Quest,
-    ): SlackPayload {
-        val prefix = eventPrefix(event)
-        val safeTitle = sanitizeForSlack(quest.title)
-        val safeDescription = sanitizeForSlack(quest.description)
-        val safeCreatorName = sanitizeForSlack(quest.creatorName)
-        return SlackPayload(
-            text = "$prefix: $safeTitle\n$safeDescription\n報酬: ${quest.rewardPoints}pt | 依頼者: $safeCreatorName",
-        )
-    }
-
-    private fun buildGenericPayload(
-        event: String,
-        quest: Quest,
-        timestamp: String,
-    ): GenericPayload =
-        GenericPayload(
-            event = event,
-            quest =
-                GenericQuestData(
-                    title = quest.title,
-                    description = quest.description,
-                    rewardPoints = quest.rewardPoints,
-                    creatorName = quest.creatorName,
-                ),
-            timestamp = timestamp,
-        )
 }
+
+private val json = Json
+
+/**
+ * クエストイベントの payload を URL のサービス種別に応じて生成する。
+ * Firestore 非依存の純粋関数。
+ */
+internal fun buildQuestPayload(
+    url: String,
+    event: String,
+    quest: Quest,
+    timestamp: String = Instant.now().toString(),
+): String =
+    when (detectWebhookService(url)) {
+        WebhookServiceType.DISCORD -> json.encodeToString(buildDiscordPayload(event, quest))
+        WebhookServiceType.SLACK -> json.encodeToString(buildSlackPayload(event, quest))
+        WebhookServiceType.GENERIC -> json.encodeToString(buildGenericPayload(event, quest, timestamp))
+    }
+
+private fun eventPrefix(event: String): String =
+    when (event) {
+        "quest_created" -> "🆕 新しいクエスト"
+        "quest_verified" -> "✅ クエスト達成"
+        else -> event
+    }
+
+private fun buildDiscordPayload(
+    event: String,
+    quest: Quest,
+): DiscordPayload {
+    val prefix = eventPrefix(event)
+    val safeTitle = sanitizeForDiscord(quest.title)
+    val safeDescription = sanitizeForDiscord(quest.description)
+    val safeCreatorName = sanitizeForDiscord(quest.creatorName)
+    return DiscordPayload(
+        embeds =
+            listOf(
+                DiscordEmbed(
+                    title = "$prefix: $safeTitle",
+                    description = safeDescription,
+                    color = DISCORD_EMBED_COLOR,
+                    fields =
+                        listOf(
+                            DiscordField(name = "報酬", value = "${quest.rewardPoints}pt", inline = true),
+                            DiscordField(name = "依頼者", value = safeCreatorName, inline = true),
+                        ),
+                ),
+            ),
+    )
+}
+
+private fun buildSlackPayload(
+    event: String,
+    quest: Quest,
+): SlackPayload {
+    val prefix = eventPrefix(event)
+    val safeTitle = sanitizeForSlack(quest.title)
+    val safeDescription = sanitizeForSlack(quest.description)
+    val safeCreatorName = sanitizeForSlack(quest.creatorName)
+    return SlackPayload(
+        text = "$prefix: $safeTitle\n$safeDescription\n報酬: ${quest.rewardPoints}pt | 依頼者: $safeCreatorName",
+    )
+}
+
+private fun buildGenericPayload(
+    event: String,
+    quest: Quest,
+    timestamp: String,
+): GenericPayload =
+    GenericPayload(
+        event = event,
+        quest =
+            GenericQuestData(
+                title = quest.title,
+                description = quest.description,
+                rewardPoints = quest.rewardPoints,
+                creatorName = quest.creatorName,
+            ),
+        timestamp = timestamp,
+    )
 
 // --- Discord ペイロード ---
 

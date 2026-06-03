@@ -41,8 +41,6 @@ class PaymentWebhookService(
     private val paymentSettingsDoc get() = firestore.collection("settings").document("payment")
     private val scope = CoroutineScope(dispatcher)
 
-    private val json = Json
-
     @Suppress("UNCHECKED_CAST")
     suspend fun getSettings(): PaymentWebhookSettings {
         val doc = paymentSettingsDoc.get().await()
@@ -82,12 +80,13 @@ class PaymentWebhookService(
                 if (!settings.enabled || settings.url.isBlank()) return@launch
 
                 val payload =
-                    buildPayload(
+                    buildPaymentPayload(
                         url = settings.url,
                         message = settings.message,
                         yearMonth = yearMonth,
                         payerName = payerName,
                         amount = amount,
+                        dashboardUrl = appUrl,
                     )
 
                 client.post(settings.url) {
@@ -99,67 +98,73 @@ class PaymentWebhookService(
         }
     }
 
-    internal fun buildPayload(
-        url: String,
-        message: String,
-        yearMonth: String,
-        payerName: String,
-        amount: Long,
-        dashboardUrl: String? = appUrl,
-    ): String {
-        val formattedYearMonth = formatYearMonth(yearMonth)
-        val formattedAmount = formatAmount(amount)
-        return when (detectWebhookService(url)) {
-            WebhookServiceType.DISCORD -> {
-                val safePayerName = sanitizeForDiscord(payerName)
-                val description = "$formattedYearMonth に $safePayerName が $formattedAmount を支払いました"
-                val fields =
-                    listOf(
-                        DiscordPaymentField(name = "支払者", value = safePayerName, inline = true),
-                        DiscordPaymentField(name = "金額", value = formattedAmount, inline = true),
-                        DiscordPaymentField(name = "対象月", value = formattedYearMonth, inline = true),
-                    )
-                json.encodeToString(
-                    DiscordPaymentPayload(
-                        content = message.ifBlank { null },
-                        embeds =
-                            listOf(
-                                DiscordPaymentEmbed(
-                                    title = "入金あり",
-                                    description = description,
-                                    color = DISCORD_EMBED_COLOR,
-                                    url = dashboardUrl,
-                                    fields = fields,
-                                ),
-                            ),
-                    ),
-                )
-            }
-            WebhookServiceType.SLACK -> {
-                val safePayerName = sanitizeForSlack(payerName)
-                val description = "$formattedYearMonth に $safePayerName が $formattedAmount を支払いました"
-                val base = if (message.isBlank()) description else "$message\n$description"
-                val withLink =
-                    if (dashboardUrl != null) "$base\n<$dashboardUrl|ダッシュボードを開く>" else base
-                json.encodeToString(SlackPaymentPayload(text = withLink))
-            }
-            WebhookServiceType.GENERIC -> {
-                json.encodeToString(
-                    GenericPaymentPayload(
-                        event = "payment_recorded",
-                        yearMonth = yearMonth,
-                        payerName = payerName,
-                        amount = amount,
-                        message = message,
-                        dashboardUrl = dashboardUrl,
-                    ),
-                )
-            }
-        }
-    }
-
     companion object {
         private val appUrl: String? = EnvConfig["APP_URL"]
+    }
+}
+
+private val json = Json
+
+/**
+ * 入金通知の payload を URL のサービス種別に応じて生成する。
+ * Firestore 非依存の純粋関数。`dashboardUrl` は呼び出し側で `APP_URL` を解決して渡す。
+ */
+internal fun buildPaymentPayload(
+    url: String,
+    message: String,
+    yearMonth: String,
+    payerName: String,
+    amount: Long,
+    dashboardUrl: String?,
+): String {
+    val formattedYearMonth = formatYearMonth(yearMonth)
+    val formattedAmount = formatAmount(amount)
+    return when (detectWebhookService(url)) {
+        WebhookServiceType.DISCORD -> {
+            val safePayerName = sanitizeForDiscord(payerName)
+            val description = "$formattedYearMonth に $safePayerName が $formattedAmount を支払いました"
+            val fields =
+                listOf(
+                    DiscordPaymentField(name = "支払者", value = safePayerName, inline = true),
+                    DiscordPaymentField(name = "金額", value = formattedAmount, inline = true),
+                    DiscordPaymentField(name = "対象月", value = formattedYearMonth, inline = true),
+                )
+            json.encodeToString(
+                DiscordPaymentPayload(
+                    content = message.ifBlank { null },
+                    embeds =
+                        listOf(
+                            DiscordPaymentEmbed(
+                                title = "入金あり",
+                                description = description,
+                                color = DISCORD_EMBED_COLOR,
+                                url = dashboardUrl,
+                                fields = fields,
+                            ),
+                        ),
+                ),
+            )
+        }
+        WebhookServiceType.SLACK -> {
+            val safePayerName = sanitizeForSlack(payerName)
+            val description = "$formattedYearMonth に $safePayerName が $formattedAmount を支払いました"
+            val base = if (message.isBlank()) description else "$message\n$description"
+            val withLink =
+                if (dashboardUrl != null) "$base\n<$dashboardUrl|ダッシュボードを開く>" else base
+            json.encodeToString(SlackPaymentPayload(text = withLink))
+        }
+        WebhookServiceType.GENERIC -> {
+            json.encodeToString(
+                GenericPaymentPayload(
+                    event = "payment_recorded",
+                    yearMonth = yearMonth,
+                    payerName = payerName,
+                    amount = amount,
+                    message = message,
+                    dashboardUrl = dashboardUrl,
+                ),
+            )
+        }
     }
 }
 
