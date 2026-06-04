@@ -54,7 +54,7 @@ abstract class AbstractWebhookService<S : WebhookSettings>(
         return fromWebhookMap(webhook)
     }
 
-    /** 設定を保存し、保存値をそのまま返す（merge は webhook map を全上書きするため再 GET 不要）。 */
+    /** 設定を保存し、保存値をそのまま返す（toWebhookMap が常に全フィールドを返すため、保存値と実体が一致し再 GET 不要）。 */
     suspend fun updateSettings(settings: S): S {
         settingsDoc
             .set(mapOf("webhook" to toWebhookMap(settings)), SetOptions.merge())
