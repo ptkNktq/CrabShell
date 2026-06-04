@@ -4,10 +4,10 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class QuestWebhookSettings(
-    val url: String = "",
-    val enabled: Boolean = false,
+    override val url: String = "",
+    override val enabled: Boolean = false,
     val events: List<String> = emptyList(),
-)
+) : WebhookSettings
 
 object QuestWebhookEvent {
     const val QUEST_CREATED = "quest_created"

@@ -1,72 +1,49 @@
 package server.money
 
 import com.google.cloud.firestore.Firestore
-import com.google.cloud.firestore.SetOptions
 import io.ktor.client.HttpClient
-import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.content.TextContent
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import model.PaymentWebhookSettings
-import org.slf4j.LoggerFactory
 import server.config.EnvConfig
+import server.util.AbstractWebhookService
+import server.util.AbstractWebhookService.Companion.defaultWebhookClient
 import server.util.DISCORD_EMBED_COLOR
 import server.util.WebhookServiceType
-import server.util.await
 import server.util.detectWebhookService
+import server.util.formatAmount
+import server.util.formatYearMonth
 import server.util.sanitizeForDiscord
 import server.util.sanitizeForSlack
 
 class PaymentWebhookService(
-    private val firestore: Firestore,
-    private val client: HttpClient =
-        HttpClient {
-            install(HttpTimeout) {
-                requestTimeoutMillis = 10_000
-            }
-        },
+    firestore: Firestore,
+    client: HttpClient = defaultWebhookClient(),
     dispatcher: CoroutineDispatcher = Dispatchers.IO,
-) {
-    private val logger = LoggerFactory.getLogger(PaymentWebhookService::class.java)
-    private val paymentSettingsDoc get() = firestore.collection("settings").document("payment")
-    private val scope = CoroutineScope(dispatcher)
+) : AbstractWebhookService<PaymentWebhookSettings>(firestore, "payment", client, dispatcher) {
+    override fun defaultSettings() = PaymentWebhookSettings()
 
-    private val json = Json
-
-    @Suppress("UNCHECKED_CAST")
-    suspend fun getSettings(): PaymentWebhookSettings {
-        val doc = paymentSettingsDoc.get().await()
-        if (!doc.exists()) return PaymentWebhookSettings()
-        val webhook = (doc.data?.get("webhook") as? Map<String, Any?>) ?: return PaymentWebhookSettings()
-        return PaymentWebhookSettings(
-            url = webhook["url"] as? String ?: "",
-            enabled = webhook["enabled"] as? Boolean ?: false,
-            message = webhook["message"] as? String ?: "",
+    override fun fromWebhookMap(map: Map<String, Any?>) =
+        PaymentWebhookSettings(
+            url = map["url"] as? String ?: "",
+            enabled = map["enabled"] as? Boolean ?: false,
+            message = map["message"] as? String ?: "",
         )
-    }
 
-    suspend fun updateSettings(settings: PaymentWebhookSettings) {
-        paymentSettingsDoc
-            .set(
-                mapOf(
-                    "webhook" to
-                        mapOf(
-                            "url" to settings.url,
-                            "enabled" to settings.enabled,
-                            "message" to settings.message,
-                        ),
-                ),
-                SetOptions.merge(),
-            ).await()
-    }
+    override fun toWebhookMap(settings: PaymentWebhookSettings) =
+        mapOf(
+            "url" to settings.url,
+            "enabled" to settings.enabled,
+            "message" to settings.message,
+        )
 
     /** 入金通知を fire-and-forget で送信 */
     fun notifyPayment(
@@ -80,12 +57,13 @@ class PaymentWebhookService(
                 if (!settings.enabled || settings.url.isBlank()) return@launch
 
                 val payload =
-                    buildPayload(
+                    buildPaymentPayload(
                         url = settings.url,
                         message = settings.message,
                         yearMonth = yearMonth,
                         payerName = payerName,
                         amount = amount,
+                        dashboardUrl = appUrl,
                     )
 
                 client.post(settings.url) {
@@ -97,79 +75,73 @@ class PaymentWebhookService(
         }
     }
 
-    internal fun buildPayload(
-        url: String,
-        message: String,
-        yearMonth: String,
-        payerName: String,
-        amount: Long,
-        dashboardUrl: String? = appUrl,
-    ): String {
-        val formattedYearMonth = formatYearMonth(yearMonth)
-        val formattedAmount = formatAmount(amount)
-        return when (detectWebhookService(url)) {
-            WebhookServiceType.DISCORD -> {
-                val safePayerName = sanitizeForDiscord(payerName)
-                val description = "$formattedYearMonth に $safePayerName が $formattedAmount を支払いました"
-                val fields =
-                    listOf(
-                        DiscordPaymentField(name = "支払者", value = safePayerName, inline = true),
-                        DiscordPaymentField(name = "金額", value = formattedAmount, inline = true),
-                        DiscordPaymentField(name = "対象月", value = formattedYearMonth, inline = true),
-                    )
-                json.encodeToString(
-                    DiscordPaymentPayload(
-                        content = message.ifBlank { null },
-                        embeds =
-                            listOf(
-                                DiscordPaymentEmbed(
-                                    title = "入金あり",
-                                    description = description,
-                                    color = DISCORD_EMBED_COLOR,
-                                    url = dashboardUrl,
-                                    fields = fields,
-                                ),
-                            ),
-                    ),
-                )
-            }
-            WebhookServiceType.SLACK -> {
-                val safePayerName = sanitizeForSlack(payerName)
-                val description = "$formattedYearMonth に $safePayerName が $formattedAmount を支払いました"
-                val base = if (message.isBlank()) description else "$message\n$description"
-                val withLink =
-                    if (dashboardUrl != null) "$base\n<$dashboardUrl|ダッシュボードを開く>" else base
-                json.encodeToString(SlackPaymentPayload(text = withLink))
-            }
-            WebhookServiceType.GENERIC -> {
-                json.encodeToString(
-                    GenericPaymentPayload(
-                        event = "payment_recorded",
-                        yearMonth = yearMonth,
-                        payerName = payerName,
-                        amount = amount,
-                        message = message,
-                        dashboardUrl = dashboardUrl,
-                    ),
-                )
-            }
-        }
-    }
-
     companion object {
         private val appUrl: String? = EnvConfig["APP_URL"]
+    }
+}
 
-        /** "YYYY-MM" を "YYYY年MM月" 表記（月は 0 埋め 2 桁）に整形。パース失敗時は入力をそのまま返す。 */
-        internal fun formatYearMonth(yearMonth: String): String {
-            val parts = yearMonth.split("-")
-            if (parts.size != 2) return yearMonth
-            val year = parts[0].toIntOrNull() ?: return yearMonth
-            val month = parts[1].toIntOrNull() ?: return yearMonth
-            return "%d年%02d月".format(year, month)
+private val json = Json
+
+/**
+ * 入金通知の payload を URL のサービス種別に応じて生成する。
+ * Firestore 非依存の純粋関数。`dashboardUrl` は呼び出し側で `APP_URL` を解決して渡す。
+ */
+internal fun buildPaymentPayload(
+    url: String,
+    message: String,
+    yearMonth: String,
+    payerName: String,
+    amount: Long,
+    dashboardUrl: String?,
+): String {
+    val formattedYearMonth = formatYearMonth(yearMonth)
+    val formattedAmount = formatAmount(amount)
+    return when (detectWebhookService(url)) {
+        WebhookServiceType.DISCORD -> {
+            val safePayerName = sanitizeForDiscord(payerName)
+            val description = "$formattedYearMonth に $safePayerName が $formattedAmount を支払いました"
+            val fields =
+                listOf(
+                    DiscordPaymentField(name = "支払者", value = safePayerName, inline = true),
+                    DiscordPaymentField(name = "金額", value = formattedAmount, inline = true),
+                    DiscordPaymentField(name = "対象月", value = formattedYearMonth, inline = true),
+                )
+            json.encodeToString(
+                DiscordPaymentPayload(
+                    content = message.ifBlank { null },
+                    embeds =
+                        listOf(
+                            DiscordPaymentEmbed(
+                                title = "入金あり",
+                                description = description,
+                                color = DISCORD_EMBED_COLOR,
+                                url = dashboardUrl,
+                                fields = fields,
+                            ),
+                        ),
+                ),
+            )
         }
-
-        /** 金額を 3 桁区切り + "円" 付きで整形（例: 12345 → "12,345 円"）。 */
-        internal fun formatAmount(amount: Long): String = "%,d 円".format(amount)
+        WebhookServiceType.SLACK -> {
+            val safePayerName = sanitizeForSlack(payerName)
+            val description = "$formattedYearMonth に $safePayerName が $formattedAmount を支払いました"
+            val base = if (message.isBlank()) description else "$message\n$description"
+            val withLink =
+                if (dashboardUrl != null) "$base\n<$dashboardUrl|ダッシュボードを開く>" else base
+            json.encodeToString(SlackPaymentPayload(text = withLink))
+        }
+        WebhookServiceType.GENERIC -> {
+            json.encodeToString(
+                GenericPaymentPayload(
+                    event = "payment_recorded",
+                    yearMonth = yearMonth,
+                    payerName = payerName,
+                    amount = amount,
+                    message = message,
+                    dashboardUrl = dashboardUrl,
+                ),
+            )
+        }
     }
 }
 

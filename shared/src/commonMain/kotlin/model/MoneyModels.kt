@@ -159,14 +159,14 @@ fun Share.toSaveRequest(): ShareSaveRequest = ShareSaveRequest(uid = uid, amount
 
 @Serializable
 data class MoneyWebhookSettings(
-    val url: String = "",
-    val enabled: Boolean = false,
+    override val url: String = "",
+    override val enabled: Boolean = false,
     val message: String = "",
-)
+) : WebhookSettings
 
 @Serializable
 data class PaymentWebhookSettings(
-    val url: String = "",
-    val enabled: Boolean = false,
+    override val url: String = "",
+    override val enabled: Boolean = false,
     val message: String = "",
-)
+) : WebhookSettings

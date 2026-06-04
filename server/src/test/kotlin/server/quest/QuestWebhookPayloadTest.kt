@@ -1,7 +1,5 @@
 package server.quest
 
-import com.google.cloud.firestore.Firestore
-import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -18,8 +16,6 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class QuestWebhookPayloadTest {
-    private val service = QuestWebhookService(firestore = mockk<Firestore>())
-
     private val sampleQuest =
         Quest(
             id = "q1",
@@ -41,7 +37,7 @@ class QuestWebhookPayloadTest {
     fun discordPayloadStructure() {
         val json =
             parseJson(
-                service.buildPayload("https://discord.com/api/webhooks/12345/token", "quest_created", sampleQuest),
+                buildQuestPayload("https://discord.com/api/webhooks/12345/token", "quest_created", sampleQuest),
             )
 
         val embeds = json["embeds"]
@@ -57,7 +53,7 @@ class QuestWebhookPayloadTest {
     fun discordPayloadFields() {
         val json =
             parseJson(
-                service.buildPayload("https://discord.com/api/webhooks/12345/token", "quest_created", sampleQuest),
+                buildQuestPayload("https://discord.com/api/webhooks/12345/token", "quest_created", sampleQuest),
             )
 
         val fields = json["embeds"]!!.jsonArray[0].jsonObject["fields"]!!.jsonArray
@@ -74,7 +70,7 @@ class QuestWebhookPayloadTest {
     fun discordAppUrlAlsoProducesDiscordPayload() {
         val json =
             parseJson(
-                service.buildPayload("https://discordapp.com/api/webhooks/12345/token", "quest_created", sampleQuest),
+                buildQuestPayload("https://discordapp.com/api/webhooks/12345/token", "quest_created", sampleQuest),
             )
         // Discord ペイロードは embeds を持つ
         assertIs<JsonArray>(json["embeds"])
@@ -86,7 +82,7 @@ class QuestWebhookPayloadTest {
     fun slackPayloadText() {
         val json =
             parseJson(
-                service.buildPayload("https://hooks.slack.com/services/T00/B00/xxx", "quest_created", sampleQuest),
+                buildQuestPayload("https://hooks.slack.com/services/T00/B00/xxx", "quest_created", sampleQuest),
             )
 
         val text = json["text"]!!.jsonPrimitive.content
@@ -102,7 +98,7 @@ class QuestWebhookPayloadTest {
     fun genericPayloadEventAndTimestamp() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildQuestPayload(
                     "https://example.com/webhook",
                     "quest_created",
                     sampleQuest,
@@ -118,7 +114,7 @@ class QuestWebhookPayloadTest {
     fun genericPayloadQuestData() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildQuestPayload(
                     "https://example.com/webhook",
                     "quest_created",
                     sampleQuest,
@@ -145,7 +141,7 @@ class QuestWebhookPayloadTest {
             )
         val json =
             parseJson(
-                service.buildPayload("https://discord.com/api/webhooks/12345/token", "quest_created", maliciousQuest),
+                buildQuestPayload("https://discord.com/api/webhooks/12345/token", "quest_created", maliciousQuest),
             )
         val embed = json["embeds"]!!.jsonArray[0].jsonObject
         val title = embed["title"]!!.jsonPrimitive.content
@@ -171,7 +167,7 @@ class QuestWebhookPayloadTest {
             )
         val json =
             parseJson(
-                service.buildPayload("https://hooks.slack.com/services/T00/B00/xxx", "quest_created", maliciousQuest),
+                buildQuestPayload("https://hooks.slack.com/services/T00/B00/xxx", "quest_created", maliciousQuest),
             )
         val text = json["text"]!!.jsonPrimitive.content
         assertTrue(!text.contains("<!channel>"), "text should not contain raw <!channel>: $text")
@@ -188,7 +184,7 @@ class QuestWebhookPayloadTest {
     fun caseInsensitiveUrlDetection() {
         val json =
             parseJson(
-                service.buildPayload("https://DISCORD.COM/API/WEBHOOKS/12345/token", "quest_created", sampleQuest),
+                buildQuestPayload("https://DISCORD.COM/API/WEBHOOKS/12345/token", "quest_created", sampleQuest),
             )
         // Discord ペイロードは embeds を持つ
         assertIs<JsonArray>(json["embeds"])
@@ -200,7 +196,7 @@ class QuestWebhookPayloadTest {
     fun questCreatedEventContainsPrefix() {
         val json =
             parseJson(
-                service.buildPayload("https://discord.com/api/webhooks/12345/token", "quest_created", sampleQuest),
+                buildQuestPayload("https://discord.com/api/webhooks/12345/token", "quest_created", sampleQuest),
             )
         val title =
             json["embeds"]!!
@@ -214,7 +210,7 @@ class QuestWebhookPayloadTest {
     fun questVerifiedEventContainsPrefix() {
         val json =
             parseJson(
-                service.buildPayload("https://discord.com/api/webhooks/12345/token", "quest_verified", sampleQuest),
+                buildQuestPayload("https://discord.com/api/webhooks/12345/token", "quest_verified", sampleQuest),
             )
         val title =
             json["embeds"]!!

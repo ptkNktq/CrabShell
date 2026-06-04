@@ -41,8 +41,7 @@ fun Route.questWebhookRoutes() {
                 }
             }) {
                 val settings = call.receive<QuestWebhookSettings>()
-                questWebhookService.updateSettings(settings)
-                call.respond(questWebhookService.getSettings())
+                call.respond(questWebhookService.updateSettings(settings))
             }
         }
     }

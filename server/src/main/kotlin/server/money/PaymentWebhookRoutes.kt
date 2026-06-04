@@ -41,8 +41,7 @@ fun Route.paymentWebhookRoutes() {
                 }
             }) {
                 val settings = call.receive<PaymentWebhookSettings>()
-                paymentWebhookService.updateSettings(settings)
-                call.respond(paymentWebhookService.getSettings())
+                call.respond(paymentWebhookService.updateSettings(settings))
             }
         }
     }

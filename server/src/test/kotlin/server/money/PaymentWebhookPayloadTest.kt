@@ -1,7 +1,5 @@
 package server.money
 
-import com.google.cloud.firestore.Firestore
-import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -15,8 +13,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class PaymentWebhookPayloadTest {
-    private val service = PaymentWebhookService(firestore = mockk<Firestore>())
-
     private fun parseJson(jsonString: String): JsonObject = Json.parseToJsonElement(jsonString).jsonObject
 
     // --- Discord ペイロード ---
@@ -25,7 +21,7 @@ class PaymentWebhookPayloadTest {
     fun discordPayloadStructure() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildPaymentPayload(
                     url = "https://discord.com/api/webhooks/12345/token",
                     message = "@everyone",
                     yearMonth = "2026-04",
@@ -51,12 +47,13 @@ class PaymentWebhookPayloadTest {
     fun discordPayloadFieldsIncludePayerAmountAndYearMonth() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildPaymentPayload(
                     url = "https://discord.com/api/webhooks/12345/token",
                     message = "",
                     yearMonth = "2026-04",
                     payerName = "Alice",
                     amount = 5000L,
+                    dashboardUrl = null,
                 ),
             )
 
@@ -69,7 +66,7 @@ class PaymentWebhookPayloadTest {
     fun discordPayloadIncludesMessageAsContent() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildPaymentPayload(
                     url = "https://discord.com/api/webhooks/12345/token",
                     message = "@everyone",
                     yearMonth = "2026-04",
@@ -85,7 +82,7 @@ class PaymentWebhookPayloadTest {
     fun discordPayloadOmitsContentWhenMessageBlank() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildPaymentPayload(
                     url = "https://discord.com/api/webhooks/12345/token",
                     message = "",
                     yearMonth = "2026-04",
@@ -103,7 +100,7 @@ class PaymentWebhookPayloadTest {
     fun slackPayloadIncludesMessagePayerAmountAndDashboard() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildPaymentPayload(
                     url = "https://hooks.slack.com/services/T00/B00/xxx",
                     message = "入金通知",
                     yearMonth = "2026-04",
@@ -125,7 +122,7 @@ class PaymentWebhookPayloadTest {
     fun slackPayloadOmitsLinkWhenDashboardUrlNull() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildPaymentPayload(
                     url = "https://hooks.slack.com/services/T00/B00/xxx",
                     message = "",
                     yearMonth = "2026-04",
@@ -144,7 +141,7 @@ class PaymentWebhookPayloadTest {
     fun genericPayloadFields() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildPaymentPayload(
                     url = "https://example.com/webhook",
                     message = "入金通知",
                     yearMonth = "2026-04",
@@ -166,7 +163,7 @@ class PaymentWebhookPayloadTest {
     fun genericPayloadOmitsDashboardUrlWhenNull() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildPaymentPayload(
                     url = "https://example.com/webhook",
                     message = "",
                     yearMonth = "2026-04",
@@ -184,7 +181,7 @@ class PaymentWebhookPayloadTest {
     fun discordPayerNameWithEveryoneIsSanitized() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildPaymentPayload(
                     url = "https://discord.com/api/webhooks/12345/token",
                     message = "",
                     yearMonth = "2026-04",
@@ -205,7 +202,7 @@ class PaymentWebhookPayloadTest {
     fun discordPayerNameWithUserMentionIsSanitized() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildPaymentPayload(
                     url = "https://discord.com/api/webhooks/12345/token",
                     message = "",
                     yearMonth = "2026-04",
@@ -229,7 +226,7 @@ class PaymentWebhookPayloadTest {
     fun discordAdminMessageMentionIsPreserved() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildPaymentPayload(
                     url = "https://discord.com/api/webhooks/12345/token",
                     message = "<@123456789> 入金確認お願い",
                     yearMonth = "2026-04",
@@ -246,7 +243,7 @@ class PaymentWebhookPayloadTest {
     fun slackPayerNameWithChannelIsSanitized() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildPaymentPayload(
                     url = "https://hooks.slack.com/services/T00/B00/xxx",
                     message = "",
                     yearMonth = "2026-04",
@@ -264,7 +261,7 @@ class PaymentWebhookPayloadTest {
     fun slackPayerNameWithUserMentionIsSanitized() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildPaymentPayload(
                     url = "https://hooks.slack.com/services/T00/B00/xxx",
                     message = "",
                     yearMonth = "2026-04",
@@ -284,7 +281,7 @@ class PaymentWebhookPayloadTest {
     fun caseInsensitiveDiscordDetection() {
         val json =
             parseJson(
-                service.buildPayload(
+                buildPaymentPayload(
                     url = "https://DISCORD.COM/API/WEBHOOKS/12345/token",
                     message = "",
                     yearMonth = "2026-04",
