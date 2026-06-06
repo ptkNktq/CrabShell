@@ -47,9 +47,11 @@ object Navigator {
 
     /** 画面遷移を伴わず、現在画面内のサブルート（URL フラグメント）のみ更新する。 */
     fun setFragment(value: String?) {
-        if (value == fragment) return
-        val url = if (value.isNullOrEmpty()) currentScreen.path else "${currentScreen.path}#$value"
+        // 空文字列は「該当なし」として null に正規化し、内部状態と URL のズレを防ぐ。
+        val normalized = value?.ifEmpty { null }
+        if (normalized == fragment) return
+        val url = if (normalized == null) currentScreen.path else "${currentScreen.path}#$normalized"
         window.history.pushState(null, "", url)
-        fragment = value
+        fragment = normalized
     }
 }

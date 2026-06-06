@@ -109,8 +109,8 @@ private fun ScreenContent(
         Screen.Quest -> QuestScreen()
         Screen.Settings ->
             SettingsScreen(
-                initialCategory = Navigator.fragment,
-                onCategoryChange = { Navigator.setFragment(it) },
+                categoryName = Navigator.fragment,
+                onCategoryNameChange = { Navigator.setFragment(it) },
             )
     }
 }

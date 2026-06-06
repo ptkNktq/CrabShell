@@ -84,8 +84,8 @@ internal enum class SettingsCategory(
 
 @Composable
 fun SettingsScreen(
-    initialCategory: String? = null,
-    onCategoryChange: (String?) -> Unit = {},
+    categoryName: String? = null,
+    onCategoryNameChange: (String?) -> Unit = {},
     passwordVm: PasswordChangeViewModel = koinViewModel(),
     passkeyVm: PasskeyManagementViewModel = koinViewModel(),
     loginHistoryVm: LoginHistoryViewModel = koinViewModel(),
@@ -95,7 +95,7 @@ fun SettingsScreen(
 
     // URL フラグメント（enum 名）→ SettingsCategory。不正値・権限外は null（カテゴリ未選択）扱い。
     val selectedCategory =
-        initialCategory
+        categoryName
             ?.let { name -> SettingsCategory.entries.find { it.name == name } }
             ?.takeIf { !it.adminOnly || isAdmin }
     val koin = getKoin()
@@ -237,7 +237,7 @@ fun SettingsScreen(
         onTestFeedingReminder = { petSettingsVm?.onTestReminder() },
         windowSizeClass = windowSizeClass,
         selectedCategory = selectedCategory,
-        onSelectCategory = { onCategoryChange(it?.name) },
+        onSelectCategory = { onCategoryNameChange(it?.name) },
     )
 }
 
