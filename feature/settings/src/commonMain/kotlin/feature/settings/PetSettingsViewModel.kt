@@ -9,6 +9,8 @@ import core.common.FeedingSettingsChangedEvent
 import core.network.FeedingSettingsRepository
 import core.network.PetRepository
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import model.FeedingSettings
 import model.MealTime
 import model.Pet
@@ -43,6 +45,13 @@ class PetSettingsViewModel(
 ) : ViewModel() {
     var uiState by mutableStateOf(PetSettingsUiState())
         private set
+
+    /**
+     * ごはん設定／リマインダーの保存（getSettings → copy → updateSettings の read-modify-write）を直列化する。
+     * 両カードの保存ボタンは独立フラグでガードされ同時押下できるため、ロックなしでは 2 つの保存が interleave し、
+     * 先に確定した側のフィールドを後発の古い読み取りで上書きしてしまう（last-write-wins）。
+     */
+    private val saveMutex = Mutex()
 
     init {
         load()
@@ -153,12 +162,14 @@ class PetSettingsViewModel(
         uiState = uiState.copy(feedingSaving = true, feedingMessage = null, mealTimes = validatedMealTimes)
         viewModelScope.launch {
             try {
-                val merged =
-                    feedingSettingsRepository.getSettings().copy(
-                        mealOrder = uiState.mealOrder,
-                        mealTimes = validatedMealTimes,
-                    )
-                feedingSettingsRepository.updateSettings(merged)
+                saveMutex.withLock {
+                    val merged =
+                        feedingSettingsRepository.getSettings().copy(
+                            mealOrder = uiState.mealOrder,
+                            mealTimes = validatedMealTimes,
+                        )
+                    feedingSettingsRepository.updateSettings(merged)
+                }
                 uiState = uiState.copy(feedingSaving = false, feedingMessage = "設定を保存しました")
                 feedingSettingsChangedEvent.emit()
             } catch (e: Exception) {
@@ -180,14 +191,16 @@ class PetSettingsViewModel(
         uiState = uiState.copy(reminderSaving = true, reminderMessage = null)
         viewModelScope.launch {
             try {
-                val merged =
-                    feedingSettingsRepository.getSettings().copy(
-                        reminderEnabled = uiState.reminderEnabled,
-                        reminderWebhookUrl = uiState.reminderWebhookUrl,
-                        reminderDelayMinutes = uiState.reminderDelayMinutes,
-                        reminderPrefix = uiState.reminderPrefix,
-                    )
-                feedingSettingsRepository.updateSettings(merged)
+                saveMutex.withLock {
+                    val merged =
+                        feedingSettingsRepository.getSettings().copy(
+                            reminderEnabled = uiState.reminderEnabled,
+                            reminderWebhookUrl = uiState.reminderWebhookUrl,
+                            reminderDelayMinutes = uiState.reminderDelayMinutes,
+                            reminderPrefix = uiState.reminderPrefix,
+                        )
+                    feedingSettingsRepository.updateSettings(merged)
+                }
                 uiState = uiState.copy(reminderSaving = false, reminderMessage = "設定を保存しました")
                 feedingSettingsChangedEvent.emit()
             } catch (e: Exception) {

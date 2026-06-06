@@ -217,7 +217,7 @@ internal fun FeedingSettingsCard(
  * 給餌リマインダー通知の Webhook 設定カード。
  *
  * 共通の [WebhookSettingsCard] をベースに、遅延（分）入力とテストボタン 2 種を独自パラメータ slot に配置する。
- * 保存は給餌設定（[FeedingSettingsCard]）と同じ [onSave]（FeedingSettings 全体の一括保存）を呼ぶ。
+ * 保存は [onSave]（呼び出し側でリマインダー専用の保存処理を渡す）を呼び、ごはん設定とは独立して保存される。
  */
 @Composable
 internal fun FeedingReminderCard(
