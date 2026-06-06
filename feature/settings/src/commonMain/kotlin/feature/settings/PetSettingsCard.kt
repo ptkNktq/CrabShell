@@ -45,6 +45,7 @@ internal fun PetNameCard(
     pets: List<Pet>,
     editingPetNames: Map<String, String>,
     isSaving: Boolean,
+    message: String?,
     onPetNameChanged: (String, String) -> Unit,
     onSavePetName: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -80,6 +81,14 @@ internal fun PetNameCard(
                     }
                 }
             }
+
+            if (message != null) {
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
     }
 }
@@ -89,7 +98,6 @@ internal fun FeedingSettingsCard(
     mealOrder: List<MealTime>,
     mealTimes: Map<MealTime, String>,
     isSaving: Boolean,
-    testingPhase: FeedingTestPhase?,
     onMealOrderChanged: (List<MealTime>) -> Unit,
     onMealTimeChanged: (MealTime, String) -> Unit,
     onSave: () -> Unit,
@@ -177,11 +185,10 @@ internal fun FeedingSettingsCard(
                 }
             }
 
-            val isTesting = testingPhase != null
             Button(
                 onClick = onSave,
                 modifier = Modifier.height(48.dp),
-                enabled = !isSaving && !isTesting,
+                enabled = !isSaving,
             ) {
                 if (isSaving) {
                     CircularProgressIndicator(
