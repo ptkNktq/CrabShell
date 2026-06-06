@@ -84,12 +84,20 @@ internal enum class SettingsCategory(
 
 @Composable
 fun SettingsScreen(
+    initialCategory: String? = null,
+    onCategoryChange: (String?) -> Unit = {},
     passwordVm: PasswordChangeViewModel = koinViewModel(),
     passkeyVm: PasskeyManagementViewModel = koinViewModel(),
     loginHistoryVm: LoginHistoryViewModel = koinViewModel(),
 ) {
     val authStateHolder = koinInject<AuthStateHolder>()
     val isAdmin = authStateHolder.isAdmin
+
+    // URL フラグメント（enum 名）→ SettingsCategory。不正値・権限外は null（カテゴリ未選択）扱い。
+    val selectedCategory =
+        initialCategory
+            ?.let { name -> SettingsCategory.entries.find { it.name == name } }
+            ?.takeIf { !it.adminOnly || isAdmin }
     val koin = getKoin()
     val userNameVm = remember(isAdmin) { if (isAdmin) koin.get<UserNameViewModel>() else null }
     val garbageVm = remember(isAdmin) { if (isAdmin) koin.get<GarbageScheduleViewModel>() else null }
@@ -228,6 +236,8 @@ fun SettingsScreen(
         onTestFeedingScheduled = { petSettingsVm?.onTestScheduled() },
         onTestFeedingReminder = { petSettingsVm?.onTestReminder() },
         windowSizeClass = windowSizeClass,
+        selectedCategory = selectedCategory,
+        onSelectCategory = { onCategoryChange(it?.name) },
     )
 }
 
@@ -360,26 +370,11 @@ internal fun SettingsContent(
     onTestFeedingScheduled: () -> Unit = {},
     onTestFeedingReminder: () -> Unit = {},
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
+    selectedCategory: SettingsCategory? = null,
+    onSelectCategory: (SettingsCategory?) -> Unit = {},
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
     val categories = SettingsCategory.entries.filter { !it.adminOnly || isAdmin }
-    var selectedCategory by remember { mutableStateOf<SettingsCategory?>(if (isCompact) null else categories.firstOrNull()) }
-
-    // Compact ↔ Expanded 切り替え時に selectedCategory を適切にリセット
-    LaunchedEffect(isCompact) {
-        if (isCompact) {
-            selectedCategory = null
-        } else if (selectedCategory == null) {
-            selectedCategory = categories.firstOrNull()
-        }
-    }
-
-    // isAdmin 変化等で categories から selectedCategory が除外された場合にリセット
-    LaunchedEffect(categories) {
-        if (selectedCategory != null && selectedCategory !in categories) {
-            selectedCategory = if (isCompact) null else categories.firstOrNull()
-        }
-    }
 
     val categoryContent: @Composable (SettingsCategory, Modifier) -> Unit = { category, cardModifier ->
         when (category) {
@@ -578,7 +573,7 @@ internal fun SettingsContent(
             CategoryListPane(
                 categories = categories,
                 selectedCategory = null,
-                onSelectCategory = { selectedCategory = it },
+                onSelectCategory = { onSelectCategory(it) },
                 modifier = Modifier.fillMaxSize().padding(16.dp),
             )
         } else {
@@ -588,7 +583,7 @@ internal fun SettingsContent(
                     category = selected,
                     scrollState = detailScrollState,
                     showBackButton = true,
-                    onBack = { selectedCategory = null },
+                    onBack = { onSelectCategory(null) },
                     modifier = Modifier.fillMaxSize(),
                     contentModifier = Modifier.fillMaxWidth(),
                 ) {
@@ -598,17 +593,18 @@ internal fun SettingsContent(
         }
     } else {
         // Medium / Expanded: 左カテゴリリスト + 右詳細の2ペイン
+        // フラグメント未指定時は先頭カテゴリを表示・ハイライトする（URL は変更しない）
+        val selected = selectedCategory ?: categories.firstOrNull()
         Row(modifier = Modifier.fillMaxSize()) {
             CategoryListPane(
                 categories = categories,
-                selectedCategory = selectedCategory,
-                onSelectCategory = { selectedCategory = it },
+                selectedCategory = selected,
+                onSelectCategory = { onSelectCategory(it) },
                 modifier = Modifier.width(320.dp).fillMaxHeight().padding(24.dp),
             )
 
             VerticalDivider()
 
-            val selected = selectedCategory ?: categories.firstOrNull()
             if (selected != null) {
                 key(selected) {
                     val detailScrollState = rememberScrollState()
