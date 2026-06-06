@@ -446,6 +446,7 @@ internal fun SettingsContent(
                         mealOrder = mealOrder,
                         mealTimes = mealTimes,
                         isSaving = feedingSaving,
+                        message = feedingMessage,
                         onMealOrderChanged = onMealOrderChanged,
                         onMealTimeChanged = onMealTimeChanged,
                         onSave = onSaveFeeding,

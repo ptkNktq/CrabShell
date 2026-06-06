@@ -98,6 +98,7 @@ internal fun FeedingSettingsCard(
     mealOrder: List<MealTime>,
     mealTimes: Map<MealTime, String>,
     isSaving: Boolean,
+    message: String?,
     onMealOrderChanged: (List<MealTime>) -> Unit,
     onMealTimeChanged: (MealTime, String) -> Unit,
     onSave: () -> Unit,
@@ -183,6 +184,14 @@ internal fun FeedingSettingsCard(
                         textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
                     )
                 }
+            }
+
+            if (message != null) {
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
 
             Button(
