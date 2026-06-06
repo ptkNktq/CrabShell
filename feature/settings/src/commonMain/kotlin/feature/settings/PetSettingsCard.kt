@@ -252,6 +252,7 @@ internal fun FeedingReminderCard(
         modifier = modifier,
         message = reminderPrefix,
         onMessageChanged = onReminderPrefixChanged,
+        messagePlaceholder = "",
         fieldsEnabled = fieldsEnabled,
         statusMessage = message,
         saveEnabled = !isSaving && !isTesting,
