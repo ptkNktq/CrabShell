@@ -436,7 +436,6 @@ internal fun SettingsContent(
                         mealTimes = mealTimes,
                         isSaving = petSettingsSaving,
                         testingPhase = petSettingsTesting,
-                        message = petSettingsMessage,
                         onMealOrderChanged = onMealOrderChanged,
                         onMealTimeChanged = onMealTimeChanged,
                         onSave = onSaveFeedingSettings,
@@ -1247,7 +1246,7 @@ private fun QuestWebhookSettingsCard(
     WebhookSettingsCard(
         isLoading = isLoading,
         title = "Webhook 通知",
-        enabled = enabled,
+        featureEnabled = enabled,
         url = url,
         onUrlChanged = onUrlChanged,
         isSaving = isSaving,
@@ -1292,7 +1291,7 @@ private fun MoneyWebhookSettingsCard(
     WebhookSettingsCard(
         isLoading = isLoading,
         title = "ステータス確定通知",
-        enabled = enabled,
+        featureEnabled = enabled,
         url = url,
         onUrlChanged = onUrlChanged,
         isSaving = isSaving,
@@ -1329,7 +1328,7 @@ private fun PaymentWebhookSettingsCard(
     WebhookSettingsCard(
         isLoading = isLoading,
         title = "入金通知",
-        enabled = enabled,
+        featureEnabled = enabled,
         url = url,
         onUrlChanged = onUrlChanged,
         isSaving = isSaving,
@@ -1420,7 +1419,7 @@ private fun GarbageNotificationCard(
     WebhookSettingsCard(
         isLoading = isLoading,
         title = "リマインダー通知",
-        enabled = enabled,
+        featureEnabled = enabled,
         url = webhookUrl,
         onUrlChanged = onWebhookUrlChanged,
         isSaving = isSaving,

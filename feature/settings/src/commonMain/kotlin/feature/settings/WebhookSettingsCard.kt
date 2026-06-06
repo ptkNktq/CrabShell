@@ -33,13 +33,15 @@ import core.ui.components.LoadableCardContent
  * - [statusMessage] は保存結果などの一時表示用（入力欄ではない）。
  * - [fieldsEnabled] で URL/通知テキストの活性を制御する（給餌リマインダーのように
  *   有効トグルと連動させたい場合に `!isSaving && reminderEnabled` などを渡す）。
- * - Switch 自体は常に `!isSaving` で活性制御する（保存中のみブロック）。
+ * - [featureEnabled] は Switch の checked 状態（通知機能の有効/無効）を表す。
+ *   Compose の `enabled`（操作可否）と区別するため別名にしている。
+ * - Switch 自体の活性は常に `!isSaving`（保存中のみブロック）。
  */
 @Composable
 internal fun WebhookSettingsCard(
     isLoading: Boolean,
     title: String,
-    enabled: Boolean,
+    featureEnabled: Boolean,
     url: String,
     onUrlChanged: (String) -> Unit,
     isSaving: Boolean,
@@ -84,7 +86,7 @@ internal fun WebhookSettingsCard(
                 ) {
                     Text(title, style = MaterialTheme.typography.titleSmall)
                     Switch(
-                        checked = enabled,
+                        checked = featureEnabled,
                         onCheckedChange = onEnabledChanged,
                         enabled = !isSaving,
                     )

@@ -90,7 +90,6 @@ internal fun FeedingSettingsCard(
     mealTimes: Map<MealTime, String>,
     isSaving: Boolean,
     testingPhase: FeedingTestPhase?,
-    message: String?,
     onMealOrderChanged: (List<MealTime>) -> Unit,
     onMealTimeChanged: (MealTime, String) -> Unit,
     onSave: () -> Unit,
@@ -178,14 +177,6 @@ internal fun FeedingSettingsCard(
                 }
             }
 
-            if (message != null) {
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-
             val isTesting = testingPhase != null
             Button(
                 onClick = onSave,
@@ -236,7 +227,7 @@ internal fun FeedingReminderCard(
     WebhookSettingsCard(
         isLoading = false,
         title = "リマインダー通知",
-        enabled = reminderEnabled,
+        featureEnabled = reminderEnabled,
         url = reminderWebhookUrl,
         onUrlChanged = onReminderWebhookUrlChanged,
         isSaving = isSaving,
