@@ -144,6 +144,9 @@ class PetSettingsViewModel(
      *
      * 保存直前にサーバーから最新の [FeedingSettings] を取得し、ごはん設定フィールドだけ [FeedingSettings.copy]
      * で上書きしてから全体を PUT する。これにより、リマインダーカード側で編集中（未保存）の値を巻き込まずに済む。
+     *
+     * 取得した最新値は PUT を組み立てるためだけに使い、[uiState] には書き戻さない（保存対象外フィールドの
+     * 同期はしない）。書き戻すと他カードで編集中（未保存）の値が消えてしまうため、ローカルの編集状態を優先する。
      */
     fun onSaveFeeding() {
         val validatedMealTimes = validateMealTimes(uiState.mealTimes)
@@ -169,6 +172,9 @@ class PetSettingsViewModel(
      *
      * 保存直前にサーバーから最新の [FeedingSettings] を取得し、リマインダーフィールドだけ [FeedingSettings.copy]
      * で上書きしてから全体を PUT する。これにより、ごはん設定カード側で編集中（未保存）の値を巻き込まずに済む。
+     *
+     * 取得した最新値は PUT を組み立てるためだけに使い、[uiState] には書き戻さない（保存対象外フィールドの
+     * 同期はしない）。書き戻すと他カードで編集中（未保存）の値が消えてしまうため、ローカルの編集状態を優先する。
      */
     fun onSaveReminder() {
         uiState = uiState.copy(reminderSaving = true, reminderMessage = null)
