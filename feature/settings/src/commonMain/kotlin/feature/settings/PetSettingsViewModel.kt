@@ -9,6 +9,8 @@ import core.common.FeedingSettingsChangedEvent
 import core.network.FeedingSettingsRepository
 import core.network.PetRepository
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import model.FeedingSettings
 import model.MealTime
 import model.Pet
@@ -26,9 +28,14 @@ data class PetSettingsUiState(
     val reminderWebhookUrl: String = "",
     val reminderDelayMinutes: Int = 30,
     val reminderPrefix: String = "",
-    val isSaving: Boolean = false,
+    // 保存状態・メッセージはカード単位で分離する（ペット名 / ごはん設定 / リマインダー）
+    val petNameSaving: Boolean = false,
+    val feedingSaving: Boolean = false,
+    val reminderSaving: Boolean = false,
     val testingPhase: FeedingTestPhase? = null,
-    val message: String? = null,
+    val petNameMessage: String? = null,
+    val feedingMessage: String? = null,
+    val reminderMessage: String? = null,
 )
 
 class PetSettingsViewModel(
@@ -38,6 +45,13 @@ class PetSettingsViewModel(
 ) : ViewModel() {
     var uiState by mutableStateOf(PetSettingsUiState())
         private set
+
+    /**
+     * ごはん設定／リマインダーの保存（getSettings → copy → updateSettings の read-modify-write）を直列化する。
+     * 両カードの保存ボタンは独立フラグでガードされ同時押下できるため、ロックなしでは 2 つの保存が interleave し、
+     * 先に確定した側のフィールドを後発の古い読み取りで上書きしてしまう（last-write-wins）。
+     */
+    private val saveMutex = Mutex()
 
     init {
         load()
@@ -61,7 +75,7 @@ class PetSettingsViewModel(
                         reminderPrefix = settings.reminderPrefix,
                     )
             } catch (e: Exception) {
-                uiState = uiState.copy(isLoading = false, message = "読み込み失敗: ${e.message}")
+                uiState = uiState.copy(isLoading = false, feedingMessage = "読み込み失敗: ${e.message}")
             }
         }
     }
@@ -73,30 +87,30 @@ class PetSettingsViewModel(
         uiState =
             uiState.copy(
                 editingPetNames = uiState.editingPetNames + (petId to name),
-                message = null,
+                petNameMessage = null,
             )
     }
 
     fun onSavePetName(petId: String) {
         val name = uiState.editingPetNames[petId] ?: return
-        uiState = uiState.copy(isSaving = true, message = null)
+        uiState = uiState.copy(petNameSaving = true, petNameMessage = null)
         viewModelScope.launch {
             try {
                 val updated = petRepository.updatePetName(petId, name)
                 uiState =
                     uiState.copy(
-                        isSaving = false,
+                        petNameSaving = false,
                         pets = uiState.pets.map { if (it.id == petId) updated else it },
-                        message = "ペット名を更新しました",
+                        petNameMessage = "ペット名を更新しました",
                     )
             } catch (e: Exception) {
-                uiState = uiState.copy(isSaving = false, message = "更新失敗: ${e.message}")
+                uiState = uiState.copy(petNameSaving = false, petNameMessage = "更新失敗: ${e.message}")
             }
         }
     }
 
     fun onMealOrderChanged(order: List<MealTime>) {
-        uiState = uiState.copy(mealOrder = order, message = null)
+        uiState = uiState.copy(mealOrder = order, feedingMessage = null)
     }
 
     fun onMealTimeChanged(
@@ -106,24 +120,24 @@ class PetSettingsViewModel(
         uiState =
             uiState.copy(
                 mealTimes = uiState.mealTimes + (mealTime to time),
-                message = null,
+                feedingMessage = null,
             )
     }
 
     fun onReminderEnabledChanged(enabled: Boolean) {
-        uiState = uiState.copy(reminderEnabled = enabled, message = null)
+        uiState = uiState.copy(reminderEnabled = enabled, reminderMessage = null)
     }
 
     fun onReminderWebhookUrlChanged(url: String) {
-        uiState = uiState.copy(reminderWebhookUrl = url, message = null)
+        uiState = uiState.copy(reminderWebhookUrl = url, reminderMessage = null)
     }
 
     fun onReminderDelayMinutesChanged(minutes: Int) {
-        uiState = uiState.copy(reminderDelayMinutes = minutes.coerceIn(1, 180), message = null)
+        uiState = uiState.copy(reminderDelayMinutes = minutes.coerceIn(1, 180), reminderMessage = null)
     }
 
     fun onReminderPrefixChanged(prefix: String) {
-        uiState = uiState.copy(reminderPrefix = prefix, message = null)
+        uiState = uiState.copy(reminderPrefix = prefix, reminderMessage = null)
     }
 
     private fun validateMealTimes(mealTimes: Map<MealTime, String>): Map<MealTime, String> =
@@ -134,49 +148,87 @@ class PetSettingsViewModel(
             "${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}"
         }
 
-    fun onSaveFeedingSettings() {
+    /**
+     * ごはん設定（表示順・予定時刻）のみを保存する。
+     *
+     * 保存直前にサーバーから最新の [FeedingSettings] を取得し、ごはん設定フィールドだけ [FeedingSettings.copy]
+     * で上書きしてから全体を PUT する。これにより、リマインダーカード側で編集中（未保存）の値を巻き込まずに済む。
+     *
+     * 取得した最新値は PUT を組み立てるためだけに使い、[uiState] には書き戻さない（保存対象外フィールドの
+     * 同期はしない）。書き戻すと他カードで編集中（未保存）の値が消えてしまうため、ローカルの編集状態を優先する。
+     */
+    fun onSaveFeeding() {
         val validatedMealTimes = validateMealTimes(uiState.mealTimes)
-        uiState = uiState.copy(isSaving = true, message = null, mealTimes = validatedMealTimes)
+        uiState = uiState.copy(feedingSaving = true, feedingMessage = null, mealTimes = validatedMealTimes)
         viewModelScope.launch {
             try {
-                val settings =
-                    FeedingSettings(
-                        mealOrder = uiState.mealOrder,
-                        mealTimes = validatedMealTimes,
-                        reminderEnabled = uiState.reminderEnabled,
-                        reminderWebhookUrl = uiState.reminderWebhookUrl,
-                        reminderDelayMinutes = uiState.reminderDelayMinutes,
-                        reminderPrefix = uiState.reminderPrefix,
-                    )
-                feedingSettingsRepository.updateSettings(settings)
-                uiState = uiState.copy(isSaving = false, message = "設定を保存しました")
+                saveMutex.withLock {
+                    val merged =
+                        feedingSettingsRepository.getSettings().copy(
+                            mealOrder = uiState.mealOrder,
+                            mealTimes = validatedMealTimes,
+                        )
+                    feedingSettingsRepository.updateSettings(merged)
+                }
+                uiState = uiState.copy(feedingSaving = false, feedingMessage = "設定を保存しました")
                 feedingSettingsChangedEvent.emit()
             } catch (e: Exception) {
-                uiState = uiState.copy(isSaving = false, message = "保存失敗: ${e.message}")
+                uiState = uiState.copy(feedingSaving = false, feedingMessage = "保存失敗: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * リマインダー設定のみを保存する。
+     *
+     * 保存直前にサーバーから最新の [FeedingSettings] を取得し、リマインダーフィールドだけ [FeedingSettings.copy]
+     * で上書きしてから全体を PUT する。これにより、ごはん設定カード側で編集中（未保存）の値を巻き込まずに済む。
+     *
+     * 取得した最新値は PUT を組み立てるためだけに使い、[uiState] には書き戻さない（保存対象外フィールドの
+     * 同期はしない）。書き戻すと他カードで編集中（未保存）の値が消えてしまうため、ローカルの編集状態を優先する。
+     */
+    fun onSaveReminder() {
+        uiState = uiState.copy(reminderSaving = true, reminderMessage = null)
+        viewModelScope.launch {
+            try {
+                saveMutex.withLock {
+                    val merged =
+                        feedingSettingsRepository.getSettings().copy(
+                            reminderEnabled = uiState.reminderEnabled,
+                            reminderWebhookUrl = uiState.reminderWebhookUrl,
+                            reminderDelayMinutes = uiState.reminderDelayMinutes,
+                            reminderPrefix = uiState.reminderPrefix,
+                        )
+                    feedingSettingsRepository.updateSettings(merged)
+                }
+                uiState = uiState.copy(reminderSaving = false, reminderMessage = "設定を保存しました")
+                feedingSettingsChangedEvent.emit()
+            } catch (e: Exception) {
+                uiState = uiState.copy(reminderSaving = false, reminderMessage = "保存失敗: ${e.message}")
             }
         }
     }
 
     fun onTestScheduled() {
-        uiState = uiState.copy(testingPhase = FeedingTestPhase.SCHEDULED, message = null)
+        uiState = uiState.copy(testingPhase = FeedingTestPhase.SCHEDULED, reminderMessage = null)
         viewModelScope.launch {
             try {
                 feedingSettingsRepository.testScheduled()
-                uiState = uiState.copy(testingPhase = null, message = "定刻通知をテスト送信しました")
+                uiState = uiState.copy(testingPhase = null, reminderMessage = "定刻通知をテスト送信しました")
             } catch (e: Exception) {
-                uiState = uiState.copy(testingPhase = null, message = "テスト送信失敗: ${e.message}")
+                uiState = uiState.copy(testingPhase = null, reminderMessage = "テスト送信失敗: ${e.message}")
             }
         }
     }
 
     fun onTestReminder() {
-        uiState = uiState.copy(testingPhase = FeedingTestPhase.REMINDER, message = null)
+        uiState = uiState.copy(testingPhase = FeedingTestPhase.REMINDER, reminderMessage = null)
         viewModelScope.launch {
             try {
                 feedingSettingsRepository.testReminder()
-                uiState = uiState.copy(testingPhase = null, message = "リマインダーをテスト送信しました")
+                uiState = uiState.copy(testingPhase = null, reminderMessage = "リマインダーをテスト送信しました")
             } catch (e: Exception) {
-                uiState = uiState.copy(testingPhase = null, message = "テスト送信失敗: ${e.message}")
+                uiState = uiState.copy(testingPhase = null, reminderMessage = "テスト送信失敗: ${e.message}")
             }
         }
     }
