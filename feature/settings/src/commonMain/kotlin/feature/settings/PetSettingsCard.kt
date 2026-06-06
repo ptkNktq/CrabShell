@@ -21,7 +21,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -89,22 +88,12 @@ internal fun PetNameCard(
 internal fun FeedingSettingsCard(
     mealOrder: List<MealTime>,
     mealTimes: Map<MealTime, String>,
-    reminderEnabled: Boolean,
-    reminderWebhookUrl: String,
-    reminderDelayMinutes: Int,
-    reminderPrefix: String,
     isSaving: Boolean,
     testingPhase: FeedingTestPhase?,
     message: String?,
     onMealOrderChanged: (List<MealTime>) -> Unit,
     onMealTimeChanged: (MealTime, String) -> Unit,
-    onReminderEnabledChanged: (Boolean) -> Unit,
-    onReminderWebhookUrlChanged: (String) -> Unit,
-    onReminderDelayMinutesChanged: (Int) -> Unit,
-    onReminderPrefixChanged: (String) -> Unit,
     onSave: () -> Unit,
-    onTestScheduled: () -> Unit,
-    onTestReminder: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -189,61 +178,6 @@ internal fun FeedingSettingsCard(
                 }
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-            // --- リマインダー通知 ---
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("リマインダー通知", style = MaterialTheme.typography.bodyMedium)
-                Switch(
-                    checked = reminderEnabled,
-                    onCheckedChange = onReminderEnabledChanged,
-                    enabled = !isSaving,
-                )
-            }
-            OutlinedTextField(
-                value = reminderWebhookUrl,
-                onValueChange = onReminderWebhookUrlChanged,
-                label = { Text("Webhook URL") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isSaving && reminderEnabled,
-            )
-            OutlinedTextField(
-                value = reminderPrefix,
-                onValueChange = onReminderPrefixChanged,
-                label = { Text("通知テキスト") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isSaving && reminderEnabled,
-            )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = "遅延（分）",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.width(80.dp),
-                )
-                OutlinedTextField(
-                    value = reminderDelayMinutes.toString(),
-                    onValueChange = { v ->
-                        val filtered = v.filter { it.isDigit() }.take(3)
-                        val minutes = filtered.toIntOrNull() ?: 30
-                        onReminderDelayMinutesChanged(minutes)
-                    },
-                    singleLine = true,
-                    modifier = Modifier.width(100.dp),
-                    enabled = !isSaving && reminderEnabled,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
-                )
-            }
-
             if (message != null) {
                 Text(
                     text = message,
@@ -253,37 +187,6 @@ internal fun FeedingSettingsCard(
             }
 
             val isTesting = testingPhase != null
-            val testEnabled = !isSaving && !isTesting && reminderEnabled && reminderWebhookUrl.isNotBlank()
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                    onClick = onTestScheduled,
-                    modifier = Modifier.height(48.dp),
-                    enabled = testEnabled,
-                ) {
-                    if (testingPhase == FeedingTestPhase.SCHEDULED) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                        )
-                    } else {
-                        Text("定刻テスト")
-                    }
-                }
-                OutlinedButton(
-                    onClick = onTestReminder,
-                    modifier = Modifier.height(48.dp),
-                    enabled = testEnabled,
-                ) {
-                    if (testingPhase == FeedingTestPhase.REMINDER) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                        )
-                    } else {
-                        Text("リマインダーテスト")
-                    }
-                }
-            }
             Button(
                 onClick = onSave,
                 modifier = Modifier.height(48.dp),
@@ -297,6 +200,105 @@ internal fun FeedingSettingsCard(
                     )
                 } else {
                     Text("保存する")
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 給餌リマインダー通知の Webhook 設定カード。
+ *
+ * 共通の [WebhookSettingsCard] をベースに、遅延（分）入力とテストボタン 2 種を独自パラメータ slot に配置する。
+ * 保存は給餌設定（[FeedingSettingsCard]）と同じ [onSave]（FeedingSettings 全体の一括保存）を呼ぶ。
+ */
+@Composable
+internal fun FeedingReminderCard(
+    reminderEnabled: Boolean,
+    reminderWebhookUrl: String,
+    reminderDelayMinutes: Int,
+    reminderPrefix: String,
+    isSaving: Boolean,
+    testingPhase: FeedingTestPhase?,
+    message: String?,
+    onReminderEnabledChanged: (Boolean) -> Unit,
+    onReminderWebhookUrlChanged: (String) -> Unit,
+    onReminderDelayMinutesChanged: (Int) -> Unit,
+    onReminderPrefixChanged: (String) -> Unit,
+    onSave: () -> Unit,
+    onTestScheduled: () -> Unit,
+    onTestReminder: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isTesting = testingPhase != null
+    val fieldsEnabled = !isSaving && reminderEnabled
+    val testEnabled = !isSaving && !isTesting && reminderEnabled && reminderWebhookUrl.isNotBlank()
+    WebhookSettingsCard(
+        isLoading = false,
+        title = "リマインダー通知",
+        enabled = reminderEnabled,
+        url = reminderWebhookUrl,
+        onUrlChanged = onReminderWebhookUrlChanged,
+        isSaving = isSaving,
+        onEnabledChanged = onReminderEnabledChanged,
+        onSave = onSave,
+        modifier = modifier,
+        message = reminderPrefix,
+        onMessageChanged = onReminderPrefixChanged,
+        fieldsEnabled = fieldsEnabled,
+        statusMessage = message,
+        saveEnabled = !isSaving && !isTesting,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = "遅延（分）",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.width(80.dp),
+            )
+            OutlinedTextField(
+                value = reminderDelayMinutes.toString(),
+                onValueChange = { v ->
+                    val filtered = v.filter { it.isDigit() }.take(3)
+                    val minutes = filtered.toIntOrNull() ?: 30
+                    onReminderDelayMinutesChanged(minutes)
+                },
+                singleLine = true,
+                modifier = Modifier.width(100.dp),
+                enabled = fieldsEnabled,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(
+                onClick = onTestScheduled,
+                modifier = Modifier.height(48.dp),
+                enabled = testEnabled,
+            ) {
+                if (testingPhase == FeedingTestPhase.SCHEDULED) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    Text("定刻テスト")
+                }
+            }
+            OutlinedButton(
+                onClick = onTestReminder,
+                modifier = Modifier.height(48.dp),
+                enabled = testEnabled,
+            ) {
+                if (testingPhase == FeedingTestPhase.REMINDER) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    Text("リマインダーテスト")
                 }
             }
         }

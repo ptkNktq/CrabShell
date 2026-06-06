@@ -434,6 +434,15 @@ internal fun SettingsContent(
                     FeedingSettingsCard(
                         mealOrder = mealOrder,
                         mealTimes = mealTimes,
+                        isSaving = petSettingsSaving,
+                        testingPhase = petSettingsTesting,
+                        message = petSettingsMessage,
+                        onMealOrderChanged = onMealOrderChanged,
+                        onMealTimeChanged = onMealTimeChanged,
+                        onSave = onSaveFeedingSettings,
+                        modifier = cardModifier,
+                    )
+                    FeedingReminderCard(
                         reminderEnabled = feedingReminderEnabled,
                         reminderWebhookUrl = feedingReminderWebhookUrl,
                         reminderDelayMinutes = feedingReminderDelayMinutes,
@@ -441,8 +450,6 @@ internal fun SettingsContent(
                         isSaving = petSettingsSaving,
                         testingPhase = petSettingsTesting,
                         message = petSettingsMessage,
-                        onMealOrderChanged = onMealOrderChanged,
-                        onMealTimeChanged = onMealTimeChanged,
                         onReminderEnabledChanged = onFeedingReminderEnabledChanged,
                         onReminderWebhookUrlChanged = onFeedingReminderWebhookUrlChanged,
                         onReminderDelayMinutesChanged = onFeedingReminderDelayMinutesChanged,
@@ -1237,79 +1244,29 @@ private fun QuestWebhookSettingsCard(
     onRetry: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    Card(
+    WebhookSettingsCard(
+        isLoading = isLoading,
+        title = "Webhook 通知",
+        enabled = enabled,
+        url = url,
+        onUrlChanged = onUrlChanged,
+        isSaving = isSaving,
+        onEnabledChanged = onEnabledChanged,
+        onSave = onSave,
         modifier = modifier,
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            ),
+        loadError = loadError,
+        loadErrorMessage = loadErrorMessage,
+        onRetry = onRetry,
+        statusMessage = message,
     ) {
-        LoadableCardContent(
-            isLoading = isLoading,
-            loadError = loadError,
-            loadErrorMessage = loadErrorMessage,
-            onRetry = onRetry,
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp).fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("Webhook 通知", style = MaterialTheme.typography.titleSmall)
-                    Switch(
-                        checked = enabled,
-                        onCheckedChange = onEnabledChanged,
-                    )
-                }
-
-                OutlinedTextField(
-                    value = url,
-                    onValueChange = onUrlChanged,
-                    label = { Text("Webhook URL") },
-                    placeholder = { Text("https://discord.com/api/webhooks/...") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isSaving,
+        Text("通知するイベント", style = MaterialTheme.typography.labelMedium)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            QuestWebhookEvent.all.forEach { event ->
+                FilterChip(
+                    selected = event in events,
+                    onClick = { onToggleEvent(event) },
+                    label = { Text(QuestWebhookEvent.label(event)) },
                 )
-
-                Text("通知するイベント", style = MaterialTheme.typography.labelMedium)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    QuestWebhookEvent.all.forEach { event ->
-                        FilterChip(
-                            selected = event in events,
-                            onClick = { onToggleEvent(event) },
-                            label = { Text(QuestWebhookEvent.label(event)) },
-                        )
-                    }
-                }
-
-                if (message != null) {
-                    Text(
-                        text = message,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-
-                Button(
-                    onClick = onSave,
-                    modifier = Modifier.height(48.dp),
-                    enabled = !isSaving,
-                ) {
-                    if (isSaving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
-                    } else {
-                        Text("保存する")
-                    }
-                }
             }
         }
     }
@@ -1332,88 +1289,24 @@ private fun MoneyWebhookSettingsCard(
     onRetry: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    Card(
+    WebhookSettingsCard(
+        isLoading = isLoading,
+        title = "ステータス確定通知",
+        enabled = enabled,
+        url = url,
+        onUrlChanged = onUrlChanged,
+        isSaving = isSaving,
+        onEnabledChanged = onEnabledChanged,
+        onSave = onSave,
         modifier = modifier,
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            ),
-    ) {
-        LoadableCardContent(
-            isLoading = isLoading,
-            loadError = loadError,
-            loadErrorMessage = loadErrorMessage,
-            onRetry = onRetry,
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp).fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("ステータス確定通知", style = MaterialTheme.typography.titleSmall)
-                    Switch(
-                        checked = enabled,
-                        onCheckedChange = onEnabledChanged,
-                        enabled = !isSaving,
-                    )
-                }
-
-                Text(
-                    text = "月のお金ステータスを「確定済み」に切り替えた際に Webhook で通知します。",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-
-                OutlinedTextField(
-                    value = url,
-                    onValueChange = onUrlChanged,
-                    label = { Text("Webhook URL") },
-                    placeholder = { Text("https://discord.com/api/webhooks/...") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isSaving,
-                )
-
-                OutlinedTextField(
-                    value = message,
-                    onValueChange = onMessageChanged,
-                    label = { Text("通知テキスト") },
-                    placeholder = { Text("@everyone") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isSaving,
-                )
-
-                if (statusMessage != null) {
-                    Text(
-                        text = statusMessage,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-
-                Button(
-                    onClick = onSave,
-                    modifier = Modifier.height(48.dp),
-                    enabled = !isSaving,
-                ) {
-                    if (isSaving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
-                    } else {
-                        Text("保存する")
-                    }
-                }
-            }
-        }
-    }
+        loadError = loadError,
+        loadErrorMessage = loadErrorMessage,
+        onRetry = onRetry,
+        description = "月のお金ステータスを「確定済み」に切り替えた際に Webhook で通知します。",
+        message = message,
+        onMessageChanged = onMessageChanged,
+        statusMessage = statusMessage,
+    )
 }
 
 @Composable
@@ -1433,88 +1326,24 @@ private fun PaymentWebhookSettingsCard(
     onRetry: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    Card(
+    WebhookSettingsCard(
+        isLoading = isLoading,
+        title = "入金通知",
+        enabled = enabled,
+        url = url,
+        onUrlChanged = onUrlChanged,
+        isSaving = isSaving,
+        onEnabledChanged = onEnabledChanged,
+        onSave = onSave,
         modifier = modifier,
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            ),
-    ) {
-        LoadableCardContent(
-            isLoading = isLoading,
-            loadError = loadError,
-            loadErrorMessage = loadErrorMessage,
-            onRetry = onRetry,
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp).fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("入金通知", style = MaterialTheme.typography.titleSmall)
-                    Switch(
-                        checked = enabled,
-                        onCheckedChange = onEnabledChanged,
-                        enabled = !isSaving,
-                    )
-                }
-
-                Text(
-                    text = "ユーザーが入金を登録した際に Webhook で通知します。",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-
-                OutlinedTextField(
-                    value = url,
-                    onValueChange = onUrlChanged,
-                    label = { Text("Webhook URL") },
-                    placeholder = { Text("https://discord.com/api/webhooks/...") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isSaving,
-                )
-
-                OutlinedTextField(
-                    value = message,
-                    onValueChange = onMessageChanged,
-                    label = { Text("通知テキスト") },
-                    placeholder = { Text("@everyone") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isSaving,
-                )
-
-                if (statusMessage != null) {
-                    Text(
-                        text = statusMessage,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-
-                Button(
-                    onClick = onSave,
-                    modifier = Modifier.height(48.dp),
-                    enabled = !isSaving,
-                ) {
-                    if (isSaving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
-                    } else {
-                        Text("保存する")
-                    }
-                }
-            }
-        }
-    }
+        loadError = loadError,
+        loadErrorMessage = loadErrorMessage,
+        onRetry = onRetry,
+        description = "ユーザーが入金を登録した際に Webhook で通知します。",
+        message = message,
+        onMessageChanged = onMessageChanged,
+        statusMessage = statusMessage,
+    )
 }
 
 @Composable
@@ -1588,111 +1417,49 @@ private fun GarbageNotificationCard(
     onRetry: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    Card(
+    WebhookSettingsCard(
+        isLoading = isLoading,
+        title = "リマインダー通知",
+        enabled = enabled,
+        url = webhookUrl,
+        onUrlChanged = onWebhookUrlChanged,
+        isSaving = isSaving,
+        onEnabledChanged = onEnabledChanged,
+        onSave = onSave,
         modifier = modifier,
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            ),
+        loadError = loadError,
+        loadErrorMessage = loadErrorMessage,
+        onRetry = onRetry,
+        description = "この時刻に翌日のゴミ出し情報を通知します。ダッシュボードの表示切替は毎日 10:00 固定です。",
+        message = prefix,
+        onMessageChanged = onPrefixChanged,
+        statusMessage = message,
+        saveEnabled = !isSaving && isHourValid,
     ) {
-        LoadableCardContent(
-            isLoading = isLoading,
-            loadError = loadError,
-            loadErrorMessage = loadErrorMessage,
-            onRetry = onRetry,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Column(
-                modifier = Modifier.padding(24.dp).fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("リマインダー通知", style = MaterialTheme.typography.titleSmall)
-                    Switch(
-                        checked = enabled,
-                        onCheckedChange = onEnabledChanged,
-                    )
-                }
-
-                OutlinedTextField(
-                    value = webhookUrl,
-                    onValueChange = onWebhookUrlChanged,
-                    label = { Text("Webhook URL") },
-                    placeholder = { Text("https://discord.com/api/webhooks/...") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isSaving,
-                )
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(
-                        text = "通知時刻",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.width(80.dp),
-                    )
-                    OutlinedTextField(
-                        value = notifyHour,
-                        onValueChange = { v ->
-                            val filtered = v.filter { it.isDigit() }.take(2)
-                            onNotifyHourChanged(filtered)
-                        },
-                        label = { Text("時") },
-                        singleLine = true,
-                        isError = !isHourValid,
-                        modifier = Modifier.width(72.dp),
-                        enabled = !isSaving,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center),
-                    )
-                    Text(": 00", style = MaterialTheme.typography.titleMedium)
-                }
-
-                Text(
-                    text = "この時刻に翌日のゴミ出し情報を通知します。ダッシュボードの表示切替は毎日 10:00 固定です。",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-
-                OutlinedTextField(
-                    value = prefix,
-                    onValueChange = onPrefixChanged,
-                    label = { Text("通知テキスト") },
-                    placeholder = { Text("@everyone") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isSaving,
-                )
-
-                if (message != null) {
-                    Text(
-                        text = message,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-
-                Button(
-                    onClick = onSave,
-                    modifier = Modifier.height(48.dp),
-                    enabled = !isSaving && isHourValid,
-                ) {
-                    if (isSaving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
-                    } else {
-                        Text("保存する")
-                    }
-                }
-            }
+            Text(
+                text = "通知時刻",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.width(80.dp),
+            )
+            OutlinedTextField(
+                value = notifyHour,
+                onValueChange = { v ->
+                    val filtered = v.filter { it.isDigit() }.take(2)
+                    onNotifyHourChanged(filtered)
+                },
+                label = { Text("時") },
+                singleLine = true,
+                isError = !isHourValid,
+                modifier = Modifier.width(72.dp),
+                enabled = !isSaving,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                textStyle = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center),
+            )
+            Text(": 00", style = MaterialTheme.typography.titleMedium)
         }
     }
 }
