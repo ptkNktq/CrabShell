@@ -107,7 +107,11 @@ private fun ScreenContent(
         Screen.Money -> MoneyScreen()
         Screen.Overpayment -> OverpaymentScreen()
         Screen.Quest -> QuestScreen()
-        Screen.Settings -> SettingsScreen()
+        Screen.Settings ->
+            SettingsScreen(
+                categoryName = Navigator.fragment,
+                onCategoryNameChange = { Navigator.setFragment(it) },
+            )
     }
 }
 
