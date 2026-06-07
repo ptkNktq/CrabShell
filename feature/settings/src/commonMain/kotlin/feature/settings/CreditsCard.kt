@@ -4,12 +4,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
@@ -18,10 +23,17 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
+import com.mikepenz.aboutlibraries.entity.Library
 import core.ui.util.ExternalUrlLinkInteractionListener
 
 @Composable
-internal fun CreditsCard(modifier: Modifier = Modifier) {
+internal fun CreditsCard(
+    isLoading: Boolean = false,
+    libraries: List<Library> = emptyList(),
+    error: String? = null,
+    onRetry: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val linkStyles =
         remember(primaryColor) {
@@ -57,6 +69,13 @@ internal fun CreditsCard(modifier: Modifier = Modifier) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
+            // データクレジット
+            Text(
+                text = "データ",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
             CreditEntry(
                 name = "GeoLite2-City",
                 provider = "MaxMind",
@@ -66,6 +85,101 @@ internal fun CreditsCard(modifier: Modifier = Modifier) {
                 licenseUrl = "https://creativecommons.org/licenses/by-sa/4.0/",
                 attribution = "This product includes GeoLite2 Data created by MaxMind, available from https://www.maxmind.com.",
                 linkStyles = linkStyles,
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+            // OSS ライブラリ一覧
+            Text(
+                text = "OSS ライブラリ",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            when {
+                isLoading -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp).align(Alignment.CenterHorizontally),
+                        strokeWidth = 2.dp,
+                    )
+                }
+
+                error != null -> {
+                    Text(
+                        text = error,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    Button(onClick = onRetry) {
+                        Text("再読み込み")
+                    }
+                }
+
+                else -> {
+                    libraries.forEach { library ->
+                        LibraryEntry(library = library, linkStyles = linkStyles)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LibraryEntry(
+    library: Library,
+    linkStyles: TextLinkStyles,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        val nameText =
+            buildAnnotatedString {
+                val url = library.website?.takeIf { it.isNotBlank() } ?: library.scm?.url?.takeIf { it.isNotBlank() }
+                if (url != null) {
+                    withLink(
+                        LinkAnnotation.Url(
+                            url = url,
+                            styles = linkStyles,
+                            linkInteractionListener = ExternalUrlLinkInteractionListener,
+                        ),
+                    ) {
+                        append(library.name)
+                    }
+                } else {
+                    append(library.name)
+                }
+                library.artifactVersion?.let { append(" $it") }
+            }
+        Text(
+            text = nameText,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+
+        val licenseText =
+            buildAnnotatedString {
+                library.licenses.forEachIndexed { index, license ->
+                    if (index > 0) append(" / ")
+                    val url = license.url?.takeIf { it.isNotBlank() }
+                    if (url != null) {
+                        withLink(
+                            LinkAnnotation.Url(
+                                url = url,
+                                styles = linkStyles,
+                                linkInteractionListener = ExternalUrlLinkInteractionListener,
+                            ),
+                        ) {
+                            append(license.name)
+                        }
+                    } else {
+                        append(license.name)
+                    }
+                }
+            }
+        if (licenseText.isNotEmpty()) {
+            Text(
+                text = licenseText,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
