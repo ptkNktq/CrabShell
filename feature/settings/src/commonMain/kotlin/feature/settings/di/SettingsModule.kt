@@ -20,6 +20,9 @@ val settingsModule =
         viewModel { PasskeyManagementViewModel(get()) }
         viewModel { LoginHistoryViewModel(get()) }
         viewModel { LicensesViewModel() }
+        // 管理者専用カテゴリ。SettingsContent が isAdmin フィルタを通じてアクセスを制限するため、
+        // 非管理者が各 Screen の koinViewModel() に到達することはない。
+        // factory ではなく viewModel で登録することで ViewModel.viewModelScope を正しく管理する。
         viewModel { UserNameViewModel(get()) }
         viewModel { GarbageScheduleViewModel(get()) }
         viewModel { QuestWebhookViewModel(get()) }

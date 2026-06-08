@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -67,7 +68,7 @@ private fun QuestWebhookSettingsCard(
         onRetry = onRetry,
         statusMessage = message,
     ) {
-        Text("通知するイベント", style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
+        Text("通知するイベント", style = MaterialTheme.typography.labelMedium)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             QuestWebhookEvent.all.forEach { event ->
                 FilterChip(
