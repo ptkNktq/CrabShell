@@ -276,7 +276,7 @@ private fun PaymentListContent(
                             payment = payment,
                             isCompact = isCompact,
                             onDelete =
-                                if (onDeletePayment != null && payment.id.isNotEmpty()) {
+                                if (onDeletePayment != null && payment.id.isNotEmpty() && !payment.isRedemption) {
                                     { onDeletePayment(payment.id) }
                                 } else {
                                     null
