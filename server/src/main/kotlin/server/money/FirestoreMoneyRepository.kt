@@ -226,16 +226,4 @@ class FirestoreMoneyRepository(
             )
         }
     }
-
-    override suspend fun deletePayment(
-        yearMonth: String,
-        uid: String,
-        paymentId: String,
-    ): MonthlyMoney? {
-        val data = getMonthlyMoney(yearMonth) ?: return null
-        val target = data.payments.find { it.id == paymentId && it.uid == uid } ?: return null
-        val updated = data.copy(payments = data.payments - target)
-        saveMonthlyMoney(yearMonth, updated)
-        return updated
-    }
 }

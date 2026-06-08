@@ -155,10 +155,11 @@ class PaymentViewModel(
                 uiState =
                     uiState.copy(
                         monthlyMoney = moneyRepository.deletePayment(uiState.currentYearMonth, paymentId),
-                        isSaving = false,
                     )
             } catch (e: Exception) {
-                uiState = uiState.copy(error = e.message, isSaving = false)
+                uiState = uiState.copy(error = e.message)
+            } finally {
+                uiState = uiState.copy(isSaving = false)
             }
         }
     }

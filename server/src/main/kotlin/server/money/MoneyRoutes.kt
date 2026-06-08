@@ -273,6 +273,10 @@ fun Route.moneyRoutes() {
                     call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Cannot delete other user's payment"))
                     return@delete
                 }
+                if (target.isRedemption) {
+                    call.respond(HttpStatusCode.Conflict, mapOf("error" to "Cannot delete redemption payment"))
+                    return@delete
+                }
 
                 val updated = data.copy(payments = data.payments - target)
                 moneyRepository.saveMonthlyMoney(yearMonth, updated)
