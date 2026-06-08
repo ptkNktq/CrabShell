@@ -41,17 +41,17 @@ internal fun AccountScreen(modifier: Modifier = Modifier) {
     val passwordVm: PasswordChangeViewModel = koinViewModel()
     val passkeyVm: PasskeyManagementViewModel = koinViewModel()
     val loginHistoryVm: LoginHistoryViewModel = koinViewModel()
-    val s = passwordVm.uiState
-    val pk = passkeyVm.uiState
-    val lh = loginHistoryVm.uiState
+    val passwordState = passwordVm.uiState
+    val passkeyState = passkeyVm.uiState
+    val loginHistoryState = loginHistoryVm.uiState
 
     PasswordChangeCard(
-        currentPassword = s.currentPassword,
-        newPassword = s.newPassword,
-        confirmPassword = s.confirmPassword,
-        isLoading = s.isLoading,
-        errorMessage = s.errorMessage,
-        successMessage = s.successMessage,
+        currentPassword = passwordState.currentPassword,
+        newPassword = passwordState.newPassword,
+        confirmPassword = passwordState.confirmPassword,
+        isLoading = passwordState.isLoading,
+        errorMessage = passwordState.errorMessage,
+        successMessage = passwordState.successMessage,
         onCurrentPasswordChanged = passwordVm::onCurrentPasswordChanged,
         onNewPasswordChanged = passwordVm::onNewPasswordChanged,
         onConfirmPasswordChanged = passwordVm::onConfirmPasswordChanged,
@@ -59,22 +59,22 @@ internal fun AccountScreen(modifier: Modifier = Modifier) {
         modifier = modifier,
     )
 
-    if (pk.isAvailable) {
+    if (passkeyState.isAvailable) {
         PasskeyManagementCard(
-            credentialCount = pk.credentialCount,
-            isRegistering = pk.isRegistering,
-            errorMessage = pk.errorMessage,
-            successMessage = pk.successMessage,
+            credentialCount = passkeyState.credentialCount,
+            isRegistering = passkeyState.isRegistering,
+            errorMessage = passkeyState.errorMessage,
+            successMessage = passkeyState.successMessage,
             onRegisterPasskey = passkeyVm::onRegisterPasskey,
             modifier = modifier,
         )
     }
 
     LoginHistoryCardContent(
-        isLoading = lh.isLoading,
-        loadError = lh.loadError,
-        loadErrorMessage = lh.loadErrorMessage,
-        events = lh.events,
+        isLoading = loginHistoryState.isLoading,
+        loadError = loginHistoryState.loadError,
+        loadErrorMessage = loginHistoryState.loadErrorMessage,
+        events = loginHistoryState.events,
         onRetry = loginHistoryVm::loadHistory,
         modifier = modifier,
     )
