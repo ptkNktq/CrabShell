@@ -261,6 +261,7 @@ fun Route.moneyRoutes() {
                     call.respond(HttpStatusCode.NotFound, mapOf("error" to "Month not found"))
                     return@delete
                 }
+                // CONFIRMED（告知済み）月は操作制約なし。POST /pay が CONFIRMED を弾かないことと対称。
                 if (data.status == MonthlyMoneyStatus.FROZEN) {
                     call.respond(HttpStatusCode.Conflict, mapOf("error" to "Month is frozen"))
                     return@delete

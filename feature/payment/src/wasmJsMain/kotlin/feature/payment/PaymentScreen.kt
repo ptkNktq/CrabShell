@@ -270,7 +270,6 @@ private fun PaymentListContent(
                     }
                     items(
                         monthlyMoney.payments.sortedByDescending { it.paidAt },
-                        // TODO: payments-fill-missing-ids マイグレーション適用後は ifEmpty フォールバックを削除できる
                         key = { it.id.ifEmpty { "${it.paidAt}-${it.amount}" } },
                     ) { payment ->
                         PaymentCard(
