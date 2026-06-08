@@ -80,7 +80,14 @@ class FirestoreMoneyRepository(
 
         val payments =
             data.payments.map { p ->
-                mapOf("uid" to p.uid, "amount" to p.amount, "paidAt" to p.paidAt, "note" to p.note, "isRedemption" to p.isRedemption)
+                mapOf(
+                    "id" to p.id,
+                    "uid" to p.uid,
+                    "amount" to p.amount,
+                    "paidAt" to p.paidAt,
+                    "note" to p.note,
+                    "isRedemption" to p.isRedemption,
+                )
             }
 
         firestore
@@ -209,6 +216,7 @@ class FirestoreMoneyRepository(
         val paymentsRaw = raw as? List<Map<String, Any?>> ?: return emptyList()
         return paymentsRaw.map { p ->
             Payment(
+                id = p["id"] as? String ?: "",
                 uid = p["uid"] as String,
                 amount = (p["amount"] as Number).toLong(),
                 paidAt = p["paidAt"] as String,
@@ -216,5 +224,17 @@ class FirestoreMoneyRepository(
                 isRedemption = p["isRedemption"] as? Boolean ?: false,
             )
         }
+    }
+
+    override suspend fun deletePayment(
+        yearMonth: String,
+        uid: String,
+        paymentId: String,
+    ): MonthlyMoney? {
+        val data = getMonthlyMoney(yearMonth) ?: return null
+        val target = data.payments.find { it.id == paymentId && it.uid == uid } ?: return null
+        val updated = data.copy(payments = data.payments - target)
+        saveMonthlyMoney(yearMonth, updated)
+        return updated
     }
 }

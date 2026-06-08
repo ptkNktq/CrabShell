@@ -20,4 +20,15 @@ interface MoneyRepository {
 
     /** レポート用: 全月のデータを取得 */
     suspend fun getAllMonths(): List<MonthlyMoney>
+
+    /**
+     * 支払い記録を物理削除する。
+     * [paymentId] が一致し [uid] が所有者である Payment を除外して保存する。
+     * 対象の月・Payment が存在しない場合は null を返す。
+     */
+    suspend fun deletePayment(
+        yearMonth: String,
+        uid: String,
+        paymentId: String,
+    ): MonthlyMoney?
 }
