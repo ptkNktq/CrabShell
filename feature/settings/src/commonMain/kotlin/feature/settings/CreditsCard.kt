@@ -101,10 +101,9 @@ internal fun CreditsCard(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-            // OSS ライブラリ一覧
-            val sectionTitle = if (libraries.isNotEmpty()) "OSS ライブラリ (${libraries.size})" else "OSS ライブラリ"
+            // OSS ライブラリ一覧（セクションラベルはロード中・エラー中も常時表示してコンテキストを提供）
             Text(
-                text = sectionTitle,
+                text = "OSS ライブラリ",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -137,6 +136,11 @@ internal fun CreditsCard(
                 }
 
                 else -> {
+                    Text(
+                        text = "${libraries.size} 件",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     Column {
                         libraries.forEachIndexed { index, library ->
                             LibraryEntry(

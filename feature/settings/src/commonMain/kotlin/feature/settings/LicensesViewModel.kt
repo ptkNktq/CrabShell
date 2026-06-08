@@ -28,7 +28,7 @@ class LicensesViewModel : ViewModel() {
 
     @OptIn(ExperimentalResourceApi::class)
     fun loadLicenses() {
-        uiState = LicensesUiState(isLoading = true, error = null)
+        uiState = uiState.copy(isLoading = true, error = null)
         viewModelScope.launch {
             try {
                 val json = Res.readBytes("files/aboutlibraries.json").decodeToString()
