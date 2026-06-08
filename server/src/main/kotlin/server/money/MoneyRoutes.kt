@@ -249,6 +249,7 @@ fun Route.moneyRoutes() {
                     code(HttpStatusCode.NotFound) { description = "月データまたは Payment が存在しない" }
                     code(HttpStatusCode.Conflict) { description = "凍結中" }
                     code(HttpStatusCode.Forbidden) { description = "他ユーザーの Payment" }
+                    code(HttpStatusCode.UnprocessableEntity) { description = "精算レコードは削除不可" }
                 }
             }) {
                 val yearMonth = call.parameters.getOrFail("yearMonth")
@@ -274,7 +275,7 @@ fun Route.moneyRoutes() {
                     return@delete
                 }
                 if (target.isRedemption) {
-                    call.respond(HttpStatusCode.Conflict, mapOf("error" to "Cannot delete redemption payment"))
+                    call.respond(HttpStatusCode.UnprocessableEntity, mapOf("error" to "Cannot delete redemption payment"))
                     return@delete
                 }
 

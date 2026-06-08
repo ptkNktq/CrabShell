@@ -152,6 +152,8 @@ class PaymentViewModel(
         uiState = uiState.copy(isSaving = true)
         viewModelScope.launch {
             try {
+                // サーバーは filterForUser 済みのデータを返す（onRecordPayment と同じパターン）。
+                // 他ユーザー閲覧中には削除ボタン自体が非表示なので isViewingOther の再フィルタは不要。
                 uiState =
                     uiState.copy(
                         monthlyMoney = moneyRepository.deletePayment(uiState.currentYearMonth, paymentId),
