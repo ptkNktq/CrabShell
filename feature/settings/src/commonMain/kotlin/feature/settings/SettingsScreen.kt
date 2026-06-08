@@ -1,8 +1,23 @@
 package feature.settings
 
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.ScrollbarStyle
+import androidx.compose.foundation.VerticalScrollbar
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.rememberScrollbarAdapter
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountBalance
@@ -10,60 +25,28 @@ import androidx.compose.material.icons.filled.Cached
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Copyright
 import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.mikepenz.aboutlibraries.entity.Library
 import core.auth.AuthStateHolder
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
 import core.ui.components.AdminBadge
-import core.ui.components.LoadableCardContent
-import core.ui.extensions.color
-import core.ui.extensions.icon
-import core.ui.extensions.label
-import model.CollectionFrequency
-import model.FeedingSettings
-import model.GarbageType
-import model.GarbageTypeSchedule
-import model.LoginEvent
-import model.MealTime
-import model.Pet
-import model.QuestWebhookEvent
-import model.User
-import org.koin.compose.getKoin
 import org.koin.compose.koinInject
-import org.koin.compose.viewmodel.koinViewModel
-
-private val dayLabels = listOf("日", "月", "火", "水", "木", "金", "土")
-
-@Composable
-private fun settingsScrollbarStyle() =
-    ScrollbarStyle(
-        minimalHeight = 48.dp,
-        thickness = 8.dp,
-        shape = MaterialTheme.shapes.small,
-        hoverDurationMillis = 300,
-        unhoverColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-        hoverColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-    )
 
 internal enum class SettingsCategory(
     val title: String,
@@ -87,160 +70,17 @@ internal enum class SettingsCategory(
 fun SettingsScreen(
     categoryName: String? = null,
     onCategoryNameChange: (String?) -> Unit = {},
-    passwordVm: PasswordChangeViewModel = koinViewModel(),
-    passkeyVm: PasskeyManagementViewModel = koinViewModel(),
-    loginHistoryVm: LoginHistoryViewModel = koinViewModel(),
-    licensesVm: LicensesViewModel = koinViewModel(),
 ) {
     val authStateHolder = koinInject<AuthStateHolder>()
     val isAdmin = authStateHolder.isAdmin
-
-    // URL フラグメント（enum 名）→ SettingsCategory。不正値・権限外は null（カテゴリ未選択）扱い。
     val selectedCategory =
         categoryName
             ?.let { name -> SettingsCategory.entries.find { it.name == name } }
             ?.takeIf { !it.adminOnly || isAdmin }
-    val koin = getKoin()
-    val userNameVm = remember(isAdmin) { if (isAdmin) koin.get<UserNameViewModel>() else null }
-    val garbageVm = remember(isAdmin) { if (isAdmin) koin.get<GarbageScheduleViewModel>() else null }
-    val questWebhookVm = remember(isAdmin) { if (isAdmin) koin.get<QuestWebhookViewModel>() else null }
-    val moneyWebhookVm = remember(isAdmin) { if (isAdmin) koin.get<MoneyWebhookViewModel>() else null }
-    val paymentWebhookVm = remember(isAdmin) { if (isAdmin) koin.get<PaymentWebhookViewModel>() else null }
-    val cacheVm = remember(isAdmin) { if (isAdmin) koin.get<CacheRefreshViewModel>() else null }
-    val petSettingsVm = remember(isAdmin) { if (isAdmin) koin.get<PetSettingsViewModel>() else null }
     val windowSizeClass = LocalWindowSizeClass.current
 
     SettingsContent(
         isAdmin = isAdmin,
-        loginHistoryLoading = loginHistoryVm.uiState.isLoading,
-        loginHistoryLoadError = loginHistoryVm.uiState.loadError,
-        loginHistoryLoadErrorMessage = loginHistoryVm.uiState.loadErrorMessage,
-        loginHistoryEvents = loginHistoryVm.uiState.events,
-        onRetryLoginHistory = loginHistoryVm::loadHistory,
-        currentPassword = passwordVm.uiState.currentPassword,
-        newPassword = passwordVm.uiState.newPassword,
-        confirmPassword = passwordVm.uiState.confirmPassword,
-        isLoading = passwordVm.uiState.isLoading,
-        errorMessage = passwordVm.uiState.errorMessage,
-        successMessage = passwordVm.uiState.successMessage,
-        onCurrentPasswordChanged = passwordVm::onCurrentPasswordChanged,
-        onNewPasswordChanged = passwordVm::onNewPasswordChanged,
-        onConfirmPasswordChanged = passwordVm::onConfirmPasswordChanged,
-        onChangePassword = passwordVm::onChangePassword,
-        passkeyAvailable = passkeyVm.uiState.isAvailable,
-        passkeyRegistering = passkeyVm.uiState.isRegistering,
-        credentialCount = passkeyVm.uiState.credentialCount,
-        passkeyError = passkeyVm.uiState.errorMessage,
-        passkeySuccess = passkeyVm.uiState.successMessage,
-        onRegisterPasskey = passkeyVm::onRegisterPasskey,
-        usersLoading = userNameVm?.uiState?.isLoading ?: false,
-        usersLoadError = userNameVm?.uiState?.loadError ?: false,
-        users = userNameVm?.uiState?.users ?: emptyList(),
-        usersSaving = userNameVm?.uiState?.isSaving ?: false,
-        usersMessage = userNameVm?.uiState?.message,
-        onUpdateDisplayName = { uid, name -> userNameVm?.onUpdateDisplayName(uid, name) },
-        onRetryUsers = { userNameVm?.loadUsers() },
-        usersLoadErrorMessage = userNameVm?.uiState?.loadErrorMessage,
-        garbageLoading = garbageVm?.uiState?.isLoading ?: false,
-        garbageLoadError = garbageVm?.uiState?.loadError ?: false,
-        garbageLoadErrorMessage = garbageVm?.uiState?.loadErrorMessage,
-        garbageSchedules = garbageVm?.uiState?.schedules ?: emptyList(),
-        garbageMessage = garbageVm?.uiState?.message,
-        garbageSaving = garbageVm?.uiState?.isSaving ?: false,
-        onToggleDay = { type, day -> garbageVm?.onToggleDay(type, day) },
-        onFrequencyChange = { type, freq -> garbageVm?.onChangeFrequency(type, freq) },
-        onSaveGarbageSchedule = { garbageVm?.onSaveSchedule() },
-        onRetryGarbageSchedule = { garbageVm?.loadSchedules() },
-        garbageNotificationLoading = garbageVm?.uiState?.notificationLoading ?: false,
-        garbageNotificationLoadError = garbageVm?.uiState?.notificationLoadError ?: false,
-        garbageNotificationLoadErrorMessage = garbageVm?.uiState?.notificationLoadErrorMessage,
-        garbageNotificationEnabled = garbageVm?.uiState?.notificationEnabled ?: false,
-        garbageNotificationWebhookUrl = garbageVm?.uiState?.notificationWebhookUrl ?: "",
-        garbageNotificationHour = garbageVm?.uiState?.notificationHour ?: "10",
-        garbageNotificationPrefix = garbageVm?.uiState?.notificationPrefix ?: "",
-        garbageNotificationSaving = garbageVm?.uiState?.notificationSaving ?: false,
-        garbageNotificationHourValid = garbageVm?.uiState?.isNotificationHourValid ?: true,
-        garbageNotificationMessage = garbageVm?.uiState?.notificationMessage,
-        onGarbageNotificationEnabledChanged = { garbageVm?.onNotificationEnabledChanged(it) },
-        onGarbageNotificationWebhookUrlChanged = { garbageVm?.onNotificationWebhookUrlChanged(it) },
-        onGarbageNotificationHourChanged = { garbageVm?.onNotificationHourChanged(it) },
-        onGarbageNotificationPrefixChanged = { garbageVm?.onNotificationPrefixChanged(it) },
-        onSaveGarbageNotification = { garbageVm?.onSaveNotificationSettings() },
-        onRetryGarbageNotification = { garbageVm?.loadNotificationSettings() },
-        questWebhookLoading = questWebhookVm?.uiState?.isLoading ?: false,
-        questWebhookLoadError = questWebhookVm?.uiState?.loadError ?: false,
-        questWebhookLoadErrorMessage = questWebhookVm?.uiState?.loadErrorMessage,
-        questWebhookUrl = questWebhookVm?.uiState?.url ?: "",
-        questWebhookEnabled = questWebhookVm?.uiState?.enabled ?: false,
-        questWebhookEvents = questWebhookVm?.uiState?.events ?: emptyList(),
-        questWebhookSaving = questWebhookVm?.uiState?.isSaving ?: false,
-        questWebhookMessage = questWebhookVm?.uiState?.message,
-        onQuestWebhookUrlChanged = { questWebhookVm?.onUrlChanged(it) },
-        onQuestWebhookEnabledChanged = { questWebhookVm?.onEnabledChanged(it) },
-        onQuestWebhookToggleEvent = { questWebhookVm?.onToggleEvent(it) },
-        onSaveQuestWebhook = { questWebhookVm?.onSave() },
-        onRetryQuestWebhook = { questWebhookVm?.loadSettings() },
-        moneyWebhookLoading = moneyWebhookVm?.uiState?.isLoading ?: false,
-        moneyWebhookLoadError = moneyWebhookVm?.uiState?.loadError ?: false,
-        moneyWebhookLoadErrorMessage = moneyWebhookVm?.uiState?.loadErrorMessage,
-        moneyWebhookUrl = moneyWebhookVm?.uiState?.url ?: "",
-        moneyWebhookEnabled = moneyWebhookVm?.uiState?.enabled ?: false,
-        moneyWebhookMessage = moneyWebhookVm?.uiState?.message ?: "",
-        moneyWebhookSaving = moneyWebhookVm?.uiState?.isSaving ?: false,
-        moneyWebhookStatusMessage = moneyWebhookVm?.uiState?.statusMessage,
-        onMoneyWebhookUrlChanged = { moneyWebhookVm?.onUrlChanged(it) },
-        onMoneyWebhookEnabledChanged = { moneyWebhookVm?.onEnabledChanged(it) },
-        onMoneyWebhookMessageChanged = { moneyWebhookVm?.onMessageChanged(it) },
-        onSaveMoneyWebhook = { moneyWebhookVm?.onSave() },
-        onRetryMoneyWebhook = { moneyWebhookVm?.loadSettings() },
-        paymentWebhookLoading = paymentWebhookVm?.uiState?.isLoading ?: false,
-        paymentWebhookLoadError = paymentWebhookVm?.uiState?.loadError ?: false,
-        paymentWebhookLoadErrorMessage = paymentWebhookVm?.uiState?.loadErrorMessage,
-        paymentWebhookUrl = paymentWebhookVm?.uiState?.url ?: "",
-        paymentWebhookEnabled = paymentWebhookVm?.uiState?.enabled ?: false,
-        paymentWebhookMessage = paymentWebhookVm?.uiState?.message ?: "",
-        paymentWebhookSaving = paymentWebhookVm?.uiState?.isSaving ?: false,
-        paymentWebhookStatusMessage = paymentWebhookVm?.uiState?.statusMessage,
-        onPaymentWebhookUrlChanged = { paymentWebhookVm?.onUrlChanged(it) },
-        onPaymentWebhookEnabledChanged = { paymentWebhookVm?.onEnabledChanged(it) },
-        onPaymentWebhookMessageChanged = { paymentWebhookVm?.onMessageChanged(it) },
-        onSavePaymentWebhook = { paymentWebhookVm?.onSave() },
-        onRetryPaymentWebhook = { paymentWebhookVm?.loadSettings() },
-        cacheClearing = cacheVm?.uiState?.isClearing ?: false,
-        cacheMessage = cacheVm?.uiState?.message,
-        onClearCache = { cacheVm?.onClearCache() },
-        petSettingsLoading = petSettingsVm?.uiState?.isLoading ?: false,
-        pets = petSettingsVm?.uiState?.pets ?: emptyList(),
-        editingPetNames = petSettingsVm?.uiState?.editingPetNames ?: emptyMap(),
-        mealOrder = petSettingsVm?.uiState?.mealOrder ?: FeedingSettings.DEFAULT_MEAL_ORDER,
-        mealTimes = petSettingsVm?.uiState?.mealTimes ?: emptyMap(),
-        feedingReminderEnabled = petSettingsVm?.uiState?.reminderEnabled ?: false,
-        feedingReminderWebhookUrl = petSettingsVm?.uiState?.reminderWebhookUrl ?: "",
-        feedingReminderDelayMinutes = petSettingsVm?.uiState?.reminderDelayMinutes ?: 30,
-        feedingReminderPrefix = petSettingsVm?.uiState?.reminderPrefix ?: "",
-        petNameSaving = petSettingsVm?.uiState?.petNameSaving ?: false,
-        feedingSaving = petSettingsVm?.uiState?.feedingSaving ?: false,
-        reminderSaving = petSettingsVm?.uiState?.reminderSaving ?: false,
-        petSettingsTesting = petSettingsVm?.uiState?.testingPhase,
-        petNameMessage = petSettingsVm?.uiState?.petNameMessage,
-        feedingMessage = petSettingsVm?.uiState?.feedingMessage,
-        reminderMessage = petSettingsVm?.uiState?.reminderMessage,
-        onPetNameChanged = { id, name -> petSettingsVm?.onPetNameChanged(id, name) },
-        onSavePetName = { petSettingsVm?.onSavePetName(it) },
-        onMealOrderChanged = { petSettingsVm?.onMealOrderChanged(it) },
-        onMealTimeChanged = { t, v -> petSettingsVm?.onMealTimeChanged(t, v) },
-        onFeedingReminderEnabledChanged = { petSettingsVm?.onReminderEnabledChanged(it) },
-        onFeedingReminderWebhookUrlChanged = { petSettingsVm?.onReminderWebhookUrlChanged(it) },
-        onFeedingReminderDelayMinutesChanged = { petSettingsVm?.onReminderDelayMinutesChanged(it) },
-        onFeedingReminderPrefixChanged = { petSettingsVm?.onReminderPrefixChanged(it) },
-        onSaveFeeding = { petSettingsVm?.onSaveFeeding() },
-        onSaveReminder = { petSettingsVm?.onSaveReminder() },
-        onTestFeedingScheduled = { petSettingsVm?.onTestScheduled() },
-        onTestFeedingReminder = { petSettingsVm?.onTestReminder() },
-        licensesLoading = licensesVm.uiState.isLoading,
-        libraries = licensesVm.uiState.libraries,
-        licensesError = licensesVm.uiState.error,
-        onRetryLicenses = licensesVm::loadLicenses,
         windowSizeClass = windowSizeClass,
         selectedCategory = selectedCategory,
         onSelectCategory = { onCategoryNameChange(it?.name) },
@@ -250,135 +90,6 @@ fun SettingsScreen(
 @Composable
 internal fun SettingsContent(
     isAdmin: Boolean,
-    loginHistoryLoading: Boolean,
-    loginHistoryLoadError: Boolean,
-    loginHistoryLoadErrorMessage: String?,
-    loginHistoryEvents: List<LoginEvent>,
-    onRetryLoginHistory: () -> Unit,
-    currentPassword: String,
-    newPassword: String,
-    confirmPassword: String,
-    isLoading: Boolean,
-    errorMessage: String?,
-    successMessage: String?,
-    onCurrentPasswordChanged: (String) -> Unit,
-    onNewPasswordChanged: (String) -> Unit,
-    onConfirmPasswordChanged: (String) -> Unit,
-    onChangePassword: () -> Unit,
-    passkeyAvailable: Boolean = false,
-    passkeyRegistering: Boolean = false,
-    credentialCount: Int = 0,
-    passkeyError: String? = null,
-    passkeySuccess: String? = null,
-    onRegisterPasskey: () -> Unit = {},
-    usersLoading: Boolean = false,
-    usersLoadError: Boolean = false,
-    usersLoadErrorMessage: String? = null,
-    users: List<User>,
-    usersSaving: Boolean,
-    usersMessage: String?,
-    onUpdateDisplayName: (String, String) -> Unit,
-    onRetryUsers: () -> Unit = {},
-    garbageLoading: Boolean,
-    garbageLoadError: Boolean = false,
-    garbageLoadErrorMessage: String? = null,
-    garbageSchedules: List<GarbageTypeSchedule>,
-    garbageMessage: String?,
-    garbageSaving: Boolean,
-    onToggleDay: (GarbageType, Int) -> Unit,
-    onFrequencyChange: (GarbageType, CollectionFrequency) -> Unit,
-    onSaveGarbageSchedule: () -> Unit,
-    onRetryGarbageSchedule: () -> Unit = {},
-    garbageNotificationLoading: Boolean = false,
-    garbageNotificationLoadError: Boolean = false,
-    garbageNotificationLoadErrorMessage: String? = null,
-    garbageNotificationEnabled: Boolean = false,
-    garbageNotificationWebhookUrl: String = "",
-    garbageNotificationHour: String = "10",
-    garbageNotificationPrefix: String = "",
-    garbageNotificationSaving: Boolean = false,
-    garbageNotificationHourValid: Boolean = true,
-    garbageNotificationMessage: String? = null,
-    onGarbageNotificationEnabledChanged: (Boolean) -> Unit = {},
-    onGarbageNotificationWebhookUrlChanged: (String) -> Unit = {},
-    onGarbageNotificationHourChanged: (String) -> Unit = {},
-    onGarbageNotificationPrefixChanged: (String) -> Unit = {},
-    onSaveGarbageNotification: () -> Unit = {},
-    onRetryGarbageNotification: () -> Unit = {},
-    questWebhookLoading: Boolean = false,
-    questWebhookLoadError: Boolean = false,
-    questWebhookLoadErrorMessage: String? = null,
-    questWebhookUrl: String = "",
-    questWebhookEnabled: Boolean = false,
-    questWebhookEvents: List<String> = emptyList(),
-    questWebhookSaving: Boolean = false,
-    questWebhookMessage: String? = null,
-    onQuestWebhookUrlChanged: (String) -> Unit = {},
-    onQuestWebhookEnabledChanged: (Boolean) -> Unit = {},
-    onQuestWebhookToggleEvent: (String) -> Unit = {},
-    onSaveQuestWebhook: () -> Unit = {},
-    onRetryQuestWebhook: () -> Unit = {},
-    moneyWebhookLoading: Boolean = false,
-    moneyWebhookLoadError: Boolean = false,
-    moneyWebhookLoadErrorMessage: String? = null,
-    moneyWebhookUrl: String = "",
-    moneyWebhookEnabled: Boolean = false,
-    moneyWebhookMessage: String = "",
-    moneyWebhookSaving: Boolean = false,
-    moneyWebhookStatusMessage: String? = null,
-    onMoneyWebhookUrlChanged: (String) -> Unit = {},
-    onMoneyWebhookEnabledChanged: (Boolean) -> Unit = {},
-    onMoneyWebhookMessageChanged: (String) -> Unit = {},
-    onSaveMoneyWebhook: () -> Unit = {},
-    onRetryMoneyWebhook: () -> Unit = {},
-    paymentWebhookLoading: Boolean = false,
-    paymentWebhookLoadError: Boolean = false,
-    paymentWebhookLoadErrorMessage: String? = null,
-    paymentWebhookUrl: String = "",
-    paymentWebhookEnabled: Boolean = false,
-    paymentWebhookMessage: String = "",
-    paymentWebhookSaving: Boolean = false,
-    paymentWebhookStatusMessage: String? = null,
-    onPaymentWebhookUrlChanged: (String) -> Unit = {},
-    onPaymentWebhookEnabledChanged: (Boolean) -> Unit = {},
-    onPaymentWebhookMessageChanged: (String) -> Unit = {},
-    onSavePaymentWebhook: () -> Unit = {},
-    onRetryPaymentWebhook: () -> Unit = {},
-    cacheClearing: Boolean = false,
-    cacheMessage: String? = null,
-    onClearCache: () -> Unit = {},
-    licensesLoading: Boolean = false,
-    libraries: List<Library> = emptyList(),
-    licensesError: String? = null,
-    onRetryLicenses: () -> Unit = {},
-    petSettingsLoading: Boolean = false,
-    pets: List<Pet> = emptyList(),
-    editingPetNames: Map<String, String> = emptyMap(),
-    mealOrder: List<MealTime> = FeedingSettings.DEFAULT_MEAL_ORDER,
-    mealTimes: Map<MealTime, String> = emptyMap(),
-    feedingReminderEnabled: Boolean = false,
-    feedingReminderWebhookUrl: String = "",
-    feedingReminderDelayMinutes: Int = 30,
-    feedingReminderPrefix: String = "",
-    petNameSaving: Boolean = false,
-    feedingSaving: Boolean = false,
-    reminderSaving: Boolean = false,
-    petSettingsTesting: FeedingTestPhase? = null,
-    petNameMessage: String? = null,
-    feedingMessage: String? = null,
-    reminderMessage: String? = null,
-    onPetNameChanged: (String, String) -> Unit = { _, _ -> },
-    onSavePetName: (String) -> Unit = {},
-    onMealOrderChanged: (List<MealTime>) -> Unit = {},
-    onMealTimeChanged: (MealTime, String) -> Unit = { _, _ -> },
-    onFeedingReminderEnabledChanged: (Boolean) -> Unit = {},
-    onFeedingReminderWebhookUrlChanged: (String) -> Unit = {},
-    onFeedingReminderDelayMinutesChanged: (Int) -> Unit = {},
-    onFeedingReminderPrefixChanged: (String) -> Unit = {},
-    onSaveFeeding: () -> Unit = {},
-    onSaveReminder: () -> Unit = {},
-    onTestFeedingScheduled: () -> Unit = {},
-    onTestFeedingReminder: () -> Unit = {},
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
     selectedCategory: SettingsCategory? = null,
     onSelectCategory: (SettingsCategory?) -> Unit = {},
@@ -388,202 +99,18 @@ internal fun SettingsContent(
 
     val categoryContent: @Composable (SettingsCategory, Modifier) -> Unit = { category, cardModifier ->
         when (category) {
-            SettingsCategory.Account -> {
-                PasswordChangeCard(
-                    currentPassword = currentPassword,
-                    newPassword = newPassword,
-                    confirmPassword = confirmPassword,
-                    isLoading = isLoading,
-                    errorMessage = errorMessage,
-                    successMessage = successMessage,
-                    onCurrentPasswordChanged = onCurrentPasswordChanged,
-                    onNewPasswordChanged = onNewPasswordChanged,
-                    onConfirmPasswordChanged = onConfirmPasswordChanged,
-                    onChangePassword = onChangePassword,
-                    modifier = cardModifier,
-                )
-                if (passkeyAvailable) {
-                    PasskeyManagementCard(
-                        credentialCount = credentialCount,
-                        isRegistering = passkeyRegistering,
-                        errorMessage = passkeyError,
-                        successMessage = passkeySuccess,
-                        onRegisterPasskey = onRegisterPasskey,
-                        modifier = cardModifier,
-                    )
-                }
-                LoginHistoryCardContent(
-                    isLoading = loginHistoryLoading,
-                    loadError = loginHistoryLoadError,
-                    loadErrorMessage = loginHistoryLoadErrorMessage,
-                    events = loginHistoryEvents,
-                    onRetry = onRetryLoginHistory,
-                    modifier = cardModifier,
-                )
-            }
-            SettingsCategory.UserManagement -> {
-                UserNameManagementCard(
-                    isLoading = usersLoading,
-                    loadError = usersLoadError,
-                    loadErrorMessage = usersLoadErrorMessage,
-                    users = users,
-                    usersSaving = usersSaving,
-                    usersMessage = usersMessage,
-                    onUpdateDisplayName = onUpdateDisplayName,
-                    onRetry = onRetryUsers,
-                    modifier = cardModifier,
-                )
-            }
-            SettingsCategory.Pet -> {
-                if (petSettingsLoading) {
-                    CircularProgressIndicator()
-                } else {
-                    PetNameCard(
-                        pets = pets,
-                        editingPetNames = editingPetNames,
-                        isSaving = petNameSaving,
-                        message = petNameMessage,
-                        onPetNameChanged = onPetNameChanged,
-                        onSavePetName = onSavePetName,
-                        modifier = cardModifier,
-                    )
-                    FeedingSettingsCard(
-                        mealOrder = mealOrder,
-                        mealTimes = mealTimes,
-                        isSaving = feedingSaving,
-                        message = feedingMessage,
-                        onMealOrderChanged = onMealOrderChanged,
-                        onMealTimeChanged = onMealTimeChanged,
-                        onSave = onSaveFeeding,
-                        modifier = cardModifier,
-                    )
-                    FeedingReminderCard(
-                        reminderEnabled = feedingReminderEnabled,
-                        reminderWebhookUrl = feedingReminderWebhookUrl,
-                        reminderDelayMinutes = feedingReminderDelayMinutes,
-                        reminderPrefix = feedingReminderPrefix,
-                        isSaving = reminderSaving,
-                        testingPhase = petSettingsTesting,
-                        message = reminderMessage,
-                        onReminderEnabledChanged = onFeedingReminderEnabledChanged,
-                        onReminderWebhookUrlChanged = onFeedingReminderWebhookUrlChanged,
-                        onReminderDelayMinutesChanged = onFeedingReminderDelayMinutesChanged,
-                        onReminderPrefixChanged = onFeedingReminderPrefixChanged,
-                        onSave = onSaveReminder,
-                        onTestScheduled = onTestFeedingScheduled,
-                        onTestReminder = onTestFeedingReminder,
-                        modifier = cardModifier,
-                    )
-                }
-            }
-            SettingsCategory.Garbage -> {
-                GarbageScheduleCard(
-                    isLoading = garbageLoading,
-                    loadError = garbageLoadError,
-                    loadErrorMessage = garbageLoadErrorMessage,
-                    schedules = garbageSchedules,
-                    garbageMessage = garbageMessage,
-                    garbageSaving = garbageSaving,
-                    onToggleDay = onToggleDay,
-                    onFrequencyChange = onFrequencyChange,
-                    onSaveClick = onSaveGarbageSchedule,
-                    onRetry = onRetryGarbageSchedule,
-                    modifier = cardModifier,
-                )
-                GarbageNotificationCard(
-                    isLoading = garbageNotificationLoading,
-                    loadError = garbageNotificationLoadError,
-                    loadErrorMessage = garbageNotificationLoadErrorMessage,
-                    enabled = garbageNotificationEnabled,
-                    webhookUrl = garbageNotificationWebhookUrl,
-                    notifyHour = garbageNotificationHour,
-                    prefix = garbageNotificationPrefix,
-                    isSaving = garbageNotificationSaving,
-                    isHourValid = garbageNotificationHourValid,
-                    message = garbageNotificationMessage,
-                    onEnabledChanged = onGarbageNotificationEnabledChanged,
-                    onWebhookUrlChanged = onGarbageNotificationWebhookUrlChanged,
-                    onNotifyHourChanged = onGarbageNotificationHourChanged,
-                    onPrefixChanged = onGarbageNotificationPrefixChanged,
-                    onSave = onSaveGarbageNotification,
-                    onRetry = onRetryGarbageNotification,
-                    modifier = cardModifier,
-                )
-            }
-            SettingsCategory.Quest -> {
-                QuestWebhookSettingsCard(
-                    isLoading = questWebhookLoading,
-                    loadError = questWebhookLoadError,
-                    loadErrorMessage = questWebhookLoadErrorMessage,
-                    url = questWebhookUrl,
-                    enabled = questWebhookEnabled,
-                    events = questWebhookEvents,
-                    isSaving = questWebhookSaving,
-                    message = questWebhookMessage,
-                    onUrlChanged = onQuestWebhookUrlChanged,
-                    onEnabledChanged = onQuestWebhookEnabledChanged,
-                    onToggleEvent = onQuestWebhookToggleEvent,
-                    onSave = onSaveQuestWebhook,
-                    onRetry = onRetryQuestWebhook,
-                    modifier = cardModifier,
-                )
-            }
-            SettingsCategory.Money -> {
-                MoneyWebhookSettingsCard(
-                    isLoading = moneyWebhookLoading,
-                    loadError = moneyWebhookLoadError,
-                    loadErrorMessage = moneyWebhookLoadErrorMessage,
-                    url = moneyWebhookUrl,
-                    enabled = moneyWebhookEnabled,
-                    message = moneyWebhookMessage,
-                    isSaving = moneyWebhookSaving,
-                    statusMessage = moneyWebhookStatusMessage,
-                    onUrlChanged = onMoneyWebhookUrlChanged,
-                    onEnabledChanged = onMoneyWebhookEnabledChanged,
-                    onMessageChanged = onMoneyWebhookMessageChanged,
-                    onSave = onSaveMoneyWebhook,
-                    onRetry = onRetryMoneyWebhook,
-                    modifier = cardModifier,
-                )
-                PaymentWebhookSettingsCard(
-                    isLoading = paymentWebhookLoading,
-                    loadError = paymentWebhookLoadError,
-                    loadErrorMessage = paymentWebhookLoadErrorMessage,
-                    url = paymentWebhookUrl,
-                    enabled = paymentWebhookEnabled,
-                    message = paymentWebhookMessage,
-                    isSaving = paymentWebhookSaving,
-                    statusMessage = paymentWebhookStatusMessage,
-                    onUrlChanged = onPaymentWebhookUrlChanged,
-                    onEnabledChanged = onPaymentWebhookEnabledChanged,
-                    onMessageChanged = onPaymentWebhookMessageChanged,
-                    onSave = onSavePaymentWebhook,
-                    onRetry = onRetryPaymentWebhook,
-                    modifier = cardModifier,
-                )
-            }
-            SettingsCategory.Cache -> {
-                CacheRefreshCard(
-                    isClearing = cacheClearing,
-                    message = cacheMessage,
-                    onClearCache = onClearCache,
-                    modifier = cardModifier,
-                )
-            }
-            SettingsCategory.Credits -> {
-                CreditsCard(
-                    isLoading = licensesLoading,
-                    libraries = libraries,
-                    error = licensesError,
-                    onRetry = onRetryLicenses,
-                    modifier = cardModifier,
-                )
-            }
+            SettingsCategory.Account -> AccountScreen(modifier = cardModifier)
+            SettingsCategory.Credits -> CreditsScreen(modifier = cardModifier)
+            SettingsCategory.UserManagement -> UserManagementScreen(modifier = cardModifier)
+            SettingsCategory.Pet -> PetScreen(modifier = cardModifier)
+            SettingsCategory.Garbage -> GarbageScreen(modifier = cardModifier)
+            SettingsCategory.Quest -> QuestScreen(modifier = cardModifier)
+            SettingsCategory.Money -> MoneyScreen(modifier = cardModifier)
+            SettingsCategory.Cache -> CacheScreen(modifier = cardModifier)
         }
     }
 
     if (isCompact) {
-        // Compact: カテゴリリスト ↔ カテゴリ詳細の切り替え
         val selected = selectedCategory
         if (selected == null) {
             CategoryListPane(
@@ -608,8 +135,6 @@ internal fun SettingsContent(
             }
         }
     } else {
-        // Medium / Expanded: 左カテゴリリスト + 右詳細の2ペイン
-        // フラグメント未指定時は先頭カテゴリを表示・ハイライトする（URL は変更しない）
         val selected = selectedCategory ?: categories.firstOrNull()
         Row(modifier = Modifier.fillMaxSize()) {
             CategoryListPane(
@@ -639,6 +164,17 @@ internal fun SettingsContent(
         }
     }
 }
+
+@Composable
+private fun settingsScrollbarStyle() =
+    ScrollbarStyle(
+        minimalHeight = 48.dp,
+        thickness = 8.dp,
+        shape = MaterialTheme.shapes.small,
+        hoverDurationMillis = 300,
+        unhoverColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+        hoverColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+    )
 
 @Composable
 private fun CategoryListPane(
@@ -678,18 +214,8 @@ private fun CategoryItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val containerColor =
-        if (isSelected) {
-            MaterialTheme.colorScheme.primaryContainer
-        } else {
-            MaterialTheme.colorScheme.surface
-        }
-    val contentColor =
-        if (isSelected) {
-            MaterialTheme.colorScheme.onPrimaryContainer
-        } else {
-            MaterialTheme.colorScheme.onSurface
-        }
+    val containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+    val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
 
     Surface(
         onClick = onClick,
@@ -702,31 +228,12 @@ private fun CategoryItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Icon(
-                imageVector = category.icon,
-                contentDescription = null,
-                tint = contentColor,
-                modifier = Modifier.size(24.dp),
-            )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    text = category.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = contentColor,
-                )
-                if (category.adminOnly) {
-                    AdminBadge()
-                }
+            Icon(imageVector = category.icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(24.dp))
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(text = category.title, style = MaterialTheme.typography.bodyLarge, color = contentColor)
+                if (category.adminOnly) AdminBadge()
             }
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = contentColor,
-                modifier = Modifier.size(20.dp),
-            )
+            Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = contentColor, modifier = Modifier.size(20.dp))
         }
     }
 }
@@ -743,15 +250,10 @@ private fun CategoryDetailPane(
 ) {
     Box(modifier = modifier) {
         Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(24.dp)
-                    .verticalScroll(scrollState),
+            modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // ヘッダー（戻るボタン + タイトル）
             Row(
                 modifier = contentModifier,
                 verticalAlignment = Alignment.CenterVertically,
@@ -759,10 +261,7 @@ private fun CategoryDetailPane(
             ) {
                 if (showBackButton) {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "戻る",
-                        )
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
                     }
                 }
                 Icon(
@@ -777,9 +276,7 @@ private fun CategoryDetailPane(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
                 )
-                if (category.adminOnly) {
-                    AdminBadge()
-                }
+                if (category.adminOnly) AdminBadge()
             }
             content()
         }
@@ -789,699 +286,5 @@ private fun CategoryDetailPane(
             modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
             style = settingsScrollbarStyle(),
         )
-    }
-}
-
-@Composable
-private fun UserNameManagementCard(
-    isLoading: Boolean = false,
-    loadError: Boolean = false,
-    loadErrorMessage: String? = null,
-    users: List<User>,
-    usersSaving: Boolean,
-    usersMessage: String?,
-    onUpdateDisplayName: (String, String) -> Unit,
-    onRetry: () -> Unit = {},
-    modifier: Modifier = Modifier,
-) {
-    // ローカル編集状態: uid -> 入力中の displayName
-    var editedNames by remember(users) {
-        mutableStateOf(users.associate { it.uid to (it.displayName ?: "") })
-    }
-
-    Card(
-        modifier = modifier,
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            ),
-    ) {
-        LoadableCardContent(
-            isLoading = isLoading,
-            loadError = loadError,
-            loadErrorMessage = loadErrorMessage,
-            onRetry = onRetry,
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp).fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                for (user in users) {
-                    OutlinedTextField(
-                        value = editedNames[user.uid] ?: "",
-                        onValueChange = { value ->
-                            editedNames =
-                                editedNames.toMutableMap().apply {
-                                    put(user.uid, value)
-                                }
-                        },
-                        label = { Text(user.uid) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        enabled = !usersSaving,
-                    )
-                }
-
-                if (usersMessage != null) {
-                    Text(
-                        text = usersMessage,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-
-                Button(
-                    onClick = {
-                        for (user in users) {
-                            val newName = editedNames[user.uid] ?: ""
-                            val oldName = user.displayName ?: ""
-                            if (newName != oldName) {
-                                onUpdateDisplayName(user.uid, newName)
-                            }
-                        }
-                    },
-                    modifier = Modifier.height(48.dp),
-                    enabled = !usersSaving,
-                ) {
-                    if (usersSaving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
-                    } else {
-                        Text("保存する")
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun GarbageScheduleCard(
-    isLoading: Boolean,
-    loadError: Boolean = false,
-    loadErrorMessage: String? = null,
-    schedules: List<GarbageTypeSchedule>,
-    garbageMessage: String?,
-    garbageSaving: Boolean,
-    onToggleDay: (GarbageType, Int) -> Unit,
-    onFrequencyChange: (GarbageType, CollectionFrequency) -> Unit,
-    onSaveClick: () -> Unit,
-    onRetry: () -> Unit = {},
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        modifier = modifier,
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            ),
-    ) {
-        LoadableCardContent(
-            isLoading = isLoading,
-            loadError = loadError,
-            loadErrorMessage = loadErrorMessage,
-            onRetry = onRetry,
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp).fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                for (schedule in schedules) {
-                    val garbageType = schedule.garbageType
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Icon(
-                                imageVector = garbageType.icon,
-                                contentDescription = null,
-                                tint = garbageType.color,
-                            )
-                            Text(
-                                text = garbageType.label,
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
-
-                        // 曜日チップ
-                        Text(
-                            text = "収集曜日",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            for (dayIndex in 0..6) {
-                                val selected = dayIndex in schedule.daysOfWeek
-                                FilterChip(
-                                    selected = selected,
-                                    onClick = { onToggleDay(garbageType, dayIndex) },
-                                    label = { Text(dayLabels[dayIndex]) },
-                                    border =
-                                        if (selected) {
-                                            BorderStroke(1.dp, garbageType.color)
-                                        } else {
-                                            FilterChipDefaults.filterChipBorder(enabled = true, selected = false)
-                                        },
-                                )
-                            }
-                        }
-
-                        // 頻度セレクタ
-                        Text(
-                            text = "収集頻度",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        SingleChoiceSegmentedButtonRow {
-                            CollectionFrequency.entries.forEachIndexed { index, freq ->
-                                SegmentedButton(
-                                    selected = schedule.frequency == freq,
-                                    onClick = { onFrequencyChange(garbageType, freq) },
-                                    shape =
-                                        SegmentedButtonDefaults.itemShape(
-                                            index = index,
-                                            count = CollectionFrequency.entries.size,
-                                        ),
-                                ) {
-                                    Text(
-                                        text = freq.label,
-                                        style = MaterialTheme.typography.labelSmall,
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    if (schedule != schedules.lastOrNull()) {
-                        HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
-                    }
-                }
-
-                if (garbageMessage != null) {
-                    Text(
-                        text = garbageMessage,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-
-                Button(
-                    onClick = onSaveClick,
-                    modifier = Modifier.height(48.dp),
-                    enabled = !garbageSaving,
-                ) {
-                    if (garbageSaving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
-                    } else {
-                        Text("保存する")
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PasswordChangeCard(
-    currentPassword: String,
-    newPassword: String,
-    confirmPassword: String,
-    isLoading: Boolean,
-    errorMessage: String?,
-    successMessage: String?,
-    onCurrentPasswordChanged: (String) -> Unit,
-    onNewPasswordChanged: (String) -> Unit,
-    onConfirmPasswordChanged: (String) -> Unit,
-    onChangePassword: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var currentPasswordVisible by remember { mutableStateOf(false) }
-    var newPasswordVisible by remember { mutableStateOf(false) }
-    var confirmPasswordVisible by remember { mutableStateOf(false) }
-
-    Card(
-        modifier = modifier,
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            ),
-    ) {
-        Column(
-            modifier = Modifier.padding(24.dp).fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    text = "パスワード変更",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-
-            OutlinedTextField(
-                value = currentPassword,
-                onValueChange = onCurrentPasswordChanged,
-                label = { Text("現在のパスワード") },
-                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                trailingIcon = {
-                    IconButton(onClick = { currentPasswordVisible = !currentPasswordVisible }) {
-                        Icon(
-                            if (currentPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (currentPasswordVisible) "パスワードを隠す" else "パスワードを表示",
-                        )
-                    }
-                },
-                singleLine = true,
-                visualTransformation = if (currentPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions =
-                    KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Next,
-                    ),
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading,
-            )
-
-            OutlinedTextField(
-                value = newPassword,
-                onValueChange = onNewPasswordChanged,
-                label = { Text("新しいパスワード") },
-                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                trailingIcon = {
-                    IconButton(onClick = { newPasswordVisible = !newPasswordVisible }) {
-                        Icon(
-                            if (newPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (newPasswordVisible) "パスワードを隠す" else "パスワードを表示",
-                        )
-                    }
-                },
-                singleLine = true,
-                visualTransformation = if (newPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions =
-                    KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Next,
-                    ),
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading,
-            )
-
-            OutlinedTextField(
-                value = confirmPassword,
-                onValueChange = onConfirmPasswordChanged,
-                label = { Text("新しいパスワード（確認）") },
-                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                trailingIcon = {
-                    IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
-                        Icon(
-                            if (confirmPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (confirmPasswordVisible) "パスワードを隠す" else "パスワードを表示",
-                        )
-                    }
-                },
-                singleLine = true,
-                visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions =
-                    KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Done,
-                    ),
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading,
-            )
-
-            if (errorMessage != null) {
-                Text(
-                    text = errorMessage,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-
-            if (successMessage != null) {
-                Text(
-                    text = successMessage,
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-
-            Button(
-                onClick = onChangePassword,
-                modifier = Modifier.height(48.dp),
-                enabled = !isLoading,
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    )
-                } else {
-                    Text("変更する")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PasskeyManagementCard(
-    credentialCount: Int,
-    isRegistering: Boolean,
-    errorMessage: String?,
-    successMessage: String?,
-    onRegisterPasskey: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        modifier = modifier,
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            ),
-    ) {
-        Column(
-            modifier = Modifier.padding(24.dp).fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Fingerprint,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    text = "パスキー管理",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-
-            Text(
-                text = "登録済み: $credentialCount 件",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            Text(
-                text = "別の端末やブラウザからログインするには、パスキーを追加してください。",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            if (errorMessage != null) {
-                Text(
-                    text = errorMessage,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-
-            if (successMessage != null) {
-                Text(
-                    text = successMessage,
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-
-            Button(
-                onClick = onRegisterPasskey,
-                modifier = Modifier.height(48.dp),
-                enabled = !isRegistering,
-            ) {
-                if (isRegistering) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    )
-                } else {
-                    Text("パスキーを追加")
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun QuestWebhookSettingsCard(
-    isLoading: Boolean,
-    loadError: Boolean = false,
-    loadErrorMessage: String? = null,
-    url: String,
-    enabled: Boolean,
-    events: List<String>,
-    isSaving: Boolean,
-    message: String?,
-    onUrlChanged: (String) -> Unit,
-    onEnabledChanged: (Boolean) -> Unit,
-    onToggleEvent: (String) -> Unit,
-    onSave: () -> Unit,
-    onRetry: () -> Unit = {},
-    modifier: Modifier = Modifier,
-) {
-    WebhookSettingsCard(
-        isLoading = isLoading,
-        title = "Webhook 通知",
-        featureEnabled = enabled,
-        url = url,
-        onUrlChanged = onUrlChanged,
-        isSaving = isSaving,
-        onEnabledChanged = onEnabledChanged,
-        onSave = onSave,
-        modifier = modifier,
-        loadError = loadError,
-        loadErrorMessage = loadErrorMessage,
-        onRetry = onRetry,
-        statusMessage = message,
-    ) {
-        Text("通知するイベント", style = MaterialTheme.typography.labelMedium)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            QuestWebhookEvent.all.forEach { event ->
-                FilterChip(
-                    selected = event in events,
-                    onClick = { onToggleEvent(event) },
-                    label = { Text(QuestWebhookEvent.label(event)) },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun MoneyWebhookSettingsCard(
-    isLoading: Boolean,
-    loadError: Boolean = false,
-    loadErrorMessage: String? = null,
-    url: String,
-    enabled: Boolean,
-    message: String,
-    isSaving: Boolean,
-    statusMessage: String?,
-    onUrlChanged: (String) -> Unit,
-    onEnabledChanged: (Boolean) -> Unit,
-    onMessageChanged: (String) -> Unit,
-    onSave: () -> Unit,
-    onRetry: () -> Unit = {},
-    modifier: Modifier = Modifier,
-) {
-    WebhookSettingsCard(
-        isLoading = isLoading,
-        title = "ステータス確定通知",
-        featureEnabled = enabled,
-        url = url,
-        onUrlChanged = onUrlChanged,
-        isSaving = isSaving,
-        onEnabledChanged = onEnabledChanged,
-        onSave = onSave,
-        modifier = modifier,
-        loadError = loadError,
-        loadErrorMessage = loadErrorMessage,
-        onRetry = onRetry,
-        description = "月のお金ステータスを「確定済み」に切り替えた際に Webhook で通知します。",
-        message = message,
-        onMessageChanged = onMessageChanged,
-        statusMessage = statusMessage,
-    )
-}
-
-@Composable
-private fun PaymentWebhookSettingsCard(
-    isLoading: Boolean,
-    loadError: Boolean = false,
-    loadErrorMessage: String? = null,
-    url: String,
-    enabled: Boolean,
-    message: String,
-    isSaving: Boolean,
-    statusMessage: String?,
-    onUrlChanged: (String) -> Unit,
-    onEnabledChanged: (Boolean) -> Unit,
-    onMessageChanged: (String) -> Unit,
-    onSave: () -> Unit,
-    onRetry: () -> Unit = {},
-    modifier: Modifier = Modifier,
-) {
-    WebhookSettingsCard(
-        isLoading = isLoading,
-        title = "入金通知",
-        featureEnabled = enabled,
-        url = url,
-        onUrlChanged = onUrlChanged,
-        isSaving = isSaving,
-        onEnabledChanged = onEnabledChanged,
-        onSave = onSave,
-        modifier = modifier,
-        loadError = loadError,
-        loadErrorMessage = loadErrorMessage,
-        onRetry = onRetry,
-        description = "ユーザーが入金を登録した際に Webhook で通知します。",
-        message = message,
-        onMessageChanged = onMessageChanged,
-        statusMessage = statusMessage,
-    )
-}
-
-@Composable
-private fun CacheRefreshCard(
-    isClearing: Boolean,
-    message: String?,
-    onClearCache: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        modifier = modifier,
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            ),
-    ) {
-        Column(
-            modifier = Modifier.padding(24.dp).fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Text(
-                text = "データの不整合が疑われる場合に、サーバー側のキャッシュを手動でクリアします。",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            if (message != null) {
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-
-            Button(
-                onClick = onClearCache,
-                modifier = Modifier.height(48.dp),
-                enabled = !isClearing,
-            ) {
-                if (isClearing) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    )
-                } else {
-                    Text("キャッシュをクリア")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun GarbageNotificationCard(
-    isLoading: Boolean,
-    loadError: Boolean = false,
-    loadErrorMessage: String? = null,
-    enabled: Boolean,
-    webhookUrl: String,
-    notifyHour: String,
-    prefix: String,
-    isSaving: Boolean,
-    isHourValid: Boolean,
-    message: String?,
-    onEnabledChanged: (Boolean) -> Unit,
-    onWebhookUrlChanged: (String) -> Unit,
-    onNotifyHourChanged: (String) -> Unit,
-    onPrefixChanged: (String) -> Unit,
-    onSave: () -> Unit,
-    onRetry: () -> Unit = {},
-    modifier: Modifier = Modifier,
-) {
-    WebhookSettingsCard(
-        isLoading = isLoading,
-        title = "リマインダー通知",
-        featureEnabled = enabled,
-        url = webhookUrl,
-        onUrlChanged = onWebhookUrlChanged,
-        isSaving = isSaving,
-        onEnabledChanged = onEnabledChanged,
-        onSave = onSave,
-        modifier = modifier,
-        loadError = loadError,
-        loadErrorMessage = loadErrorMessage,
-        onRetry = onRetry,
-        description = "この時刻に翌日のゴミ出し情報を通知します。ダッシュボードの表示切替は毎日 10:00 固定です。",
-        message = prefix,
-        onMessageChanged = onPrefixChanged,
-        statusMessage = message,
-        saveEnabled = !isSaving && isHourValid,
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = "通知時刻",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.width(80.dp),
-            )
-            OutlinedTextField(
-                value = notifyHour,
-                onValueChange = { v ->
-                    val filtered = v.filter { it.isDigit() }.take(2)
-                    onNotifyHourChanged(filtered)
-                },
-                label = { Text("時") },
-                singleLine = true,
-                isError = !isHourValid,
-                modifier = Modifier.width(72.dp),
-                enabled = !isSaving,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                textStyle = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center),
-            )
-            Text(": 00", style = MaterialTheme.typography.titleMedium)
-        }
     }
 }
