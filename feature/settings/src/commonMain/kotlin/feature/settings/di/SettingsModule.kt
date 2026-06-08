@@ -20,12 +20,11 @@ val settingsModule =
         viewModel { PasskeyManagementViewModel(get()) }
         viewModel { LoginHistoryViewModel(get()) }
         viewModel { LicensesViewModel() }
-        // Admin のみ条件付き生成
-        factory { UserNameViewModel(get()) }
-        factory { GarbageScheduleViewModel(get()) }
-        factory { QuestWebhookViewModel(get()) }
-        factory { MoneyWebhookViewModel(get()) }
-        factory { PaymentWebhookViewModel(get()) }
-        factory { CacheRefreshViewModel(get()) }
-        factory { PetSettingsViewModel(get(), get(), get()) }
+        viewModel { UserNameViewModel(get()) }
+        viewModel { GarbageScheduleViewModel(get()) }
+        viewModel { QuestWebhookViewModel(get()) }
+        viewModel { MoneyWebhookViewModel(get()) }
+        viewModel { PaymentWebhookViewModel(get()) }
+        viewModel { CacheRefreshViewModel(get()) }
+        viewModel { PetSettingsViewModel(get(), get(), get()) }
     }
