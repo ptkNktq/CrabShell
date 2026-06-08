@@ -43,6 +43,9 @@ class FirestoreMigrations(
 
     suspend fun runAll() {
         runIfNeeded("money-month-to-year-month") { migrateMoneyMonthToYearMonth() }
+        // NOTE: payments-fill-missing-ids は money-rename-payments-and-shares より後に実行する必要がある。
+        // rename マイグレーション適用前のドキュメントには "payments" フィールドがなく、
+        // 先に id 補填マイグレーションを実行すると何もせずにスキップしてしまうため。
         runIfNeeded("money-rename-payments-and-shares") { migrateMoneyRenamePaymentsAndShares() }
         runIfNeeded("payments-fill-missing-ids") { migratePaymentsFillMissingIds() }
     }
