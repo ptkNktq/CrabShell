@@ -2,6 +2,7 @@ package feature.settings.di
 
 import feature.settings.CacheRefreshViewModel
 import feature.settings.GarbageScheduleViewModel
+import feature.settings.LicensesViewModel
 import feature.settings.LoginHistoryViewModel
 import feature.settings.MoneyWebhookViewModel
 import feature.settings.PasskeyManagementViewModel
@@ -18,6 +19,7 @@ val settingsModule =
         viewModel { PasswordChangeViewModel(get()) }
         viewModel { PasskeyManagementViewModel(get()) }
         viewModel { LoginHistoryViewModel(get()) }
+        viewModel { LicensesViewModel() }
         // Admin のみ条件付き生成
         factory { UserNameViewModel(get()) }
         factory { GarbageScheduleViewModel(get()) }

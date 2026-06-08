@@ -30,6 +30,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.mikepenz.aboutlibraries.entity.Library
 import core.auth.AuthStateHolder
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
@@ -89,6 +90,7 @@ fun SettingsScreen(
     passwordVm: PasswordChangeViewModel = koinViewModel(),
     passkeyVm: PasskeyManagementViewModel = koinViewModel(),
     loginHistoryVm: LoginHistoryViewModel = koinViewModel(),
+    licensesVm: LicensesViewModel = koinViewModel(),
 ) {
     val authStateHolder = koinInject<AuthStateHolder>()
     val isAdmin = authStateHolder.isAdmin
@@ -235,6 +237,10 @@ fun SettingsScreen(
         onSaveReminder = { petSettingsVm?.onSaveReminder() },
         onTestFeedingScheduled = { petSettingsVm?.onTestScheduled() },
         onTestFeedingReminder = { petSettingsVm?.onTestReminder() },
+        licensesLoading = licensesVm.uiState.isLoading,
+        libraries = licensesVm.uiState.libraries,
+        licensesError = licensesVm.uiState.error,
+        onRetryLicenses = licensesVm::loadLicenses,
         windowSizeClass = windowSizeClass,
         selectedCategory = selectedCategory,
         onSelectCategory = { onCategoryNameChange(it?.name) },
@@ -341,6 +347,10 @@ internal fun SettingsContent(
     cacheClearing: Boolean = false,
     cacheMessage: String? = null,
     onClearCache: () -> Unit = {},
+    licensesLoading: Boolean = false,
+    libraries: List<Library> = emptyList(),
+    licensesError: String? = null,
+    onRetryLicenses: () -> Unit = {},
     petSettingsLoading: Boolean = false,
     pets: List<Pet> = emptyList(),
     editingPetNames: Map<String, String> = emptyMap(),
@@ -561,7 +571,13 @@ internal fun SettingsContent(
                 )
             }
             SettingsCategory.Credits -> {
-                CreditsCard(modifier = cardModifier)
+                CreditsCard(
+                    isLoading = licensesLoading,
+                    libraries = libraries,
+                    error = licensesError,
+                    onRetry = onRetryLicenses,
+                    modifier = cardModifier,
+                )
             }
         }
     }

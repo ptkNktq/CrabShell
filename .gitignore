@@ -15,6 +15,9 @@ out/
 # Compose / WASM
 kotlin-js-store/
 
+# AboutLibraries 生成物（ビルド時に自動生成されるため git 管理外）
+feature/settings/src/commonMain/composeResources/files/aboutlibraries.json
+
 # Environment variables
 .env
 
