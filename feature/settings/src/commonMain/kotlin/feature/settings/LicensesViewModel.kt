@@ -35,7 +35,7 @@ class LicensesViewModel : ViewModel() {
                 val libs = Libs.Builder().withJson(json).build()
                 uiState = LicensesUiState(isLoading = false, libraries = libs.libraries)
             } catch (e: Exception) {
-                AppLogger.e("LicensesViewModel", "Failed to load licenses: ${e.message}")
+                AppLogger.e(TAG, "Failed to load licenses: ${e.message}")
                 uiState =
                     LicensesUiState(
                         isLoading = false,
@@ -43,5 +43,9 @@ class LicensesViewModel : ViewModel() {
                     )
             }
         }
+    }
+
+    companion object {
+        private const val TAG = "LicensesViewModel"
     }
 }

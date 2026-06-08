@@ -122,7 +122,10 @@ internal fun CreditsCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
-                    Button(onClick = onRetry) {
+                    Button(
+                        onClick = onRetry,
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                    ) {
                         Text("再読み込み")
                     }
                 }
