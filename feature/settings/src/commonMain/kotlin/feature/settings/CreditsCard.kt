@@ -2,6 +2,7 @@ package feature.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -73,7 +74,7 @@ internal fun CreditsCard(
             Text(
                 text = "データ",
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.primary,
             )
 
             CreditEntry(
@@ -90,10 +91,11 @@ internal fun CreditsCard(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
             // OSS ライブラリ一覧
+            val sectionTitle = if (libraries.isNotEmpty()) "OSS ライブラリ (${libraries.size})" else "OSS ライブラリ"
             Text(
-                text = "OSS ライブラリ",
+                text = sectionTitle,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.primary,
             )
 
             when {
@@ -116,8 +118,16 @@ internal fun CreditsCard(
                 }
 
                 else -> {
-                    libraries.forEach { library ->
-                        LibraryEntry(library = library, linkStyles = linkStyles)
+                    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                        libraries.forEachIndexed { index, library ->
+                            LibraryEntry(library = library, linkStyles = linkStyles)
+                            if (index < libraries.lastIndex) {
+                                HorizontalDivider(
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                    thickness = 0.5.dp,
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -130,30 +140,49 @@ private fun LibraryEntry(
     library: Library,
     linkStyles: TextLinkStyles,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        val nameText =
-            buildAnnotatedString {
-                val url = library.website?.takeIf { it.isNotBlank() } ?: library.scm?.url?.takeIf { it.isNotBlank() }
-                if (url != null) {
-                    withLink(
-                        LinkAnnotation.Url(
-                            url = url,
-                            styles = linkStyles,
-                            linkInteractionListener = ExternalUrlLinkInteractionListener,
-                        ),
-                    ) {
+    Column(
+        modifier = Modifier.padding(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            val nameText =
+                buildAnnotatedString {
+                    val url =
+                        library.website?.takeIf { it.isNotBlank() }
+                            ?: library.scm?.url?.takeIf { it.isNotBlank() }
+                    if (url != null) {
+                        withLink(
+                            LinkAnnotation.Url(
+                                url = url,
+                                styles = linkStyles,
+                                linkInteractionListener = ExternalUrlLinkInteractionListener,
+                            ),
+                        ) {
+                            append(library.name)
+                        }
+                    } else {
                         append(library.name)
                     }
-                } else {
-                    append(library.name)
                 }
-                library.artifactVersion?.let { append(" $it") }
+            Text(
+                text = nameText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            library.artifactVersion?.let { version ->
+                Text(
+                    text = version,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(start = 8.dp),
+                )
             }
-        Text(
-            text = nameText,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+        }
 
         val licenseText =
             buildAnnotatedString {
@@ -164,7 +193,14 @@ private fun LibraryEntry(
                         withLink(
                             LinkAnnotation.Url(
                                 url = url,
-                                styles = linkStyles,
+                                styles =
+                                    TextLinkStyles(
+                                        style =
+                                            SpanStyle(
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                textDecoration = TextDecoration.Underline,
+                                            ),
+                                    ),
                                 linkInteractionListener = ExternalUrlLinkInteractionListener,
                             ),
                         ) {
@@ -178,7 +214,7 @@ private fun LibraryEntry(
         if (licenseText.isNotEmpty()) {
             Text(
                 text = licenseText,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
