@@ -125,7 +125,7 @@ internal fun PaymentContent(
                     error = error,
                     isCompact = true,
                     status = status,
-                    onDeletePayment = if (!frozen && !isViewingOther) onDeletePayment else null,
+                    onDeletePayment = if (!frozen && !isViewingOther && !saving) onDeletePayment else null,
                     modifier = Modifier.weight(1f),
                 )
                 if (!loading && error == null && !frozen && !isViewingOther) {
@@ -184,7 +184,7 @@ internal fun PaymentContent(
                         error = error,
                         isCompact = false,
                         status = status,
-                        onDeletePayment = if (!frozen && !isViewingOther) onDeletePayment else null,
+                        onDeletePayment = if (!frozen && !isViewingOther && !saving) onDeletePayment else null,
                         modifier = Modifier.weight(1f),
                     )
 
