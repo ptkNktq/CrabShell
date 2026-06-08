@@ -240,7 +240,7 @@ fun SettingsScreen(
         licensesLoading = licensesVm.uiState.isLoading,
         libraries = licensesVm.uiState.libraries,
         licensesError = licensesVm.uiState.error,
-        onRetryLicenses = licensesVm::load,
+        onRetryLicenses = licensesVm::loadLicenses,
         windowSizeClass = windowSizeClass,
         selectedCategory = selectedCategory,
         onSelectCategory = { onCategoryNameChange(it?.name) },

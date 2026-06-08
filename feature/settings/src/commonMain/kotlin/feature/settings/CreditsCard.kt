@@ -46,6 +46,17 @@ internal fun CreditsCard(
                     ),
             )
         }
+    val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val licenseLinkStyles =
+        remember(onSurfaceVariantColor) {
+            TextLinkStyles(
+                style =
+                    SpanStyle(
+                        color = onSurfaceVariantColor,
+                        textDecoration = TextDecoration.Underline,
+                    ),
+            )
+        }
 
     Card(
         modifier = modifier,
@@ -117,10 +128,22 @@ internal fun CreditsCard(
                     }
                 }
 
+                libraries.isEmpty() -> {
+                    Text(
+                        text = "ライセンス情報がありません",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
                 else -> {
-                    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                    Column {
                         libraries.forEachIndexed { index, library ->
-                            LibraryEntry(library = library, linkStyles = linkStyles)
+                            LibraryEntry(
+                                library = library,
+                                linkStyles = linkStyles,
+                                licenseLinkStyles = licenseLinkStyles,
+                            )
                             if (index < libraries.lastIndex) {
                                 HorizontalDivider(
                                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
@@ -139,6 +162,7 @@ internal fun CreditsCard(
 private fun LibraryEntry(
     library: Library,
     linkStyles: TextLinkStyles,
+    licenseLinkStyles: TextLinkStyles,
 ) {
     Column(
         modifier = Modifier.padding(vertical = 8.dp),
@@ -193,14 +217,7 @@ private fun LibraryEntry(
                         withLink(
                             LinkAnnotation.Url(
                                 url = url,
-                                styles =
-                                    TextLinkStyles(
-                                        style =
-                                            SpanStyle(
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                textDecoration = TextDecoration.Underline,
-                                            ),
-                                    ),
+                                styles = licenseLinkStyles,
                                 linkInteractionListener = ExternalUrlLinkInteractionListener,
                             ),
                         ) {

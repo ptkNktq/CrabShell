@@ -23,11 +23,11 @@ class LicensesViewModel : ViewModel() {
         private set
 
     init {
-        load()
+        loadLicenses()
     }
 
     @OptIn(ExperimentalResourceApi::class)
-    fun load() {
+    fun loadLicenses() {
         uiState = LicensesUiState(isLoading = true, error = null)
         viewModelScope.launch {
             try {
