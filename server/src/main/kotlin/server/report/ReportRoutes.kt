@@ -23,6 +23,7 @@ import server.auth.authenticated
 import server.money.MoneyRepository
 import java.time.Instant
 import java.time.YearMonth
+import java.util.UUID
 
 fun Route.reportRoutes() {
     val moneyRepository by inject<MoneyRepository>()
@@ -133,6 +134,7 @@ fun Route.reportRoutes() {
             }
             val payment =
                 Payment(
+                    id = UUID.randomUUID().toString(),
                     uid = req.uid,
                     amount = req.amount,
                     paidAt = Instant.now().toString(),

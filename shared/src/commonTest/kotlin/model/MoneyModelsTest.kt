@@ -21,7 +21,7 @@ class MoneyModelsTest {
 
     @Test
     fun paymentRoundTrip() {
-        val payment = Payment(uid = "u1", amount = 3000L, paidAt = "2024-06-01")
+        val payment = Payment(id = "test-id-1", uid = "u1", amount = 3000L, paidAt = "2024-06-01")
         val encoded = json.encodeToString(Payment.serializer(), payment)
         val decoded = json.decodeFromString(Payment.serializer(), encoded)
         assertEquals(payment, decoded)
@@ -64,7 +64,7 @@ class MoneyModelsTest {
                     ),
                 payments =
                     listOf(
-                        Payment(uid = "u1", amount = 3000L, paidAt = "2024-06-15"),
+                        Payment(id = "test-id-2", uid = "u1", amount = 3000L, paidAt = "2024-06-15"),
                     ),
             )
         val encoded = json.encodeToString(MonthlyMoney.serializer(), monthly)
@@ -179,7 +179,7 @@ class MoneyModelsTest {
                     ),
                 payments =
                     listOf(
-                        Payment(uid = "u1", amount = 50000L, paidAt = "2024-06-01", note = "card"),
+                        Payment(id = "test-id-3", uid = "u1", amount = 50000L, paidAt = "2024-06-01", note = "card"),
                     ),
                 status = MonthlyMoneyStatus.CONFIRMED,
             )

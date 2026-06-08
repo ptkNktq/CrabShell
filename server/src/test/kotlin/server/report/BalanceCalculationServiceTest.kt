@@ -34,7 +34,7 @@ class BalanceCalculationServiceTest {
                         ),
                     payments =
                         listOf(
-                            Payment(uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
+                            Payment(id = "test-id", uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
                         ),
                 ),
             )
@@ -60,7 +60,7 @@ class BalanceCalculationServiceTest {
                         ),
                     payments =
                         listOf(
-                            Payment(uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
+                            Payment(id = "test-id", uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
                         ),
                 ),
             )
@@ -94,8 +94,8 @@ class BalanceCalculationServiceTest {
                         ),
                     payments =
                         listOf(
-                            Payment(uid = "u1", amount = 7000L, paidAt = "2024-06-01"),
-                            Payment(uid = "u2", amount = 3000L, paidAt = "2024-06-01"),
+                            Payment(id = "test-id", uid = "u1", amount = 7000L, paidAt = "2024-06-01"),
+                            Payment(id = "test-id", uid = "u2", amount = 3000L, paidAt = "2024-06-01"),
                         ),
                 ),
                 MonthlyMoney(
@@ -115,8 +115,8 @@ class BalanceCalculationServiceTest {
                         ),
                     payments =
                         listOf(
-                            Payment(uid = "u1", amount = 2500L, paidAt = "2024-07-01"),
-                            Payment(uid = "u2", amount = 4000L, paidAt = "2024-07-01"),
+                            Payment(id = "test-id", uid = "u1", amount = 2500L, paidAt = "2024-07-01"),
+                            Payment(id = "test-id", uid = "u2", amount = 4000L, paidAt = "2024-07-01"),
                         ),
                 ),
             )
@@ -149,8 +149,8 @@ class BalanceCalculationServiceTest {
                         ),
                     payments =
                         listOf(
-                            Payment(uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
-                            Payment(uid = "u1", amount = 1000L, paidAt = "2024-06-15", isRedemption = true),
+                            Payment(id = "test-id", uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
+                            Payment(id = "test-id", uid = "u1", amount = 1000L, paidAt = "2024-06-15", isRedemption = true),
                         ),
                 ),
             )
@@ -178,8 +178,8 @@ class BalanceCalculationServiceTest {
                         ),
                     payments =
                         listOf(
-                            Payment(uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
-                            Payment(uid = "u1", amount = 2000L, paidAt = "2024-06-15", isRedemption = true),
+                            Payment(id = "test-id", uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
+                            Payment(id = "test-id", uid = "u1", amount = 2000L, paidAt = "2024-06-15", isRedemption = true),
                         ),
                 ),
             )
@@ -219,7 +219,7 @@ class BalanceCalculationServiceTest {
                         ),
                     payments =
                         listOf(
-                            Payment(uid = "u1", amount = 3000L, paidAt = "2024-06-01"),
+                            Payment(id = "test-id", uid = "u1", amount = 3000L, paidAt = "2024-06-01"),
                         ),
                 ),
             )
@@ -245,8 +245,8 @@ class BalanceCalculationServiceTest {
                         ),
                     payments =
                         listOf(
-                            Payment(uid = "u1", amount = 10000L, paidAt = "2024-06-01"),
-                            Payment(uid = "u2", amount = 5000L, paidAt = "2024-06-01"),
+                            Payment(id = "test-id", uid = "u1", amount = 10000L, paidAt = "2024-06-01"),
+                            Payment(id = "test-id", uid = "u2", amount = 5000L, paidAt = "2024-06-01"),
                         ),
                 ),
             )
@@ -280,7 +280,7 @@ class BalanceCalculationServiceTest {
                         ),
                     payments =
                         listOf(
-                            Payment(uid = "u1", amount = 8000L, paidAt = "2024-06-01"),
+                            Payment(id = "test-id", uid = "u1", amount = 8000L, paidAt = "2024-06-01"),
                         ),
                 ),
             )

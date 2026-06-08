@@ -216,7 +216,8 @@ class FirestoreMoneyRepository(
         val paymentsRaw = raw as? List<Map<String, Any?>> ?: return emptyList()
         return paymentsRaw.map { p ->
             Payment(
-                id = p["id"] as? String ?: "",
+                // マイグレーション後は全 Payment に id が付く。念のため UUID で補填する。
+                id = (p["id"] as? String)?.takeIf { it.isNotEmpty() } ?: UUID.randomUUID().toString(),
                 uid = p["uid"] as String,
                 amount = (p["amount"] as Number).toLong(),
                 paidAt = p["paidAt"] as String,

@@ -5,6 +5,7 @@ import com.google.cloud.firestore.Firestore
 import com.google.cloud.firestore.QueryDocumentSnapshot
 import org.slf4j.LoggerFactory
 import server.util.await
+import java.util.UUID
 
 private const val MIGRATIONS_COLLECTION = "_migrations"
 private const val MONEY_COLLECTION = "money"
@@ -43,6 +44,7 @@ class FirestoreMigrations(
     suspend fun runAll() {
         runIfNeeded("money-month-to-year-month") { migrateMoneyMonthToYearMonth() }
         runIfNeeded("money-rename-payments-and-shares") { migrateMoneyRenamePaymentsAndShares() }
+        runIfNeeded("payments-fill-missing-ids") { migratePaymentsFillMissingIds() }
     }
 
     private suspend fun runIfNeeded(
@@ -183,6 +185,46 @@ class FirestoreMigrations(
         }
 
         return if (update.isEmpty()) null else update
+    }
+
+    /**
+     * money コレクションの `payments` 配列内で `id` フィールドが未設定（または空文字列）の
+     * Payment に UUID を付与する。
+     *
+     * `id` は支払い取り消し機能で物理削除対象を一意に識別するために追加したフィールド。
+     * 移行前の既存データには `id` が存在しないため、本マイグレーションで一括付与する。
+     */
+    private suspend fun migratePaymentsFillMissingIds(): Int {
+        val docs =
+            firestore
+                .collection(MONEY_COLLECTION)
+                .get()
+                .await()
+                .documents
+        return commitInBatches(docs) { doc -> buildPaymentsFillMissingIdsUpdate(doc.data) }
+    }
+
+    /**
+     * money ドキュメントの `payments` 配列内で `id` が未設定（または空文字列）の要素に UUID を付与する
+     * 純粋関数。1 件でも更新が必要なら `mapOf("payments" to newPayments)` を返し、
+     * 全要素が `id` 済みなら null を返してドキュメントを更新対象から外す。
+     */
+    @Suppress("UNCHECKED_CAST")
+    internal fun buildPaymentsFillMissingIdsUpdate(data: Map<String, Any?>?): Map<String, Any>? {
+        if (data == null) return null
+        val payments = data["payments"] as? List<Map<String, Any?>> ?: return null
+        var anyUpdated = false
+        val newPayments =
+            payments.map { payment ->
+                val existingId = (payment["id"] as? String)?.takeIf { it.isNotEmpty() }
+                if (existingId != null) {
+                    payment
+                } else {
+                    anyUpdated = true
+                    payment.toMutableMap().apply { put("id", UUID.randomUUID().toString()) }
+                }
+            }
+        return if (anyUpdated) mapOf("payments" to newPayments) else null
     }
 
     /** money ドキュメントの旧/新スキーマ保有状況から、必要なマイグレーション操作を判定する。 */
