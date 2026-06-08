@@ -7,6 +7,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -43,6 +44,7 @@ fun PaymentScreen(vm: PaymentViewModel = koinViewModel()) {
         onPreviousMonth = vm::onGoToPreviousMonth,
         onNextMonth = vm::onGoToNextMonth,
         onConfirmPay = vm::onRecordPayment,
+        onDeletePayment = vm::onDeletePayment,
         onSwitchUser = vm::onSwitchUser,
         windowSizeClass = windowSizeClass,
     )
@@ -62,6 +64,7 @@ internal fun PaymentContent(
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onConfirmPay: (Long) -> Unit,
+    onDeletePayment: (String) -> Unit = {},
     onSwitchUser: (String) -> Unit = {},
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
@@ -122,6 +125,7 @@ internal fun PaymentContent(
                     error = error,
                     isCompact = true,
                     status = status,
+                    onDeletePayment = if (!frozen && !isViewingOther) onDeletePayment else null,
                     modifier = Modifier.weight(1f),
                 )
                 if (!loading && error == null && !frozen && !isViewingOther) {
@@ -180,6 +184,7 @@ internal fun PaymentContent(
                         error = error,
                         isCompact = false,
                         status = status,
+                        onDeletePayment = if (!frozen && !isViewingOther) onDeletePayment else null,
                         modifier = Modifier.weight(1f),
                     )
 
@@ -217,6 +222,7 @@ private fun PaymentListContent(
     error: String?,
     isCompact: Boolean,
     status: MonthlyMoneyStatus,
+    onDeletePayment: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     when {
@@ -264,9 +270,18 @@ private fun PaymentListContent(
                     }
                     items(
                         monthlyMoney.payments.sortedByDescending { it.paidAt },
-                        key = { "${it.paidAt}-${it.amount}" },
+                        key = { it.id.ifEmpty { "${it.paidAt}-${it.amount}" } },
                     ) { payment ->
-                        PaymentCard(payment = payment, isCompact = isCompact)
+                        PaymentCard(
+                            payment = payment,
+                            isCompact = isCompact,
+                            onDelete =
+                                if (onDeletePayment != null && payment.id.isNotEmpty()) {
+                                    { onDeletePayment(payment.id) }
+                                } else {
+                                    null
+                                },
+                        )
                     }
                 }
 
@@ -535,6 +550,7 @@ private fun SummaryCard(
 private fun PaymentCard(
     payment: Payment,
     isCompact: Boolean,
+    onDelete: (() -> Unit)? = null,
 ) {
     val hasNote = payment.note.isNotEmpty()
 
@@ -553,7 +569,7 @@ private fun PaymentCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = formatDate(payment.paidAt),
                     style = MaterialTheme.typography.bodyMedium,
@@ -567,11 +583,26 @@ private fun PaymentCard(
                     )
                 }
             }
-            Text(
-                text = formatYen(payment.amount),
-                style = MaterialTheme.typography.titleMedium,
-                color = if (hasNote) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = formatYen(payment.amount),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (hasNote) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+                )
+                if (onDelete != null) {
+                    IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "支払いを取り消す",
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+            }
         }
     }
 }

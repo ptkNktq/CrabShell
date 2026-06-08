@@ -147,4 +147,19 @@ class PaymentViewModel(
             }
         }
     }
+
+    fun onDeletePayment(paymentId: String) {
+        uiState = uiState.copy(isSaving = true)
+        viewModelScope.launch {
+            try {
+                uiState =
+                    uiState.copy(
+                        monthlyMoney = moneyRepository.deletePayment(uiState.currentYearMonth, paymentId),
+                        isSaving = false,
+                    )
+            } catch (e: Exception) {
+                uiState = uiState.copy(error = e.message, isSaving = false)
+            }
+        }
+    }
 }

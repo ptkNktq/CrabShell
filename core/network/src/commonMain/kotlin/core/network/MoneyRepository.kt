@@ -31,6 +31,11 @@ interface MoneyRepository {
     ): MonthlyMoney
 
     suspend fun importRecurringItems(yearMonth: String): MonthlyMoney
+
+    suspend fun deletePayment(
+        yearMonth: String,
+        paymentId: String,
+    ): MonthlyMoney
 }
 
 class MoneyRepositoryImpl(
@@ -71,4 +76,9 @@ class MoneyRepositoryImpl(
             }.body()
 
     override suspend fun importRecurringItems(yearMonth: String): MonthlyMoney = client.post("/api/money/$yearMonth/import-by-tag").body()
+
+    override suspend fun deletePayment(
+        yearMonth: String,
+        paymentId: String,
+    ): MonthlyMoney = client.delete("/api/money/$yearMonth/payments/$paymentId").body()
 }
