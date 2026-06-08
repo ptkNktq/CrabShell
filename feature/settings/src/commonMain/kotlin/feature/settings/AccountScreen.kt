@@ -45,39 +45,41 @@ internal fun AccountScreen(modifier: Modifier = Modifier) {
     val passkeyState = passkeyVm.uiState
     val loginHistoryState = loginHistoryVm.uiState
 
-    PasswordChangeCard(
-        currentPassword = passwordState.currentPassword,
-        newPassword = passwordState.newPassword,
-        confirmPassword = passwordState.confirmPassword,
-        isLoading = passwordState.isLoading,
-        errorMessage = passwordState.errorMessage,
-        successMessage = passwordState.successMessage,
-        onCurrentPasswordChanged = passwordVm::onCurrentPasswordChanged,
-        onNewPasswordChanged = passwordVm::onNewPasswordChanged,
-        onConfirmPasswordChanged = passwordVm::onConfirmPasswordChanged,
-        onChangePassword = passwordVm::onChangePassword,
-        modifier = modifier,
-    )
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        PasswordChangeCard(
+            currentPassword = passwordState.currentPassword,
+            newPassword = passwordState.newPassword,
+            confirmPassword = passwordState.confirmPassword,
+            isLoading = passwordState.isLoading,
+            errorMessage = passwordState.errorMessage,
+            successMessage = passwordState.successMessage,
+            onCurrentPasswordChanged = passwordVm::onCurrentPasswordChanged,
+            onNewPasswordChanged = passwordVm::onNewPasswordChanged,
+            onConfirmPasswordChanged = passwordVm::onConfirmPasswordChanged,
+            onChangePassword = passwordVm::onChangePassword,
+            modifier = Modifier.fillMaxWidth(),
+        )
 
-    if (passkeyState.isAvailable) {
-        PasskeyManagementCard(
-            credentialCount = passkeyState.credentialCount,
-            isRegistering = passkeyState.isRegistering,
-            errorMessage = passkeyState.errorMessage,
-            successMessage = passkeyState.successMessage,
-            onRegisterPasskey = passkeyVm::onRegisterPasskey,
-            modifier = modifier,
+        if (passkeyState.isAvailable) {
+            PasskeyManagementCard(
+                credentialCount = passkeyState.credentialCount,
+                isRegistering = passkeyState.isRegistering,
+                errorMessage = passkeyState.errorMessage,
+                successMessage = passkeyState.successMessage,
+                onRegisterPasskey = passkeyVm::onRegisterPasskey,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        LoginHistoryCardContent(
+            isLoading = loginHistoryState.isLoading,
+            loadError = loginHistoryState.loadError,
+            loadErrorMessage = loginHistoryState.loadErrorMessage,
+            events = loginHistoryState.events,
+            onRetry = loginHistoryVm::loadHistory,
+            modifier = Modifier.fillMaxWidth(),
         )
     }
-
-    LoginHistoryCardContent(
-        isLoading = loginHistoryState.isLoading,
-        loadError = loginHistoryState.loadError,
-        loadErrorMessage = loginHistoryState.loadErrorMessage,
-        events = loginHistoryState.events,
-        onRetry = loginHistoryVm::loadHistory,
-        modifier = modifier,
-    )
 }
 
 @Composable

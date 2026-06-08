@@ -46,39 +46,41 @@ internal fun GarbageScreen(modifier: Modifier = Modifier) {
     val vm: GarbageScheduleViewModel = koinViewModel()
     val s = vm.uiState
 
-    GarbageScheduleCard(
-        isLoading = s.isLoading,
-        loadError = s.loadError,
-        loadErrorMessage = s.loadErrorMessage,
-        schedules = s.schedules,
-        garbageMessage = s.message,
-        garbageSaving = s.isSaving,
-        onToggleDay = vm::onToggleDay,
-        onFrequencyChange = vm::onChangeFrequency,
-        onSaveClick = vm::onSaveSchedule,
-        onRetry = vm::loadSchedules,
-        modifier = modifier,
-    )
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        GarbageScheduleCard(
+            isLoading = s.isLoading,
+            loadError = s.loadError,
+            loadErrorMessage = s.loadErrorMessage,
+            schedules = s.schedules,
+            garbageMessage = s.message,
+            garbageSaving = s.isSaving,
+            onToggleDay = vm::onToggleDay,
+            onFrequencyChange = vm::onChangeFrequency,
+            onSaveClick = vm::onSaveSchedule,
+            onRetry = vm::loadSchedules,
+            modifier = Modifier.fillMaxWidth(),
+        )
 
-    GarbageNotificationCard(
-        isLoading = s.notificationLoading,
-        loadError = s.notificationLoadError,
-        loadErrorMessage = s.notificationLoadErrorMessage,
-        enabled = s.notificationEnabled,
-        webhookUrl = s.notificationWebhookUrl,
-        notifyHour = s.notificationHour,
-        prefix = s.notificationPrefix,
-        isSaving = s.notificationSaving,
-        isHourValid = s.isNotificationHourValid,
-        message = s.notificationMessage,
-        onEnabledChanged = vm::onNotificationEnabledChanged,
-        onWebhookUrlChanged = vm::onNotificationWebhookUrlChanged,
-        onNotifyHourChanged = vm::onNotificationHourChanged,
-        onPrefixChanged = vm::onNotificationPrefixChanged,
-        onSave = vm::onSaveNotificationSettings,
-        onRetry = vm::loadNotificationSettings,
-        modifier = modifier,
-    )
+        GarbageNotificationCard(
+            isLoading = s.notificationLoading,
+            loadError = s.notificationLoadError,
+            loadErrorMessage = s.notificationLoadErrorMessage,
+            enabled = s.notificationEnabled,
+            webhookUrl = s.notificationWebhookUrl,
+            notifyHour = s.notificationHour,
+            prefix = s.notificationPrefix,
+            isSaving = s.notificationSaving,
+            isHourValid = s.isNotificationHourValid,
+            message = s.notificationMessage,
+            onEnabledChanged = vm::onNotificationEnabledChanged,
+            onWebhookUrlChanged = vm::onNotificationWebhookUrlChanged,
+            onNotifyHourChanged = vm::onNotificationHourChanged,
+            onPrefixChanged = vm::onNotificationPrefixChanged,
+            onSave = vm::onSaveNotificationSettings,
+            onRetry = vm::loadNotificationSettings,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
 
 @Composable
