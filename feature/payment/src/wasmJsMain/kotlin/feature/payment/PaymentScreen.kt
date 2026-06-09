@@ -19,6 +19,7 @@ import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
 import core.ui.extensions.displayName
 import core.ui.extensions.icon
+import core.ui.formatAmountInput
 import core.ui.formatYen
 import model.MoneyItem
 import model.MonthlyMoney
@@ -365,7 +366,7 @@ private fun PaymentInlineForm(
             }
 
             OutlinedTextField(
-                value = amountText,
+                value = formatAmountInput(amountText),
                 onValueChange = { amountText = it.filter { c -> c.isDigit() } },
                 label = { Text("支払い額 (円)") },
                 modifier = Modifier.fillMaxWidth(),
