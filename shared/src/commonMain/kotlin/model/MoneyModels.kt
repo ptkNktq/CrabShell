@@ -59,9 +59,11 @@ data class Share(
 /**
  * 実際の振込記録。「このユーザーがいつこの金額を振り込んだ」を表す。
  * isRedemption=true は過払い金からの精算（残債計算で `redeemed` 側に加算される）。
+ * [id] はサーバーが UUID を付与する一意識別子（削除時の対象特定に使用）。
  */
 @Serializable
 data class Payment(
+    val id: String,
     val uid: String,
     val amount: Long,
     val paidAt: String,

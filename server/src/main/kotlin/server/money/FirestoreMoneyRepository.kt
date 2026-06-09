@@ -80,7 +80,14 @@ class FirestoreMoneyRepository(
 
         val payments =
             data.payments.map { p ->
-                mapOf("uid" to p.uid, "amount" to p.amount, "paidAt" to p.paidAt, "note" to p.note, "isRedemption" to p.isRedemption)
+                mapOf(
+                    "id" to p.id,
+                    "uid" to p.uid,
+                    "amount" to p.amount,
+                    "paidAt" to p.paidAt,
+                    "note" to p.note,
+                    "isRedemption" to p.isRedemption,
+                )
             }
 
         firestore
@@ -209,6 +216,9 @@ class FirestoreMoneyRepository(
         val paymentsRaw = raw as? List<Map<String, Any?>> ?: return emptyList()
         return paymentsRaw.map { p ->
             Payment(
+                // マイグレーション前の Payment は id が未設定。空文字列として返し、フロント側の
+                // `payment.id.isNotEmpty()` ガードで削除ボタンを非表示にする。
+                id = p["id"] as? String ?: "",
                 uid = p["uid"] as String,
                 amount = (p["amount"] as Number).toLong(),
                 paidAt = p["paidAt"] as String,

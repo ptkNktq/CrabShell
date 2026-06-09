@@ -35,8 +35,8 @@ class MoneyFiltersTest {
                     ),
                 payments =
                     listOf(
-                        Payment(uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
-                        Payment(uid = "u2", amount = 8000L, paidAt = "2024-06-01"),
+                        Payment(id = "test-id-1", uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
+                        Payment(id = "test-id-2", uid = "u2", amount = 8000L, paidAt = "2024-06-01"),
                     ),
             )
 
@@ -79,7 +79,7 @@ class MoneyFiltersTest {
                     ),
                 payments =
                     listOf(
-                        Payment(uid = "u1", amount = 10000L, paidAt = "2024-06-01"),
+                        Payment(id = "test-id-3", uid = "u1", amount = 10000L, paidAt = "2024-06-01"),
                     ),
             )
         val filtered = data.filterForUser("unknown")
@@ -120,9 +120,9 @@ class MoneyFiltersTest {
                 yearMonth = "2024-06",
                 payments =
                     listOf(
-                        Payment(uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
-                        Payment(uid = "u1", amount = 1000L, paidAt = "2024-06-15", isRedemption = true),
-                        Payment(uid = "u2", amount = 3000L, paidAt = "2024-06-01", isRedemption = true),
+                        Payment(id = "test-id-4", uid = "u1", amount = 5000L, paidAt = "2024-06-01"),
+                        Payment(id = "test-id-5", uid = "u1", amount = 1000L, paidAt = "2024-06-15", isRedemption = true),
+                        Payment(id = "test-id-6", uid = "u2", amount = 3000L, paidAt = "2024-06-01", isRedemption = true),
                     ),
             )
         val filtered = data.filterForUser("u1")

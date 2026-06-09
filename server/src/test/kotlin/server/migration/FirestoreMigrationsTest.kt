@@ -181,6 +181,91 @@ class FirestoreMigrationsTest {
         assertEquals(2, update?.size)
         assertEquals(false, update?.containsKey("items"))
     }
+
+    // ===================================================================================
+    // buildPaymentsFillMissingIdsUpdate: payments[].id が未設定の場合に UUID を付与
+    // ===================================================================================
+
+    @Test
+    fun fillMissingIdsReturnsNullForNullData() {
+        assertNull(firestoreMigrations.buildPaymentsFillMissingIdsUpdate(null))
+    }
+
+    @Test
+    fun fillMissingIdsReturnsNullWhenNoPaymentsField() {
+        assertNull(firestoreMigrations.buildPaymentsFillMissingIdsUpdate(mapOf("items" to emptyList<Any>())))
+    }
+
+    @Test
+    fun fillMissingIdsReturnsNullWhenPaymentsEmpty() {
+        assertNull(firestoreMigrations.buildPaymentsFillMissingIdsUpdate(mapOf("payments" to emptyList<Any>())))
+    }
+
+    @Test
+    fun fillMissingIdsReturnsNullWhenAllHaveIds() {
+        val data =
+            mapOf(
+                "payments" to
+                    listOf(
+                        mapOf("id" to "uuid-1", "uid" to "u1", "amount" to 1000L, "paidAt" to "2024-01-01"),
+                        mapOf("id" to "uuid-2", "uid" to "u2", "amount" to 2000L, "paidAt" to "2024-01-02"),
+                    ),
+            )
+        assertNull(firestoreMigrations.buildPaymentsFillMissingIdsUpdate(data))
+    }
+
+    @Test
+    @Suppress("UNCHECKED_CAST")
+    fun fillMissingIdsAddsUuidToPaymentsWithoutId() {
+        val data =
+            mapOf(
+                "payments" to
+                    listOf(
+                        mapOf("uid" to "u1", "amount" to 1000L, "paidAt" to "2024-01-01"),
+                    ),
+            )
+        val update = firestoreMigrations.buildPaymentsFillMissingIdsUpdate(data)
+        val newPayments = update?.get("payments") as? List<Map<String, Any?>>
+        val id = newPayments?.get(0)?.get("id") as? String
+        assertTrue(id?.isNotEmpty() == true)
+        // id 以外のフィールドは保持されていること
+        assertEquals("u1", newPayments?.get(0)?.get("uid"))
+        assertEquals(1000L, newPayments?.get(0)?.get("amount"))
+    }
+
+    @Test
+    @Suppress("UNCHECKED_CAST")
+    fun fillMissingIdsOnlyUpdatesPaymentsWithoutId() {
+        val data =
+            mapOf(
+                "payments" to
+                    listOf(
+                        mapOf("id" to "existing-uuid", "uid" to "u1", "amount" to 1000L, "paidAt" to "2024-01-01"),
+                        mapOf("uid" to "u2", "amount" to 2000L, "paidAt" to "2024-01-02"),
+                    ),
+            )
+        val update = firestoreMigrations.buildPaymentsFillMissingIdsUpdate(data)
+        val newPayments = update?.get("payments") as? List<Map<String, Any?>>
+        assertEquals("existing-uuid", newPayments?.get(0)?.get("id"))
+        val newId = newPayments?.get(1)?.get("id") as? String
+        assertTrue(newId?.isNotEmpty() == true && newId != "existing-uuid")
+    }
+
+    @Test
+    @Suppress("UNCHECKED_CAST")
+    fun fillMissingIdsReplacesEmptyStringId() {
+        val data =
+            mapOf(
+                "payments" to
+                    listOf(
+                        mapOf("id" to "", "uid" to "u1", "amount" to 1000L, "paidAt" to "2024-01-01"),
+                    ),
+            )
+        val update = firestoreMigrations.buildPaymentsFillMissingIdsUpdate(data)
+        val newPayments = update?.get("payments") as? List<Map<String, Any?>>
+        val id = newPayments?.get(0)?.get("id") as? String
+        assertTrue(id?.isNotEmpty() == true)
+    }
 }
 
 /**

@@ -51,6 +51,7 @@ data class PaymentUiState(
     val users: List<User> = emptyList(),
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
+    val deletingPaymentId: String? = null,
     val error: String? = null,
 ) {
     val isViewingOther: Boolean get() = viewingUid != currentUid
@@ -144,6 +145,24 @@ class PaymentViewModel(
                 uiState = uiState.copy(error = e.message)
             } finally {
                 uiState = uiState.copy(isSaving = false)
+            }
+        }
+    }
+
+    fun onDeletePayment(paymentId: String) {
+        uiState = uiState.copy(deletingPaymentId = paymentId)
+        viewModelScope.launch {
+            try {
+                // サーバーは filterForUser 済みのデータを返す（onRecordPayment と同じパターン）。
+                // 他ユーザー閲覧中には削除ボタン自体が非表示なので isViewingOther の再フィルタは不要。
+                uiState =
+                    uiState.copy(
+                        monthlyMoney = moneyRepository.deletePayment(uiState.currentYearMonth, paymentId),
+                    )
+            } catch (e: Exception) {
+                uiState = uiState.copy(error = e.message)
+            } finally {
+                uiState = uiState.copy(deletingPaymentId = null)
             }
         }
     }
