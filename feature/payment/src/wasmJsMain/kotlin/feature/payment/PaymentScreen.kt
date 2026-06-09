@@ -45,6 +45,7 @@ fun PaymentScreen(vm: PaymentViewModel = koinViewModel()) {
         onNextMonth = vm::onGoToNextMonth,
         onConfirmPay = vm::onRecordPayment,
         onDeletePayment = vm::onDeletePayment,
+        deletingPaymentId = vm.uiState.deletingPaymentId,
         onSwitchUser = vm::onSwitchUser,
         windowSizeClass = windowSizeClass,
     )
@@ -65,6 +66,7 @@ internal fun PaymentContent(
     onNextMonth: () -> Unit,
     onConfirmPay: (Long) -> Unit,
     onDeletePayment: (String) -> Unit = {},
+    deletingPaymentId: String? = null,
     onSwitchUser: (String) -> Unit = {},
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
 ) {
@@ -125,7 +127,8 @@ internal fun PaymentContent(
                     error = error,
                     isCompact = true,
                     status = status,
-                    onDeletePayment = if (!frozen && !isViewingOther && !saving) onDeletePayment else null,
+                    onDeletePayment = if (!frozen && !isViewingOther) onDeletePayment else null,
+                    deletingPaymentId = deletingPaymentId,
                     modifier = Modifier.weight(1f),
                 )
                 if (!loading && error == null && !frozen && !isViewingOther) {
@@ -184,7 +187,8 @@ internal fun PaymentContent(
                         error = error,
                         isCompact = false,
                         status = status,
-                        onDeletePayment = if (!frozen && !isViewingOther && !saving) onDeletePayment else null,
+                        onDeletePayment = if (!frozen && !isViewingOther) onDeletePayment else null,
+                        deletingPaymentId = deletingPaymentId,
                         modifier = Modifier.weight(1f),
                     )
 
@@ -223,6 +227,7 @@ private fun PaymentListContent(
     isCompact: Boolean,
     status: MonthlyMoneyStatus,
     onDeletePayment: ((String) -> Unit)? = null,
+    deletingPaymentId: String? = null,
     modifier: Modifier = Modifier,
 ) {
     when {
@@ -281,6 +286,7 @@ private fun PaymentListContent(
                                 } else {
                                     null
                                 },
+                            isDeleting = payment.id == deletingPaymentId,
                         )
                     }
                 }
@@ -551,6 +557,7 @@ private fun PaymentCard(
     payment: Payment,
     isCompact: Boolean,
     onDelete: (() -> Unit)? = null,
+    isDeleting: Boolean = false,
 ) {
     val hasNote = payment.note.isNotEmpty()
 
@@ -592,7 +599,13 @@ private fun PaymentCard(
                     style = MaterialTheme.typography.titleMedium,
                     color = if (hasNote) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
                 )
-                if (onDelete != null) {
+                if (isDeleting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp).padding(horizontal = 7.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                } else if (onDelete != null) {
                     IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
                         Icon(
                             imageVector = Icons.Default.Delete,
