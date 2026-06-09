@@ -27,10 +27,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import core.ui.LocalWindowSizeClass
+import core.ui.NumberCommaTransformation
 import core.ui.WindowSizeClass
 import core.ui.extensions.displayName
 import core.ui.extensions.icon
-import core.ui.formatAmountInput
 import core.ui.formatYen
 import model.MoneyItem
 import model.MoneyTags
@@ -434,12 +434,13 @@ private fun MoneyItemForm(
             )
 
             OutlinedTextField(
-                value = formatAmountInput(amountText),
+                value = amountText,
                 onValueChange = { amountText = it.filter { c -> c.isDigit() || c == '-' } },
                 label = { Text("金額 (円)") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                visualTransformation = NumberCommaTransformation,
                 enabled = !saving,
             )
 
@@ -482,7 +483,7 @@ private fun MoneyItemForm(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         OutlinedTextField(
-                            value = formatAmountInput(shareAmounts[user.uid] ?: ""),
+                            value = shareAmounts[user.uid] ?: "",
                             onValueChange = { value ->
                                 shareAmounts =
                                     shareAmounts.toMutableMap().apply {
@@ -493,6 +494,7 @@ private fun MoneyItemForm(
                             modifier = Modifier.weight(1f),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            visualTransformation = NumberCommaTransformation,
                             suffix = { Text("円") },
                             enabled = !saving,
                         )

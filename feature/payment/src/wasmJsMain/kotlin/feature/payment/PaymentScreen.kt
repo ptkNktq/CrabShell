@@ -16,10 +16,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import core.ui.LocalWindowSizeClass
+import core.ui.NumberCommaTransformation
 import core.ui.WindowSizeClass
 import core.ui.extensions.displayName
 import core.ui.extensions.icon
-import core.ui.formatAmountInput
 import core.ui.formatYen
 import model.MoneyItem
 import model.MonthlyMoney
@@ -366,13 +366,14 @@ private fun PaymentInlineForm(
             }
 
             OutlinedTextField(
-                value = formatAmountInput(amountText),
+                value = amountText,
                 onValueChange = { amountText = it.filter { c -> c.isDigit() } },
                 label = { Text("支払い額 (円)") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 enabled = inputEnabled,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                visualTransformation = NumberCommaTransformation,
             )
 
             Row(
