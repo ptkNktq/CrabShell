@@ -53,6 +53,7 @@ data class MoneyUiState(
     val currentYearMonth: String = "",
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
+    val isStatusSaving: Boolean = false,
     val error: String? = null,
     val users: List<User> = emptyList(),
     val editingItem: MoneyItem? = null,
@@ -122,13 +123,16 @@ class MoneyViewModel(
     }
 
     fun onUpdateStatus(status: MonthlyMoneyStatus) {
-        if (uiState.monthlyMoney.status == status) return
+        if (uiState.monthlyMoney.status == status || uiState.isStatusSaving) return
+        uiState = uiState.copy(isStatusSaving = true)
         viewModelScope.launch {
             try {
                 val updated = moneyRepository.updateStatus(uiState.currentYearMonth, status)
                 uiState = uiState.copy(monthlyMoney = updated)
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
+            } finally {
+                uiState = uiState.copy(isStatusSaving = false)
             }
         }
     }

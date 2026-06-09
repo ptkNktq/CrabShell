@@ -49,6 +49,7 @@ fun MoneyScreen(vm: MoneyViewModel = koinViewModel()) {
         currentYearMonth = vm.uiState.currentYearMonth,
         loading = vm.uiState.isLoading,
         saving = vm.uiState.isSaving,
+        statusSaving = vm.uiState.isStatusSaving,
         error = vm.uiState.error,
         users = vm.uiState.users,
         editingItem = vm.uiState.editingItem,
@@ -72,6 +73,7 @@ internal fun MoneyContent(
     currentYearMonth: String,
     loading: Boolean,
     saving: Boolean,
+    statusSaving: Boolean,
     error: String?,
     users: List<User>,
     editingItem: MoneyItem?,
@@ -159,6 +161,7 @@ internal fun MoneyContent(
                     MonthStatusSelector(
                         status = status,
                         onStatusChange = onUpdateStatus,
+                        enabled = !statusSaving,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -232,6 +235,7 @@ internal fun MoneyContent(
                     MonthStatusSelector(
                         status = status,
                         onStatusChange = onUpdateStatus,
+                        enabled = !statusSaving,
                     )
                     if (!frozen && !loading && error == null) {
                         OutlinedButton(
@@ -628,6 +632,7 @@ private fun MonthSelector(
 private fun MonthStatusSelector(
     status: MonthlyMoneyStatus,
     onStatusChange: (MonthlyMoneyStatus) -> Unit,
+    enabled: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     FlowRow(
@@ -641,6 +646,7 @@ private fun MonthStatusSelector(
                 selected = selected,
                 onClick = { if (!selected) onStatusChange(candidate) },
                 label = { Text(candidate.displayName, style = MaterialTheme.typography.labelMedium) },
+                enabled = enabled,
                 leadingIcon = {
                     Icon(
                         candidate.icon,
