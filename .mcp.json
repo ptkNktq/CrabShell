@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "indexion": {
-      "command": "indexion",
-      "args": ["mcp"]
-    }
-  }
-}
