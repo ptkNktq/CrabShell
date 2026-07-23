@@ -93,11 +93,7 @@ internal fun SettingsContent(
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
     selectedCategory: SettingsCategory? = null,
     onSelectCategory: (SettingsCategory?) -> Unit = {},
-) {
-    val isCompact = windowSizeClass == WindowSizeClass.Compact
-    val categories = SettingsCategory.entries.filter { !it.adminOnly || isAdmin }
-
-    val categoryContent: @Composable (SettingsCategory, Modifier) -> Unit = { category, cardModifier ->
+    categoryContent: @Composable (SettingsCategory, Modifier) -> Unit = { category, cardModifier ->
         when (category) {
             SettingsCategory.Account -> AccountScreen(modifier = cardModifier)
             SettingsCategory.Credits -> CreditsScreen(modifier = cardModifier)
@@ -108,7 +104,10 @@ internal fun SettingsContent(
             SettingsCategory.Money -> MoneyScreen(modifier = cardModifier)
             SettingsCategory.Cache -> CacheScreen(modifier = cardModifier)
         }
-    }
+    },
+) {
+    val isCompact = windowSizeClass == WindowSizeClass.Compact
+    val categories = SettingsCategory.entries.filter { !it.adminOnly || isAdmin }
 
     if (isCompact) {
         val selected = selectedCategory

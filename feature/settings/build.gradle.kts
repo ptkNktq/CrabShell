@@ -20,6 +20,10 @@ kotlin {
             // OSS ライセンス情報のパース。UI 同梱版 (compose-m3) は Popup を使うため core のみ採用
             implementation(libs.aboutlibraries.core)
         }
+        jvmTest.dependencies {
+            // ImageComposeScene によるオフスクリーンレンダリングに必要な Skiko のネイティブライブラリ
+            implementation(compose.desktop.currentOs)
+        }
     }
 }
 
