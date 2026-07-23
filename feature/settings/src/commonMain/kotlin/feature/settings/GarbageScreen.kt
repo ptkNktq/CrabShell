@@ -63,15 +63,15 @@ internal fun GarbageScreen(modifier: Modifier = Modifier) {
 @Composable
 internal fun GarbageContent(
     state: GarbageScheduleUiState,
-    onToggleDay: (GarbageType, Int) -> Unit = { _, _ -> },
-    onFrequencyChange: (GarbageType, CollectionFrequency) -> Unit = { _, _ -> },
-    onSaveClick: () -> Unit = {},
+    onToggleDay: (GarbageType, Int) -> Unit,
+    onFrequencyChange: (GarbageType, CollectionFrequency) -> Unit,
+    onSaveClick: () -> Unit,
     onRetry: () -> Unit = {},
-    onNotificationEnabledChanged: (Boolean) -> Unit = {},
-    onNotificationWebhookUrlChanged: (String) -> Unit = {},
-    onNotificationHourChanged: (String) -> Unit = {},
-    onNotificationPrefixChanged: (String) -> Unit = {},
-    onSaveNotificationSettings: () -> Unit = {},
+    onNotificationEnabledChanged: (Boolean) -> Unit,
+    onNotificationWebhookUrlChanged: (String) -> Unit,
+    onNotificationHourChanged: (String) -> Unit,
+    onNotificationPrefixChanged: (String) -> Unit,
+    onSaveNotificationSettings: () -> Unit,
     onRetryNotification: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {

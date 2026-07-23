@@ -38,7 +38,7 @@ internal fun UserManagementScreen(modifier: Modifier = Modifier) {
 @Composable
 internal fun UserManagementContent(
     state: UserNameUiState,
-    onUpdateDisplayName: (String, String) -> Unit = { _, _ -> },
+    onUpdateDisplayName: (String, String) -> Unit,
     onRetry: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {

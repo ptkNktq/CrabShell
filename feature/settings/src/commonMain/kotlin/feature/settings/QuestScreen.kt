@@ -29,10 +29,10 @@ internal fun QuestScreen(modifier: Modifier = Modifier) {
 @Composable
 internal fun QuestContent(
     state: QuestWebhookUiState,
-    onUrlChanged: (String) -> Unit = {},
-    onEnabledChanged: (Boolean) -> Unit = {},
-    onToggleEvent: (String) -> Unit = {},
-    onSave: () -> Unit = {},
+    onUrlChanged: (String) -> Unit,
+    onEnabledChanged: (Boolean) -> Unit,
+    onToggleEvent: (String) -> Unit,
+    onSave: () -> Unit,
     onRetry: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {

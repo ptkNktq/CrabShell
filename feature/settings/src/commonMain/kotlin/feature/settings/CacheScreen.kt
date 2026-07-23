@@ -30,7 +30,7 @@ internal fun CacheScreen(modifier: Modifier = Modifier) {
 @Composable
 internal fun CacheContent(
     state: CacheRefreshUiState,
-    onClearCache: () -> Unit = {},
+    onClearCache: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     CacheRefreshCard(

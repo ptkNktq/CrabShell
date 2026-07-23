@@ -59,14 +59,14 @@ internal fun AccountScreen(modifier: Modifier = Modifier) {
 @Composable
 internal fun AccountContent(
     passwordState: PasswordChangeUiState,
-    onCurrentPasswordChanged: (String) -> Unit = {},
-    onNewPasswordChanged: (String) -> Unit = {},
-    onConfirmPasswordChanged: (String) -> Unit = {},
-    onChangePassword: () -> Unit = {},
+    onCurrentPasswordChanged: (String) -> Unit,
+    onNewPasswordChanged: (String) -> Unit,
+    onConfirmPasswordChanged: (String) -> Unit,
+    onChangePassword: () -> Unit,
     passkeyState: PasskeyManagementUiState,
-    onRegisterPasskey: () -> Unit = {},
+    onRegisterPasskey: () -> Unit,
     loginHistoryState: LoginHistoryUiState,
-    onRetryLoginHistory: () -> Unit = {},
+    onRetryLoginHistory: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {

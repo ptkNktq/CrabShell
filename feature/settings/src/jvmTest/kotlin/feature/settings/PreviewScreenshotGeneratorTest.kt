@@ -49,6 +49,8 @@ class PreviewScreenshotGeneratorTest {
     ) {
         val scene = ImageComposeScene(width = width, height = height) { content() }
         try {
+            // 1回目の render() で LaunchedEffect 等の副作用・アニメーションの初期状態を確定させ、
+            // 2回目の render() で確定した見た目を取得する（ImageComposeScene の既知のウォームアップパターン）。
             scene.render()
             val image = scene.render()
             val bytes = image.encodeToData(EncodedImageFormat.PNG)!!.bytes
@@ -69,8 +71,14 @@ class PreviewScreenshotGeneratorTest {
             SettingsCategory.Account ->
                 AccountContent(
                     passwordState = PasswordChangeUiState(),
+                    onCurrentPasswordChanged = {},
+                    onNewPasswordChanged = {},
+                    onConfirmPasswordChanged = {},
+                    onChangePassword = {},
                     passkeyState = PasskeyManagementUiState(isLoading = false, isAvailable = true, credentialCount = 1),
+                    onRegisterPasskey = {},
                     loginHistoryState = LoginHistoryUiState(isLoading = false),
+                    onRetryLoginHistory = {},
                     modifier = modifier,
                 )
             SettingsCategory.Credits ->
@@ -81,32 +89,64 @@ class PreviewScreenshotGeneratorTest {
             SettingsCategory.UserManagement ->
                 UserManagementContent(
                     state = UserNameUiState(isLoading = false),
+                    onUpdateDisplayName = { _, _ -> },
                     modifier = modifier,
                 )
             SettingsCategory.Pet ->
                 PetContent(
                     state = PetSettingsUiState(isLoading = false),
+                    onPetNameChanged = { _, _ -> },
+                    onSavePetName = {},
+                    onMealOrderChanged = {},
+                    onMealTimeChanged = { _, _ -> },
+                    onSaveFeeding = {},
+                    onReminderEnabledChanged = {},
+                    onReminderWebhookUrlChanged = {},
+                    onReminderDelayMinutesChanged = {},
+                    onReminderPrefixChanged = {},
+                    onSaveReminder = {},
+                    onTestScheduled = {},
+                    onTestReminder = {},
                     modifier = modifier,
                 )
             SettingsCategory.Garbage ->
                 GarbageContent(
                     state = GarbageScheduleUiState(isLoading = false, notificationLoading = false),
+                    onToggleDay = { _, _ -> },
+                    onFrequencyChange = { _, _ -> },
+                    onSaveClick = {},
+                    onNotificationEnabledChanged = {},
+                    onNotificationWebhookUrlChanged = {},
+                    onNotificationHourChanged = {},
+                    onNotificationPrefixChanged = {},
+                    onSaveNotificationSettings = {},
                     modifier = modifier,
                 )
             SettingsCategory.Quest ->
                 QuestContent(
                     state = QuestWebhookUiState(isLoading = false),
+                    onUrlChanged = {},
+                    onEnabledChanged = {},
+                    onToggleEvent = {},
+                    onSave = {},
                     modifier = modifier,
                 )
             SettingsCategory.Money ->
                 MoneyContent(
                     moneyState = MoneyWebhookUiState(isLoading = false),
+                    onMoneyUrlChanged = {},
+                    onMoneyEnabledChanged = {},
+                    onMoneySave = {},
                     paymentState = PaymentWebhookUiState(isLoading = false),
+                    onPaymentUrlChanged = {},
+                    onPaymentEnabledChanged = {},
+                    onPaymentSave = {},
                     modifier = modifier,
                 )
             SettingsCategory.Cache ->
                 CacheContent(
                     state = CacheRefreshUiState(),
+                    onClearCache = {},
                     modifier = modifier,
                 )
         }
