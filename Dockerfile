@@ -35,7 +35,7 @@ RUN gradle :server:buildFatJar --no-daemon \
     -Dorg.gradle.jvmargs="-Xmx2g -Dfile.encoding=UTF-8" \
     -Dorg.gradle.parallel=false
 
-FROM eclipse-temurin:21.0.10_7-jre-noble
+FROM eclipse-temurin:25.0.2_10-jre-noble
 WORKDIR /app
 COPY --from=build /app/server/build/libs/*-all.jar app.jar
 EXPOSE 8080
