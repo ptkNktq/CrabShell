@@ -126,7 +126,7 @@ class PreviewScreenshotGeneratorTest {
                             modifier = Modifier.fillMaxSize(),
                             color = MaterialTheme.colorScheme.background,
                         ) {
-                            SettingsContent(
+                            SettingsCategoryLayout(
                                 isAdmin = true,
                                 windowSizeClass = pattern.windowSizeClass,
                                 selectedCategory = category,

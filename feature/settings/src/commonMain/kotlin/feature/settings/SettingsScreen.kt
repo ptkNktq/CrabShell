@@ -93,18 +93,40 @@ internal fun SettingsContent(
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
     selectedCategory: SettingsCategory? = null,
     onSelectCategory: (SettingsCategory?) -> Unit = {},
-    categoryContent: @Composable (SettingsCategory, Modifier) -> Unit = { category, cardModifier ->
-        when (category) {
-            SettingsCategory.Account -> AccountScreen(modifier = cardModifier)
-            SettingsCategory.Credits -> CreditsScreen(modifier = cardModifier)
-            SettingsCategory.UserManagement -> UserManagementScreen(modifier = cardModifier)
-            SettingsCategory.Pet -> PetScreen(modifier = cardModifier)
-            SettingsCategory.Garbage -> GarbageScreen(modifier = cardModifier)
-            SettingsCategory.Quest -> QuestScreen(modifier = cardModifier)
-            SettingsCategory.Money -> MoneyScreen(modifier = cardModifier)
-            SettingsCategory.Cache -> CacheScreen(modifier = cardModifier)
-        }
-    },
+) {
+    SettingsCategoryLayout(
+        isAdmin = isAdmin,
+        windowSizeClass = windowSizeClass,
+        selectedCategory = selectedCategory,
+        onSelectCategory = onSelectCategory,
+        categoryContent = { category, cardModifier ->
+            when (category) {
+                SettingsCategory.Account -> AccountScreen(modifier = cardModifier)
+                SettingsCategory.Credits -> CreditsScreen(modifier = cardModifier)
+                SettingsCategory.UserManagement -> UserManagementScreen(modifier = cardModifier)
+                SettingsCategory.Pet -> PetScreen(modifier = cardModifier)
+                SettingsCategory.Garbage -> GarbageScreen(modifier = cardModifier)
+                SettingsCategory.Quest -> QuestScreen(modifier = cardModifier)
+                SettingsCategory.Money -> MoneyScreen(modifier = cardModifier)
+                SettingsCategory.Cache -> CacheScreen(modifier = cardModifier)
+            }
+        },
+    )
+}
+
+/**
+ * [SettingsContent] のレイアウト骨格（一覧＋詳細ペインの配置ロジック）のみを切り出したもの。
+ * 本番導線は常に [SettingsContent] 経由（categoryContent は実画面に固定）で、
+ * このシグネチャを直接呼ぶのは各カテゴリの実際の見た目をKoinなしでレンダリングしたい
+ * プレビュー・スクリーンショット生成のテストコードのみを想定している。
+ */
+@Composable
+internal fun SettingsCategoryLayout(
+    isAdmin: Boolean,
+    windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
+    selectedCategory: SettingsCategory? = null,
+    onSelectCategory: (SettingsCategory?) -> Unit = {},
+    categoryContent: @Composable (SettingsCategory, Modifier) -> Unit,
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
     val categories = SettingsCategory.entries.filter { !it.adminOnly || isAdmin }
