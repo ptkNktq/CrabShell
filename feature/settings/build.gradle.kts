@@ -27,6 +27,27 @@ kotlin {
     }
 }
 
+// PreviewScreenshotGeneratorTest は @Preview 本導入を判断するための PoC で、
+// アサーションを持たず PNG を生成するだけなので、通常の jvmTest（CI がそのまま実行する）
+// からは除外し、手動実行専用の previewScreenshotTest タスクに切り出す。
+tasks.named<Test>("jvmTest") {
+    filter {
+        excludeTestsMatching("feature.settings.PreviewScreenshotGeneratorTest")
+    }
+}
+
+tasks.register<Test>("previewScreenshotTest") {
+    group = "verification"
+    description = "settings 画面のプレビュー用スクリーンショット PNG を手動生成する（CI には含まれない）"
+    val jvmTestTask = tasks.named<Test>("jvmTest").get()
+    testClassesDirs = jvmTestTask.testClassesDirs
+    classpath = jvmTestTask.classpath
+    filter {
+        includeTestsMatching("feature.settings.PreviewScreenshotGeneratorTest")
+        isFailOnNoMatchingTests = false
+    }
+}
+
 // 依存ライブラリのライセンス情報を composeResources へ書き出す。
 // outputFile を composeResources 配下に向けると自動メタデータ検出は無効化されるため、export を明示する。
 aboutLibraries {
