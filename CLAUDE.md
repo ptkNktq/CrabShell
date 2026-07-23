@@ -287,6 +287,18 @@ docker compose pull && docker compose up -d
 - server: `server/src/test/kotlin/server/` — `ChallengeStore`、money パース関数等のユニットテスト
 - wasmJs ブラウザテスト (`allTests`) はヘッドレス Chrome が必要。CI 以外では `jvmTest` を使用する
 
+### settings 画面のプレビュー用スクリーンショット生成（PoC・手動実行専用）
+
+`@Preview` / スクリーンショットテストの本導入を判断するための PoC。`feature/settings` の各カテゴリ画面は `~Screen`（Koin 呼び出しのみ）と `~Content`（UiState とコールバックを引数で受け取る stateless コンポーネント）に分離されており、`~Content` を Koin なしで JVM 上にオフスクリーンレンダリングして PNG を生成できる。
+
+```bash
+# settings 全8カテゴリ × 3画面サイズ（Compact/Medium/Expanded）= 24枚のPNGを生成
+./gradlew :feature:settings:previewScreenshotTest -PskipFrontend
+# 出力先: feature/settings/build/preview-screenshots/（git 管理外）
+```
+
+アサーションを持たない PoC のため、通常の `jvmTest`（CI が実行する）からは除外済み。本導入を決定した場合は、このセクションを更新すること。
+
 ## Linting
 
 - **ktlint** (`org.jlleitschuh.gradle.ktlint`) を全サブプロジェクトに適用済み。
