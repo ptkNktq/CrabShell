@@ -53,7 +53,7 @@ class PreviewScreenshotGeneratorTest {
             // 2回目の render() で確定した見た目を取得する（ImageComposeScene の既知のウォームアップパターン）。
             scene.render()
             val image = scene.render()
-            val bytes = image.encodeToData(EncodedImageFormat.PNG)!!.bytes
+            val bytes = checkNotNull(image.encodeToData(EncodedImageFormat.PNG)) { "PNG encode failed" }.bytes
             File(outputDir, fileName).writeBytes(bytes)
         } finally {
             scene.close()
@@ -137,10 +137,12 @@ class PreviewScreenshotGeneratorTest {
                     onMoneyUrlChanged = {},
                     onMoneyEnabledChanged = {},
                     onMoneySave = {},
+                    onMoneyMessageChanged = {},
                     paymentState = PaymentWebhookUiState(isLoading = false),
                     onPaymentUrlChanged = {},
                     onPaymentEnabledChanged = {},
                     onPaymentSave = {},
+                    onPaymentMessageChanged = {},
                     modifier = modifier,
                 )
             SettingsCategory.Cache ->
