@@ -1,17 +1,12 @@
 package feature.settings
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import core.ui.WindowSizeClass
 import core.ui.theme.AppTheme
 import org.jetbrains.skia.EncodedImageFormat
@@ -19,10 +14,13 @@ import java.io.File
 import kotlin.test.Test
 
 /**
- * @Preview 本導入の判断材料として、commonMain 化済みの settings 画面を
+ * @Preview 本導入の判断材料として、commonMain 化済みの settings 全8カテゴリ画面を
  * JVM ターゲット上でオフスクリーンレンダリングし、3パターンの画面サイズで
  * PNG 出力する PoC。Android ターゲットが無いため IDE のプレビューパネルは
  * 使えないので、ここでは自動スクショ生成のみを検証する。
+ *
+ * 各カテゴリの実際の Content コンポーネントに、各 ViewModel の UiState の
+ * デフォルト値（isLoading = false のロード済み・空状態）を渡してレンダリングする。
  */
 @OptIn(ExperimentalComposeUiApi::class)
 class PreviewScreenshotGeneratorTest {
@@ -38,9 +36,9 @@ class PreviewScreenshotGeneratorTest {
 
     private val sizePatterns =
         listOf(
-            SizePattern("compact", 375, 700, WindowSizeClass.Compact),
-            SizePattern("medium", 700, 700, WindowSizeClass.Medium),
-            SizePattern("expanded", 1000, 700, WindowSizeClass.Expanded),
+            SizePattern("compact", 375, 800, WindowSizeClass.Compact),
+            SizePattern("medium", 700, 800, WindowSizeClass.Medium),
+            SizePattern("expanded", 1000, 800, WindowSizeClass.Expanded),
         )
 
     private fun saveScreenshot(
@@ -60,65 +58,79 @@ class PreviewScreenshotGeneratorTest {
         }
     }
 
-    // SettingsContent 自体は categoryContent 内で koinViewModel() を呼ぶ実画面へ
-    // 委譲しているため、Koin なしでプレビューするにはフェイクの categoryContent を
-    // 差し込む必要がある（本 PoC のための最小限の変更を SettingsScreen.kt に追加済み）。
-    @Test
-    fun generateSettingsContentScreenshots() {
-        sizePatterns.forEach { pattern ->
-            saveScreenshot(
-                fileName = "settings_content_${pattern.label}.png",
-                width = pattern.width,
-                height = pattern.height,
-            ) {
-                AppTheme {
-                    Surface(
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.background,
-                    ) {
-                        SettingsContent(
-                            isAdmin = true,
-                            windowSizeClass = pattern.windowSizeClass,
-                            selectedCategory = null,
-                            categoryContent = { category, modifier ->
-                                Box(modifier = modifier.fillMaxSize()) {
-                                    Text("プレビュー用ダミー: ${category.title}")
-                                }
-                            },
-                        )
-                    }
-                }
-            }
+    // 各カテゴリの実際の Content を、各 ViewModel の UiState のデフォルト値（ロード済み・空状態）で描画する。
+    // koinViewModel() には触れないため Koin コンテキスト不要。
+    @Composable
+    private fun RealCategoryContent(
+        category: SettingsCategory,
+        modifier: Modifier,
+    ) {
+        when (category) {
+            SettingsCategory.Account ->
+                AccountContent(
+                    passwordState = PasswordChangeUiState(),
+                    passkeyState = PasskeyManagementUiState(isLoading = false, isAvailable = true, credentialCount = 1),
+                    loginHistoryState = LoginHistoryUiState(isLoading = false),
+                    modifier = modifier,
+                )
+            SettingsCategory.Credits ->
+                CreditsContent(
+                    state = LicensesUiState(isLoading = false),
+                    modifier = modifier,
+                )
+            SettingsCategory.UserManagement ->
+                UserManagementContent(
+                    state = UserNameUiState(isLoading = false),
+                    modifier = modifier,
+                )
+            SettingsCategory.Pet ->
+                PetContent(
+                    state = PetSettingsUiState(isLoading = false),
+                    modifier = modifier,
+                )
+            SettingsCategory.Garbage ->
+                GarbageContent(
+                    state = GarbageScheduleUiState(isLoading = false, notificationLoading = false),
+                    modifier = modifier,
+                )
+            SettingsCategory.Quest ->
+                QuestContent(
+                    state = QuestWebhookUiState(isLoading = false),
+                    modifier = modifier,
+                )
+            SettingsCategory.Money ->
+                MoneyContent(
+                    moneyState = MoneyWebhookUiState(isLoading = false),
+                    paymentState = PaymentWebhookUiState(isLoading = false),
+                    modifier = modifier,
+                )
+            SettingsCategory.Cache ->
+                CacheContent(
+                    state = CacheRefreshUiState(),
+                    modifier = modifier,
+                )
         }
     }
 
-    // CreditsCard は koinViewModel に依存しない純粋な stateless コンポーネント。
-    // Screen 層と違い、サンプルデータを渡すだけでそのままプレビュー可能。
     @Test
-    fun generateCreditsCardScreenshots() {
+    fun generateAllCategoryScreenshots() {
         sizePatterns.forEach { pattern ->
-            saveScreenshot(
-                fileName = "credits_card_${pattern.label}.png",
-                width = pattern.width,
-                height = pattern.height,
-            ) {
-                AppTheme {
-                    Surface(
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.background,
-                    ) {
-                        Box(contentAlignment = Alignment.TopStart) {
-                            val cardWidth =
-                                if (pattern.windowSizeClass == WindowSizeClass.Compact) {
-                                    (pattern.width - 32).dp
-                                } else {
-                                    480.dp
-                                }
-                            CreditsCard(
-                                isLoading = false,
-                                libraries = emptyList(),
-                                error = null,
-                                modifier = Modifier.width(cardWidth),
+            SettingsCategory.entries.forEach { category ->
+                saveScreenshot(
+                    fileName = "settings_${category.name.lowercase()}_${pattern.label}.png",
+                    width = pattern.width,
+                    height = pattern.height,
+                ) {
+                    AppTheme {
+                        Surface(
+                            modifier = Modifier.fillMaxSize(),
+                            color = MaterialTheme.colorScheme.background,
+                        ) {
+                            SettingsContent(
+                                isAdmin = true,
+                                windowSizeClass = pattern.windowSizeClass,
+                                selectedCategory = category,
+                                categoryContent = { cat, mod -> RealCategoryContent(cat, mod) },
                             )
                         }
                     }

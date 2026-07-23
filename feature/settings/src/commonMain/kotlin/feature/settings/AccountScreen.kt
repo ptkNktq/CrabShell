@@ -41,10 +41,34 @@ internal fun AccountScreen(modifier: Modifier = Modifier) {
     val passwordVm: PasswordChangeViewModel = koinViewModel()
     val passkeyVm: PasskeyManagementViewModel = koinViewModel()
     val loginHistoryVm: LoginHistoryViewModel = koinViewModel()
-    val passwordState = passwordVm.uiState
-    val passkeyState = passkeyVm.uiState
-    val loginHistoryState = loginHistoryVm.uiState
 
+    AccountContent(
+        passwordState = passwordVm.uiState,
+        onCurrentPasswordChanged = passwordVm::onCurrentPasswordChanged,
+        onNewPasswordChanged = passwordVm::onNewPasswordChanged,
+        onConfirmPasswordChanged = passwordVm::onConfirmPasswordChanged,
+        onChangePassword = passwordVm::onChangePassword,
+        passkeyState = passkeyVm.uiState,
+        onRegisterPasskey = passkeyVm::onRegisterPasskey,
+        loginHistoryState = loginHistoryVm.uiState,
+        onRetryLoginHistory = loginHistoryVm::loadHistory,
+        modifier = modifier,
+    )
+}
+
+@Composable
+internal fun AccountContent(
+    passwordState: PasswordChangeUiState,
+    onCurrentPasswordChanged: (String) -> Unit = {},
+    onNewPasswordChanged: (String) -> Unit = {},
+    onConfirmPasswordChanged: (String) -> Unit = {},
+    onChangePassword: () -> Unit = {},
+    passkeyState: PasskeyManagementUiState,
+    onRegisterPasskey: () -> Unit = {},
+    loginHistoryState: LoginHistoryUiState,
+    onRetryLoginHistory: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         PasswordChangeCard(
             currentPassword = passwordState.currentPassword,
@@ -53,10 +77,10 @@ internal fun AccountScreen(modifier: Modifier = Modifier) {
             isLoading = passwordState.isLoading,
             errorMessage = passwordState.errorMessage,
             successMessage = passwordState.successMessage,
-            onCurrentPasswordChanged = passwordVm::onCurrentPasswordChanged,
-            onNewPasswordChanged = passwordVm::onNewPasswordChanged,
-            onConfirmPasswordChanged = passwordVm::onConfirmPasswordChanged,
-            onChangePassword = passwordVm::onChangePassword,
+            onCurrentPasswordChanged = onCurrentPasswordChanged,
+            onNewPasswordChanged = onNewPasswordChanged,
+            onConfirmPasswordChanged = onConfirmPasswordChanged,
+            onChangePassword = onChangePassword,
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -66,7 +90,7 @@ internal fun AccountScreen(modifier: Modifier = Modifier) {
                 isRegistering = passkeyState.isRegistering,
                 errorMessage = passkeyState.errorMessage,
                 successMessage = passkeyState.successMessage,
-                onRegisterPasskey = passkeyVm::onRegisterPasskey,
+                onRegisterPasskey = onRegisterPasskey,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -76,7 +100,7 @@ internal fun AccountScreen(modifier: Modifier = Modifier) {
             loadError = loginHistoryState.loadError,
             loadErrorMessage = loginHistoryState.loadErrorMessage,
             events = loginHistoryState.events,
-            onRetry = loginHistoryVm::loadHistory,
+            onRetry = onRetryLoginHistory,
             modifier = Modifier.fillMaxWidth(),
         )
     }

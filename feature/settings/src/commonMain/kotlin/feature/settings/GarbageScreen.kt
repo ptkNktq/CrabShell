@@ -44,40 +44,69 @@ private val dayLabels = listOf("日", "月", "火", "水", "木", "金", "土")
 @Composable
 internal fun GarbageScreen(modifier: Modifier = Modifier) {
     val vm: GarbageScheduleViewModel = koinViewModel()
-    val s = vm.uiState
+    GarbageContent(
+        state = vm.uiState,
+        onToggleDay = vm::onToggleDay,
+        onFrequencyChange = vm::onChangeFrequency,
+        onSaveClick = vm::onSaveSchedule,
+        onRetry = vm::loadSchedules,
+        onNotificationEnabledChanged = vm::onNotificationEnabledChanged,
+        onNotificationWebhookUrlChanged = vm::onNotificationWebhookUrlChanged,
+        onNotificationHourChanged = vm::onNotificationHourChanged,
+        onNotificationPrefixChanged = vm::onNotificationPrefixChanged,
+        onSaveNotificationSettings = vm::onSaveNotificationSettings,
+        onRetryNotification = vm::loadNotificationSettings,
+        modifier = modifier,
+    )
+}
 
+@Composable
+internal fun GarbageContent(
+    state: GarbageScheduleUiState,
+    onToggleDay: (GarbageType, Int) -> Unit = { _, _ -> },
+    onFrequencyChange: (GarbageType, CollectionFrequency) -> Unit = { _, _ -> },
+    onSaveClick: () -> Unit = {},
+    onRetry: () -> Unit = {},
+    onNotificationEnabledChanged: (Boolean) -> Unit = {},
+    onNotificationWebhookUrlChanged: (String) -> Unit = {},
+    onNotificationHourChanged: (String) -> Unit = {},
+    onNotificationPrefixChanged: (String) -> Unit = {},
+    onSaveNotificationSettings: () -> Unit = {},
+    onRetryNotification: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         GarbageScheduleCard(
-            isLoading = s.isLoading,
-            loadError = s.loadError,
-            loadErrorMessage = s.loadErrorMessage,
-            schedules = s.schedules,
-            garbageMessage = s.message,
-            garbageSaving = s.isSaving,
-            onToggleDay = vm::onToggleDay,
-            onFrequencyChange = vm::onChangeFrequency,
-            onSaveClick = vm::onSaveSchedule,
-            onRetry = vm::loadSchedules,
+            isLoading = state.isLoading,
+            loadError = state.loadError,
+            loadErrorMessage = state.loadErrorMessage,
+            schedules = state.schedules,
+            garbageMessage = state.message,
+            garbageSaving = state.isSaving,
+            onToggleDay = onToggleDay,
+            onFrequencyChange = onFrequencyChange,
+            onSaveClick = onSaveClick,
+            onRetry = onRetry,
             modifier = Modifier.fillMaxWidth(),
         )
 
         GarbageNotificationCard(
-            isLoading = s.notificationLoading,
-            loadError = s.notificationLoadError,
-            loadErrorMessage = s.notificationLoadErrorMessage,
-            enabled = s.notificationEnabled,
-            webhookUrl = s.notificationWebhookUrl,
-            notifyHour = s.notificationHour,
-            prefix = s.notificationPrefix,
-            isSaving = s.notificationSaving,
-            isHourValid = s.isNotificationHourValid,
-            message = s.notificationMessage,
-            onEnabledChanged = vm::onNotificationEnabledChanged,
-            onWebhookUrlChanged = vm::onNotificationWebhookUrlChanged,
-            onNotifyHourChanged = vm::onNotificationHourChanged,
-            onPrefixChanged = vm::onNotificationPrefixChanged,
-            onSave = vm::onSaveNotificationSettings,
-            onRetry = vm::loadNotificationSettings,
+            isLoading = state.notificationLoading,
+            loadError = state.notificationLoadError,
+            loadErrorMessage = state.notificationLoadErrorMessage,
+            enabled = state.notificationEnabled,
+            webhookUrl = state.notificationWebhookUrl,
+            notifyHour = state.notificationHour,
+            prefix = state.notificationPrefix,
+            isSaving = state.notificationSaving,
+            isHourValid = state.isNotificationHourValid,
+            message = state.notificationMessage,
+            onEnabledChanged = onNotificationEnabledChanged,
+            onWebhookUrlChanged = onNotificationWebhookUrlChanged,
+            onNotifyHourChanged = onNotificationHourChanged,
+            onPrefixChanged = onNotificationPrefixChanged,
+            onSave = onSaveNotificationSettings,
+            onRetry = onRetryNotification,
             modifier = Modifier.fillMaxWidth(),
         )
     }
