@@ -1,10 +1,10 @@
 package feature.settings
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -72,16 +72,21 @@ class PreviewScreenshotGeneratorTest {
                 height = pattern.height,
             ) {
                 AppTheme {
-                    SettingsContent(
-                        isAdmin = true,
-                        windowSizeClass = pattern.windowSizeClass,
-                        selectedCategory = null,
-                        categoryContent = { category, modifier ->
-                            Box(modifier = modifier.fillMaxSize()) {
-                                Text("プレビュー用ダミー: ${category.title}")
-                            }
-                        },
-                    )
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background,
+                    ) {
+                        SettingsContent(
+                            isAdmin = true,
+                            windowSizeClass = pattern.windowSizeClass,
+                            selectedCategory = null,
+                            categoryContent = { category, modifier ->
+                                Box(modifier = modifier.fillMaxSize()) {
+                                    Text("プレビュー用ダミー: ${category.title}")
+                                }
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -98,22 +103,24 @@ class PreviewScreenshotGeneratorTest {
                 height = pattern.height,
             ) {
                 AppTheme {
-                    Box(
-                        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
-                        contentAlignment = Alignment.TopStart,
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background,
                     ) {
-                        val cardWidth =
-                            if (pattern.windowSizeClass == WindowSizeClass.Compact) {
-                                (pattern.width - 32).dp
-                            } else {
-                                480.dp
-                            }
-                        CreditsCard(
-                            isLoading = false,
-                            libraries = emptyList(),
-                            error = null,
-                            modifier = Modifier.width(cardWidth),
-                        )
+                        Box(contentAlignment = Alignment.TopStart) {
+                            val cardWidth =
+                                if (pattern.windowSizeClass == WindowSizeClass.Compact) {
+                                    (pattern.width - 32).dp
+                                } else {
+                                    480.dp
+                                }
+                            CreditsCard(
+                                isLoading = false,
+                                libraries = emptyList(),
+                                error = null,
+                                modifier = Modifier.width(cardWidth),
+                            )
+                        }
                     }
                 }
             }
