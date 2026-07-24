@@ -24,10 +24,12 @@ import kotlin.test.Test
  */
 @OptIn(ExperimentalComposeUiApi::class)
 class PreviewScreenshotGeneratorTest {
-    // previewScreenshotTest タスク経由の実行時は全モジュール共通の集約先（プロジェクトルート build/preview-screenshots/）
-    // へ出力する。System property 未設定（IDE から直接実行等）の場合はこのモジュール配下にフォールバックする。
+    // previewScreenshotTest タスク経由の実行時は convention plugin が注入する。
+    // IDE から直接実行する場合の未設定時はこのモジュール名にフォールバックする。
+    private val moduleName = System.getProperty("previewScreenshot.module") ?: "report"
+
     private val outputDir =
-        File(System.getProperty("previewScreenshot.outputDir") ?: "build/preview-screenshots").apply { mkdirs() }
+        File("build/preview-screenshots").apply { mkdirs() }
 
     private data class SizePattern(
         val label: String,
@@ -57,9 +59,22 @@ class PreviewScreenshotGeneratorTest {
             val image = scene.render()
             val bytes = checkNotNull(image.encodeToData(EncodedImageFormat.PNG)) { "PNG encode failed" }.bytes
             File(outputDir, fileName).writeBytes(bytes)
+            recordManifestEntry(fileName)
         } finally {
             scene.close()
         }
+    }
+
+    /**
+     * 画面横断のプレビュー一覧（index.html）向けに、ファイル名からタグを機械的に導出して
+     * manifest.tsv に1行追記する。screen はファイル名からサイズラベルとモジュール名を
+     * 取り除いた残りの部分（例: "settings_account_compact.png" → screen="account"）。
+     */
+    private fun recordManifestEntry(fileName: String) {
+        val base = fileName.removeSuffix(".png")
+        val size = base.substringAfterLast('_')
+        val screen = base.substringBeforeLast('_').removePrefix("${moduleName}_")
+        File(outputDir, "manifest.tsv").appendText("$fileName\t$moduleName\t$screen\t$size\n")
     }
 
     @Test

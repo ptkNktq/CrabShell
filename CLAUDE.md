@@ -297,20 +297,19 @@ docker compose pull && docker compose up -d
 `@Preview` 本導入の判断材料として、`feature/*` 各モジュールの stateless `~Content` composable を JVM 上で `ImageComposeScene` によりオフスクリーンレンダリングし、PNG を自動生成できる（`dashboard`, `feeding`, `money`, `payment`, `quest`, `report`, `auth`, `settings` の全8モジュール対応）。
 
 ```bash
-# 例: dashboard モジュールのスクリーンショットを生成
-./gradlew :feature:dashboard:previewScreenshotTest -PskipFrontend
+# 全モジュール一括生成 + 横断ビューア (index.html) を生成
+./gradlew previewScreenshotIndex -PskipFrontend
 
-# 全モジュール一括生成
-./gradlew :feature:dashboard:previewScreenshotTest :feature:feeding:previewScreenshotTest \
-  :feature:money:previewScreenshotTest :feature:payment:previewScreenshotTest \
-  :feature:quest:previewScreenshotTest :feature:report:previewScreenshotTest \
-  :feature:auth:previewScreenshotTest :feature:settings:previewScreenshotTest -PskipFrontend
+# 例: dashboard モジュール単体のみ生成したい場合
+./gradlew :feature:dashboard:previewScreenshotTest -PskipFrontend
 ```
 
-- 出力先: プロジェクトルート直下の `build/preview-screenshots/`（全モジュール共通集約先。ファイル名は `dashboard_`, `settings_account_` 等の画面名プレフィックスで一意なため衝突しない）
+- 各モジュールの `previewScreenshotTest` は自分の `feature/<module>/build/preview-screenshots/` に PNG と `manifest.tsv`（`file`, `module`, `screen`, `size` のタブ区切り1行1画像）を出力する（source of truth）
 - `compact` (375x800) / `medium` (700x800) / `expanded` (1000x800) の3サイズを生成
-- `previewScreenshotTest` タスク、`compose.desktop.currentOs`（Skiko ネイティブライブラリ）依存、集約先を指す `previewScreenshot.outputDir` システムプロパティ、`PreviewScreenshotGeneratorTest` を通常の `jvmTest`（CI）から除外するフィルタは `build-logic/src/main/kotlin/CrabshellFeaturePlugin.kt` で全 `crabshell.feature` モジュールに共通適用されている（各テストは同プロパティ未設定時、モジュール配下の `build/preview-screenshots/` にフォールバックする）
-- **手動実行専用タスクであり、CI (`jvmTest`) には含まれない**
+- ルートの `previewScreenshotIndex` タスク（`build.gradle.kts` で定義）は全モジュールの `previewScreenshotTest` を実行させたうえで、その出力をルート直下の `build/preview-screenshots/` に集約コピーし、`gradle/preview-screenshot-index-template.html` を元に横断ビューア `index.html` を生成する
+- `index.html` はブラウザで開くだけで使える単一ファイル（外部依存なし）。manifest の各タグ（`module`/`screen`/`size`）からフィルタ UI を動的生成するため、将来 manifest に新しいタグ（例: `theme`）を追加してもコード変更なしでフィルタが増える。サムネイルクリックで拡大表示（前後ナビゲーション・Esc で閉じる）
+- `previewScreenshotTest` タスク、`compose.desktop.currentOs`（Skiko ネイティブライブラリ）依存、モジュール名を manifest に埋め込むための `previewScreenshot.module` システムプロパティ、`PreviewScreenshotGeneratorTest` を通常の `jvmTest`（CI）から除外するフィルタは `build-logic/src/main/kotlin/CrabshellFeaturePlugin.kt` で全 `crabshell.feature` モジュールに共通適用されている
+- **いずれも手動実行専用タスクであり、CI (`jvmTest`) には含まれない**
 - テストクラスは `feature/<module>/src/jvmTest/kotlin/feature/<module>/PreviewScreenshotGeneratorTest.kt` に配置し、Content には shared モデルの直値とコールバックの空ラムダを渡す（ViewModel/Koin 不要）
 
 ## Linting

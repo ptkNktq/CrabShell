@@ -34,3 +34,66 @@ subprojects {
         }
     }
 }
+
+// --- プレビュー用スクリーンショットの集約 ---
+// 各 feature モジュールの previewScreenshotTest は自分の build/preview-screenshots/ に
+// PNG と manifest.tsv（file, module, screen, size のタブ区切り）を出力する（source of truth）。
+// このタスクは全モジュール分の previewScreenshotTest を実行させたうえで、その出力を
+// ルートの build/preview-screenshots/ に集約コピーし、フィルタ・拡大表示可能な index.html を生成する。
+val previewScreenshotIndex =
+    tasks.register("previewScreenshotIndex") {
+        group = "verification"
+        description = "手動実行専用: 全 feature モジュールのプレビュー用スクリーンショットを集約し index.html を生成する（CI には含まれない）"
+    }
+
+// サブプロジェクトの `previewScreenshotTest` タスクはそれぞれのビルドスクリプト評価後にしか
+// 存在しないため、全プロジェクト評価完了後（projectsEvaluated）に依存関係と処理内容を配線する。
+gradle.projectsEvaluated {
+    val moduleTasks =
+        subprojects.mapNotNull { sub -> sub.tasks.findByName("previewScreenshotTest")?.let { sub to it } }
+
+    previewScreenshotIndex.configure {
+        dependsOn(moduleTasks.map { it.second })
+
+        doLast {
+            val outputDir =
+                layout.buildDirectory
+                    .dir("preview-screenshots")
+                    .get()
+                    .asFile
+            outputDir.deleteRecursively()
+            outputDir.mkdirs()
+
+            val entries = mutableListOf<String>()
+            moduleTasks.forEach { (sub, _) ->
+                val moduleDir = sub.file("build/preview-screenshots")
+                val manifestFile = moduleDir.resolve("manifest.tsv")
+                if (!manifestFile.exists()) return@forEach
+
+                manifestFile.readLines().forEach lines@{ line ->
+                    if (line.isBlank()) return@lines
+                    val parts = line.split("\t")
+                    if (parts.size != 4) return@lines
+                    val (file, module, screen, size) = parts
+
+                    val sourcePng = moduleDir.resolve(file)
+                    if (!sourcePng.exists()) return@lines
+                    sourcePng.copyTo(outputDir.resolve(file), overwrite = true)
+
+                    entries +=
+                        """{"file":"${jsonEscape(file)}","tags":{"module":"${jsonEscape(module)}",""" +
+                        """"screen":"${jsonEscape(screen)}","size":"${jsonEscape(size)}"}}"""
+                }
+            }
+
+            val manifestJson = if (entries.isEmpty()) "[]" else "[\n  " + entries.joinToString(",\n  ") + "\n]"
+            val templateFile = rootDir.resolve("gradle/preview-screenshot-index-template.html")
+            val html = templateFile.readText().replace("__MANIFEST_JSON__", manifestJson)
+            outputDir.resolve("index.html").writeText(html)
+
+            logger.lifecycle("プレビュースクリーンショット index を生成しました: ${outputDir.resolve("index.html")}")
+        }
+    }
+}
+
+fun jsonEscape(value: String): String = value.replace("\\", "\\\\").replace("\"", "\\\"")
