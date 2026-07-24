@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalWasmJsInterop::class)
-
 package core.ui.components
 
 import androidx.compose.foundation.background
@@ -17,8 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import core.ui.util.daysInMonthJs
-import core.ui.util.firstDayOfWeekJs
+import core.ui.util.daysInMonth
+import core.ui.util.firstDayOfWeek
 
 private val MONTH_NAMES =
     arrayOf(
@@ -160,8 +158,8 @@ private fun DayGrid(
     today: String,
     onDateSelected: (String) -> Unit,
 ) {
-    val firstDow = firstDayOfWeekJs(year, month)
-    val daysInMonth = daysInMonthJs(year, month)
+    val firstDow = firstDayOfWeek(year, month)
+    val dayCount = daysInMonth(year, month)
 
     // 6 rows x 7 columns fixed grid
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -170,7 +168,7 @@ private fun DayGrid(
             Row(modifier = Modifier.fillMaxWidth()) {
                 for (dow in 0 until 7) {
                     val cellIndex = week * 7 + dow
-                    if (cellIndex < firstDow || dayCounter > daysInMonth) {
+                    if (cellIndex < firstDow || dayCounter > dayCount) {
                         // Empty cell
                         Spacer(modifier = Modifier.weight(1f).aspectRatio(1f))
                     } else {
@@ -188,7 +186,7 @@ private fun DayGrid(
                 }
             }
             // Stop rendering rows after all days are placed
-            if (dayCounter > daysInMonth) break
+            if (dayCounter > dayCount) break
         }
     }
 }
