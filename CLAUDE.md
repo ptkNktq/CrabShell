@@ -307,9 +307,9 @@ docker compose pull && docker compose up -d
   :feature:auth:previewScreenshotTest :feature:settings:previewScreenshotTest -PskipFrontend
 ```
 
-- 出力先: 各モジュールの `build/preview-screenshots/`
+- 出力先: プロジェクトルート直下の `build/preview-screenshots/`（全モジュール共通集約先。ファイル名は `dashboard_`, `settings_account_` 等の画面名プレフィックスで一意なため衝突しない）
 - `compact` (375x800) / `medium` (700x800) / `expanded` (1000x800) の3サイズを生成
-- `previewScreenshotTest` タスクと `compose.desktop.currentOs`（Skiko ネイティブライブラリ）依存、`PreviewScreenshotGeneratorTest` を通常の `jvmTest`（CI）から除外するフィルタは `build-logic/src/main/kotlin/CrabshellFeaturePlugin.kt` で全 `crabshell.feature` モジュールに共通適用されている
+- `previewScreenshotTest` タスク、`compose.desktop.currentOs`（Skiko ネイティブライブラリ）依存、集約先を指す `previewScreenshot.outputDir` システムプロパティ、`PreviewScreenshotGeneratorTest` を通常の `jvmTest`（CI）から除外するフィルタは `build-logic/src/main/kotlin/CrabshellFeaturePlugin.kt` で全 `crabshell.feature` モジュールに共通適用されている（各テストは同プロパティ未設定時、モジュール配下の `build/preview-screenshots/` にフォールバックする）
 - **手動実行専用タスクであり、CI (`jvmTest`) には含まれない**
 - テストクラスは `feature/<module>/src/jvmTest/kotlin/feature/<module>/PreviewScreenshotGeneratorTest.kt` に配置し、Content には shared モデルの直値とコールバックの空ラムダを渡す（ViewModel/Koin 不要）
 

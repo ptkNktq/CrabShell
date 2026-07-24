@@ -22,8 +22,10 @@ import kotlin.test.Test
  */
 @OptIn(ExperimentalComposeUiApi::class)
 class PreviewScreenshotGeneratorTest {
+    // previewScreenshotTest タスク経由の実行時は全モジュール共通の集約先（プロジェクトルート build/preview-screenshots/）
+    // へ出力する。System property 未設定（IDE から直接実行等）の場合はこのモジュール配下にフォールバックする。
     private val outputDir =
-        File("build/preview-screenshots").apply { mkdirs() }
+        File(System.getProperty("previewScreenshot.outputDir") ?: "build/preview-screenshots").apply { mkdirs() }
 
     private data class SizePattern(
         val label: String,

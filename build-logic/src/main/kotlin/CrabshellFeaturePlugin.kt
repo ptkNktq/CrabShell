@@ -60,6 +60,12 @@ class CrabshellFeaturePlugin : Plugin<Project> {
                     includeTestsMatching(previewTestClass)
                     isFailOnNoMatchingTests = false
                 }
+                // 全モジュール共通の集約先。ファイル名は各テストで画面名プレフィックス（例: dashboard_, settings_account_）
+                // を付けており衝突しないため、モジュールごとのサブフォルダに分けずフラットに集約する。
+                systemProperty(
+                    "previewScreenshot.outputDir",
+                    rootProject.layout.buildDirectory.dir("preview-screenshots").get().asFile.absolutePath,
+                )
             }
         }
     }
