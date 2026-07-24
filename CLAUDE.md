@@ -134,24 +134,25 @@ core/ui/             → テーマ定義 + WindowSizeClass + 汎用UIコンポ�
                        DateUtils（純Kotlin実装、JST固定+9hオフセット・自前の暦計算） + CalendarView (commonMain)
                        Depends on :core:common, :shared (api), compose (runtime, foundation, material3, ui)
 
-feature/auth/        → LoginViewModel + LoginScreen (commonMain)
-                       AuthenticatedApp + PasskeySetupViewModel (wasmJsMain)
+feature/auth/        → LoginViewModel + LoginScreen + LoginContent、PasskeySetupContent (commonMain)
+                       AuthenticatedApp + PasskeySetupViewModel + PasskeySetupScreen (wasmJsMain)
                        Depends on :core:auth, :core:common, :core:network, :core:ui
-feature/dashboard/   → DashboardViewModel + DashboardScreen (wasmJsMain)
-                       Depends on :core:auth, :core:network, :core:ui, :shared
-feature/feeding/     → FeedingViewModel + FeedingScreen (wasmJsMain)
-                       Depends on :core:network, :core:ui, :shared
-feature/money/       → MoneyViewModel + MoneyScreen (wasmJsMain)
-                       Depends on :core:auth, :core:network, :core:ui, :shared
-feature/payment/     → PaymentViewModel + PaymentScreen (wasmJsMain)
-                       Depends on :core:auth, :core:network, :core:ui, :shared
-feature/quest/       → QuestCategory enum (commonMain)
-                       QuestViewModel + QuestScreen (wasmJsMain)
-                       Depends on :core:network, :core:ui, :shared + wasmJs: :core:auth
-feature/report/      → ReportSummaryCard + MonthlyBarChart + CategoryBreakdown (commonMain)
-                       ReportViewModel + ReportScreen (wasmJsMain)
-                       Depends on :core:ui, :shared + wasmJs: :core:auth, :core:network
-feature/settings/    → 全ファイル commonMain (wasmJs 固有 API 不使用)
+feature/dashboard/   → DashboardContent (commonMain) / DashboardViewModel + DashboardScreen (wasmJsMain)
+                       commonMain: :core:ui, :shared / wasmJs: :core:auth, :core:common, :core:network
+feature/feeding/     → FeedingContent (commonMain) / FeedingViewModel + FeedingScreen (wasmJsMain)
+                       commonMain: :core:ui, :shared / wasmJs: :core:common, :core:network
+feature/money/       → MoneyContent (commonMain) / MoneyViewModel + MoneyScreen (wasmJsMain)
+                       commonMain: :core:ui, :shared / wasmJs: :core:auth, :core:network
+feature/payment/     → PaymentContent (commonMain) / PaymentViewModel + PaymentScreen (wasmJsMain)
+                       commonMain: :core:ui, :shared / wasmJs: :core:auth, :core:network
+feature/quest/       → QuestCategory enum、QuestViewModel、QuestBoardContent + components/ (commonMain)
+                       QuestScreen（AuthStateHolder 参照のため wasmJsMain）
+                       commonMain: :core:network, :core:ui, :shared / wasmJs: :core:auth
+feature/report/      → ReportSummaryCard + MonthlyBarChart + CategoryBreakdown、ReportContent、
+                       OverpaymentContent、RedemptionFormState (commonMain)
+                       ReportViewModel + ReportScreen、OverpaymentViewModel + OverpaymentScreen (wasmJsMain)
+                       commonMain: :core:ui, :shared / wasmJs: :core:auth, :core:network
+feature/settings/    → 全ファイル commonMain（Screen/Content 分離済み、wasmJs 固有 API 不使用）
                        ペット設定（ペット名・ごはん設定）も settings カテゴリとして統合
                        Depends on :core:auth, :core:network, :core:ui, :shared
 
@@ -190,17 +191,21 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Core network (wasmJsMain): `core/network/src/wasmJsMain/kotlin/core/network/` (PasskeyRepositoryImpl, NetworkModule)
 - Core theme (commonMain): `core/ui/src/commonMain/kotlin/core/ui/theme/` (Color.kt, Theme.kt, Typography.kt)
 - Core UI (commonMain): `core/ui/src/commonMain/kotlin/core/ui/` (util/DateUtils.kt, components/CalendarView.kt)
-- Feature auth (commonMain): `feature/auth/src/commonMain/kotlin/feature/auth/` (LoginViewModel, LoginScreen)
-- Feature auth (wasmJsMain): `feature/auth/src/wasmJsMain/kotlin/feature/auth/` (AuthenticatedApp, PasskeySetupViewModel)
-- Feature settings (commonMain): `feature/settings/src/commonMain/kotlin/feature/settings/` (全ファイル。ペット設定も PetSettingsViewModel / PetSettingsCard として同居)
-- Feature dashboard: `feature/dashboard/src/wasmJsMain/kotlin/feature/dashboard/` (DashboardViewModel, DashboardScreen)
-- Feature feeding: `feature/feeding/src/wasmJsMain/kotlin/feature/feeding/` (FeedingViewModel, FeedingScreen)
-- Feature money: `feature/money/src/wasmJsMain/kotlin/feature/money/` (MoneyViewModel, MoneyScreen)
-- Feature payment: `feature/payment/src/wasmJsMain/kotlin/feature/payment/` (PaymentViewModel, PaymentScreen)
-- Feature quest (commonMain): `feature/quest/src/commonMain/kotlin/feature/quest/` (QuestCategory)
-- Feature quest (wasmJsMain): `feature/quest/src/wasmJsMain/kotlin/feature/quest/` (QuestViewModel, QuestScreen)
-- Feature report (commonMain): `feature/report/src/commonMain/kotlin/feature/report/components/` (UI コンポーネント)
-- Feature report (wasmJsMain): `feature/report/src/wasmJsMain/kotlin/feature/report/` (ReportViewModel, ReportScreen)
+- Feature auth (commonMain): `feature/auth/src/commonMain/kotlin/feature/auth/` (LoginViewModel, LoginScreen, LoginContent, PasskeySetupContent)
+- Feature auth (wasmJsMain): `feature/auth/src/wasmJsMain/kotlin/feature/auth/` (AuthenticatedApp, PasskeySetupViewModel, PasskeySetupScreen)
+- Feature settings (commonMain): `feature/settings/src/commonMain/kotlin/feature/settings/` (全ファイル。Screen/Content 分離済み。ペット設定も PetSettingsViewModel / PetSettingsCard として同居)
+- Feature dashboard (commonMain): `feature/dashboard/src/commonMain/kotlin/feature/dashboard/` (DashboardContent)
+- Feature dashboard (wasmJsMain): `feature/dashboard/src/wasmJsMain/kotlin/feature/dashboard/` (DashboardViewModel, DashboardScreen)
+- Feature feeding (commonMain): `feature/feeding/src/commonMain/kotlin/feature/feeding/` (FeedingContent)
+- Feature feeding (wasmJsMain): `feature/feeding/src/wasmJsMain/kotlin/feature/feeding/` (FeedingViewModel, FeedingScreen)
+- Feature money (commonMain): `feature/money/src/commonMain/kotlin/feature/money/` (MoneyContent)
+- Feature money (wasmJsMain): `feature/money/src/wasmJsMain/kotlin/feature/money/` (MoneyViewModel, MoneyScreen)
+- Feature payment (commonMain): `feature/payment/src/commonMain/kotlin/feature/payment/` (PaymentContent)
+- Feature payment (wasmJsMain): `feature/payment/src/wasmJsMain/kotlin/feature/payment/` (PaymentViewModel, PaymentScreen)
+- Feature quest (commonMain): `feature/quest/src/commonMain/kotlin/feature/quest/` (QuestCategory, QuestViewModel, QuestBoardContent, components/)
+- Feature quest (wasmJsMain): `feature/quest/src/wasmJsMain/kotlin/feature/quest/` (QuestScreen)
+- Feature report (commonMain): `feature/report/src/commonMain/kotlin/feature/report/` (components/ の UI コンポーネント、ReportContent, OverpaymentContent, RedemptionFormState)
+- Feature report (wasmJsMain): `feature/report/src/wasmJsMain/kotlin/feature/report/` (ReportViewModel, ReportScreen, OverpaymentViewModel, OverpaymentScreen)
 - App shell (commonMain): `app/src/commonMain/kotlin/app/` (Screen.kt, components/)
 - App shell (wasmJsMain): `app/src/wasmJsMain/kotlin/app/` (Main.kt, App.kt, Navigator.kt)
 
@@ -286,6 +291,27 @@ docker compose pull && docker compose up -d
 - shared: `shared/src/commonTest/kotlin/model/` — `@Serializable` モデルのシリアライズ往復テスト
 - server: `server/src/test/kotlin/server/` — `ChallengeStore`、money パース関数等のユニットテスト
 - wasmJs ブラウザテスト (`allTests`) はヘッドレス Chrome が必要。CI 以外では `jvmTest` を使用する
+
+### プレビュー用スクリーンショット生成
+
+`@Preview` 本導入の判断材料として、`feature/*` 各モジュールの stateless `~Content` composable を JVM 上で `ImageComposeScene` によりオフスクリーンレンダリングし、PNG を自動生成できる（`dashboard`, `feeding`, `money`, `payment`, `quest`, `report`, `auth`, `settings` の全8モジュール対応）。
+
+```bash
+# 例: dashboard モジュールのスクリーンショットを生成
+./gradlew :feature:dashboard:previewScreenshotTest -PskipFrontend
+
+# 全モジュール一括生成
+./gradlew :feature:dashboard:previewScreenshotTest :feature:feeding:previewScreenshotTest \
+  :feature:money:previewScreenshotTest :feature:payment:previewScreenshotTest \
+  :feature:quest:previewScreenshotTest :feature:report:previewScreenshotTest \
+  :feature:auth:previewScreenshotTest :feature:settings:previewScreenshotTest -PskipFrontend
+```
+
+- 出力先: 各モジュールの `build/preview-screenshots/`
+- `compact` (375x800) / `medium` (700x800) / `expanded` (1000x800) の3サイズを生成
+- `previewScreenshotTest` タスクと `compose.desktop.currentOs`（Skiko ネイティブライブラリ）依存、`PreviewScreenshotGeneratorTest` を通常の `jvmTest`（CI）から除外するフィルタは `build-logic/src/main/kotlin/CrabshellFeaturePlugin.kt` で全 `crabshell.feature` モジュールに共通適用されている
+- **手動実行専用タスクであり、CI (`jvmTest`) には含まれない**
+- テストクラスは `feature/<module>/src/jvmTest/kotlin/feature/<module>/PreviewScreenshotGeneratorTest.kt` に配置し、Content には shared モデルの直値とコールバックの空ラムダを渡す（ViewModel/Koin 不要）
 
 ## Linting
 
