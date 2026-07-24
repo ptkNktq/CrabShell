@@ -131,7 +131,7 @@ core/network/        → 認証トークン付き HTTP client + Repository inter
                        PasskeyRepositoryImpl + NetworkModule (wasmJsMain)
                        Depends on :core:common, :core:auth, :shared, ktor-client
 core/ui/             → テーマ定義 + WindowSizeClass + 汎用UIコンポーネント (commonMain)
-                       DateUtils (@JsFun) + CalendarView (wasmJsMain)
+                       DateUtils（純Kotlin実装、JST固定+9hオフセット・自前の暦計算） + CalendarView (commonMain)
                        Depends on :core:common, :shared (api), compose (runtime, foundation, material3, ui)
 
 feature/auth/        → LoginViewModel + LoginScreen (commonMain)
@@ -189,7 +189,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Core network (commonMain): `core/network/src/commonMain/kotlin/core/network/` (AuthHttpClient, Repository interfaces/impls)
 - Core network (wasmJsMain): `core/network/src/wasmJsMain/kotlin/core/network/` (PasskeyRepositoryImpl, NetworkModule)
 - Core theme (commonMain): `core/ui/src/commonMain/kotlin/core/ui/theme/` (Color.kt, Theme.kt, Typography.kt)
-- Core UI (wasmJsMain): `core/ui/src/wasmJsMain/kotlin/core/ui/` (DateUtils.kt, CalendarView.kt)
+- Core UI (commonMain): `core/ui/src/commonMain/kotlin/core/ui/` (util/DateUtils.kt, components/CalendarView.kt)
 - Feature auth (commonMain): `feature/auth/src/commonMain/kotlin/feature/auth/` (LoginViewModel, LoginScreen)
 - Feature auth (wasmJsMain): `feature/auth/src/wasmJsMain/kotlin/feature/auth/` (AuthenticatedApp, PasskeySetupViewModel)
 - Feature settings (commonMain): `feature/settings/src/commonMain/kotlin/feature/settings/` (全ファイル。ペット設定も PetSettingsViewModel / PetSettingsCard として同居)

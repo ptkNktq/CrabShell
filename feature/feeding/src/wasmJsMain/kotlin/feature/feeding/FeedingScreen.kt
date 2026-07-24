@@ -24,11 +24,11 @@ import core.ui.extensions.FeedingDoneColor
 import core.ui.extensions.color
 import core.ui.extensions.icon
 import core.ui.extensions.label
-import core.ui.util.dayOfWeekShortJs
+import core.ui.util.dayOfWeekShort
 import core.ui.util.toJstHHMM
 import core.ui.util.toJstHour
 import core.ui.util.toJstMinute
-import core.ui.util.todayDateJs
+import core.ui.util.todayDate
 import model.Feeding
 import model.FeedingLog
 import model.MealTime
@@ -36,7 +36,7 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun FeedingScreen(vm: FeedingViewModel = koinViewModel()) {
-    val today = remember { todayDateJs().toString() }
+    val today = remember { todayDate() }
     val windowSizeClass = LocalWindowSizeClass.current
 
     FeedingContent(
@@ -236,7 +236,7 @@ private fun DateSelector(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
 ) {
-    val dow = dayOfWeekShortJs(date.toJsString()).toString()
+    val dow = dayOfWeekShort(date)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -347,7 +347,7 @@ private fun TimestampBadge(
         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
     ) {
         Text(
-            text = toJstHHMM(timestamp.toJsString()).toString(),
+            text = toJstHHMM(timestamp),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
@@ -363,11 +363,11 @@ private fun TimestampEditor(
 ) {
     val initialHour =
         remember(timestamp) {
-            toJstHour(timestamp.toJsString()).toString().trim().toIntOrNull() ?: 0
+            toJstHour(timestamp).toIntOrNull() ?: 0
         }
     val initialMinute =
         remember(timestamp) {
-            toJstMinute(timestamp.toJsString()).toString().trim().toIntOrNull() ?: 0
+            toJstMinute(timestamp).toIntOrNull() ?: 0
         }
     var hourText by remember(timestamp) { mutableStateOf(initialHour.toString().padStart(2, '0')) }
     var minuteText by remember(timestamp) { mutableStateOf(initialMinute.toString().padStart(2, '0')) }

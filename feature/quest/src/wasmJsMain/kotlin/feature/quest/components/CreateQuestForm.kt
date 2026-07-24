@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalWasmJsInterop::class)
-
 package feature.quest.components
 
 import androidx.compose.animation.AnimatedVisibility
@@ -47,7 +45,7 @@ import androidx.compose.ui.unit.dp
 import core.ui.components.CalendarView
 import core.ui.extensions.icon
 import core.ui.extensions.label
-import core.ui.util.todayDateJs
+import core.ui.util.todayDate
 import model.QuestCategory
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -83,7 +81,7 @@ internal fun CreateQuestForm(
     var aiError by remember { mutableStateOf<String?>(null) }
 
     // 期限: 日付
-    val today = remember { todayDateJs().toString() }
+    val today = remember { todayDate() }
     var deadlineDate by remember { mutableStateOf("") }
     var showCalendar by remember { mutableStateOf(false) }
 

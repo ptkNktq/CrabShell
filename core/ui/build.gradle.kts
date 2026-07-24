@@ -14,6 +14,11 @@ kotlin {
             api(compose.materialIconsExtended)
             api(compose.ui)
             api(compose.components.resources)
+
+            implementation(libs.kotlinx.datetime)
+        }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
         }
     }
 }
