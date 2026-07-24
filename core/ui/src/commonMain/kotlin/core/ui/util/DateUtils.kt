@@ -29,6 +29,8 @@ private fun DayOfWeek.toSundayIndex(): Int = (ordinal + 1) % 7
 
 private fun jstNow(now: Instant): LocalDateTime = (now + JST_OFFSET).toLocalDateTime(TimeZone.UTC)
 
+private fun jstFromIso(iso: String): LocalDateTime = (Instant.parse(iso) + JST_OFFSET).toLocalDateTime(TimeZone.UTC)
+
 private fun formatDate(date: LocalDate): String =
     "${date.year}-${date.month.number.toString().padStart(2, '0')}-${date.day.toString().padStart(2, '0')}"
 
@@ -74,10 +76,10 @@ fun dayOfWeekShort(dateStr: String): String = DAY_OF_WEEK_LABELS[parseDate(dateS
 /** 現在時刻を HH:MM 形式で返す (JST) */
 fun currentTime(now: Instant = Clock.System.now()): String = jstNow(now).let { formatHHMM(it.hour, it.minute) }
 
-/** 今日の日付を "M月D日（曜）" 形式で返す (JST) */
+/** 今日の日付を "M月D日(曜)" 形式で返す (JST) */
 fun formattedToday(now: Instant = Clock.System.now()): String {
     val date = jstNow(now).date
-    return "${date.month.number}月${date.day}日（${DAY_OF_WEEK_LABELS[date.dayOfWeek.toSundayIndex()]}）"
+    return "${date.month.number}月${date.day}日(${DAY_OF_WEEK_LABELS[date.dayOfWeek.toSundayIndex()]})"
 }
 
 /** 今日の年を返す (JST) */
@@ -101,23 +103,13 @@ fun tomorrowDayOfWeekIndex(now: Instant = Clock.System.now()): Int =
 fun tomorrowWeekOfMonth(now: Instant = Clock.System.now()): Int = (jstNow(now).date.plus(1, DateTimeUnit.DAY).day + 6) / 7
 
 /** ISO タイムスタンプを JST の HH:MM 形式に変換 */
-fun toJstHHMM(iso: String): String = (Instant.parse(iso) + JST_OFFSET).toLocalDateTime(TimeZone.UTC).let { formatHHMM(it.hour, it.minute) }
+fun toJstHHMM(iso: String): String = jstFromIso(iso).let { formatHHMM(it.hour, it.minute) }
 
 /** ISO タイムスタンプから JST の時を取得 */
-fun toJstHour(iso: String): String =
-    (Instant.parse(iso) + JST_OFFSET)
-        .toLocalDateTime(TimeZone.UTC)
-        .hour
-        .toString()
-        .padStart(2, '0')
+fun toJstHour(iso: String): String = jstFromIso(iso).hour.toString().padStart(2, '0')
 
 /** ISO タイムスタンプから JST の分を取得 */
-fun toJstMinute(iso: String): String =
-    (Instant.parse(iso) + JST_OFFSET)
-        .toLocalDateTime(TimeZone.UTC)
-        .minute
-        .toString()
-        .padStart(2, '0')
+fun toJstMinute(iso: String): String = jstFromIso(iso).minute.toString().padStart(2, '0')
 
 // deadline ("YYYY-MM-DD" or "YYYY-MM-DD HH:MM") を jstNow と同じ仮想基準系の Instant に変換する
 private fun deadlineToVirtualInstant(deadline: String): Instant {

@@ -104,4 +104,11 @@ class DateUtilsTest {
         assertEquals("09", toJstHour("2026-07-25T00:30:00Z"))
         assertEquals("30", toJstMinute("2026-07-25T00:30:00Z"))
     }
+
+    @Test
+    fun formattedToday_usesHalfWidthParentheses() {
+        // 2026-07-25 09:30 JST is a Saturday
+        val now = Instant.parse("2026-07-25T00:30:00Z")
+        assertEquals("7月25日(土)", formattedToday(now))
+    }
 }
