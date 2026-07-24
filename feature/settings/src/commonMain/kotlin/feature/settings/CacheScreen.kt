@@ -20,10 +20,23 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 internal fun CacheScreen(modifier: Modifier = Modifier) {
     val vm: CacheRefreshViewModel = koinViewModel()
-    CacheRefreshCard(
-        isClearing = vm.uiState.isClearing,
-        message = vm.uiState.message,
+    CacheContent(
+        state = vm.uiState,
         onClearCache = vm::onClearCache,
+        modifier = modifier,
+    )
+}
+
+@Composable
+internal fun CacheContent(
+    state: CacheRefreshUiState,
+    onClearCache: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    CacheRefreshCard(
+        isClearing = state.isClearing,
+        message = state.message,
+        onClearCache = onClearCache,
         modifier = modifier,
     )
 }
