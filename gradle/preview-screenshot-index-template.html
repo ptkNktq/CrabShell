@@ -15,29 +15,36 @@
     --accent: #f2994a;
   }
   * { box-sizing: border-box; }
+  html, body {
+    height: 100%;
+  }
   body {
     margin: 0;
+    display: flex;
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
     background: var(--bg);
     color: var(--text);
   }
-  header {
+  #sidebar {
+    flex: 0 0 260px;
+    width: 260px;
+    height: 100vh;
+    overflow-y: auto;
     position: sticky;
     top: 0;
-    z-index: 10;
     background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 12px 20px;
+    border-right: 1px solid var(--border);
+    padding: 16px;
   }
   h1 {
-    margin: 0 0 10px;
-    font-size: 1.1rem;
+    margin: 0 0 14px;
+    font-size: 1.05rem;
     font-weight: 600;
   }
   #filters {
     display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
+    flex-direction: column;
+    gap: 14px;
   }
   fieldset {
     border: 1px solid var(--border);
@@ -53,18 +60,21 @@
     padding: 0 4px;
   }
   fieldset label {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 4px;
-    margin: 2px 8px 2px 0;
+    gap: 6px;
+    margin: 4px 0;
     font-size: 0.85rem;
     cursor: pointer;
   }
   #toolbar {
     display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 8px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
     font-size: 0.85rem;
     color: var(--text-muted);
   }
@@ -76,11 +86,16 @@
     padding: 4px 10px;
     cursor: pointer;
     font-size: 0.85rem;
+    width: 100%;
   }
   #toolbar button:hover {
     border-color: var(--accent);
   }
   main {
+    flex: 1;
+    min-width: 0;
+    height: 100vh;
+    overflow-y: auto;
     padding: 20px;
   }
   #grid {
@@ -197,14 +212,14 @@
 </style>
 </head>
 <body>
-<header>
+<aside id="sidebar">
   <h1>Preview Screenshots</h1>
   <div id="filters"></div>
   <div id="toolbar">
     <span id="count"></span>
     <button id="reset-filters" type="button">フィルタをリセット</button>
   </div>
-</header>
+</aside>
 <main>
   <div id="grid"></div>
   <p id="empty">条件に一致するスクリーンショットがありません</p>
