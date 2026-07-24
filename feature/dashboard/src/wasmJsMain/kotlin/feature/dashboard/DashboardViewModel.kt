@@ -12,15 +12,15 @@ import core.network.FeedingRepository
 import core.network.FeedingSettingsRepository
 import core.network.GarbageScheduleRepository
 import core.network.PetRepository
-import core.ui.util.currentTimeJs
-import core.ui.util.currentYearJs
-import core.ui.util.dayOfWeekIndexJs
-import core.ui.util.feedingDateJs
-import core.ui.util.formattedTodayJs
-import core.ui.util.todayDateJs
-import core.ui.util.tomorrowDayOfWeekIndexJs
-import core.ui.util.tomorrowWeekOfMonthJs
-import core.ui.util.weekOfMonthJs
+import core.ui.util.currentTime
+import core.ui.util.currentYear
+import core.ui.util.dayOfWeekIndex
+import core.ui.util.feedingDate
+import core.ui.util.formattedToday
+import core.ui.util.todayDate
+import core.ui.util.tomorrowDayOfWeekIndex
+import core.ui.util.tomorrowWeekOfMonth
+import core.ui.util.weekOfMonth
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
@@ -55,23 +55,23 @@ class DashboardViewModel(
     private val feedingSettingsRepository: FeedingSettingsRepository,
     private val garbageScheduleRepository: GarbageScheduleRepository,
 ) : ViewModel() {
-    private var today: String = feedingDateJs().toString()
+    private var today: String = feedingDate()
     private var petId: String? = null
     private var cachedSchedules: List<GarbageTypeSchedule> = emptyList()
-    private var trackedDate: String = todayDateJs().toString()
+    private var trackedDate: String = todayDate()
     private var trackedFeedingDate: String = today
     private var lastFeedingHalfHour = -1
     private var garbageRefreshedToday =
-        (currentTimeJs().toString().substringBefore(":").toIntOrNull() ?: 0) >= GARBAGE_SWITCH_HOUR
+        (currentTime().substringBefore(":").toIntOrNull() ?: 0) >= GARBAGE_SWITCH_HOUR
     private var pollingJob: Job? = null
     private var feedingSettingsJob: Job? = null
 
     var uiState by mutableStateOf(
         DashboardUiState(
             feedingLog = FeedingLog(date = today),
-            currentTime = currentTimeJs().toString(),
-            currentYear = currentYearJs().toString(),
-            dateWithDay = formattedTodayJs().toString(),
+            currentTime = currentTime(),
+            currentYear = currentYear(),
+            dateWithDay = formattedToday(),
         ),
     )
         private set
@@ -144,16 +144,16 @@ class DashboardViewModel(
 
     /** 時刻カード・年月日・ゴミバッジなど時刻依存の「非給餌」表示を同期する。 */
     private fun refreshTimeAndGarbage() {
-        val timeStr = currentTimeJs().toString()
+        val timeStr = currentTime()
         uiState = uiState.copy(currentTime = timeStr)
-        val newDate = todayDateJs().toString()
+        val newDate = todayDate()
         if (newDate != trackedDate) {
             trackedDate = newDate
             garbageRefreshedToday = false
             uiState =
                 uiState.copy(
-                    currentYear = currentYearJs().toString(),
-                    dateWithDay = formattedTodayJs().toString(),
+                    currentYear = currentYear(),
+                    dateWithDay = formattedToday(),
                 )
             refreshGarbageForToday()
         }
@@ -169,7 +169,7 @@ class DashboardViewModel(
      * タブ復帰時は [onRefreshFeeding] で無条件再取得するため本関数を呼ばない。
      */
     private suspend fun autoRefreshFeedingOnTick() {
-        val newFeedingDate = feedingDateJs().toString()
+        val newFeedingDate = feedingDate()
         if (newFeedingDate != trackedFeedingDate) {
             // 日跨ぎは全量再取得に任せ、同一 tick 内での半時間判定はスキップ（二重 fetch 回避）
             onRefreshFeeding()
@@ -183,7 +183,7 @@ class DashboardViewModel(
     }
 
     private fun computeCurrentHalfHour(): Int {
-        val timeStr = currentTimeJs().toString()
+        val timeStr = currentTime()
         val minute = timeStr.substringAfter(":").toIntOrNull() ?: 0
         return timeStr
             .substringBefore(":")
@@ -215,11 +215,11 @@ class DashboardViewModel(
     }
 
     private fun refreshGarbageForToday() {
-        val hour = currentTimeJs().toString().substringBefore(":").toIntOrNull() ?: 0
+        val hour = currentTime().substringBefore(":").toIntOrNull() ?: 0
         val isAfterSwitchHour = hour >= GARBAGE_SWITCH_HOUR
-        val dayOfWeek = if (isAfterSwitchHour) tomorrowDayOfWeekIndexJs() else dayOfWeekIndexJs()
-        val weekOfMonth = if (isAfterSwitchHour) tomorrowWeekOfMonthJs() else weekOfMonthJs()
-        uiState = uiState.copy(todayGarbageTypes = resolveGarbageTypes(cachedSchedules, dayOfWeek, weekOfMonth))
+        val dow = if (isAfterSwitchHour) tomorrowDayOfWeekIndex() else dayOfWeekIndex()
+        val weekIndex = if (isAfterSwitchHour) tomorrowWeekOfMonth() else weekOfMonth()
+        uiState = uiState.copy(todayGarbageTypes = resolveGarbageTypes(cachedSchedules, dow, weekIndex))
     }
 
     private suspend fun silentRefreshFeeding() {
@@ -237,7 +237,7 @@ class DashboardViewModel(
      * 次回 [autoRefreshFeedingOnTick] で日跨ぎ・半時間跨ぎ判定が再発火しないよう tracker も同期する。
      */
     fun onRefreshFeeding() {
-        val newDate = feedingDateJs().toString()
+        val newDate = feedingDate()
         today = newDate
         trackedFeedingDate = newDate
         lastFeedingHalfHour = computeCurrentHalfHour()

@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalWasmJsInterop::class)
-
 package feature.quest.components
 
 import androidx.compose.foundation.layout.Arrangement
@@ -36,7 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import core.ui.extensions.icon
 import core.ui.extensions.label
-import core.ui.util.remainingTimeJs
+import core.ui.util.remainingTime
 import model.Quest
 import model.QuestStatus
 
@@ -171,7 +169,7 @@ internal fun QuestCard(
                     quest.deadline?.let { deadline ->
                         val remaining =
                             remember(deadline) {
-                                remainingTimeJs(deadline.toJsString()).toString()
+                                remainingTime(deadline)
                             }
                         Text(
                             text = "期限: $deadline ($remaining)",

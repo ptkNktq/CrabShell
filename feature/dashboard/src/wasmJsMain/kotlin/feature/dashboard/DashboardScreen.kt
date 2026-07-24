@@ -331,7 +331,7 @@ fun DailyFeedingCard(
                                 icon = mealTime.icon,
                                 tint = mealTime.color,
                                 isDone = feeding?.done == true,
-                                time = feeding?.timestamp?.let { toJstHHMM(it.toJsString()).toString() },
+                                time = feeding?.timestamp?.let { toJstHHMM(it) },
                                 onClick = { onFeedClick(mealTime) },
                                 modifier = Modifier.weight(1f),
                             )

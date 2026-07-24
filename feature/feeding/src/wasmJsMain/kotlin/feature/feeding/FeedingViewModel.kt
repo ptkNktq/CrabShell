@@ -11,8 +11,8 @@ import core.common.TabResumedEvent
 import core.network.FeedingRepository
 import core.network.FeedingSettingsRepository
 import core.network.PetRepository
-import core.ui.util.feedingDateJs
-import core.ui.util.shiftDateJs
+import core.ui.util.feedingDate
+import core.ui.util.shiftDate
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -41,8 +41,8 @@ class FeedingViewModel(
 ) : ViewModel() {
     var uiState by mutableStateOf(
         FeedingUiState(
-            log = FeedingLog(date = feedingDateJs().toString()),
-            selectedDate = feedingDateJs().toString(),
+            log = FeedingLog(date = feedingDate()),
+            selectedDate = feedingDate(),
         ),
     )
         private set
@@ -184,11 +184,11 @@ class FeedingViewModel(
     }
 
     fun onGoToPreviousDay() {
-        onLoadLog(shiftDateJs(uiState.selectedDate.toJsString(), -1).toString())
+        onLoadLog(shiftDate(uiState.selectedDate, -1))
     }
 
     fun onGoToNextDay() {
-        onLoadLog(shiftDateJs(uiState.selectedDate.toJsString(), 1).toString())
+        onLoadLog(shiftDate(uiState.selectedDate, 1))
     }
 
     companion object {
