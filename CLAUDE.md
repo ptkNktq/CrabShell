@@ -309,6 +309,7 @@ docker compose pull && docker compose up -d
 - ルートの `previewScreenshotIndex` タスク（`build.gradle.kts` で定義）は全モジュールの `previewScreenshotTest` を実行させたうえで、その出力をルート直下の `build/preview-screenshots/` に集約コピーし、`gradle/preview-screenshot-index-template.html` を元に横断ビューア `index.html` を生成する
 - `index.html` はブラウザで開くだけで使える単一ファイル（外部依存なし）。manifest の各タグ（`module`/`screen`/`size`）からフィルタ UI を動的生成するため、将来 manifest に新しいタグ（例: `theme`）を追加してもコード変更なしでフィルタが増える。サムネイルクリックで拡大表示（前後ナビゲーション・Esc で閉じる）
 - `previewScreenshotTest` タスク、`compose.desktop.currentOs`（Skiko ネイティブライブラリ）依存、モジュール名を manifest に埋め込むための `previewScreenshot.module` システムプロパティ、`PreviewScreenshotGeneratorTest` を通常の `jvmTest`（CI）から除外するフィルタは `build-logic/src/main/kotlin/CrabshellFeaturePlugin.kt` で全 `crabshell.feature` モジュールに共通適用されている
+- 例外: `app/components/Sidebar.kt`（ナビゲーション）は `app.Screen` に依存する app 固有のコンポーネントで、`app` が全 feature モジュールに依存する構造上、feature モジュール側からは循環依存になり参照できない。「画面単位」の対象外だが見た目を確認する価値があるため、`app/build.gradle.kts` に同種の `previewScreenshotTest` 配線を直接記述し、`app/src/jvmTest/kotlin/app/PreviewScreenshotGeneratorTest.kt` で Sidebar の折りたたみ/展開2状態を生成する（`previewScreenshotIndex` はサブプロジェクトを動的に走査するため `app` モジュールもコード変更なしで自動集約される）
 - **いずれも手動実行専用タスクであり、CI (`jvmTest`) には含まれない**
 - テストクラスは `feature/<module>/src/jvmTest/kotlin/feature/<module>/PreviewScreenshotGeneratorTest.kt` に配置し、Content には shared モデルの直値とコールバックの空ラムダを渡す（ViewModel/Koin 不要）
 

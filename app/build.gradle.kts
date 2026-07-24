@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.testing.Test
+
 plugins {
     id("crabshell.compose.wasmjs")
 }
@@ -84,5 +86,34 @@ kotlin {
             implementation(project(":feature:quest"))
             implementation(project(":feature:settings"))
         }
+        jvmTest.dependencies {
+            implementation(kotlin("test"))
+            // ImageComposeScene によるオフスクリーンレンダリングに必要な Skiko のネイティブライブラリ
+            implementation(compose.desktop.currentOs)
+        }
     }
+}
+
+// Sidebar は app.Screen に依存する app 固有のナビゲーションコンポーネントで、循環依存になるため
+// feature モジュールからは参照できない。「画面単位」のスクリーンショット対象からは外れるが、
+// ナビゲーションの見た目を確認する価値があるため例外的にここで生成する
+// （仕組みは build-logic/CrabshellFeaturePlugin.kt の previewScreenshotTest と同じ）。
+val previewTestClass = "app.PreviewScreenshotGeneratorTest"
+tasks.named<Test>("jvmTest") {
+    filter {
+        excludeTestsMatching(previewTestClass)
+        isFailOnNoMatchingTests = false
+    }
+}
+tasks.register<Test>("previewScreenshotTest") {
+    group = "verification"
+    description = "手動実行専用: Sidebar のプレビュー用スクリーンショット PNG を生成する（CI には含まれない）"
+    val jvmTestTask = tasks.named<Test>("jvmTest").get()
+    testClassesDirs = jvmTestTask.testClassesDirs
+    classpath = jvmTestTask.classpath
+    filter {
+        includeTestsMatching(previewTestClass)
+        isFailOnNoMatchingTests = false
+    }
+    systemProperty("previewScreenshot.module", "app")
 }
