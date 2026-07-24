@@ -6,7 +6,9 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.UtcOffset
 import kotlinx.datetime.YearMonth
+import kotlinx.datetime.asTimeZone
 import kotlinx.datetime.minus
 import kotlinx.datetime.number
 import kotlinx.datetime.plus
@@ -14,22 +16,20 @@ import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 
-// 日本は DST が無いため JST は常に固定 UTC+9。TimeZone.UTC を仮の「JST 基準系」として使い、
-// タイムゾーンDBを使わずに wall-clock (LocalDateTime) との相互変換を行う。
-private val JST_OFFSET = 9.hours
+// 日本は DST が無いため JST は常に固定 UTC+9。タイムゾーンDB不要の FixedOffsetTimeZone。
+private val JST: TimeZone = UtcOffset(hours = 9).asTimeZone()
 private const val FEEDING_DAY_BOUNDARY_HOUR = 5
 
-private val DAY_OF_WEEK_LABELS = arrayOf("日", "月", "火", "水", "木", "金", "土")
+internal val DAY_OF_WEEK_LABELS = arrayOf("日", "月", "火", "水", "木", "金", "土")
 
 // kotlinx.datetime.DayOfWeek は MONDAY=0..SUNDAY=6 の並び。0=日,1=月,...,6=土 に変換する。
 private fun DayOfWeek.toSundayIndex(): Int = (ordinal + 1) % 7
 
-private fun jstNow(now: Instant): LocalDateTime = (now + JST_OFFSET).toLocalDateTime(TimeZone.UTC)
+private fun jstNow(now: Instant): LocalDateTime = now.toLocalDateTime(JST)
 
-private fun jstFromIso(iso: String): LocalDateTime = (Instant.parse(iso) + JST_OFFSET).toLocalDateTime(TimeZone.UTC)
+private fun jstFromIso(iso: String): LocalDateTime = Instant.parse(iso).toLocalDateTime(JST)
 
 private fun formatDate(date: LocalDate): String =
     "${date.year}-${date.month.number.toString().padStart(2, '0')}-${date.day.toString().padStart(2, '0')}"
@@ -111,8 +111,7 @@ fun toJstHour(iso: String): String = jstFromIso(iso).hour.toString().padStart(2,
 /** ISO タイムスタンプから JST の分を取得 */
 fun toJstMinute(iso: String): String = jstFromIso(iso).minute.toString().padStart(2, '0')
 
-// deadline ("YYYY-MM-DD" or "YYYY-MM-DD HH:MM") を jstNow と同じ仮想基準系の Instant に変換する
-private fun deadlineToVirtualInstant(deadline: String): Instant {
+private fun deadlineToInstant(deadline: String): Instant {
     val date = parseDate(deadline)
     val time =
         if (deadline.length > 10) {
@@ -121,7 +120,7 @@ private fun deadlineToVirtualInstant(deadline: String): Instant {
         } else {
             LocalTime(23, 59, 59)
         }
-    return LocalDateTime(date, time).toInstant(TimeZone.UTC)
+    return LocalDateTime(date, time).toInstant(JST)
 }
 
 /**
@@ -132,7 +131,7 @@ fun remainingTime(
     deadline: String,
     now: Instant = Clock.System.now(),
 ): String {
-    val diff = deadlineToVirtualInstant(deadline) - (now + JST_OFFSET)
+    val diff = deadlineToInstant(deadline) - now
     if (diff <= Duration.ZERO) return "期限切れ"
     val hours = diff.inWholeHours
     if (hours < 24) return "あと${hours}時間"

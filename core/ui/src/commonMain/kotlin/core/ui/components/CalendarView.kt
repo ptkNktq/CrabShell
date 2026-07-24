@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import core.ui.util.DAY_OF_WEEK_LABELS
 import core.ui.util.daysInMonth
 import core.ui.util.firstDayOfWeek
 
@@ -33,8 +34,6 @@ private val MONTH_NAMES =
         "11月",
         "12月",
     )
-
-private val DAY_OF_WEEK_LABELS = arrayOf("日", "月", "火", "水", "木", "金", "土")
 
 @Composable
 fun CalendarView(
