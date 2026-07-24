@@ -195,7 +195,7 @@ eval "$(./dev.sh --completions)"
 
 ### 本番（GHCR デプロイ）
 
-Dockerfile はマルチステージビルド（Gradle でビルド → JRE Alpine で実行）。ビルド済みイメージを GHCR から pull して実行する。リバースプロキシ（Traefik 等）が外部ネットワーク上で TLS 終端・ポート公開を担当する前提。HEALTHCHECK 付き。
+Dockerfile はマルチステージビルド（Gradle でビルド → JRE で実行）。ビルド済みイメージを GHCR から pull して実行する。リバースプロキシ（Traefik 等）が外部ネットワーク上で TLS 終端・ポート公開を担当する前提。HEALTHCHECK 付き。
 
 #### デプロイ方法
 
