@@ -11,7 +11,7 @@ import core.common.TabResumedEvent
 import core.network.FeedingRepository
 import core.network.FeedingSettingsRepository
 import core.network.PetRepository
-import core.ui.util.feedingDate
+import core.ui.util.dateWithHourBoundary
 import core.ui.util.shiftDate
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -41,8 +41,8 @@ class FeedingViewModel(
 ) : ViewModel() {
     var uiState by mutableStateOf(
         FeedingUiState(
-            log = FeedingLog(date = feedingDate()),
-            selectedDate = feedingDate(),
+            log = FeedingLog(date = dateWithHourBoundary()),
+            selectedDate = dateWithHourBoundary(),
         ),
     )
         private set

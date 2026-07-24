@@ -72,17 +72,27 @@ class DateUtilsTest {
     }
 
     @Test
-    fun feedingDate_beforeBoundaryStaysOnPreviousDay() {
+    fun dateWithHourBoundary_beforeDefaultBoundaryStaysOnPreviousDay() {
         // 2026-07-25 04:59 JST = 2026-07-24 19:59 UTC
         val now = Instant.parse("2026-07-24T19:59:00Z")
-        assertEquals("2026-07-24", feedingDate(now))
+        assertEquals("2026-07-24", dateWithHourBoundary(now))
     }
 
     @Test
-    fun feedingDate_atBoundaryAdvancesToNewDay() {
+    fun dateWithHourBoundary_atDefaultBoundaryAdvancesToNewDay() {
         // 2026-07-25 05:00 JST = 2026-07-24 20:00 UTC
         val now = Instant.parse("2026-07-24T20:00:00Z")
-        assertEquals("2026-07-25", feedingDate(now))
+        assertEquals("2026-07-25", dateWithHourBoundary(now))
+    }
+
+    @Test
+    fun dateWithHourBoundary_respectsCustomBoundaryHour() {
+        // 2026-07-25 09:59 JST, boundaryHour=10 -> まだ前日扱い
+        val now = Instant.parse("2026-07-25T00:59:00Z")
+        assertEquals("2026-07-24", dateWithHourBoundary(now, boundaryHour = 10))
+        // 2026-07-25 10:00 JST, boundaryHour=10 -> 当日
+        val atBoundary = Instant.parse("2026-07-25T01:00:00Z")
+        assertEquals("2026-07-25", dateWithHourBoundary(atBoundary, boundaryHour = 10))
     }
 
     @Test

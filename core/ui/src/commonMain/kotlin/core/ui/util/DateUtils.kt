@@ -20,7 +20,6 @@ import kotlin.time.Instant
 
 // 日本は DST が無いため JST は常に固定 UTC+9。タイムゾーンDB不要の FixedOffsetTimeZone。
 private val JST: TimeZone = UtcOffset(hours = 9).asTimeZone()
-private const val FEEDING_DAY_BOUNDARY_HOUR = 5
 
 internal val DAY_OF_WEEK_LABELS = arrayOf("日", "月", "火", "水", "木", "金", "土")
 
@@ -45,10 +44,13 @@ private fun formatHHMM(
 /** 今日の日付を YYYY-MM-DD 形式で返す（JST） */
 fun todayDate(now: Instant = Clock.System.now()): String = formatDate(jstNow(now).date)
 
-/** 餌やり日付を YYYY-MM-DD 形式で返す（JST 5時を日付境界とする） */
-fun feedingDate(now: Instant = Clock.System.now()): String {
+/** boundaryHour 時を日付の境界として、現在の「営業日」を YYYY-MM-DD 形式で返す（JST） */
+fun dateWithHourBoundary(
+    now: Instant = Clock.System.now(),
+    boundaryHour: Int = 5,
+): String {
     val jst = jstNow(now)
-    val date = if (jst.hour < FEEDING_DAY_BOUNDARY_HOUR) jst.date.minus(1, DateTimeUnit.DAY) else jst.date
+    val date = if (jst.hour < boundaryHour) jst.date.minus(1, DateTimeUnit.DAY) else jst.date
     return formatDate(date)
 }
 

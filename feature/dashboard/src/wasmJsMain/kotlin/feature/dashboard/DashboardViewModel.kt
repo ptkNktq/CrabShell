@@ -14,8 +14,8 @@ import core.network.GarbageScheduleRepository
 import core.network.PetRepository
 import core.ui.util.currentTime
 import core.ui.util.currentYear
+import core.ui.util.dateWithHourBoundary
 import core.ui.util.dayOfWeekIndex
-import core.ui.util.feedingDate
 import core.ui.util.formattedToday
 import core.ui.util.todayDate
 import core.ui.util.tomorrowDayOfWeekIndex
@@ -55,7 +55,7 @@ class DashboardViewModel(
     private val feedingSettingsRepository: FeedingSettingsRepository,
     private val garbageScheduleRepository: GarbageScheduleRepository,
 ) : ViewModel() {
-    private var today: String = feedingDate()
+    private var today: String = dateWithHourBoundary()
     private var petId: String? = null
     private var cachedSchedules: List<GarbageTypeSchedule> = emptyList()
     private var trackedDate: String = todayDate()
@@ -169,7 +169,7 @@ class DashboardViewModel(
      * タブ復帰時は [onRefreshFeeding] で無条件再取得するため本関数を呼ばない。
      */
     private suspend fun autoRefreshFeedingOnTick() {
-        val newFeedingDate = feedingDate()
+        val newFeedingDate = dateWithHourBoundary()
         if (newFeedingDate != trackedFeedingDate) {
             // 日跨ぎは全量再取得に任せ、同一 tick 内での半時間判定はスキップ（二重 fetch 回避）
             onRefreshFeeding()
@@ -237,7 +237,7 @@ class DashboardViewModel(
      * 次回 [autoRefreshFeedingOnTick] で日跨ぎ・半時間跨ぎ判定が再発火しないよう tracker も同期する。
      */
     fun onRefreshFeeding() {
-        val newDate = feedingDate()
+        val newDate = dateWithHourBoundary()
         today = newDate
         trackedFeedingDate = newDate
         lastFeedingHalfHour = computeCurrentHalfHour()
