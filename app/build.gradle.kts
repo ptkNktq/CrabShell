@@ -86,8 +86,8 @@ kotlin {
         }
         jvmTest.dependencies {
             implementation(kotlin("test"))
-            // ImageComposeScene によるオフスクリーンレンダリングに必要な Skiko のネイティブライブラリ
-            implementation(compose.desktop.currentOs)
+            // previewScreenshotTest 用の PNG 保存 + manifest.tsv 記録処理（各モジュール共通）
+            implementation(project(":core:previewscreenshot"))
         }
     }
 }

@@ -4,8 +4,8 @@ import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.register
 
 /**
- * PreviewScreenshotGeneratorTest は @Preview 本導入を判断するための PNG 生成専用テストで、
- * アサーションを持たないため通常の jvmTest（CI がそのまま実行する）からは除外し、
+ * PreviewScreenshotGeneratorTest は PNG 生成専用テストで、アサーションを持たないため
+ * 通常の jvmTest（CI がそのまま実行する）からは除外し、
  * 手動実行専用の previewScreenshotTest タスクに切り出す。除外後にテストが0件になる
  * モジュール（jvmTest が PreviewScreenshotGeneratorTest のみのモジュール）でも
  * ビルドを失敗させないよう isFailOnNoMatchingTests = false を設定する。
