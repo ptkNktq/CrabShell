@@ -310,7 +310,7 @@ docker compose pull && docker compose up -d
 
 - 各モジュールの `previewScreenshotTest` は自分の `feature/<module>/build/preview-screenshots/` に PNG と `manifest.tsv`（`file`, `module`, `screen`, `size` のタブ区切り1行1画像）を出力する（source of truth）
 - `compact` (375x800) / `medium` (700x800) / `expanded` (1000x800) の3サイズを生成
-- ルートの `previewScreenshotIndex` タスク（`build.gradle.kts` で定義）は全モジュールの `previewScreenshotTest` を実行させたうえで、その出力をルート直下の `build/preview-screenshots/` に集約コピーし、`gradle/preview-screenshot-index-template.html` を元に横断ビューア `index.html` を生成する
+- ルートの `previewScreenshotIndex` タスク（`build.gradle.kts` で定義）は全モジュールの `previewScreenshotTest` を実行させたうえで、`gradle/preview-screenshot-index-template.html` を元に横断ビューア `index.html` をルート直下の `build/preview-screenshots/` に生成する。PNG はコピーせず、各モジュール自身の `build/preview-screenshots/` を相対パスで直接参照する（個別モジュールの `previewScreenshotTest` だけを再実行しても、`index.html` を作り直さずに最新の画像がそのまま見られる）
 - `index.html` はブラウザで開くだけで使える単一ファイル（外部依存なし）。manifest の各タグ（`module`/`screen`/`size`）からフィルタ UI を動的生成するため、将来 manifest に新しいタグ（例: `theme`）を追加してもコード変更なしでフィルタが増える。サムネイルクリックで拡大表示（前後ナビゲーション・Esc で閉じる）
 - `previewScreenshotTest` タスクの登録（`jvmTest` からの除外フィルタ、出力先クリア、`previewScreenshot.module` システムプロパティ注入）は `build-logic/src/main/kotlin/PreviewScreenshotTasks.kt` の共有関数 `registerPreviewScreenshotTestTask()` にまとまっており、`CrabshellFeaturePlugin.kt`（全 `crabshell.feature` モジュール）と `app/build.gradle.kts` の両方から呼ばれる
 - PNG 保存（`ImageComposeScene` + `compose.desktop.currentOs` の Skiko ネイティブライブラリ）と `manifest.tsv` 記録の実処理、`SizePattern`/`standardSizePatterns`（compact/medium/expanded の3サイズ定義）は `core:previewscreenshot` モジュール（`PreviewScreenshotRecorder`）に切り出されており、各モジュールの `PreviewScreenshotGeneratorTest` は `testImplementation` でこれを参照して自分の画面を生成するだけでよい

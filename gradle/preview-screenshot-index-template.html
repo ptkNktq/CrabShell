@@ -348,6 +348,12 @@
   const countEl = document.getElementById("count");
   let visible = [];
 
+  // entry.file は index.html からの相対パス（例: "../../feature/dashboard/build/preview-screenshots/x.png"）。
+  // 表示用にはファイル名だけを使う。
+  function fileBaseName(path) {
+    return path.split("/").pop();
+  }
+
   function render() {
     visible = manifest.filter(matches);
     countEl.textContent = visible.length + " / " + manifest.length + " 件";
@@ -361,11 +367,11 @@
       const img = document.createElement("img");
       img.src = entry.file;
       img.loading = "lazy";
-      img.alt = entry.file;
+      img.alt = fileBaseName(entry.file);
       figure.appendChild(img);
 
       const caption = document.createElement("figcaption");
-      caption.appendChild(document.createTextNode(entry.file));
+      caption.appendChild(document.createTextNode(fileBaseName(entry.file)));
       const tagsRow = document.createElement("div");
       tagsRow.className = "tags";
       tagKeys.forEach((key) => {
@@ -398,8 +404,8 @@
     const entry = visible[currentIndex];
     if (!entry) return;
     lightboxImg.src = entry.file;
-    lightboxImg.alt = entry.file;
-    lightboxCaption.textContent = entry.file;
+    lightboxImg.alt = fileBaseName(entry.file);
+    lightboxCaption.textContent = fileBaseName(entry.file);
   }
 
   function closeLightbox() {

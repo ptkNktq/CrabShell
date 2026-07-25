@@ -38,12 +38,14 @@ subprojects {
 // --- プレビュー用スクリーンショットの集約 ---
 // 各 feature モジュールの previewScreenshotTest は自分の build/preview-screenshots/ に
 // PNG と manifest.tsv（file, module, screen, size のタブ区切り）を出力する（source of truth）。
-// このタスクは全モジュール分の previewScreenshotTest を実行させたうえで、その出力を
-// ルートの build/preview-screenshots/ に集約コピーし、フィルタ・拡大表示可能な index.html を生成する。
+// このタスクは全モジュール分の previewScreenshotTest を実行させたうえで、PNG はコピーせず
+// 各モジュールの出力先を相対パスで直接参照する index.html をルートの build/preview-screenshots/
+// に生成する。個別モジュールの previewScreenshotTest だけを再実行してもコピーの取り違えで
+// 古い画像を見てしまうことがなくなり、常に各モジュールの最新出力を指す。
 val previewScreenshotIndex =
     tasks.register("previewScreenshotIndex") {
         group = "verification"
-        description = "手動実行専用: 全 feature モジュールのプレビュー用スクリーンショットを集約し index.html を生成する（CI には含まれない）"
+        description = "手動実行専用: 全 feature モジュールのプレビュー用スクリーンショットを参照する index.html を生成する（CI には含まれない）"
     }
 
 // サブプロジェクトの `previewScreenshotTest` タスクはそれぞれのビルドスクリプト評価後にしか
@@ -63,6 +65,7 @@ gradle.projectsEvaluated {
                     .asFile
             outputDir.deleteRecursively()
             outputDir.mkdirs()
+            val outputPath = outputDir.toPath()
 
             val entries = mutableListOf<String>()
             moduleTasks.forEach { (sub, _) ->
@@ -78,12 +81,9 @@ gradle.projectsEvaluated {
 
                     val sourcePng = moduleDir.resolve(file)
                     if (!sourcePng.exists()) return@lines
-                    // ファイル名だけをキーに1フォルダへ集約すると、モジュール間で同名ファイルが
-                    // できた場合にサイレントに上書きされてしまう。モジュール名のサブディレクトリに
-                    // 分けることで、命名規約に関わらず衝突しないようにする。
-                    val moduleOutputDir = outputDir.resolve(module).apply { mkdirs() }
-                    val relativePath = "$module/$file"
-                    sourcePng.copyTo(moduleOutputDir.resolve(file), overwrite = true)
+                    // index.html から見た相対パスでモジュール自身の出力を直接参照する（コピーしない）。
+                    // モジュールごとにディレクトリが分かれているため、命名規約に関わらず衝突しない。
+                    val relativePath = outputPath.relativize(sourcePng.toPath()).joinToString("/") { it.toString() }
 
                     entries +=
                         """{"file":"${jsonEscape(relativePath)}","tags":{"module":"${jsonEscape(module)}",""" +
