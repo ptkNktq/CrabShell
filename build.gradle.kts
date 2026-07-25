@@ -78,10 +78,15 @@ gradle.projectsEvaluated {
 
                     val sourcePng = moduleDir.resolve(file)
                     if (!sourcePng.exists()) return@lines
-                    sourcePng.copyTo(outputDir.resolve(file), overwrite = true)
+                    // ファイル名だけをキーに1フォルダへ集約すると、モジュール間で同名ファイルが
+                    // できた場合にサイレントに上書きされてしまう。モジュール名のサブディレクトリに
+                    // 分けることで、命名規約に関わらず衝突しないようにする。
+                    val moduleOutputDir = outputDir.resolve(module).apply { mkdirs() }
+                    val relativePath = "$module/$file"
+                    sourcePng.copyTo(moduleOutputDir.resolve(file), overwrite = true)
 
                     entries +=
-                        """{"file":"${jsonEscape(file)}","tags":{"module":"${jsonEscape(module)}",""" +
+                        """{"file":"${jsonEscape(relativePath)}","tags":{"module":"${jsonEscape(module)}",""" +
                         """"screen":"${jsonEscape(screen)}","size":"${jsonEscape(size)}"}}"""
                 }
             }
@@ -96,4 +101,10 @@ gradle.projectsEvaluated {
     }
 }
 
-fun jsonEscape(value: String): String = value.replace("\\", "\\\\").replace("\"", "\\\"")
+// manifest 由来の値は <script type="application/json"> ブロックへ埋め込まれるため、
+// "<" もエスケープして "</script>" によるタグの早期終了を防ぐ。
+fun jsonEscape(value: String): String =
+    value
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("<", "\\u003c")
