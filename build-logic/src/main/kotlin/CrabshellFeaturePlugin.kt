@@ -63,6 +63,13 @@ class CrabshellFeaturePlugin : Plugin<Project> {
                 // 出力先は各モジュール配下の build/preview-screenshots/（source of truth）。
                 // モジュール名はテスト側で manifest.tsv のタグ付けに使う（ハードコード不要にするため注入）。
                 systemProperty("previewScreenshot.module", target.name)
+                // manifest.tsv はテスト側で appendText するため、clean を挟まず再実行すると
+                // 前回分の行が残って重複する。実行前に出力先を必ずクリアする。
+                // （doFirst 実行時に project へアクセスするのは非推奨のため、パスは設定時に確定させる）
+                val previewOutputDir = target.layout.projectDirectory.dir("build/preview-screenshots").asFile
+                doFirst {
+                    previewOutputDir.deleteRecursively()
+                }
             }
         }
     }

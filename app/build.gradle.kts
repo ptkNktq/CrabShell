@@ -105,9 +105,10 @@ tasks.named<Test>("jvmTest") {
         isFailOnNoMatchingTests = false
     }
 }
+val previewOutputDir = layout.projectDirectory.dir("build/preview-screenshots").asFile
 tasks.register<Test>("previewScreenshotTest") {
     group = "verification"
-    description = "手動実行専用: Sidebar のプレビュー用スクリーンショット PNG を生成する（CI には含まれない）"
+    description = "手動実行専用: Sidebar / DrawerContent のプレビュー用スクリーンショット PNG を生成する（CI には含まれない）"
     val jvmTestTask = tasks.named<Test>("jvmTest").get()
     testClassesDirs = jvmTestTask.testClassesDirs
     classpath = jvmTestTask.classpath
@@ -116,4 +117,10 @@ tasks.register<Test>("previewScreenshotTest") {
         isFailOnNoMatchingTests = false
     }
     systemProperty("previewScreenshot.module", "app")
+    // manifest.tsv はテスト側で appendText するため、clean を挟まず再実行すると
+    // 前回分の行が残って重複する。実行前に出力先を必ずクリアする。
+    // （doFirst 実行時に project へアクセスするのは非推奨のため、パスは設定時に確定させる）
+    doFirst {
+        previewOutputDir.deleteRecursively()
+    }
 }
