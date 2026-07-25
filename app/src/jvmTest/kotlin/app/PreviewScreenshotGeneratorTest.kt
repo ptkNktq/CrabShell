@@ -13,6 +13,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import app.components.DrawerContent
 import app.components.NavigationContent
 import app.components.Sidebar
 import core.ui.theme.AppTheme
@@ -21,10 +22,10 @@ import java.io.File
 import kotlin.test.Test
 
 /**
- * Sidebar は app.Screen に依存する app 固有のナビゲーションコンポーネントで、循環依存になるため
- * feature モジュールの Content からは参照できない。「画面単位」のスクリーンショット対象からは
- * 外れるが、ナビゲーションの見た目を確認する価値があるため例外的にここで生成する。
- * 手動実行専用（previewScreenshotTest タスク）で、通常の jvmTest/CI には含めない。
+ * Sidebar / DrawerContent は app.Screen に依存する app 固有のナビゲーションコンポーネントで、
+ * 循環依存になるため feature モジュールの Content からは参照できない。「画面単位」の
+ * スクリーンショット対象からは外れるが、ナビゲーションの見た目を確認する価値があるため
+ * 例外的にここで生成する。手動実行専用（previewScreenshotTest タスク）で、通常の jvmTest/CI には含めない。
  */
 @OptIn(ExperimentalComposeUiApi::class)
 class PreviewScreenshotGeneratorTest {
@@ -101,6 +102,22 @@ class PreviewScreenshotGeneratorTest {
                         )
                     }
                 }
+            }
+        }
+    }
+
+    @Test
+    fun generateDrawerContentScreenshots() {
+        // DrawerContent は compact 幅の画面でハンバーガーメニューから開く固定幅ドロワー
+        saveScreenshot("drawercontent_default.png", width = 280, height = 700) {
+            AppTheme {
+                DrawerContent(
+                    currentScreen = Screen.Dashboard,
+                    onNavigate = {},
+                    onSignOut = {},
+                    version = "abc1234",
+                    isAdmin = true,
+                )
             }
         }
     }
