@@ -1,5 +1,3 @@
-import org.gradle.api.tasks.testing.Test
-
 plugins {
     id("crabshell.compose.wasmjs")
 }
@@ -97,30 +95,9 @@ kotlin {
 // Sidebar は app.Screen に依存する app 固有のナビゲーションコンポーネントで、循環依存になるため
 // feature モジュールからは参照できない。「画面単位」のスクリーンショット対象からは外れるが、
 // ナビゲーションの見た目を確認する価値があるため例外的にここで生成する
-// （仕組みは build-logic/CrabshellFeaturePlugin.kt の previewScreenshotTest と同じ）。
-val previewTestClass = "app.PreviewScreenshotGeneratorTest"
-tasks.named<Test>("jvmTest") {
-    filter {
-        excludeTestsMatching(previewTestClass)
-        isFailOnNoMatchingTests = false
-    }
-}
-val previewOutputDir = layout.projectDirectory.dir("build/preview-screenshots").asFile
-tasks.register<Test>("previewScreenshotTest") {
-    group = "verification"
-    description = "手動実行専用: Sidebar / DrawerContent のプレビュー用スクリーンショット PNG を生成する（CI には含まれない）"
-    val jvmTestTask = tasks.named<Test>("jvmTest").get()
-    testClassesDirs = jvmTestTask.testClassesDirs
-    classpath = jvmTestTask.classpath
-    filter {
-        includeTestsMatching(previewTestClass)
-        isFailOnNoMatchingTests = false
-    }
-    systemProperty("previewScreenshot.module", "app")
-    // manifest.tsv はテスト側で appendText するため、clean を挟まず再実行すると
-    // 前回分の行が残って重複する。実行前に出力先を必ずクリアする。
-    // （doFirst 実行時に project へアクセスするのは非推奨のため、パスは設定時に確定させる）
-    doFirst {
-        previewOutputDir.deleteRecursively()
-    }
-}
+// （仕組みは build-logic/PreviewScreenshotTasks.kt を CrabshellFeaturePlugin と共有）。
+registerPreviewScreenshotTestTask(
+    moduleName = "app",
+    testClassName = "app.PreviewScreenshotGeneratorTest",
+    taskDescription = "手動実行専用: Sidebar / DrawerContent のプレビュー用スクリーンショット PNG を生成する（CI には含まれない）",
+)
