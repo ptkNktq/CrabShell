@@ -113,6 +113,9 @@ fun toJstHour(iso: String): String = jstFromIso(iso).hour.toString().padStart(2,
 /** ISO タイムスタンプから JST の分を取得 */
 fun toJstMinute(iso: String): String = jstFromIso(iso).minute.toString().padStart(2, '0')
 
+/** ISO タイムスタンプを JST の "M/D" 形式に変換 */
+fun toJstMonthDay(iso: String): String = jstFromIso(iso).let { "${it.month.number}/${it.day}" }
+
 private fun deadlineToInstant(deadline: String): Instant {
     val date = parseDate(deadline)
     val time =

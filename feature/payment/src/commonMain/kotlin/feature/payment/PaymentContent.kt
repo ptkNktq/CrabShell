@@ -19,6 +19,7 @@ import core.ui.WindowSizeClass
 import core.ui.extensions.displayName
 import core.ui.extensions.icon
 import core.ui.formatYen
+import core.ui.util.toJstMonthDay
 import model.MoneyItem
 import model.MonthlyMoney
 import model.MonthlyMoneyStatus
@@ -552,7 +553,7 @@ private fun PaymentCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = formatDate(payment.paidAt),
+                    text = toJstMonthDay(payment.paidAt),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -673,43 +674,3 @@ private fun MonthlyMoneyStatusBadge(status: MonthlyMoneyStatus) {
         }
     }
 }
-
-/** UTC ISO 文字列を JST (UTC+9) に変換して表示用にフォーマットする */
-private fun formatDate(isoString: String): String =
-    try {
-        val date = isoString.substringBefore("T")
-        val time = isoString.substringAfter("T").substringBefore(".")
-        val dateParts = date.split("-").map { it.toInt() }
-        val timeParts = time.split(":").map { it.toInt() }
-
-        // UTC → JST (+9h)
-        var year = dateParts[0]
-        var month = dateParts[1]
-        var day = dateParts[2]
-        var hour = timeParts[0] + 9
-        val minute = timeParts[1]
-
-        if (hour >= 24) {
-            hour -= 24
-            day++
-            val daysInMonth =
-                when (month) {
-                    1, 3, 5, 7, 8, 10, 12 -> 31
-                    4, 6, 9, 11 -> 30
-                    2 -> if (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)) 29 else 28
-                    else -> 31
-                }
-            if (day > daysInMonth) {
-                day = 1
-                month++
-                if (month > 12) {
-                    month = 1
-                    year++
-                }
-            }
-        }
-
-        "$month/$day"
-    } catch (_: Exception) {
-        isoString
-    }

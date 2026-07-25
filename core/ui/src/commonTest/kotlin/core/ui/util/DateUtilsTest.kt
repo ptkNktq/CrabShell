@@ -116,6 +116,19 @@ class DateUtilsTest {
     }
 
     @Test
+    fun toJstMonthDay_convertsIsoTimestampWithoutFractionalSeconds() {
+        // 小数秒を含まない ISO 文字列（例: サーバーが Instant.now().toString() で生成した、
+        // ちょうど秒境界のタイムスタンプ）でも正しく変換できることを確認する
+        assertEquals("7/10", toJstMonthDay("2026-07-10T00:00:00Z"))
+    }
+
+    @Test
+    fun toJstMonthDay_crossesDayBoundaryIntoJst() {
+        // 2026-07-24 15:30 UTC = 2026-07-25 00:30 JST
+        assertEquals("7/25", toJstMonthDay("2026-07-24T15:30:00Z"))
+    }
+
+    @Test
     fun formattedToday_usesHalfWidthParentheses() {
         // 2026-07-25 09:30 JST is a Saturday
         val now = Instant.parse("2026-07-25T00:30:00Z")
