@@ -30,11 +30,43 @@
     width: 260px;
     height: 100vh;
     overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     position: sticky;
     top: 0;
     background: var(--surface);
     border-right: 1px solid var(--border);
-    padding: 16px;
+    padding: 52px 16px 16px;
+    transition: width 0.15s ease, flex-basis 0.15s ease, padding 0.15s ease;
+  }
+  #sidebar::-webkit-scrollbar {
+    display: none;
+  }
+  #sidebar.collapsed {
+    flex-basis: 0;
+    width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    border-right: none;
+    overflow: hidden;
+  }
+  #sidebar-toggle {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 10;
+    width: 32px;
+    height: 32px;
+    background: var(--surface-hover);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+  #sidebar-toggle:hover {
+    border-color: var(--accent);
   }
   h1 {
     margin: 0 0 14px;
@@ -212,6 +244,7 @@
 </style>
 </head>
 <body>
+<button id="sidebar-toggle" type="button" aria-label="フィルタサイドバーの開閉">&#9776;</button>
 <aside id="sidebar">
   <h1>Preview Screenshots</h1>
   <div id="filters"></div>
@@ -273,7 +306,7 @@
       const label = document.createElement("label");
       const input = document.createElement("input");
       input.type = "checkbox";
-      input.checked = true;
+      input.checked = false;
       input.dataset.key = key;
       input.dataset.value = value;
       input.addEventListener("change", render);
@@ -287,8 +320,12 @@
   });
 
   document.getElementById("reset-filters").addEventListener("click", () => {
-    tagKeys.forEach((key) => checkboxesByKey[key].forEach((cb) => (cb.checked = true)));
+    tagKeys.forEach((key) => checkboxesByKey[key].forEach((cb) => (cb.checked = false)));
     render();
+  });
+
+  document.getElementById("sidebar-toggle").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.toggle("collapsed");
   });
 
   function checkedValues(key) {
