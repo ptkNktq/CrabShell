@@ -15,22 +15,41 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 internal fun QuestScreen(modifier: Modifier = Modifier) {
     val vm: QuestWebhookViewModel = koinViewModel()
-    val s = vm.uiState
-
-    QuestWebhookSettingsCard(
-        isLoading = s.isLoading,
-        loadError = s.loadError,
-        loadErrorMessage = s.loadErrorMessage,
-        url = s.url,
-        enabled = s.enabled,
-        events = s.events,
-        isSaving = s.isSaving,
-        message = s.message,
+    QuestContent(
+        state = vm.uiState,
         onUrlChanged = vm::onUrlChanged,
         onEnabledChanged = vm::onEnabledChanged,
         onToggleEvent = vm::onToggleEvent,
         onSave = vm::onSave,
         onRetry = vm::loadSettings,
+        modifier = modifier,
+    )
+}
+
+@Composable
+internal fun QuestContent(
+    state: QuestWebhookUiState,
+    onUrlChanged: (String) -> Unit,
+    onEnabledChanged: (Boolean) -> Unit,
+    onToggleEvent: (String) -> Unit,
+    onSave: () -> Unit,
+    onRetry: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    QuestWebhookSettingsCard(
+        isLoading = state.isLoading,
+        loadError = state.loadError,
+        loadErrorMessage = state.loadErrorMessage,
+        url = state.url,
+        enabled = state.enabled,
+        events = state.events,
+        isSaving = state.isSaving,
+        message = state.message,
+        onUrlChanged = onUrlChanged,
+        onEnabledChanged = onEnabledChanged,
+        onToggleEvent = onToggleEvent,
+        onSave = onSave,
+        onRetry = onRetry,
         modifier = modifier,
     )
 }

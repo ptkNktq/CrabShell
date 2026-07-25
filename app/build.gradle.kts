@@ -84,5 +84,20 @@ kotlin {
             implementation(project(":feature:quest"))
             implementation(project(":feature:settings"))
         }
+        jvmTest.dependencies {
+            implementation(kotlin("test"))
+            // previewScreenshotTest 用の PNG 保存 + manifest.tsv 記録処理（各モジュール共通）
+            implementation(project(":core:previewscreenshot"))
+        }
     }
 }
+
+// Sidebar は app.Screen に依存する app 固有のナビゲーションコンポーネントで、循環依存になるため
+// feature モジュールからは参照できない。「画面単位」のスクリーンショット対象からは外れるが、
+// ナビゲーションの見た目を確認する価値があるため例外的にここで生成する
+// （仕組みは build-logic/PreviewScreenshotTasks.kt を CrabshellFeaturePlugin と共有）。
+registerPreviewScreenshotTestTask(
+    moduleName = "app",
+    testClassName = "app.PreviewScreenshotGeneratorTest",
+    taskDescription = "手動実行専用: Sidebar / DrawerContent のプレビュー用スクリーンショット PNG を生成する（CI には含まれない）",
+)

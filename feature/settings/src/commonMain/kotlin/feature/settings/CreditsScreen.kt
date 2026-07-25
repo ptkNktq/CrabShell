@@ -7,11 +7,24 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 internal fun CreditsScreen(modifier: Modifier = Modifier) {
     val vm: LicensesViewModel = koinViewModel()
-    CreditsCard(
-        isLoading = vm.uiState.isLoading,
-        libraries = vm.uiState.libraries,
-        error = vm.uiState.error,
+    CreditsContent(
+        state = vm.uiState,
         onRetry = vm::loadLicenses,
+        modifier = modifier,
+    )
+}
+
+@Composable
+internal fun CreditsContent(
+    state: LicensesUiState,
+    onRetry: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    CreditsCard(
+        isLoading = state.isLoading,
+        libraries = state.libraries,
+        error = state.error,
+        onRetry = onRetry,
         modifier = modifier,
     )
 }

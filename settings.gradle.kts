@@ -25,6 +25,7 @@ include(":core:common")
 include(":core:auth")
 include(":core:network")
 include(":core:ui")
+include(":core:previewscreenshot")
 
 // feature モジュール
 include(":feature:auth")

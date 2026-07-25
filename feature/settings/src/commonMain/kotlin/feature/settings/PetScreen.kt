@@ -9,14 +9,48 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import model.MealTime
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 internal fun PetScreen(modifier: Modifier = Modifier) {
     val vm: PetSettingsViewModel = koinViewModel()
-    val s = vm.uiState
+    PetContent(
+        state = vm.uiState,
+        onPetNameChanged = vm::onPetNameChanged,
+        onSavePetName = vm::onSavePetName,
+        onMealOrderChanged = vm::onMealOrderChanged,
+        onMealTimeChanged = vm::onMealTimeChanged,
+        onSaveFeeding = vm::onSaveFeeding,
+        onReminderEnabledChanged = vm::onReminderEnabledChanged,
+        onReminderWebhookUrlChanged = vm::onReminderWebhookUrlChanged,
+        onReminderDelayMinutesChanged = vm::onReminderDelayMinutesChanged,
+        onReminderPrefixChanged = vm::onReminderPrefixChanged,
+        onSaveReminder = vm::onSaveReminder,
+        onTestScheduled = vm::onTestScheduled,
+        onTestReminder = vm::onTestReminder,
+        modifier = modifier,
+    )
+}
 
-    if (s.isLoading) {
+@Composable
+internal fun PetContent(
+    state: PetSettingsUiState,
+    onPetNameChanged: (String, String) -> Unit,
+    onSavePetName: (String) -> Unit,
+    onMealOrderChanged: (List<MealTime>) -> Unit,
+    onMealTimeChanged: (MealTime, String) -> Unit,
+    onSaveFeeding: () -> Unit,
+    onReminderEnabledChanged: (Boolean) -> Unit,
+    onReminderWebhookUrlChanged: (String) -> Unit,
+    onReminderDelayMinutesChanged: (Int) -> Unit,
+    onReminderPrefixChanged: (String) -> Unit,
+    onSaveReminder: () -> Unit,
+    onTestScheduled: () -> Unit,
+    onTestReminder: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (state.isLoading) {
         Box(modifier = modifier, contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
@@ -25,39 +59,39 @@ internal fun PetScreen(modifier: Modifier = Modifier) {
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         PetNameCard(
-            pets = s.pets,
-            editingPetNames = s.editingPetNames,
-            isSaving = s.petNameSaving,
-            message = s.petNameMessage,
-            onPetNameChanged = vm::onPetNameChanged,
-            onSavePetName = vm::onSavePetName,
+            pets = state.pets,
+            editingPetNames = state.editingPetNames,
+            isSaving = state.petNameSaving,
+            message = state.petNameMessage,
+            onPetNameChanged = onPetNameChanged,
+            onSavePetName = onSavePetName,
             modifier = Modifier.fillMaxWidth(),
         )
         FeedingSettingsCard(
-            mealOrder = s.mealOrder,
-            mealTimes = s.mealTimes,
-            isSaving = s.feedingSaving,
-            message = s.feedingMessage,
-            onMealOrderChanged = vm::onMealOrderChanged,
-            onMealTimeChanged = vm::onMealTimeChanged,
-            onSave = vm::onSaveFeeding,
+            mealOrder = state.mealOrder,
+            mealTimes = state.mealTimes,
+            isSaving = state.feedingSaving,
+            message = state.feedingMessage,
+            onMealOrderChanged = onMealOrderChanged,
+            onMealTimeChanged = onMealTimeChanged,
+            onSave = onSaveFeeding,
             modifier = Modifier.fillMaxWidth(),
         )
         FeedingReminderCard(
-            reminderEnabled = s.reminderEnabled,
-            reminderWebhookUrl = s.reminderWebhookUrl,
-            reminderDelayMinutes = s.reminderDelayMinutes,
-            reminderPrefix = s.reminderPrefix,
-            isSaving = s.reminderSaving,
-            testingPhase = s.testingPhase,
-            message = s.reminderMessage,
-            onReminderEnabledChanged = vm::onReminderEnabledChanged,
-            onReminderWebhookUrlChanged = vm::onReminderWebhookUrlChanged,
-            onReminderDelayMinutesChanged = vm::onReminderDelayMinutesChanged,
-            onReminderPrefixChanged = vm::onReminderPrefixChanged,
-            onSave = vm::onSaveReminder,
-            onTestScheduled = vm::onTestScheduled,
-            onTestReminder = vm::onTestReminder,
+            reminderEnabled = state.reminderEnabled,
+            reminderWebhookUrl = state.reminderWebhookUrl,
+            reminderDelayMinutes = state.reminderDelayMinutes,
+            reminderPrefix = state.reminderPrefix,
+            isSaving = state.reminderSaving,
+            testingPhase = state.testingPhase,
+            message = state.reminderMessage,
+            onReminderEnabledChanged = onReminderEnabledChanged,
+            onReminderWebhookUrlChanged = onReminderWebhookUrlChanged,
+            onReminderDelayMinutesChanged = onReminderDelayMinutesChanged,
+            onReminderPrefixChanged = onReminderPrefixChanged,
+            onSave = onSaveReminder,
+            onTestScheduled = onTestScheduled,
+            onTestReminder = onTestReminder,
             modifier = Modifier.fillMaxWidth(),
         )
     }

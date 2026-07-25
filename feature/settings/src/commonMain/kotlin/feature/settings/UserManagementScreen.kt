@@ -27,17 +27,30 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 internal fun UserManagementScreen(modifier: Modifier = Modifier) {
     val vm: UserNameViewModel = koinViewModel()
-    val s = vm.uiState
-
-    UserNameManagementCard(
-        isLoading = s.isLoading,
-        loadError = s.loadError,
-        loadErrorMessage = s.loadErrorMessage,
-        users = s.users,
-        usersSaving = s.isSaving,
-        usersMessage = s.message,
+    UserManagementContent(
+        state = vm.uiState,
         onUpdateDisplayName = vm::onUpdateDisplayName,
         onRetry = vm::loadUsers,
+        modifier = modifier,
+    )
+}
+
+@Composable
+internal fun UserManagementContent(
+    state: UserNameUiState,
+    onUpdateDisplayName: (String, String) -> Unit,
+    onRetry: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    UserNameManagementCard(
+        isLoading = state.isLoading,
+        loadError = state.loadError,
+        loadErrorMessage = state.loadErrorMessage,
+        users = state.users,
+        usersSaving = state.isSaving,
+        usersMessage = state.message,
+        onUpdateDisplayName = onUpdateDisplayName,
+        onRetry = onRetry,
         modifier = modifier,
     )
 }

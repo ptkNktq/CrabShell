@@ -29,9 +29,17 @@ class CrabshellFeaturePlugin : Plugin<Project> {
                         implementation(kotlin("test"))
                         implementation(libs.findLibrary("mockk").get())
                         implementation(libs.findLibrary("kotlinx-coroutines-test").get())
+                        // previewScreenshotTest 用の PNG 保存 + manifest.tsv 記録処理（各モジュール共通）
+                        implementation(project(":core:previewscreenshot"))
                     }
                 }
             }
+
+            registerPreviewScreenshotTestTask(
+                moduleName = target.name,
+                testClassName = "feature.${target.name}.PreviewScreenshotGeneratorTest",
+                taskDescription = "手動実行専用: プレビュー用スクリーンショット PNG を生成する（CI には含まれない）",
+            )
         }
     }
 }
