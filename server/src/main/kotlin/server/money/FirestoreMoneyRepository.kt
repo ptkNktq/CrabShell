@@ -110,8 +110,7 @@ class FirestoreMoneyRepository(
         val previousYearMonth = YearMonth.parse(targetYearMonth).minusMonths(1).toString()
         val prevData = getMonthlyMoney(previousYearMonth)
         val taggedItems =
-            (prevData?.items ?: emptyList())
-                .filter { tag in it.tags }
+            filterTaggedItemsForImport(prevData?.items ?: emptyList(), tag)
                 .map { item -> item.copy(id = UUID.randomUUID().toString()) }
 
         val existing = getMonthlyMoney(targetYearMonth) ?: MonthlyMoney(yearMonth = targetYearMonth)
@@ -182,6 +181,19 @@ class FirestoreMoneyRepository(
         }
         return if (legacyLocked == true) MonthlyMoneyStatus.FROZEN else MonthlyMoneyStatus.PENDING
     }
+
+    /**
+     * 定期項目インポート対象の絞り込み + 複製時のフィールドリセット（テスト用に internal）。
+     *
+     * dueDate は前月の日付のまま複製すると、期日リマインダーが二度と一致せず永久に飛ばなくなる
+     * （[MoneyDueDateNotificationService] は dueDate との完全一致でしか対象を検出しない）ため、
+     * インポート時にリセットしてユーザーに毎月設定し直させる。id は呼び出し側（UUID 採番）で
+     * 差し替えるため、ここでは触れない。
+     */
+    internal fun filterTaggedItemsForImport(
+        items: List<MoneyItem>,
+        tag: String,
+    ): List<MoneyItem> = items.filter { tag in it.tags }.map { it.copy(dueDate = null) }
 
     /** Map リストから [MoneyItem] リストをパースする（テスト用に internal） */
     @Suppress("UNCHECKED_CAST")

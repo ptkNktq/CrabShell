@@ -2,10 +2,12 @@ package server.money
 
 import com.google.cloud.firestore.Firestore
 import io.mockk.mockk
+import model.MoneyItem
 import model.MoneyTags
 import model.MonthlyMoneyStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class MoneyParsingTest {
     // parse 関数群は Firestore に触れない純粋関数だが、メンバ関数なので
@@ -241,5 +243,50 @@ class MoneyParsingTest {
     fun parseStatusTrimsSurroundingWhitespace() {
         assertEquals(MonthlyMoneyStatus.CONFIRMED, repository.parseStatus(" CONFIRMED ", null))
         assertEquals(MonthlyMoneyStatus.FROZEN, repository.parseStatus("\tFROZEN\n", null))
+    }
+
+    // ---------------------------------------------------------------------------------
+    // filterTaggedItemsForImport
+    // ---------------------------------------------------------------------------------
+
+    @Test
+    fun filterTaggedItemsForImportResetsDueDate() {
+        // 前月の dueDate をそのまま複製すると、期日リマインダーが二度と一致せず
+        // 永久に飛ばなくなるため、インポート時にリセットされることを保証する回帰テスト。
+        val items = listOf(MoneyItem(id = "i1", name = "家賃", amount = 80000L, tags = listOf(MoneyTags.RECURRING), dueDate = "2024-06-25"))
+        val result = repository.filterTaggedItemsForImport(items, MoneyTags.RECURRING)
+        assertEquals(1, result.size)
+        assertNull(result[0].dueDate)
+    }
+
+    @Test
+    fun filterTaggedItemsForImportExcludesUntaggedItems() {
+        val items =
+            listOf(
+                MoneyItem(id = "i1", name = "家賃", amount = 80000L, tags = listOf(MoneyTags.RECURRING)),
+                MoneyItem(id = "i2", name = "外食", amount = 3000L, tags = emptyList()),
+            )
+        val result = repository.filterTaggedItemsForImport(items, MoneyTags.RECURRING)
+        assertEquals(listOf("i1"), result.map { it.id })
+    }
+
+    @Test
+    fun filterTaggedItemsForImportPreservesOtherFields() {
+        val items =
+            listOf(
+                MoneyItem(
+                    id = "i1",
+                    name = "家賃",
+                    amount = 80000L,
+                    note = "毎月25日払い",
+                    tags = listOf(MoneyTags.RECURRING),
+                    dueDate = "2024-06-25",
+                ),
+            )
+        val result = repository.filterTaggedItemsForImport(items, MoneyTags.RECURRING)
+        assertEquals("家賃", result[0].name)
+        assertEquals(80000L, result[0].amount)
+        assertEquals("毎月25日払い", result[0].note)
+        assertEquals(listOf(MoneyTags.RECURRING), result[0].tags)
     }
 }
