@@ -39,7 +39,14 @@ class PreviewScreenshotGeneratorTest {
                             id = "item1",
                             name = "電気代",
                             amount = 8000,
+                            dueDate = "2026-07-25",
                             shares = listOf(Share("user1", 4000), Share("user2", 4000)),
+                        ),
+                        MoneyItem(
+                            id = "item2",
+                            name = "食費",
+                            amount = 5000,
+                            shares = listOf(Share("user1", 2500), Share("user2", 2500)),
                         ),
                     ),
             )
@@ -71,7 +78,7 @@ class PreviewScreenshotGeneratorTest {
                             onClearForm = {},
                             onDeleteItem = {},
                             onMoveItem = { _, _ -> },
-                            onSaveItem = { _, _, _, _, _ -> },
+                            onSaveItem = { _, _, _, _, _, _ -> },
                             onUpdateStatus = {},
                             onImportRecurringItems = {},
                             windowSizeClass = pattern.windowSizeClass,

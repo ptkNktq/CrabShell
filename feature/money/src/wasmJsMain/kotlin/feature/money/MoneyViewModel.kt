@@ -149,6 +149,7 @@ class MoneyViewModel(
         name: String,
         amount: Long,
         note: String,
+        dueDate: String?,
         shares: List<Share>,
         tags: List<String>,
     ) {
@@ -156,13 +157,14 @@ class MoneyViewModel(
 
         val newItem =
             if (existing != null) {
-                existing.copy(name = name, amount = amount, note = note, shares = shares, tags = tags)
+                existing.copy(name = name, amount = amount, note = note, dueDate = dueDate, shares = shares, tags = tags)
             } else {
                 MoneyItem(
                     id = randomUUID().toString(),
                     name = name,
                     amount = amount,
                     note = note,
+                    dueDate = dueDate,
                     shares = shares,
                     tags = tags,
                 )
