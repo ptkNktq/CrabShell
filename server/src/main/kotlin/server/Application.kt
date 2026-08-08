@@ -44,6 +44,8 @@ import server.garbage.GarbageNotificationService
 import server.garbage.garbageRoutes
 import server.loginhistory.loginHistoryRoutes
 import server.migration.FirestoreMigrations
+import server.money.MoneyDueDateNotificationService
+import server.money.moneyDueDateNotificationRoutes
 import server.money.moneyRoutes
 import server.money.moneyWebhookRoutes
 import server.money.paymentWebhookRoutes
@@ -102,6 +104,9 @@ fun Application.module() {
 
     val garbageNotificationService by inject<GarbageNotificationService>()
     launch { garbageNotificationService.runPollingLoop() }
+
+    val moneyDueDateNotificationService by inject<MoneyDueDateNotificationService>()
+    launch { moneyDueDateNotificationService.runPollingLoop() }
 
     configureAuth()
     install(CallLogging) {
@@ -198,6 +203,7 @@ fun Application.module() {
             garbageRoutes()
             moneyRoutes()
             moneyWebhookRoutes()
+            moneyDueDateNotificationRoutes()
             paymentWebhookRoutes()
             reportRoutes()
             questRoutes()
