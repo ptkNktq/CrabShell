@@ -12,6 +12,7 @@ import model.Share
 import org.slf4j.LoggerFactory
 import server.cache.Cacheable
 import server.util.await
+import java.time.LocalDate
 import java.time.YearMonth
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -110,7 +111,7 @@ class FirestoreMoneyRepository(
         val previousYearMonth = YearMonth.parse(targetYearMonth).minusMonths(1).toString()
         val prevData = getMonthlyMoney(previousYearMonth)
         val taggedItems =
-            filterTaggedItemsForImport(prevData?.items ?: emptyList(), tag)
+            filterTaggedItemsForImport(prevData?.items ?: emptyList(), tag, targetYearMonth)
                 .map { item -> item.copy(id = UUID.randomUUID().toString()) }
 
         val existing = getMonthlyMoney(targetYearMonth) ?: MonthlyMoney(yearMonth = targetYearMonth)
@@ -183,17 +184,38 @@ class FirestoreMoneyRepository(
     }
 
     /**
-     * 定期項目インポート対象の絞り込み + 複製時のフィールドリセット（テスト用に internal）。
+     * 定期項目インポート対象の絞り込み + 複製時の dueDate 付け替え（テスト用に internal）。
      *
      * dueDate は前月の日付のまま複製すると、期日リマインダーが二度と一致せず永久に飛ばなくなる
      * （[MoneyDueDateNotificationService] は dueDate との完全一致でしか対象を検出しない）ため、
-     * インポート時にリセットしてユーザーに毎月設定し直させる。id は呼び出し側（UUID 採番）で
-     * 差し替えるため、ここでは触れない。
+     * インポート先の月 [targetYearMonth] の同じ日に付け替える（毎月同じ日払いの家賃・サブスク等を
+     * 想定）。[rebaseDueDateToTargetMonth] が対象月に存在しない日（月末クランプが必要なケース）を
+     * 検出した場合は null にフォールバックする。id は呼び出し側（UUID 採番）で差し替えるため、
+     * ここでは触れない。
      */
     internal fun filterTaggedItemsForImport(
         items: List<MoneyItem>,
         tag: String,
-    ): List<MoneyItem> = items.filter { tag in it.tags }.map { it.copy(dueDate = null) }
+        targetYearMonth: String,
+    ): List<MoneyItem> =
+        items
+            .filter { tag in it.tags }
+            .map { item -> item.copy(dueDate = item.dueDate?.let { rebaseDueDateToTargetMonth(it, targetYearMonth) }) }
+
+    /**
+     * "YYYY-MM-DD" の日部分を維持したまま [targetYearMonth]（"YYYY-MM"）へ付け替える（テスト用に internal）。
+     * 対象月にその日が存在しない（例: 1/31 → 2月、31日が無い）場合や dueDate の形式が不正な場合は
+     * クランプせず null を返す（呼び出し側でユーザーに再設定してもらう）。
+     */
+    internal fun rebaseDueDateToTargetMonth(
+        dueDate: String,
+        targetYearMonth: String,
+    ): String? {
+        val day = dueDate.substringAfterLast('-').toIntOrNull() ?: return null
+        val ym = runCatching { YearMonth.parse(targetYearMonth) }.getOrNull() ?: return null
+        if (day < 1 || day > ym.lengthOfMonth()) return null
+        return LocalDate.of(ym.year, ym.monthValue, day).toString()
+    }
 
     /** Map リストから [MoneyItem] リストをパースする（テスト用に internal） */
     @Suppress("UNCHECKED_CAST")
