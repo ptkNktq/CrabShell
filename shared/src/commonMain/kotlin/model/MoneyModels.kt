@@ -47,7 +47,7 @@ data class MoneyItem(
     val note: String = "",
     val shares: List<Share> = emptyList(),
     val tags: List<String> = emptyList(),
-    /** 支払期日（"YYYY-MM-DD"）。時刻は持たない。未設定は null（一覧では「期日無し」として表示）。 */
+    /** 支払期日（"YYYY-MM-DD"）。時刻は持たない。未設定は null（一覧では「支払期日なし」として表示）。 */
     val dueDate: String? = null,
 )
 
