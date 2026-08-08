@@ -47,6 +47,8 @@ data class MoneyItem(
     val note: String = "",
     val shares: List<Share> = emptyList(),
     val tags: List<String> = emptyList(),
+    /** 支払期日（"YYYY-MM-DD"）。時刻は持たない。未設定は null（一覧では「期日無し」として表示）。 */
+    val dueDate: String? = null,
 )
 
 /** 項目ごとの負担分担。「このユーザーはこの項目でこの金額を負担する」を表す。 */
@@ -114,6 +116,7 @@ data class MoneyItemSaveRequest(
     val note: String = "",
     val shares: List<ShareSaveRequest> = emptyList(),
     val tags: List<String> = emptyList(),
+    val dueDate: String? = null,
 )
 
 @Serializable
@@ -148,6 +151,7 @@ fun MoneyItem.toSaveRequest(): MoneyItemSaveRequest =
         note = note,
         shares = shares.map { it.toSaveRequest() },
         tags = tags,
+        dueDate = dueDate,
     )
 
 fun Share.toSaveRequest(): ShareSaveRequest = ShareSaveRequest(uid = uid, amount = amount)
@@ -172,3 +176,18 @@ data class PaymentWebhookSettings(
     override val enabled: Boolean = false,
     val message: String = "",
 ) : WebhookSettings
+
+/**
+ * 支払期日リマインダーの通知設定。
+ *
+ * 期日の [daysBefore] 日前、JST [notifyHour] 時に、その日が期日となる項目一覧を Webhook 通知する。
+ * デフォルトは「前日の夜11時」（daysBefore=1, notifyHour=23）。
+ */
+@Serializable
+data class MoneyDueDateNotificationSettings(
+    val enabled: Boolean = false,
+    val webhookUrl: String = "",
+    val daysBefore: Int = 1,
+    val notifyHour: Int = 23,
+    val prefix: String = "",
+)
