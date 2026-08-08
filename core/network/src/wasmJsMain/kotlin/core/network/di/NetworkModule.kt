@@ -10,6 +10,8 @@ import core.network.GarbageScheduleRepository
 import core.network.GarbageScheduleRepositoryImpl
 import core.network.LoginHistoryRepository
 import core.network.LoginHistoryRepositoryImpl
+import core.network.MoneyDueDateNotificationRepository
+import core.network.MoneyDueDateNotificationRepositoryImpl
 import core.network.MoneyRepository
 import core.network.MoneyRepositoryImpl
 import core.network.MoneyWebhookRepository
@@ -44,6 +46,7 @@ val networkModule =
         single<FeedingSettingsRepository> { FeedingSettingsRepositoryImpl(get()) }
         single<GarbageScheduleRepository> { GarbageScheduleRepositoryImpl(get()) }
         single<MoneyRepository> { MoneyRepositoryImpl(get()) }
+        single<MoneyDueDateNotificationRepository> { MoneyDueDateNotificationRepositoryImpl(get()) }
         single<ReportRepository> { ReportRepositoryImpl(get()) }
         single<PointRepository> { PointRepositoryImpl(get()) }
         single<QuestRepository> { QuestRepositoryImpl(get()) }
