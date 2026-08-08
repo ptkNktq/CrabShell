@@ -156,6 +156,18 @@ fun MoneyItem.toSaveRequest(): MoneyItemSaveRequest =
 
 fun Share.toSaveRequest(): ShareSaveRequest = ShareSaveRequest(uid = uid, amount = amount)
 
+/**
+ * 項目を支払期日でグルーピングする。期日昇順、未設定（null）は最後。
+ * グループ内の順序は元の並び順を維持する。money / payment 双方の画面で共用する。
+ */
+fun List<MoneyItem>.groupedByDueDate(): List<Pair<String?, List<MoneyItem>>> {
+    val grouped = groupBy { it.dueDate }
+    val dueDates = grouped.keys.filterNotNull().sorted()
+    val ordered = dueDates.map { it to grouped.getValue(it) }
+    val withoutDueDate = grouped[null]
+    return if (withoutDueDate != null) ordered + (null to withoutDueDate) else ordered
+}
+
 // =================================================================================================
 // Webhook 設定（API request + response として共用、admin only エンドポイント）
 //

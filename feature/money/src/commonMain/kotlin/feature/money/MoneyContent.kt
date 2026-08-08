@@ -33,7 +33,7 @@ import core.ui.components.CalendarView
 import core.ui.extensions.displayName
 import core.ui.extensions.icon
 import core.ui.formatYen
-import core.ui.util.formatDueDate
+import core.ui.util.dueDateGroupLabel
 import core.ui.util.todayDate
 import model.MoneyItem
 import model.MoneyTags
@@ -42,20 +42,7 @@ import model.MonthlyMoneyStatus
 import model.Payment
 import model.Share
 import model.User
-
-/**
- * 項目を支払期日でグルーピングする。期日昇順、未設定（null）は最後。
- * グループ内の順序は元の並び順を維持する。
- */
-private fun groupItemsByDueDate(items: List<MoneyItem>): List<Pair<String?, List<MoneyItem>>> {
-    val grouped = items.groupBy { it.dueDate }
-    val dueDates = grouped.keys.filterNotNull().sorted()
-    val ordered = dueDates.map { it to grouped.getValue(it) }
-    val withoutDueDate = grouped[null]
-    return if (withoutDueDate != null) ordered + (null to withoutDueDate) else ordered
-}
-
-private fun dueDateGroupLabel(dueDate: String?): String = dueDate?.let(::formatDueDate) ?: "期日無し"
+import model.groupedByDueDate
 
 @Composable
 internal fun MoneyContent(
@@ -337,7 +324,7 @@ private fun MoneyListContent(
                 }
 
                 val sortedItems = monthlyMoney.items.sortedByDescending { it.tags.isNotEmpty() }
-                for ((dueDate, groupItems) in groupItemsByDueDate(sortedItems)) {
+                for ((dueDate, groupItems) in sortedItems.groupedByDueDate()) {
                     item(key = "due-header-${dueDate ?: "none"}") {
                         Text(
                             text = dueDateGroupLabel(dueDate),
@@ -893,13 +880,6 @@ private fun MoneyItemCard(
                         style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.primary,
                     )
-                    item.dueDate?.let { dueDate ->
-                        Text(
-                            text = "期日: ${formatDueDate(dueDate)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
                 }
 
                 Row {

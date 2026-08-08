@@ -208,6 +208,37 @@ class MoneyModelsTest {
     }
 
     // ---------------------------------------------------------------------------------
+    // groupedByDueDate
+    // ---------------------------------------------------------------------------------
+
+    @Test
+    fun groupedByDueDateSortsAscendingWithUnsetLast() {
+        val items =
+            listOf(
+                MoneyItem(id = "i1", name = "B", amount = 1000L, dueDate = "2024-06-25"),
+                MoneyItem(id = "i2", name = "A", amount = 2000L, dueDate = null),
+                MoneyItem(id = "i3", name = "C", amount = 3000L, dueDate = "2024-06-10"),
+            )
+        val grouped = items.groupedByDueDate()
+        assertEquals(listOf("2024-06-10", "2024-06-25", null), grouped.map { it.first })
+        assertEquals(listOf("i3"), grouped[0].second.map { it.id })
+        assertEquals(listOf("i1"), grouped[1].second.map { it.id })
+        assertEquals(listOf("i2"), grouped[2].second.map { it.id })
+    }
+
+    @Test
+    fun groupedByDueDateOmitsUnsetGroupWhenAllItemsHaveDueDate() {
+        val items = listOf(MoneyItem(id = "i1", name = "A", amount = 1000L, dueDate = "2024-06-25"))
+        val grouped = items.groupedByDueDate()
+        assertEquals(listOf("2024-06-25"), grouped.map { it.first })
+    }
+
+    @Test
+    fun groupedByDueDateReturnsEmptyForEmptyList() {
+        assertEquals(emptyList(), emptyList<MoneyItem>().groupedByDueDate())
+    }
+
+    // ---------------------------------------------------------------------------------
     // MoneyDueDateNotificationSettings
     // ---------------------------------------------------------------------------------
 
