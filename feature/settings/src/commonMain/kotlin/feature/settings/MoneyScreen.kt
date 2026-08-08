@@ -4,9 +4,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,6 +47,7 @@ internal fun MoneyScreen(modifier: Modifier = Modifier) {
         onDueDatePrefixChanged = dueDateVm::onPrefixChanged,
         onDueDateDaysBeforeChanged = dueDateVm::onDaysBeforeChanged,
         onDueDateNotifyHourChanged = dueDateVm::onNotifyHourChanged,
+        onDueDateTest = dueDateVm::onTest,
         onRetryDueDate = dueDateVm::loadSettings,
         modifier = modifier,
     )
@@ -69,6 +74,7 @@ internal fun MoneyContent(
     onDueDatePrefixChanged: (String) -> Unit,
     onDueDateDaysBeforeChanged: (String) -> Unit,
     onDueDateNotifyHourChanged: (String) -> Unit,
+    onDueDateTest: () -> Unit,
     onRetryDueDate: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -129,7 +135,8 @@ internal fun MoneyContent(
             onMessageChanged = onDueDatePrefixChanged,
             messagePlaceholder = "",
             statusMessage = dueDateState.statusMessage,
-            saveEnabled = !dueDateState.isSaving && dueDateState.isDaysBeforeValid && dueDateState.isNotifyHourValid,
+            saveEnabled =
+                !dueDateState.isSaving && !dueDateState.isTesting && dueDateState.isDaysBeforeValid && dueDateState.isNotifyHourValid,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(text = "通知タイミング", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.width(96.dp))
@@ -158,6 +165,24 @@ internal fun MoneyContent(
                     textStyle = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center),
                 )
                 Text(": 00", style = MaterialTheme.typography.titleMedium)
+            }
+            OutlinedButton(
+                onClick = onDueDateTest,
+                modifier = Modifier.height(48.dp),
+                enabled =
+                    !dueDateState.isSaving &&
+                        !dueDateState.isTesting &&
+                        dueDateState.enabled &&
+                        dueDateState.webhookUrl.isNotBlank(),
+            ) {
+                if (dueDateState.isTesting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    Text("テスト送信")
+                }
             }
         }
     }

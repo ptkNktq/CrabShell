@@ -19,6 +19,7 @@ data class MoneyDueDateNotificationUiState(
     val loadError: Boolean = false,
     val loadErrorMessage: String? = null,
     val isSaving: Boolean = false,
+    val isTesting: Boolean = false,
     val statusMessage: String? = null,
 ) {
     val isDaysBeforeValid: Boolean
@@ -105,6 +106,18 @@ class MoneyDueDateNotificationViewModel(
                 uiState = uiState.copy(isSaving = false, statusMessage = "保存しました")
             } catch (e: Exception) {
                 uiState = uiState.copy(isSaving = false, statusMessage = "保存に失敗しました: ${e.message}")
+            }
+        }
+    }
+
+    fun onTest() {
+        uiState = uiState.copy(isTesting = true, statusMessage = null)
+        viewModelScope.launch {
+            try {
+                moneyDueDateNotificationRepository.test()
+                uiState = uiState.copy(isTesting = false, statusMessage = "テスト送信しました")
+            } catch (e: Exception) {
+                uiState = uiState.copy(isTesting = false, statusMessage = "テスト送信失敗: ${e.message}")
             }
         }
     }

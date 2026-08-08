@@ -113,6 +113,7 @@ class PreviewScreenshotGeneratorTest {
                     onDueDatePrefixChanged = {},
                     onDueDateDaysBeforeChanged = {},
                     onDueDateNotifyHourChanged = {},
+                    onDueDateTest = {},
                     modifier = modifier,
                 )
             SettingsCategory.Cache ->

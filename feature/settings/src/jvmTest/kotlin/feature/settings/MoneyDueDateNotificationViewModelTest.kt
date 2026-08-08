@@ -154,4 +154,35 @@ class MoneyDueDateNotificationViewModelTest {
             assertFalse(viewModel.uiState.isSaving)
             assertEquals("保存に失敗しました: save error", viewModel.uiState.statusMessage)
         }
+
+    @Test
+    fun `test success shows status message`() =
+        runTest {
+            val viewModel = createViewModel()
+            advanceUntilIdle()
+
+            coEvery { repository.test() } returns Unit
+
+            viewModel.onTest()
+            advanceUntilIdle()
+
+            assertFalse(viewModel.uiState.isTesting)
+            assertEquals("テスト送信しました", viewModel.uiState.statusMessage)
+            coVerify { repository.test() }
+        }
+
+    @Test
+    fun `test failure shows error in status message`() =
+        runTest {
+            val viewModel = createViewModel()
+            advanceUntilIdle()
+
+            coEvery { repository.test() } throws RuntimeException("test error")
+
+            viewModel.onTest()
+            advanceUntilIdle()
+
+            assertFalse(viewModel.uiState.isTesting)
+            assertEquals("テスト送信失敗: test error", viewModel.uiState.statusMessage)
+        }
 }

@@ -10,6 +10,8 @@ interface MoneyDueDateNotificationRepository {
     suspend fun getSettings(): MoneyDueDateNotificationSettings
 
     suspend fun updateSettings(settings: MoneyDueDateNotificationSettings): MoneyDueDateNotificationSettings
+
+    suspend fun test()
 }
 
 class MoneyDueDateNotificationRepositoryImpl(
@@ -23,4 +25,8 @@ class MoneyDueDateNotificationRepositoryImpl(
                 contentType(ContentType.Application.Json)
                 setBody(settings)
             }.body()
+
+    override suspend fun test() {
+        client.post("/api/money/due-date-notification-settings/test")
+    }
 }
