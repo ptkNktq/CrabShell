@@ -1,7 +1,6 @@
 package server.money
 
 import io.ktor.client.HttpClient
-import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -14,6 +13,7 @@ import org.slf4j.LoggerFactory
 import server.config.EnvConfig
 import server.util.DISCORD_EMBED_COLOR
 import server.util.WebhookServiceType
+import server.util.defaultHttpClient
 import server.util.detectWebhookService
 import server.util.formatAmount
 import server.util.sanitizeForDiscord
@@ -30,12 +30,7 @@ private val JST = ZoneId.of("Asia/Tokyo")
  */
 class MoneyDueDateNotificationService(
     private val moneyRepository: MoneyRepository,
-    private val client: HttpClient =
-        HttpClient {
-            install(HttpTimeout) {
-                requestTimeoutMillis = 10_000
-            }
-        },
+    private val client: HttpClient = defaultHttpClient(),
 ) {
     private val logger = LoggerFactory.getLogger(MoneyDueDateNotificationService::class.java)
     private val json = Json

@@ -3,7 +3,6 @@ package server.util
 import com.google.cloud.firestore.Firestore
 import com.google.cloud.firestore.SetOptions
 import io.ktor.client.HttpClient
-import io.ktor.client.plugins.HttpTimeout
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,13 +27,17 @@ import org.slf4j.LoggerFactory
 abstract class AbstractWebhookService<S : WebhookSettings>(
     private val firestore: Firestore,
     private val documentName: String,
-    protected val client: HttpClient = defaultWebhookClient(),
+    protected val client: HttpClient = defaultHttpClient(),
     dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
     protected val logger = LoggerFactory.getLogger(this::class.java)
     protected val scope = CoroutineScope(SupervisorJob() + dispatcher)
 
     private val settingsDoc get() = firestore.collection("settings").document(documentName)
+
+    // Firestore 非依存の純粋関数群と違い、HttpClient 生成そのものは他の通知サービスとも
+    // 共有したいため、companion object ではなく server.util.HttpClients.kt のトップレベル
+    // 関数 defaultHttpClient() に集約している（Money/Payment/Quest 以外の通知サービスからも使うため）。
 
     /** 設定が未保存のときに返すデフォルト値。 */
     protected abstract fun defaultSettings(): S
@@ -60,14 +63,5 @@ abstract class AbstractWebhookService<S : WebhookSettings>(
             .set(mapOf("webhook" to toWebhookMap(settings)), SetOptions.merge())
             .await()
         return settings
-    }
-
-    companion object {
-        fun defaultWebhookClient(): HttpClient =
-            HttpClient {
-                install(HttpTimeout) {
-                    requestTimeoutMillis = 10_000
-                }
-            }
     }
 }

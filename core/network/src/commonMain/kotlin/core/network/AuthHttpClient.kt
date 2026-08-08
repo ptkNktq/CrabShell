@@ -1,5 +1,6 @@
 package core.network
 
+import config.HttpTimeouts
 import core.auth.AuthRepository
 import core.auth.AuthStateHolder
 import core.common.AppLogger
@@ -33,6 +34,9 @@ private suspend fun HttpResponse.extractErrorMessage(): String {
 
 fun createUnauthenticatedClient(): HttpClient =
     HttpClient {
+        install(HttpTimeout) {
+            requestTimeoutMillis = HttpTimeouts.DEFAULT_REQUEST_TIMEOUT_MILLIS
+        }
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })
         }
@@ -50,6 +54,9 @@ fun createAuthenticatedClient(
     authStateHolder: AuthStateHolder,
 ): HttpClient =
     HttpClient {
+        install(HttpTimeout) {
+            requestTimeoutMillis = HttpTimeouts.DEFAULT_REQUEST_TIMEOUT_MILLIS
+        }
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })
         }

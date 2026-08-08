@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory
 import server.config.EnvConfig
 import server.util.DISCORD_EMBED_COLOR
 import server.util.WebhookServiceType
+import server.util.defaultHttpClient
 import server.util.detectWebhookService
 import java.time.Instant
 import java.time.ZoneId
@@ -24,7 +25,7 @@ private val JST = ZoneId.of("Asia/Tokyo")
 
 class GarbageNotificationService(
     private val garbageRepository: GarbageRepository,
-    private val client: HttpClient = HttpClient(),
+    private val client: HttpClient = defaultHttpClient(),
 ) {
     private val logger = LoggerFactory.getLogger(GarbageNotificationService::class.java)
     private val json = Json
