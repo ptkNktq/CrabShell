@@ -44,6 +44,37 @@ class MoneyParsingTest {
     }
 
     @Test
+    fun parseItemsReadsDueDate() {
+        val raw: List<Map<String, Any?>> =
+            listOf(
+                mapOf(
+                    "id" to "item1",
+                    "name" to "Rent",
+                    "amount" to 100000L,
+                    "dueDate" to "2024-06-25",
+                    "shares" to emptyList<Map<String, Any?>>(),
+                ),
+            )
+        val items = repository.parseItems(raw)
+        assertEquals("2024-06-25", items[0].dueDate)
+    }
+
+    @Test
+    fun parseItemsDueDateDefaultsToNullWhenAbsent() {
+        val raw: List<Map<String, Any?>> =
+            listOf(
+                mapOf(
+                    "id" to "item1",
+                    "name" to "Rent",
+                    "amount" to 100000L,
+                    "shares" to emptyList<Map<String, Any?>>(),
+                ),
+            )
+        val items = repository.parseItems(raw)
+        assertEquals(null, items[0].dueDate)
+    }
+
+    @Test
     fun parseItemsLegacyPaymentsFieldFallbacksToShares() {
         // 旧スキーマ: items[].payments → 新スキーマ items[].shares への過渡期互換
         val raw: List<Map<String, Any?>> =

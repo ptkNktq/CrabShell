@@ -2,6 +2,7 @@ package server.money
 
 import com.google.cloud.firestore.DocumentSnapshot
 import com.google.cloud.firestore.Firestore
+import model.MoneyDueDateNotificationSettings
 import model.MoneyItem
 import model.MoneyTags
 import model.MonthlyMoney
@@ -17,6 +18,8 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
 private const val MONEY_COLLECTION = "money"
+private const val SETTINGS_COLLECTION = "settings"
+private const val DUE_DATE_NOTIFICATION_DOC = "money_due_date_notification"
 
 class FirestoreMoneyRepository(
     private val firestore: Firestore,
@@ -71,6 +74,7 @@ class FirestoreMoneyRepository(
                     "amount" to item.amount,
                     "note" to item.note,
                     "tags" to item.tags,
+                    "dueDate" to item.dueDate,
                     "shares" to
                         item.shares.map { s ->
                             mapOf("uid" to s.uid, "amount" to s.amount)
@@ -199,6 +203,7 @@ class FirestoreMoneyRepository(
                 amount = (entry["amount"] as Number).toLong(),
                 note = entry["note"] as? String ?: "",
                 tags = tags,
+                dueDate = entry["dueDate"] as? String,
                 shares =
                     sharesRaw.map { s ->
                         Share(
@@ -226,5 +231,39 @@ class FirestoreMoneyRepository(
                 isRedemption = p["isRedemption"] as? Boolean ?: false,
             )
         }
+    }
+
+    override suspend fun getDueDateNotificationSettings(): MoneyDueDateNotificationSettings {
+        val doc =
+            firestore
+                .collection(SETTINGS_COLLECTION)
+                .document(DUE_DATE_NOTIFICATION_DOC)
+                .get()
+                .await()
+
+        if (!doc.exists()) return MoneyDueDateNotificationSettings()
+
+        return MoneyDueDateNotificationSettings(
+            enabled = doc.getBoolean("enabled") ?: false,
+            webhookUrl = doc.getString("webhookUrl") ?: "",
+            daysBefore = (doc.getLong("daysBefore") ?: 1L).toInt(),
+            notifyHour = (doc.getLong("notifyHour") ?: 23L).toInt(),
+            prefix = doc.getString("prefix") ?: "",
+        )
+    }
+
+    override suspend fun saveDueDateNotificationSettings(settings: MoneyDueDateNotificationSettings) {
+        firestore
+            .collection(SETTINGS_COLLECTION)
+            .document(DUE_DATE_NOTIFICATION_DOC)
+            .set(
+                mapOf(
+                    "enabled" to settings.enabled,
+                    "webhookUrl" to settings.webhookUrl,
+                    "daysBefore" to settings.daysBefore,
+                    "notifyHour" to settings.notifyHour,
+                    "prefix" to settings.prefix,
+                ),
+            ).await()
     }
 }

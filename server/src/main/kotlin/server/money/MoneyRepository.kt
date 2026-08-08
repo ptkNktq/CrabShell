@@ -1,5 +1,6 @@
 package server.money
 
+import model.MoneyDueDateNotificationSettings
 import model.MonthlyMoney
 
 /** Money データのリポジトリインターフェース */
@@ -18,6 +19,10 @@ interface MoneyRepository {
         tag: String,
     ): MonthlyMoney
 
-    /** レポート用: 全月のデータを取得 */
+    /** レポート用・支払期日リマインダー用: 全月のデータを取得 */
     suspend fun getAllMonths(): List<MonthlyMoney>
+
+    suspend fun getDueDateNotificationSettings(): MoneyDueDateNotificationSettings
+
+    suspend fun saveDueDateNotificationSettings(settings: MoneyDueDateNotificationSettings)
 }

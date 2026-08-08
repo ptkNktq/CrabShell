@@ -48,6 +48,7 @@ fun MoneyItemSaveRequest.toDomain(): MoneyItem =
         note = note,
         shares = shares.map { it.toDomain() },
         tags = tags,
+        dueDate = dueDate,
     )
 
 fun ShareSaveRequest.toDomain(): Share = Share(uid = uid, amount = amount)
