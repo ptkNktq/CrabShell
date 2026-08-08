@@ -4,6 +4,7 @@ import feature.settings.CacheRefreshViewModel
 import feature.settings.GarbageScheduleViewModel
 import feature.settings.LicensesViewModel
 import feature.settings.LoginHistoryViewModel
+import feature.settings.MoneyDueDateNotificationViewModel
 import feature.settings.MoneyWebhookViewModel
 import feature.settings.PasskeyManagementViewModel
 import feature.settings.PasswordChangeViewModel
@@ -28,6 +29,7 @@ val settingsModule =
         viewModel { QuestWebhookViewModel(get()) }
         viewModel { MoneyWebhookViewModel(get()) }
         viewModel { PaymentWebhookViewModel(get()) }
+        viewModel { MoneyDueDateNotificationViewModel(get()) }
         viewModel { CacheRefreshViewModel(get()) }
         viewModel { PetSettingsViewModel(get(), get(), get()) }
     }

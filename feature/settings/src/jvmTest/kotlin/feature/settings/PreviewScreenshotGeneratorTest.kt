@@ -106,6 +106,13 @@ class PreviewScreenshotGeneratorTest {
                     onPaymentEnabledChanged = {},
                     onPaymentSave = {},
                     onPaymentMessageChanged = {},
+                    dueDateState = MoneyDueDateNotificationUiState(isLoading = false),
+                    onDueDateUrlChanged = {},
+                    onDueDateEnabledChanged = {},
+                    onDueDateSave = {},
+                    onDueDatePrefixChanged = {},
+                    onDueDateDaysBeforeChanged = {},
+                    onDueDateNotifyHourChanged = {},
                     modifier = modifier,
                 )
             SettingsCategory.Cache ->
