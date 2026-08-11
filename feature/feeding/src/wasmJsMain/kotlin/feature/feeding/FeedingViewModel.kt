@@ -148,11 +148,16 @@ class FeedingViewModel(
 
     fun onSaveNote() {
         val petId = uiState.pet?.id ?: return
+        val date = uiState.selectedDate
+        val note = uiState.noteDraft
         uiState = uiState.copy(isSavingNote = true)
         viewModelScope.launch {
             try {
-                feedingRepository.updateNote(petId, uiState.selectedDate, uiState.noteDraft)
-                uiState = uiState.copy(log = uiState.log.copy(note = uiState.noteDraft))
+                feedingRepository.updateNote(petId, date, note)
+                // 保存 API 実行中に日送りされた場合、古い日付の結果を表示中ログへ混ぜない
+                if (uiState.selectedDate == date) {
+                    uiState = uiState.copy(log = uiState.log.copy(note = note))
+                }
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
             } finally {
@@ -175,28 +180,34 @@ class FeedingViewModel(
         minute: Int,
     ) {
         val petId = uiState.pet?.id ?: return
-        val timestamp = "${uiState.selectedDate}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00+09:00"
+        val date = uiState.selectedDate
+        val timestamp = "${date}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00+09:00"
         uiState = uiState.copy(isSavingTimestamp = true)
         viewModelScope.launch {
             try {
                 val feeding =
                     feedingRepository.updateFeedingTimestamp(
                         petId,
-                        uiState.selectedDate,
+                        date,
                         mealTime,
                         timestamp,
                     )
-                uiState =
-                    uiState.copy(
-                        editingMealTime = null,
-                        log =
-                            uiState.log.copy(
-                                feedings =
-                                    uiState.log.feedings
-                                        .toMutableMap()
-                                        .apply { put(mealTime, feeding) },
-                            ),
-                    )
+                // 保存 API 実行中に日送りされた場合、古い日付の結果を表示中ログへ混ぜない
+                if (uiState.selectedDate == date) {
+                    uiState =
+                        uiState.copy(
+                            editingMealTime = null,
+                            log =
+                                uiState.log.copy(
+                                    feedings =
+                                        uiState.log.feedings
+                                            .toMutableMap()
+                                            .apply { put(mealTime, feeding) },
+                                ),
+                        )
+                } else {
+                    uiState = uiState.copy(editingMealTime = null)
+                }
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
             } finally {
