@@ -15,9 +15,9 @@ import kotlinx.serialization.json.Json
 import model.Quest
 import model.QuestWebhookSettings
 import server.util.AbstractWebhookService
-import server.util.AbstractWebhookService.Companion.defaultWebhookClient
 import server.util.DISCORD_EMBED_COLOR
 import server.util.WebhookServiceType
+import server.util.defaultHttpClient
 import server.util.detectWebhookService
 import server.util.sanitizeForDiscord
 import server.util.sanitizeForSlack
@@ -25,7 +25,7 @@ import java.time.Instant
 
 class QuestWebhookService(
     firestore: Firestore,
-    client: HttpClient = defaultWebhookClient(),
+    client: HttpClient = defaultHttpClient(),
     dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : AbstractWebhookService<QuestWebhookSettings>(firestore, "quest", client, dispatcher) {
     override fun defaultSettings() = QuestWebhookSettings()

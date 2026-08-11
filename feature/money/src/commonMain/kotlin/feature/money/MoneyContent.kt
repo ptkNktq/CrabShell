@@ -1,5 +1,6 @@
 package feature.money
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Warning
@@ -27,9 +29,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import core.ui.WindowSizeClass
+import core.ui.components.CalendarView
 import core.ui.extensions.displayName
 import core.ui.extensions.icon
 import core.ui.formatYen
+import core.ui.util.dueDateGroupLabel
+import core.ui.util.todayDate
 import model.MoneyItem
 import model.MoneyTags
 import model.MonthlyMoney
@@ -37,6 +42,7 @@ import model.MonthlyMoneyStatus
 import model.Payment
 import model.Share
 import model.User
+import model.groupedByDueDate
 
 @Composable
 internal fun MoneyContent(
@@ -55,7 +61,7 @@ internal fun MoneyContent(
     onClearForm: () -> Unit,
     onDeleteItem: (MoneyItem) -> Unit,
     onMoveItem: (MoneyItem, Int) -> Unit,
-    onSaveItem: (String, Long, String, List<Share>, List<String>) -> Unit,
+    onSaveItem: (String, Long, String, String?, List<Share>, List<String>) -> Unit,
     onUpdateStatus: (MonthlyMoneyStatus) -> Unit,
     onImportRecurringItems: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
@@ -318,17 +324,27 @@ private fun MoneyListContent(
                 }
 
                 val sortedItems = monthlyMoney.items.sortedByDescending { it.tags.isNotEmpty() }
-                items(sortedItems, key = { it.id }) { item ->
-                    MoneyItemCard(
-                        item = item,
-                        users = users,
-                        onEdit = { onEditItem(item) },
-                        onDelete = { onDeleteItem(item) },
-                        onMovePrev = { onMoveItem(item, -1) },
-                        onMoveNext = { onMoveItem(item, 1) },
-                        isCompact = isCompact,
-                        frozen = frozen,
-                    )
+                for ((dueDate, groupItems) in sortedItems.groupedByDueDate()) {
+                    item(key = "due-header-${dueDate ?: "none"}") {
+                        Text(
+                            text = dueDateGroupLabel(dueDate),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
+                    items(groupItems, key = { it.id }) { item ->
+                        MoneyItemCard(
+                            item = item,
+                            users = users,
+                            onEdit = { onEditItem(item) },
+                            onDelete = { onDeleteItem(item) },
+                            onMovePrev = { onMoveItem(item, -1) },
+                            onMoveNext = { onMoveItem(item, 1) },
+                            isCompact = isCompact,
+                            frozen = frozen,
+                        )
+                    }
                 }
             }
         }
@@ -342,7 +358,7 @@ private fun MoneyItemForm(
     users: List<User>,
     saving: Boolean,
     frozen: Boolean,
-    onSave: (String, Long, String, List<Share>, List<String>) -> Unit,
+    onSave: (String, Long, String, String?, List<Share>, List<String>) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -352,6 +368,8 @@ private fun MoneyItemForm(
     var amountText by remember(key) { mutableStateOf(item?.amount?.toString() ?: "") }
     var note by remember(key) { mutableStateOf(item?.note ?: "") }
     var selectedTags by remember(key) { mutableStateOf(item?.tags ?: emptyList()) }
+    var dueDate by remember(key) { mutableStateOf(item?.dueDate ?: "") }
+    var showCalendar by remember(key) { mutableStateOf(false) }
     var shareAmounts by remember(key) {
         mutableStateOf(
             users.associate { user ->
@@ -440,6 +458,52 @@ private fun MoneyItemForm(
                         },
                         label = { Text(tag) },
                         enabled = !saving,
+                    )
+                }
+            }
+
+            Column {
+                Text(
+                    text = "支払期日（任意）",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = { showCalendar = !showCalendar },
+                        enabled = !saving,
+                    ) {
+                        Icon(
+                            Icons.Default.CalendarMonth,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(dueDate.ifBlank { "日付を選択" })
+                    }
+                    if (dueDate.isNotBlank()) {
+                        TextButton(onClick = {
+                            dueDate = ""
+                            showCalendar = false
+                        }, enabled = !saving) {
+                            Text("クリア")
+                        }
+                    }
+                }
+                AnimatedVisibility(visible = showCalendar) {
+                    val today = remember { todayDate() }
+                    CalendarView(
+                        selectedDate = dueDate.ifBlank { today },
+                        today = today,
+                        onDateSelected = { selected ->
+                            dueDate = selected
+                            showCalendar = false
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                     )
                 }
             }
@@ -563,7 +627,7 @@ private fun MoneyItemForm(
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
-                    onClick = { onSave(name, amount, note, shares, selectedTags) },
+                    onClick = { onSave(name, amount, note, dueDate.ifBlank { null }, shares, selectedTags) },
                     enabled = name.isNotBlank() && isAmountValid && !saving && !frozen,
                 ) {
                     Text(if (isEditing) "保存" else "追加")

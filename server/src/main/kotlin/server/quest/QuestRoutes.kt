@@ -4,7 +4,6 @@ import io.github.smiley4.ktoropenapi.delete
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.post
 import io.github.smiley4.ktoropenapi.put
-import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
@@ -24,6 +23,7 @@ import server.auth.authenticated
 import server.auth.firebasePrincipal
 import server.config.EnvConfig
 import server.ratelimit.RateLimitNames
+import server.util.defaultHttpClient
 
 private val geminiApiKey: String? = EnvConfig["GEMINI_API_KEY"]
 
@@ -31,10 +31,7 @@ private val questTextGenerator: QuestTextGenerator? by lazy {
     geminiApiKey?.let { key ->
         GeminiTextGenerator(
             apiKey = key,
-            client =
-                HttpClient {
-                    install(ContentNegotiation) { json() }
-                },
+            client = defaultHttpClient { install(ContentNegotiation) { json() } },
         )
     }
 }

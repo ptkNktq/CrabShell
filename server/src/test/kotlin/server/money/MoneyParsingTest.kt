@@ -2,10 +2,12 @@ package server.money
 
 import com.google.cloud.firestore.Firestore
 import io.mockk.mockk
+import model.MoneyItem
 import model.MoneyTags
 import model.MonthlyMoneyStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class MoneyParsingTest {
     // parse 関数群は Firestore に触れない純粋関数だが、メンバ関数なので
@@ -41,6 +43,37 @@ class MoneyParsingTest {
         assertEquals(2, item.shares.size)
         assertEquals("u1", item.shares[0].uid)
         assertEquals(50000L, item.shares[0].amount)
+    }
+
+    @Test
+    fun parseItemsReadsDueDate() {
+        val raw: List<Map<String, Any?>> =
+            listOf(
+                mapOf(
+                    "id" to "item1",
+                    "name" to "Rent",
+                    "amount" to 100000L,
+                    "dueDate" to "2024-06-25",
+                    "shares" to emptyList<Map<String, Any?>>(),
+                ),
+            )
+        val items = repository.parseItems(raw)
+        assertEquals("2024-06-25", items[0].dueDate)
+    }
+
+    @Test
+    fun parseItemsDueDateDefaultsToNullWhenAbsent() {
+        val raw: List<Map<String, Any?>> =
+            listOf(
+                mapOf(
+                    "id" to "item1",
+                    "name" to "Rent",
+                    "amount" to 100000L,
+                    "shares" to emptyList<Map<String, Any?>>(),
+                ),
+            )
+        val items = repository.parseItems(raw)
+        assertEquals(null, items[0].dueDate)
     }
 
     @Test
@@ -210,5 +243,92 @@ class MoneyParsingTest {
     fun parseStatusTrimsSurroundingWhitespace() {
         assertEquals(MonthlyMoneyStatus.CONFIRMED, repository.parseStatus(" CONFIRMED ", null))
         assertEquals(MonthlyMoneyStatus.FROZEN, repository.parseStatus("\tFROZEN\n", null))
+    }
+
+    // ---------------------------------------------------------------------------------
+    // filterTaggedItemsForImport
+    // ---------------------------------------------------------------------------------
+
+    @Test
+    fun filterTaggedItemsForImportRebasesDueDateToTargetMonth() {
+        // 前月の dueDate をそのまま複製すると、期日リマインダーが二度と一致せず
+        // 永久に飛ばなくなるため、対象月の同じ日に付け替えられることを保証する回帰テスト。
+        val items = listOf(MoneyItem(id = "i1", name = "家賃", amount = 80000L, tags = listOf(MoneyTags.RECURRING), dueDate = "2024-06-25"))
+        val result = repository.filterTaggedItemsForImport(items, MoneyTags.RECURRING, "2024-07")
+        assertEquals(1, result.size)
+        assertEquals("2024-07-25", result[0].dueDate)
+    }
+
+    @Test
+    fun filterTaggedItemsForImportNullsDueDateWhenTargetMonthHasNoSuchDay() {
+        // 1/31 の項目を 2月にインポートすると 2月に31日は存在しないため、クランプせず null にする。
+        val items = listOf(MoneyItem(id = "i1", name = "家賃", amount = 80000L, tags = listOf(MoneyTags.RECURRING), dueDate = "2024-01-31"))
+        val result = repository.filterTaggedItemsForImport(items, MoneyTags.RECURRING, "2024-02")
+        assertNull(result[0].dueDate)
+    }
+
+    @Test
+    fun filterTaggedItemsForImportKeepsNullDueDateAsNull() {
+        val items = listOf(MoneyItem(id = "i1", name = "家賃", amount = 80000L, tags = listOf(MoneyTags.RECURRING), dueDate = null))
+        val result = repository.filterTaggedItemsForImport(items, MoneyTags.RECURRING, "2024-07")
+        assertNull(result[0].dueDate)
+    }
+
+    @Test
+    fun filterTaggedItemsForImportExcludesUntaggedItems() {
+        val items =
+            listOf(
+                MoneyItem(id = "i1", name = "家賃", amount = 80000L, tags = listOf(MoneyTags.RECURRING)),
+                MoneyItem(id = "i2", name = "外食", amount = 3000L, tags = emptyList()),
+            )
+        val result = repository.filterTaggedItemsForImport(items, MoneyTags.RECURRING, "2024-07")
+        assertEquals(listOf("i1"), result.map { it.id })
+    }
+
+    @Test
+    fun filterTaggedItemsForImportPreservesOtherFields() {
+        val items =
+            listOf(
+                MoneyItem(
+                    id = "i1",
+                    name = "家賃",
+                    amount = 80000L,
+                    note = "毎月25日払い",
+                    tags = listOf(MoneyTags.RECURRING),
+                    dueDate = "2024-06-25",
+                ),
+            )
+        val result = repository.filterTaggedItemsForImport(items, MoneyTags.RECURRING, "2024-07")
+        assertEquals("家賃", result[0].name)
+        assertEquals(80000L, result[0].amount)
+        assertEquals("毎月25日払い", result[0].note)
+        assertEquals(listOf(MoneyTags.RECURRING), result[0].tags)
+    }
+
+    // ---------------------------------------------------------------------------------
+    // rebaseDueDateToTargetMonth
+    // ---------------------------------------------------------------------------------
+
+    @Test
+    fun rebaseDueDateToTargetMonthKeepsSameDay() {
+        assertEquals("2024-07-25", repository.rebaseDueDateToTargetMonth("2024-06-25", "2024-07"))
+    }
+
+    @Test
+    fun rebaseDueDateToTargetMonthReturnsNullWhenDayDoesNotExistInTargetMonth() {
+        // 1/31 → 2月（うるう年でも29日まで）
+        assertNull(repository.rebaseDueDateToTargetMonth("2024-01-31", "2024-02"))
+    }
+
+    @Test
+    fun rebaseDueDateToTargetMonthHandlesLeapYearFebruary29() {
+        assertEquals("2024-02-29", repository.rebaseDueDateToTargetMonth("2024-01-29", "2024-02"))
+        assertNull(repository.rebaseDueDateToTargetMonth("2024-01-30", "2025-02"))
+    }
+
+    @Test
+    fun rebaseDueDateToTargetMonthReturnsNullForMalformedInput() {
+        assertNull(repository.rebaseDueDateToTargetMonth("not-a-date", "2024-07"))
+        assertNull(repository.rebaseDueDateToTargetMonth("2024-06-25", "not-a-yearmonth"))
     }
 }

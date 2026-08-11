@@ -15,15 +15,15 @@ import kotlinx.serialization.json.Json
 import model.MoneyWebhookSettings
 import server.config.EnvConfig
 import server.util.AbstractWebhookService
-import server.util.AbstractWebhookService.Companion.defaultWebhookClient
 import server.util.DISCORD_EMBED_COLOR
 import server.util.WebhookServiceType
+import server.util.defaultHttpClient
 import server.util.detectWebhookService
 import server.util.formatYearMonth
 
 class MoneyWebhookService(
     firestore: Firestore,
-    client: HttpClient = defaultWebhookClient(),
+    client: HttpClient = defaultHttpClient(),
     dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : AbstractWebhookService<MoneyWebhookSettings>(firestore, "money", client, dispatcher) {
     override fun defaultSettings() = MoneyWebhookSettings()

@@ -47,10 +47,19 @@ class MoneyModelsTest {
                 note = "June",
                 shares = listOf(Share(uid = "u1", amount = 4000L), Share(uid = "u2", amount = 4000L)),
                 tags = listOf(MoneyTags.RECURRING),
+                dueDate = "2024-06-25",
             )
         val encoded = json.encodeToString(MoneyItem.serializer(), item)
         val decoded = json.decodeFromString(MoneyItem.serializer(), encoded)
         assertEquals(item, decoded)
+        assertEquals("2024-06-25", decoded.dueDate)
+    }
+
+    @Test
+    fun moneyItemDueDateDefaultsToNull() {
+        val jsonStr = """{"id":"m1","name":"Rent","amount":100000}"""
+        val decoded = json.decodeFromString(MoneyItem.serializer(), jsonStr)
+        assertEquals(null, decoded.dueDate)
     }
 
     @Test
@@ -190,5 +199,71 @@ class MoneyModelsTest {
         assertEquals("June", request.items[0].note)
         assertEquals(1, request.items[0].shares.size)
         assertEquals("u1", request.items[0].shares[0].uid)
+    }
+
+    @Test
+    fun moneyItemToSaveRequestPreservesDueDate() {
+        val item = MoneyItem(id = "i1", name = "Rent", amount = 80000L, dueDate = "2024-06-25")
+        assertEquals("2024-06-25", item.toSaveRequest().dueDate)
+    }
+
+    // ---------------------------------------------------------------------------------
+    // groupedByDueDate
+    // ---------------------------------------------------------------------------------
+
+    @Test
+    fun groupedByDueDateSortsAscendingWithUnsetLast() {
+        val items =
+            listOf(
+                MoneyItem(id = "i1", name = "B", amount = 1000L, dueDate = "2024-06-25"),
+                MoneyItem(id = "i2", name = "A", amount = 2000L, dueDate = null),
+                MoneyItem(id = "i3", name = "C", amount = 3000L, dueDate = "2024-06-10"),
+            )
+        val grouped = items.groupedByDueDate()
+        assertEquals(listOf("2024-06-10", "2024-06-25", null), grouped.map { it.first })
+        assertEquals(listOf("i3"), grouped[0].second.map { it.id })
+        assertEquals(listOf("i1"), grouped[1].second.map { it.id })
+        assertEquals(listOf("i2"), grouped[2].second.map { it.id })
+    }
+
+    @Test
+    fun groupedByDueDateOmitsUnsetGroupWhenAllItemsHaveDueDate() {
+        val items = listOf(MoneyItem(id = "i1", name = "A", amount = 1000L, dueDate = "2024-06-25"))
+        val grouped = items.groupedByDueDate()
+        assertEquals(listOf("2024-06-25"), grouped.map { it.first })
+    }
+
+    @Test
+    fun groupedByDueDateReturnsEmptyForEmptyList() {
+        assertEquals(emptyList(), emptyList<MoneyItem>().groupedByDueDate())
+    }
+
+    // ---------------------------------------------------------------------------------
+    // MoneyDueDateNotificationSettings
+    // ---------------------------------------------------------------------------------
+
+    @Test
+    fun moneyDueDateNotificationSettingsDefaults() {
+        val settings = MoneyDueDateNotificationSettings()
+        assertEquals(false, settings.enabled)
+        assertEquals("", settings.webhookUrl)
+        assertEquals(1, settings.daysBefore)
+        assertEquals(23, settings.notifyHour)
+        assertEquals("", settings.prefix)
+    }
+
+    @Test
+    fun moneyDueDateNotificationSettingsRoundTrip() {
+        val settings =
+            MoneyDueDateNotificationSettings(
+                enabled = true,
+                webhookUrl = "https://discord.com/api/webhooks/x/y",
+                daysBefore = 3,
+                notifyHour = 9,
+                prefix = "@everyone",
+            )
+        val encoded = json.encodeToString(MoneyDueDateNotificationSettings.serializer(), settings)
+        val decoded = json.decodeFromString(MoneyDueDateNotificationSettings.serializer(), encoded)
+        assertEquals(settings, decoded)
     }
 }

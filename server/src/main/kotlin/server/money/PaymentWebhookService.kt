@@ -15,9 +15,9 @@ import kotlinx.serialization.json.Json
 import model.PaymentWebhookSettings
 import server.config.EnvConfig
 import server.util.AbstractWebhookService
-import server.util.AbstractWebhookService.Companion.defaultWebhookClient
 import server.util.DISCORD_EMBED_COLOR
 import server.util.WebhookServiceType
+import server.util.defaultHttpClient
 import server.util.detectWebhookService
 import server.util.formatAmount
 import server.util.formatYearMonth
@@ -26,7 +26,7 @@ import server.util.sanitizeForSlack
 
 class PaymentWebhookService(
     firestore: Firestore,
-    client: HttpClient = defaultWebhookClient(),
+    client: HttpClient = defaultHttpClient(),
     dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : AbstractWebhookService<PaymentWebhookSettings>(firestore, "payment", client, dispatcher) {
     override fun defaultSettings() = PaymentWebhookSettings()

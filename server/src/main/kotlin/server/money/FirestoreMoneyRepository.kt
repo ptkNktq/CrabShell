@@ -2,6 +2,7 @@ package server.money
 
 import com.google.cloud.firestore.DocumentSnapshot
 import com.google.cloud.firestore.Firestore
+import model.MoneyDueDateNotificationSettings
 import model.MoneyItem
 import model.MoneyTags
 import model.MonthlyMoney
@@ -11,12 +12,15 @@ import model.Share
 import org.slf4j.LoggerFactory
 import server.cache.Cacheable
 import server.util.await
+import java.time.LocalDate
 import java.time.YearMonth
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
 private const val MONEY_COLLECTION = "money"
+private const val SETTINGS_COLLECTION = "settings"
+private const val DUE_DATE_NOTIFICATION_DOC = "money_due_date_notification"
 
 class FirestoreMoneyRepository(
     private val firestore: Firestore,
@@ -71,6 +75,7 @@ class FirestoreMoneyRepository(
                     "amount" to item.amount,
                     "note" to item.note,
                     "tags" to item.tags,
+                    "dueDate" to item.dueDate,
                     "shares" to
                         item.shares.map { s ->
                             mapOf("uid" to s.uid, "amount" to s.amount)
@@ -106,8 +111,7 @@ class FirestoreMoneyRepository(
         val previousYearMonth = YearMonth.parse(targetYearMonth).minusMonths(1).toString()
         val prevData = getMonthlyMoney(previousYearMonth)
         val taggedItems =
-            (prevData?.items ?: emptyList())
-                .filter { tag in it.tags }
+            filterTaggedItemsForImport(prevData?.items ?: emptyList(), tag, targetYearMonth)
                 .map { item -> item.copy(id = UUID.randomUUID().toString()) }
 
         val existing = getMonthlyMoney(targetYearMonth) ?: MonthlyMoney(yearMonth = targetYearMonth)
@@ -179,6 +183,40 @@ class FirestoreMoneyRepository(
         return if (legacyLocked == true) MonthlyMoneyStatus.FROZEN else MonthlyMoneyStatus.PENDING
     }
 
+    /**
+     * 定期項目インポート対象の絞り込み + 複製時の dueDate 付け替え（テスト用に internal）。
+     *
+     * dueDate は前月の日付のまま複製すると、期日リマインダーが二度と一致せず永久に飛ばなくなる
+     * （[MoneyDueDateNotificationService] は dueDate との完全一致でしか対象を検出しない）ため、
+     * インポート先の月 [targetYearMonth] の同じ日に付け替える（毎月同じ日払いの家賃・サブスク等を
+     * 想定）。[rebaseDueDateToTargetMonth] が対象月に存在しない日（月末クランプが必要なケース）を
+     * 検出した場合は null にフォールバックする。id は呼び出し側（UUID 採番）で差し替えるため、
+     * ここでは触れない。
+     */
+    internal fun filterTaggedItemsForImport(
+        items: List<MoneyItem>,
+        tag: String,
+        targetYearMonth: String,
+    ): List<MoneyItem> =
+        items
+            .filter { tag in it.tags }
+            .map { item -> item.copy(dueDate = item.dueDate?.let { rebaseDueDateToTargetMonth(it, targetYearMonth) }) }
+
+    /**
+     * "YYYY-MM-DD" の日部分を維持したまま [targetYearMonth]（"YYYY-MM"）へ付け替える（テスト用に internal）。
+     * 対象月にその日が存在しない（例: 1/31 → 2月、31日が無い）場合や dueDate の形式が不正な場合は
+     * クランプせず null を返す（呼び出し側でユーザーに再設定してもらう）。
+     */
+    internal fun rebaseDueDateToTargetMonth(
+        dueDate: String,
+        targetYearMonth: String,
+    ): String? {
+        val day = dueDate.substringAfterLast('-').toIntOrNull() ?: return null
+        val ym = runCatching { YearMonth.parse(targetYearMonth) }.getOrNull() ?: return null
+        if (day < 1 || day > ym.lengthOfMonth()) return null
+        return LocalDate.of(ym.year, ym.monthValue, day).toString()
+    }
+
     /** Map リストから [MoneyItem] リストをパースする（テスト用に internal） */
     @Suppress("UNCHECKED_CAST")
     internal fun parseItems(raw: Any?): List<MoneyItem> {
@@ -199,6 +237,7 @@ class FirestoreMoneyRepository(
                 amount = (entry["amount"] as Number).toLong(),
                 note = entry["note"] as? String ?: "",
                 tags = tags,
+                dueDate = entry["dueDate"] as? String,
                 shares =
                     sharesRaw.map { s ->
                         Share(
@@ -226,5 +265,39 @@ class FirestoreMoneyRepository(
                 isRedemption = p["isRedemption"] as? Boolean ?: false,
             )
         }
+    }
+
+    override suspend fun getDueDateNotificationSettings(): MoneyDueDateNotificationSettings {
+        val doc =
+            firestore
+                .collection(SETTINGS_COLLECTION)
+                .document(DUE_DATE_NOTIFICATION_DOC)
+                .get()
+                .await()
+
+        if (!doc.exists()) return MoneyDueDateNotificationSettings()
+
+        return MoneyDueDateNotificationSettings(
+            enabled = doc.getBoolean("enabled") ?: false,
+            webhookUrl = doc.getString("webhookUrl") ?: "",
+            daysBefore = (doc.getLong("daysBefore") ?: 1L).toInt(),
+            notifyHour = (doc.getLong("notifyHour") ?: 23L).toInt(),
+            prefix = doc.getString("prefix") ?: "",
+        )
+    }
+
+    override suspend fun saveDueDateNotificationSettings(settings: MoneyDueDateNotificationSettings) {
+        firestore
+            .collection(SETTINGS_COLLECTION)
+            .document(DUE_DATE_NOTIFICATION_DOC)
+            .set(
+                mapOf(
+                    "enabled" to settings.enabled,
+                    "webhookUrl" to settings.webhookUrl,
+                    "daysBefore" to settings.daysBefore,
+                    "notifyHour" to settings.notifyHour,
+                    "prefix" to settings.prefix,
+                ),
+            ).await()
     }
 }

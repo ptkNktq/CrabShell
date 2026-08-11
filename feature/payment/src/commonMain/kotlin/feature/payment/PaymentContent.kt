@@ -19,12 +19,14 @@ import core.ui.WindowSizeClass
 import core.ui.extensions.displayName
 import core.ui.extensions.icon
 import core.ui.formatYen
+import core.ui.util.dueDateGroupLabel
 import core.ui.util.toJstMonthDay
 import model.MoneyItem
 import model.MonthlyMoney
 import model.MonthlyMoneyStatus
 import model.Payment
 import model.User
+import model.groupedByDueDate
 
 @Composable
 internal fun PaymentContent(
@@ -266,7 +268,7 @@ private fun PaymentListContent(
                     }
                 }
 
-                // 項目内訳
+                // 項目内訳（支払期日ごとにグルーピング）
                 if (monthlyMoney.items.isNotEmpty()) {
                     item(key = "items-header") {
                         Text(
@@ -275,12 +277,21 @@ private fun PaymentListContent(
                             modifier = Modifier.padding(top = 8.dp),
                         )
                     }
-                    items(monthlyMoney.items, key = { it.id }) { item ->
-                        ItemBreakdownCard(
-                            item = item,
-                            currentUid = currentUid,
-                            isCompact = isCompact,
-                        )
+                    for ((dueDate, groupItems) in monthlyMoney.items.groupedByDueDate()) {
+                        item(key = "due-header-${dueDate ?: "none"}") {
+                            Text(
+                                text = dueDateGroupLabel(dueDate),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        items(groupItems, key = { it.id }) { item ->
+                            ItemBreakdownCard(
+                                item = item,
+                                currentUid = currentUid,
+                                isCompact = isCompact,
+                            )
+                        }
                     }
                 }
 

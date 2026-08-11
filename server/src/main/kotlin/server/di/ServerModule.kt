@@ -23,6 +23,7 @@ import server.loginhistory.FirestoreLoginHistoryRepository
 import server.loginhistory.LoginHistoryRepository
 import server.migration.FirestoreMigrations
 import server.money.FirestoreMoneyRepository
+import server.money.MoneyDueDateNotificationService
 import server.money.MoneyRepository
 import server.money.MoneyWebhookService
 import server.money.PaymentWebhookService
@@ -75,6 +76,7 @@ val serverModule =
         single { QuestWebhookService(get()) }
         single { MoneyWebhookService(get()) }
         single { PaymentWebhookService(get()) }
+        single { MoneyDueDateNotificationService(get()) }
         single { QuestService(get(), get(), get()) }
         single { FeedingNotificationService(get(), get(), get()) }
         single { GarbageNotificationService(get()) }

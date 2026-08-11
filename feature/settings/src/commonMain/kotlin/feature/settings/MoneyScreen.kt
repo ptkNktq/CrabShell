@@ -2,9 +2,22 @@ package feature.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -12,6 +25,7 @@ import org.koin.compose.viewmodel.koinViewModel
 internal fun MoneyScreen(modifier: Modifier = Modifier) {
     val moneyVm: MoneyWebhookViewModel = koinViewModel()
     val paymentVm: PaymentWebhookViewModel = koinViewModel()
+    val dueDateVm: MoneyDueDateNotificationViewModel = koinViewModel()
 
     MoneyContent(
         moneyState = moneyVm.uiState,
@@ -26,6 +40,15 @@ internal fun MoneyScreen(modifier: Modifier = Modifier) {
         onPaymentSave = paymentVm::onSave,
         onPaymentMessageChanged = paymentVm::onMessageChanged,
         onRetryPayment = paymentVm::loadSettings,
+        dueDateState = dueDateVm.uiState,
+        onDueDateUrlChanged = dueDateVm::onWebhookUrlChanged,
+        onDueDateEnabledChanged = dueDateVm::onEnabledChanged,
+        onDueDateSave = dueDateVm::onSave,
+        onDueDatePrefixChanged = dueDateVm::onPrefixChanged,
+        onDueDateDaysBeforeChanged = dueDateVm::onDaysBeforeChanged,
+        onDueDateNotifyHourChanged = dueDateVm::onNotifyHourChanged,
+        onDueDateTest = dueDateVm::onTest,
+        onRetryDueDate = dueDateVm::loadSettings,
         modifier = modifier,
     )
 }
@@ -44,6 +67,15 @@ internal fun MoneyContent(
     onPaymentSave: () -> Unit,
     onPaymentMessageChanged: (String) -> Unit,
     onRetryPayment: () -> Unit = {},
+    dueDateState: MoneyDueDateNotificationUiState,
+    onDueDateUrlChanged: (String) -> Unit,
+    onDueDateEnabledChanged: (Boolean) -> Unit,
+    onDueDateSave: () -> Unit,
+    onDueDatePrefixChanged: (String) -> Unit,
+    onDueDateDaysBeforeChanged: (String) -> Unit,
+    onDueDateNotifyHourChanged: (String) -> Unit,
+    onDueDateTest: () -> Unit,
+    onRetryDueDate: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -84,5 +116,74 @@ internal fun MoneyContent(
             onMessageChanged = onPaymentMessageChanged,
             statusMessage = paymentState.statusMessage,
         )
+
+        WebhookSettingsCard(
+            isLoading = dueDateState.isLoading,
+            title = "支払期日リマインダー",
+            featureEnabled = dueDateState.enabled,
+            url = dueDateState.webhookUrl,
+            onUrlChanged = onDueDateUrlChanged,
+            isSaving = dueDateState.isSaving,
+            onEnabledChanged = onDueDateEnabledChanged,
+            onSave = onDueDateSave,
+            modifier = Modifier.fillMaxWidth(),
+            loadError = dueDateState.loadError,
+            loadErrorMessage = dueDateState.loadErrorMessage,
+            onRetry = onRetryDueDate,
+            description = "支払期日が設定された項目を、期日の指定日数前・指定時刻に Webhook で通知します。",
+            message = dueDateState.prefix,
+            onMessageChanged = onDueDatePrefixChanged,
+            messagePlaceholder = "",
+            statusMessage = dueDateState.statusMessage,
+            saveEnabled =
+                !dueDateState.isSaving && !dueDateState.isTesting && dueDateState.isDaysBeforeValid && dueDateState.isNotifyHourValid,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(text = "通知タイミング", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.width(96.dp))
+                Text(text = "期日の", style = MaterialTheme.typography.bodyMedium)
+                OutlinedTextField(
+                    value = dueDateState.daysBefore,
+                    onValueChange = onDueDateDaysBeforeChanged,
+                    label = { Text("日前") },
+                    singleLine = true,
+                    isError = !dueDateState.isDaysBeforeValid,
+                    modifier = Modifier.width(72.dp),
+                    enabled = !dueDateState.isSaving,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center),
+                )
+                Text(text = "の", style = MaterialTheme.typography.bodyMedium)
+                OutlinedTextField(
+                    value = dueDateState.notifyHour,
+                    onValueChange = onDueDateNotifyHourChanged,
+                    label = { Text("時") },
+                    singleLine = true,
+                    isError = !dueDateState.isNotifyHourValid,
+                    modifier = Modifier.width(72.dp),
+                    enabled = !dueDateState.isSaving,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center),
+                )
+                Text(": 00", style = MaterialTheme.typography.titleMedium)
+            }
+            OutlinedButton(
+                onClick = onDueDateTest,
+                modifier = Modifier.height(48.dp),
+                enabled =
+                    !dueDateState.isSaving &&
+                        !dueDateState.isTesting &&
+                        dueDateState.enabled &&
+                        dueDateState.webhookUrl.isNotBlank(),
+            ) {
+                if (dueDateState.isTesting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    Text("テスト送信")
+                }
+            }
+        }
     }
 }

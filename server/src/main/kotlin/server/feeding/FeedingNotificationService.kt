@@ -1,7 +1,6 @@
 package server.feeding
 
 import io.ktor.client.HttpClient
-import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -16,6 +15,7 @@ import server.config.EnvConfig
 import server.pet.PetRepository
 import server.util.DISCORD_EMBED_COLOR
 import server.util.WebhookServiceType
+import server.util.defaultHttpClient
 import server.util.detectWebhookService
 import server.util.sanitizeForDiscord
 import server.util.sanitizeForSlack
@@ -33,12 +33,7 @@ class FeedingNotificationService(
     private val feedingRepository: FeedingRepository,
     private val feedingSettingsRepository: FeedingSettingsRepository,
     private val petRepository: PetRepository,
-    private val client: HttpClient =
-        HttpClient {
-            install(HttpTimeout) {
-                requestTimeoutMillis = 10_000
-            }
-        },
+    private val client: HttpClient = defaultHttpClient(),
 ) {
     private val logger = LoggerFactory.getLogger(FeedingNotificationService::class.java)
     private val json = Json

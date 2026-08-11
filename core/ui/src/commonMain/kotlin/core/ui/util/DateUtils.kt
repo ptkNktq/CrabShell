@@ -116,6 +116,15 @@ fun toJstMinute(iso: String): String = jstFromIso(iso).minute.toString().padStar
 /** ISO タイムスタンプを JST の "M/D" 形式に変換 */
 fun toJstMonthDay(iso: String): String = jstFromIso(iso).let { "${it.month.number}/${it.day}" }
 
+/** "YYYY-MM-DD" 形式の日付文字列を "M月D日" 形式に変換 */
+fun formatDueDate(dateStr: String): String = parseDate(dateStr).let { "${it.month.number}月${it.day}日" }
+
+/**
+ * 支払期日のグループ見出し。null（未設定）は「支払期日なし」。
+ * 日付だけだと項目の入力日と誤読されるため、「支払期日:」プレフィックスを必ず付ける。
+ */
+fun dueDateGroupLabel(dueDate: String?): String = dueDate?.let { "支払期日: ${formatDueDate(it)}" } ?: "支払期日なし"
+
 private fun deadlineToInstant(deadline: String): Instant {
     val date = parseDate(deadline)
     val time =
