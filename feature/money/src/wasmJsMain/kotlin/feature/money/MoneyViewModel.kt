@@ -10,6 +10,8 @@ import androidx.lifecycle.viewModelScope
 import core.auth.toJsString
 import core.network.MoneyRepository
 import core.network.UserRepository
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import model.MoneyItem
 import model.MonthlyMoney
@@ -76,6 +78,8 @@ class MoneyViewModel(
         loadInitialData()
     }
 
+    private var loadJob: Job? = null
+
     /** 初回読み込み: ユーザー一覧と月次データを1つの coroutine で取得し、state を一度に更新 */
     private fun loadInitialData() {
         viewModelScope.launch {
@@ -85,33 +89,39 @@ class MoneyViewModel(
                 } catch (_: Exception) {
                     emptyList()
                 }
+            val yearMonth = uiState.currentYearMonth
             try {
-                val monthly = moneyRepository.getMonthlyMoney(uiState.currentYearMonth)
-                uiState =
-                    uiState.copy(
-                        users = users,
-                        monthlyMoney = monthly,
-                        isLoading = false,
-                    )
+                val monthly = moneyRepository.getMonthlyMoney(yearMonth)
+                // 初回読み込み中に月送りされた場合は、古い月次データで上書きしない
+                if (uiState.currentYearMonth == yearMonth) {
+                    uiState = uiState.copy(users = users, monthlyMoney = monthly, isLoading = false)
+                } else {
+                    uiState = uiState.copy(users = users)
+                }
             } catch (e: Exception) {
                 uiState = uiState.copy(users = users, error = e.message, isLoading = false)
             }
         }
     }
 
+    /** 月送り連打時は前のリクエストをキャンセルし、最後の操作の結果のみ反映する */
     fun onLoadYearMonth(yearMonth: String) {
         uiState = uiState.copy(currentYearMonth = yearMonth, isLoading = true, error = null)
-        viewModelScope.launch {
-            try {
-                uiState =
-                    uiState.copy(
-                        monthlyMoney = moneyRepository.getMonthlyMoney(yearMonth),
-                        isLoading = false,
-                    )
-            } catch (e: Exception) {
-                uiState = uiState.copy(error = e.message, isLoading = false)
+        loadJob?.cancel()
+        loadJob =
+            viewModelScope.launch {
+                try {
+                    uiState =
+                        uiState.copy(
+                            monthlyMoney = moneyRepository.getMonthlyMoney(yearMonth),
+                            isLoading = false,
+                        )
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    uiState = uiState.copy(error = e.message, isLoading = false)
+                }
             }
-        }
     }
 
     fun onGoToPreviousMonth() {

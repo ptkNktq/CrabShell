@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import core.network.PointRepository
 import core.network.QuestRepository
 import core.network.RewardRepository
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import model.CreateQuestRequest
 import model.CreateRewardRequest
@@ -54,6 +56,8 @@ class QuestViewModel(
     var uiState by mutableStateOf(QuestUiState())
         private set
 
+    private var loadJob: Job? = null
+
     init {
         loadQuests()
         loadPoints()
@@ -69,17 +73,21 @@ class QuestViewModel(
 
     fun loadQuests() {
         uiState = uiState.copy(isLoading = true, error = null)
-        viewModelScope.launch {
-            try {
-                val quests =
-                    questRepository
-                        .getQuests(null)
-                        .filter { it.status != QuestStatus.Verified }
-                uiState = uiState.copy(quests = quests, isLoading = false)
-            } catch (e: Exception) {
-                uiState = uiState.copy(error = e.message, isLoading = false)
+        loadJob?.cancel()
+        loadJob =
+            viewModelScope.launch {
+                try {
+                    val quests =
+                        questRepository
+                            .getQuests(null)
+                            .filter { it.status != QuestStatus.Verified }
+                    uiState = uiState.copy(quests = quests, isLoading = false)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    uiState = uiState.copy(error = e.message, isLoading = false)
+                }
             }
-        }
     }
 
     private fun loadPoints() {
@@ -105,26 +113,34 @@ class QuestViewModel(
 
     private fun loadRewards() {
         uiState = uiState.copy(isLoading = true)
-        viewModelScope.launch {
-            try {
-                val rewards = rewardRepository.getRewards()
-                uiState = uiState.copy(rewards = rewards, isLoading = false)
-            } catch (e: Exception) {
-                uiState = uiState.copy(error = e.message, isLoading = false)
+        loadJob?.cancel()
+        loadJob =
+            viewModelScope.launch {
+                try {
+                    val rewards = rewardRepository.getRewards()
+                    uiState = uiState.copy(rewards = rewards, isLoading = false)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    uiState = uiState.copy(error = e.message, isLoading = false)
+                }
             }
-        }
     }
 
     private fun loadHistory() {
         uiState = uiState.copy(isLoading = true)
-        viewModelScope.launch {
-            try {
-                val history = pointRepository.getHistory()
-                uiState = uiState.copy(history = history, isLoading = false)
-            } catch (e: Exception) {
-                uiState = uiState.copy(error = e.message, isLoading = false)
+        loadJob?.cancel()
+        loadJob =
+            viewModelScope.launch {
+                try {
+                    val history = pointRepository.getHistory()
+                    uiState = uiState.copy(history = history, isLoading = false)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    uiState = uiState.copy(error = e.message, isLoading = false)
+                }
             }
-        }
     }
 
     fun onToggleCreateForm() {

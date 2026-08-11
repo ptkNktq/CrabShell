@@ -51,6 +51,7 @@ class FeedingViewModel(
         private set
 
     private var feedingSettingsJob: Job? = null
+    private var loadLogJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -95,17 +96,22 @@ class FeedingViewModel(
             }
     }
 
+    /** 日送り連打時は前のリクエストをキャンセルし、最後の操作の結果のみ反映する */
     fun onLoadLog(date: String) {
         val petId = uiState.pet?.id ?: return
         uiState = uiState.copy(selectedDate = date, isLoading = true, error = null)
-        viewModelScope.launch {
-            try {
-                val log = feedingRepository.getFeedingLog(petId, date)
-                uiState = uiState.copy(log = log, noteDraft = log.note, isLoading = false)
-            } catch (e: Exception) {
-                uiState = uiState.copy(error = e.message, isLoading = false)
+        loadLogJob?.cancel()
+        loadLogJob =
+            viewModelScope.launch {
+                try {
+                    val log = feedingRepository.getFeedingLog(petId, date)
+                    uiState = uiState.copy(log = log, noteDraft = log.note, isLoading = false)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    uiState = uiState.copy(error = e.message, isLoading = false)
+                }
             }
-        }
     }
 
     fun onFeed(mealTime: MealTime) {

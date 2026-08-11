@@ -11,6 +11,8 @@ import core.auth.AuthStateHolder
 import core.auth.toJsString
 import core.network.MoneyRepository
 import core.network.UserRepository
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import model.MonthlyMoney
 import model.PayRequest
@@ -75,6 +77,8 @@ class PaymentViewModel(
     )
         private set
 
+    private var loadJob: Job? = null
+
     init {
         loadInitialData()
     }
@@ -92,18 +96,24 @@ class PaymentViewModel(
                     emptyList()
                 }
             uiState = uiState.copy(users = users)
-            loadYearMonth(uiState.currentYearMonth)
+            startLoadYearMonth(uiState.currentYearMonth)
         }
     }
 
     fun onLoadYearMonth(yearMonth: String) {
         uiState = uiState.copy(currentYearMonth = yearMonth, isLoading = true, error = null)
-        viewModelScope.launch { loadYearMonth(yearMonth) }
+        startLoadYearMonth(yearMonth)
     }
 
     fun onSwitchUser(uid: String) {
         uiState = uiState.copy(viewingUid = uid, isLoading = true, error = null)
-        viewModelScope.launch { loadYearMonth(uiState.currentYearMonth) }
+        startLoadYearMonth(uiState.currentYearMonth)
+    }
+
+    /** 月送り・ユーザー切替の連打時は前のリクエストをキャンセルし、最後の操作の結果のみ反映する */
+    private fun startLoadYearMonth(yearMonth: String) {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch { loadYearMonth(yearMonth) }
     }
 
     private suspend fun loadYearMonth(yearMonth: String) {
@@ -119,6 +129,8 @@ class PaymentViewModel(
                     moneyRepository.getMyMonthlyMoney(yearMonth)
                 }
             uiState = uiState.copy(monthlyMoney = monthly, isLoading = false)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             uiState = uiState.copy(error = e.message, isLoading = false)
         }
