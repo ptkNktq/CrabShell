@@ -29,6 +29,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import core.ui.WindowSizeClass
+import core.ui.components.AppButton
+import core.ui.components.AppIconButton
+import core.ui.components.AppOutlinedButton
+import core.ui.components.AppTextButton
 import core.ui.components.CalendarView
 import core.ui.extensions.displayName
 import core.ui.extensions.icon
@@ -133,6 +137,7 @@ internal fun MoneyContent(
                         yearMonth = currentYearMonth,
                         onPrevious = onPreviousMonth,
                         onNext = onNextMonth,
+                        enabled = !saving,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     MonthStatusSelector(
@@ -144,7 +149,7 @@ internal fun MoneyContent(
 
                     // 追加ボタン + インポートボタン
                     if (!loading && error == null) {
-                        Button(
+                        AppButton(
                             onClick = {
                                 onClearForm()
                                 showFormCompact = true
@@ -158,7 +163,7 @@ internal fun MoneyContent(
                         }
                         if (!frozen) {
                             Spacer(modifier = Modifier.height(4.dp))
-                            OutlinedButton(
+                            AppOutlinedButton(
                                 onClick = onImportRecurringItems,
                                 modifier = Modifier.fillMaxWidth(),
                                 enabled = !saving,
@@ -172,6 +177,7 @@ internal fun MoneyContent(
                     MoneyListContent(
                         monthlyMoney = monthlyMoney,
                         loading = loading,
+                        saving = saving,
                         error = error,
                         users = users,
                         isCompact = true,
@@ -208,6 +214,7 @@ internal fun MoneyContent(
                         yearMonth = currentYearMonth,
                         onPrevious = onPreviousMonth,
                         onNext = onNextMonth,
+                        enabled = !saving,
                     )
                     MonthStatusSelector(
                         status = status,
@@ -215,7 +222,7 @@ internal fun MoneyContent(
                         enabled = !statusSaving,
                     )
                     if (!frozen && !loading && error == null) {
-                        OutlinedButton(
+                        AppOutlinedButton(
                             onClick = onImportRecurringItems,
                             enabled = !saving,
                         ) {
@@ -230,6 +237,7 @@ internal fun MoneyContent(
                     MoneyListContent(
                         monthlyMoney = monthlyMoney,
                         loading = loading,
+                        saving = saving,
                         error = error,
                         users = users,
                         isCompact = false,
@@ -267,6 +275,7 @@ internal fun MoneyContent(
 private fun MoneyListContent(
     monthlyMoney: MonthlyMoney,
     loading: Boolean,
+    saving: Boolean,
     error: String?,
     users: List<User>,
     isCompact: Boolean,
@@ -343,6 +352,7 @@ private fun MoneyListContent(
                             onMoveNext = { onMoveItem(item, 1) },
                             isCompact = isCompact,
                             frozen = frozen,
+                            saving = saving,
                         )
                     }
                 }
@@ -473,7 +483,7 @@ private fun MoneyItemForm(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    OutlinedButton(
+                    AppOutlinedButton(
                         onClick = { showCalendar = !showCalendar },
                         enabled = !saving,
                     ) {
@@ -486,7 +496,7 @@ private fun MoneyItemForm(
                         Text(dueDate.ifBlank { "日付を選択" })
                     }
                     if (dueDate.isNotBlank()) {
-                        TextButton(onClick = {
+                        AppTextButton(onClick = {
                             dueDate = ""
                             showCalendar = false
                         }, enabled = !saving) {
@@ -534,7 +544,7 @@ private fun MoneyItemForm(
                             suffix = { Text("円") },
                             enabled = !saving,
                         )
-                        OutlinedButton(
+                        AppOutlinedButton(
                             onClick = {
                                 shareAmounts =
                                     shareAmounts.toMutableMap().apply {
@@ -546,7 +556,7 @@ private fun MoneyItemForm(
                         ) {
                             Text("半額", style = MaterialTheme.typography.labelSmall)
                         }
-                        OutlinedButton(
+                        AppOutlinedButton(
                             onClick = {
                                 shareAmounts =
                                     shareAmounts.toMutableMap().apply {
@@ -558,7 +568,7 @@ private fun MoneyItemForm(
                         ) {
                             Text("全額", style = MaterialTheme.typography.labelSmall)
                         }
-                        OutlinedButton(
+                        AppOutlinedButton(
                             onClick = {
                                 val othersTotal =
                                     shareAmounts
@@ -622,11 +632,11 @@ private fun MoneyItemForm(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextButton(onClick = onCancel, enabled = !saving) {
+                AppTextButton(onClick = onCancel, enabled = !saving) {
                     Text("キャンセル")
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                Button(
+                AppButton(
                     onClick = { onSave(name, amount, note, dueDate.ifBlank { null }, shares, selectedTags) },
                     enabled = name.isNotBlank() && isAmountValid && !saving && !frozen,
                 ) {
@@ -642,6 +652,7 @@ private fun MonthSelector(
     yearMonth: String,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
+    enabled: Boolean = true,
 ) {
     val parts = yearMonth.split("-")
     val displayText = "${parts[0]}年${parts[1].toInt()}月"
@@ -650,14 +661,14 @@ private fun MonthSelector(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        IconButton(onClick = onPrevious) {
+        AppIconButton(onClick = onPrevious, enabled = enabled, debounceMillis = 0) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "前月")
         }
         Text(
             text = displayText,
             style = MaterialTheme.typography.titleLarge,
         )
-        IconButton(onClick = onNext) {
+        AppIconButton(onClick = onNext, enabled = enabled, debounceMillis = 0) {
             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "翌月")
         }
     }
@@ -832,6 +843,7 @@ private fun MoneyItemCard(
     onMoveNext: () -> Unit,
     isCompact: Boolean,
     frozen: Boolean,
+    saving: Boolean,
 ) {
     val shareTotal = item.shares.sumOf { it.amount }
     val mismatch = shareTotal != item.amount && item.shares.isNotEmpty()
@@ -884,28 +896,28 @@ private fun MoneyItemCard(
 
                 Row {
                     if (!frozen) {
-                        IconButton(onClick = onMovePrev) {
+                        AppIconButton(onClick = onMovePrev, enabled = !saving) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "前月へ移動",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        IconButton(onClick = onMoveNext) {
+                        AppIconButton(onClick = onMoveNext, enabled = !saving) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowForward,
                                 contentDescription = "次月へ移動",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        IconButton(onClick = onEdit) {
+                        AppIconButton(onClick = onEdit, enabled = !saving) {
                             Icon(
                                 Icons.Default.Edit,
                                 contentDescription = "編集",
                                 tint = MaterialTheme.colorScheme.primary,
                             )
                         }
-                        IconButton(onClick = onDelete) {
+                        AppIconButton(onClick = onDelete, enabled = !saving) {
                             Icon(
                                 Icons.Default.Delete,
                                 contentDescription = "削除",

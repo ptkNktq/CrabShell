@@ -19,6 +19,7 @@ import core.auth.AuthRepository
 import core.auth.AuthStateHolder
 import core.ui.LocalWindowSizeClass
 import core.ui.WindowSizeClass
+import core.ui.components.AppIconButton
 import core.ui.theme.AppTheme
 import feature.dashboard.DashboardScreen
 import feature.feeding.FeedingScreen
@@ -185,7 +186,7 @@ private fun CompactLayout(
                 TopAppBar(
                     title = { Text(currentScreen.title) },
                     navigationIcon = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                        AppIconButton(onClick = { scope.launch { drawerState.open() } }, debounceMillis = 0) {
                             Icon(Icons.Default.Menu, contentDescription = "メニュー")
                         }
                     },

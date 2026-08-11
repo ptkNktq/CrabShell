@@ -20,6 +20,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import core.ui.components.AppButton
+import core.ui.components.AppIconButton
+import core.ui.components.AppTextButton
 import core.ui.theme.AppTheme
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -176,7 +179,7 @@ private fun PasskeyLoginSection(
 ) {
     Spacer(modifier = Modifier.height(8.dp))
 
-    Button(
+    AppButton(
         onClick = onPasskeySignIn,
         modifier = Modifier.fillMaxWidth().height(48.dp),
         enabled = !isLoading,
@@ -198,7 +201,7 @@ private fun PasskeyLoginSection(
         }
     }
 
-    TextButton(
+    AppTextButton(
         onClick = onSwitchToEmailPassword,
         enabled = !isLoading,
     ) {
@@ -223,7 +226,7 @@ private fun EmailPasswordLoginSection(
         label = { Text("パスワード") },
         leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
         trailingIcon = {
-            IconButton(onClick = onTogglePasswordVisibility) {
+            AppIconButton(onClick = onTogglePasswordVisibility, debounceMillis = 0) {
                 Icon(
                     if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                     contentDescription = if (passwordVisible) "パスワードを隠す" else "パスワードを表示",
@@ -252,7 +255,7 @@ private fun EmailPasswordLoginSection(
 
     Spacer(modifier = Modifier.height(8.dp))
 
-    Button(
+    AppButton(
         onClick = onSignIn,
         modifier = Modifier.fillMaxWidth().height(48.dp),
         enabled = !isLoading,
@@ -269,7 +272,7 @@ private fun EmailPasswordLoginSection(
     }
 
     if (isWebAuthnSupported) {
-        TextButton(
+        AppTextButton(
             onClick = onSwitchToPasskey,
             enabled = !isLoading,
         ) {

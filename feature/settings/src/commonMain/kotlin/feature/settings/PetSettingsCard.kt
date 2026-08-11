@@ -9,14 +9,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -28,6 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import core.ui.components.AppButton
+import core.ui.components.AppOutlinedButton
 import core.ui.extensions.label
 import model.MealTime
 import model.Pet
@@ -73,7 +73,7 @@ internal fun PetNameCard(
                         enabled = !isSaving,
                     )
                     val nameChanged = (editingPetNames[pet.id] ?: pet.name) != pet.name
-                    Button(
+                    AppButton(
                         onClick = { onSavePetName(pet.id) },
                         enabled = !isSaving && nameChanged,
                     ) {
@@ -194,7 +194,7 @@ internal fun FeedingSettingsCard(
                 )
             }
 
-            Button(
+            AppButton(
                 onClick = onSave,
                 modifier = Modifier.height(48.dp),
                 enabled = !isSaving,
@@ -281,7 +281,7 @@ internal fun FeedingReminderCard(
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(
+            AppOutlinedButton(
                 onClick = onTestScheduled,
                 modifier = Modifier.height(48.dp),
                 enabled = testEnabled,
@@ -295,7 +295,7 @@ internal fun FeedingReminderCard(
                     Text("定刻テスト")
                 }
             }
-            OutlinedButton(
+            AppOutlinedButton(
                 onClick = onTestReminder,
                 modifier = Modifier.height(48.dp),
                 enabled = testEnabled,

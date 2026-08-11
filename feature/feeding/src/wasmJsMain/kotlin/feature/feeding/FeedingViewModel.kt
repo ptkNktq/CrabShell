@@ -30,6 +30,9 @@ data class FeedingUiState(
     val pet: Pet? = null,
     val editingMealTime: MealTime? = null,
     val mealOrder: List<MealTime> = FeedingSettings.DEFAULT_MEAL_ORDER,
+    val feedingInProgress: MealTime? = null,
+    val isSavingNote: Boolean = false,
+    val isSavingTimestamp: Boolean = false,
 )
 
 class FeedingViewModel(
@@ -48,6 +51,7 @@ class FeedingViewModel(
         private set
 
     private var feedingSettingsJob: Job? = null
+    private var loadLogJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -92,36 +96,48 @@ class FeedingViewModel(
             }
     }
 
+    /** 日送り連打時は前のリクエストをキャンセルし、最後の操作の結果のみ反映する */
     fun onLoadLog(date: String) {
         val petId = uiState.pet?.id ?: return
         uiState = uiState.copy(selectedDate = date, isLoading = true, error = null)
-        viewModelScope.launch {
-            try {
-                val log = feedingRepository.getFeedingLog(petId, date)
-                uiState = uiState.copy(log = log, noteDraft = log.note, isLoading = false)
-            } catch (e: Exception) {
-                uiState = uiState.copy(error = e.message, isLoading = false)
+        loadLogJob?.cancel()
+        loadLogJob =
+            viewModelScope.launch {
+                try {
+                    val log = feedingRepository.getFeedingLog(petId, date)
+                    uiState = uiState.copy(log = log, noteDraft = log.note, isLoading = false)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    uiState = uiState.copy(error = e.message, isLoading = false)
+                }
             }
-        }
     }
 
     fun onFeed(mealTime: MealTime) {
         val petId = uiState.pet?.id ?: return
+        val date = uiState.selectedDate
+        uiState = uiState.copy(feedingInProgress = mealTime)
         viewModelScope.launch {
             try {
-                val feeding = feedingRepository.feed(petId, uiState.selectedDate, mealTime)
-                uiState =
-                    uiState.copy(
-                        log =
-                            uiState.log.copy(
-                                feedings =
-                                    uiState.log.feedings
-                                        .toMutableMap()
-                                        .apply { put(mealTime, feeding) },
-                            ),
-                    )
+                val feeding = feedingRepository.feed(petId, date, mealTime)
+                // 給餌 API 実行中に日送りされた場合、古い日付の結果を表示中ログへ混ぜない
+                if (uiState.selectedDate == date) {
+                    uiState =
+                        uiState.copy(
+                            log =
+                                uiState.log.copy(
+                                    feedings =
+                                        uiState.log.feedings
+                                            .toMutableMap()
+                                            .apply { put(mealTime, feeding) },
+                                ),
+                        )
+                }
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
+            } finally {
+                uiState = uiState.copy(feedingInProgress = null)
             }
         }
     }
@@ -132,12 +148,20 @@ class FeedingViewModel(
 
     fun onSaveNote() {
         val petId = uiState.pet?.id ?: return
+        val date = uiState.selectedDate
+        val note = uiState.noteDraft
+        uiState = uiState.copy(isSavingNote = true)
         viewModelScope.launch {
             try {
-                feedingRepository.updateNote(petId, uiState.selectedDate, uiState.noteDraft)
-                uiState = uiState.copy(log = uiState.log.copy(note = uiState.noteDraft))
+                feedingRepository.updateNote(petId, date, note)
+                // 保存 API 実行中に日送りされた場合、古い日付の結果を表示中ログへ混ぜない
+                if (uiState.selectedDate == date) {
+                    uiState = uiState.copy(log = uiState.log.copy(note = note))
+                }
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
+            } finally {
+                uiState = uiState.copy(isSavingNote = false)
             }
         }
     }
@@ -156,29 +180,37 @@ class FeedingViewModel(
         minute: Int,
     ) {
         val petId = uiState.pet?.id ?: return
-        val timestamp = "${uiState.selectedDate}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00+09:00"
+        val date = uiState.selectedDate
+        val timestamp = "${date}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00+09:00"
+        uiState = uiState.copy(isSavingTimestamp = true)
         viewModelScope.launch {
             try {
                 val feeding =
                     feedingRepository.updateFeedingTimestamp(
                         petId,
-                        uiState.selectedDate,
+                        date,
                         mealTime,
                         timestamp,
                     )
-                uiState =
-                    uiState.copy(
-                        editingMealTime = null,
-                        log =
-                            uiState.log.copy(
-                                feedings =
-                                    uiState.log.feedings
-                                        .toMutableMap()
-                                        .apply { put(mealTime, feeding) },
-                            ),
-                    )
+                // 保存 API 実行中に日送りされた場合、古い日付の結果を表示中ログへ混ぜない。
+                // editingMealTime も同様に、日送り後は別の日で開いた編集フォームを誤って閉じないよう触れない。
+                if (uiState.selectedDate == date) {
+                    uiState =
+                        uiState.copy(
+                            editingMealTime = null,
+                            log =
+                                uiState.log.copy(
+                                    feedings =
+                                        uiState.log.feedings
+                                            .toMutableMap()
+                                            .apply { put(mealTime, feeding) },
+                                ),
+                        )
+                }
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
+            } finally {
+                uiState = uiState.copy(isSavingTimestamp = false)
             }
         }
     }

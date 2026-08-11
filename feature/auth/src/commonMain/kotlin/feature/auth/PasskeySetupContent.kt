@@ -9,6 +9,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import core.ui.components.AppButton
+import core.ui.components.AppTextButton
 import core.ui.theme.AppTheme
 
 @Composable
@@ -74,7 +76,7 @@ internal fun PasskeySetupContent(
 
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            Button(
+                            AppButton(
                                 onClick = onRegister,
                                 modifier = Modifier.fillMaxWidth().height(48.dp),
                                 enabled = !isRegistering,
@@ -90,7 +92,7 @@ internal fun PasskeySetupContent(
                                 }
                             }
 
-                            TextButton(
+                            AppTextButton(
                                 onClick = onSkip,
                                 enabled = !isRegistering,
                             ) {

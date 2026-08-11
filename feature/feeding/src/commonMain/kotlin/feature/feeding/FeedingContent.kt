@@ -18,6 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import core.ui.WindowSizeClass
+import core.ui.components.AppButton
+import core.ui.components.AppIconButton
 import core.ui.components.CalendarView
 import core.ui.extensions.FeedingDoneColor
 import core.ui.extensions.color
@@ -52,6 +54,9 @@ internal fun FeedingContent(
     onCancelEditTimestamp: () -> Unit,
     onSaveTimestamp: (MealTime, Int, Int) -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
+    feedingInProgress: MealTime? = null,
+    isSavingNote: Boolean = false,
+    isSavingTimestamp: Boolean = false,
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
 
@@ -96,6 +101,9 @@ internal fun FeedingContent(
                     onStartEditTimestamp = onStartEditTimestamp,
                     onCancelEditTimestamp = onCancelEditTimestamp,
                     onSaveTimestamp = onSaveTimestamp,
+                    feedingInProgress = feedingInProgress,
+                    isSavingNote = isSavingNote,
+                    isSavingTimestamp = isSavingTimestamp,
                 )
             }
         } else {
@@ -120,6 +128,9 @@ internal fun FeedingContent(
                         onStartEditTimestamp = onStartEditTimestamp,
                         onCancelEditTimestamp = onCancelEditTimestamp,
                         onSaveTimestamp = onSaveTimestamp,
+                        feedingInProgress = feedingInProgress,
+                        isSavingNote = isSavingNote,
+                        isSavingTimestamp = isSavingTimestamp,
                     )
                 }
 
@@ -153,6 +164,9 @@ private fun FeedingDetailSection(
     onStartEditTimestamp: (MealTime) -> Unit,
     onCancelEditTimestamp: () -> Unit,
     onSaveTimestamp: (MealTime, Int, Int) -> Unit,
+    feedingInProgress: MealTime?,
+    isSavingNote: Boolean,
+    isSavingTimestamp: Boolean,
 ) {
     DateSelector(
         date = selectedDate,
@@ -180,6 +194,8 @@ private fun FeedingDetailSection(
                         mealTime = mealTime,
                         feeding = log.feedings[mealTime] ?: Feeding(),
                         isEditing = editingMealTime == mealTime,
+                        feedEnabled = feedingInProgress == null,
+                        saveTimestampEnabled = !isSavingTimestamp,
                         onFeed = { onFeed(mealTime) },
                         onStartEdit = { onStartEditTimestamp(mealTime) },
                         onCancelEdit = onCancelEditTimestamp,
@@ -192,6 +208,7 @@ private fun FeedingDetailSection(
 
             NoteSection(
                 note = noteDraft,
+                saveEnabled = !isSavingNote,
                 onNoteChange = onNoteChange,
                 onSave = onSaveNote,
             )
@@ -210,14 +227,14 @@ private fun DateSelector(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        IconButton(onClick = onPrevious) {
+        AppIconButton(onClick = onPrevious, debounceMillis = 0) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "前日")
         }
         Text(
             text = "$date ($dow)",
             style = MaterialTheme.typography.titleLarge,
         )
-        IconButton(onClick = onNext) {
+        AppIconButton(onClick = onNext, debounceMillis = 0) {
             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "翌日")
         }
     }
@@ -228,6 +245,8 @@ private fun MealCard(
     mealTime: MealTime,
     feeding: Feeding,
     isEditing: Boolean,
+    feedEnabled: Boolean,
+    saveTimestampEnabled: Boolean,
     onFeed: () -> Unit,
     onStartEdit: () -> Unit,
     onCancelEdit: () -> Unit,
@@ -277,6 +296,7 @@ private fun MealCard(
                     if (isEditing) {
                         TimestampEditor(
                             timestamp = ts,
+                            saveEnabled = saveTimestampEnabled,
                             onCancel = onCancelEdit,
                             onSave = onSaveTimestamp,
                         )
@@ -296,7 +316,7 @@ private fun MealCard(
                         modifier = Modifier.size(24.dp),
                     )
                 } else {
-                    Button(onClick = onFeed) {
+                    AppButton(onClick = onFeed, enabled = feedEnabled) {
                         Text("あげる")
                     }
                 }
@@ -327,6 +347,7 @@ private fun TimestampBadge(
 @Composable
 private fun TimestampEditor(
     timestamp: String,
+    saveEnabled: Boolean,
     onCancel: () -> Unit,
     onSave: (hour: Int, minute: Int) -> Unit,
 ) {
@@ -368,7 +389,7 @@ private fun TimestampEditor(
                 textStyle = MaterialTheme.typography.labelMedium,
                 singleLine = true,
             )
-            IconButton(
+            AppIconButton(
                 onClick = {
                     val h = hourText.toIntOrNull()
                     val m = minuteText.toIntOrNull()
@@ -376,6 +397,7 @@ private fun TimestampEditor(
                         onSave(h, m)
                     }
                 },
+                enabled = saveEnabled,
                 modifier = Modifier.size(28.dp),
             ) {
                 Icon(
@@ -385,7 +407,7 @@ private fun TimestampEditor(
                     modifier = Modifier.size(16.dp),
                 )
             }
-            IconButton(
+            AppIconButton(
                 onClick = onCancel,
                 modifier = Modifier.size(28.dp),
             ) {
@@ -403,6 +425,7 @@ private fun TimestampEditor(
 @Composable
 private fun NoteSection(
     note: String,
+    saveEnabled: Boolean,
     onNoteChange: (String) -> Unit,
     onSave: () -> Unit,
 ) {
@@ -420,7 +443,7 @@ private fun NoteSection(
         maxLines = 4,
     )
     Spacer(modifier = Modifier.height(8.dp))
-    Button(onClick = onSave) {
+    AppButton(onClick = onSave, enabled = saveEnabled) {
         Text("保存する")
     }
 }

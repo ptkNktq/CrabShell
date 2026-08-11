@@ -20,15 +20,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,6 +38,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import core.ui.WindowSizeClass
+import core.ui.components.AppButton
+import core.ui.components.AppIconButton
+import core.ui.components.AppOutlinedButton
 import feature.quest.components.CreateQuestForm
 import feature.quest.components.QuestCard
 import model.PointHistory
@@ -79,6 +79,10 @@ internal fun QuestBoardContent(
     onDeleteReward: (String) -> Unit,
     onDismissError: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
+    isSubmittingQuest: Boolean = false,
+    isSubmittingReward: Boolean = false,
+    isQuestActionInProgress: Boolean = false,
+    isRewardActionInProgress: Boolean = false,
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
 
@@ -156,6 +160,8 @@ internal fun QuestBoardContent(
                     canCreateQuest = canCreateQuest,
                     isAiAvailable = isAiAvailable,
                     isGenerating = isGenerating,
+                    isSubmittingQuest = isSubmittingQuest,
+                    actionsEnabled = !isQuestActionInProgress,
                     currentUserUid = currentUserUid,
                     onCreateQuest = onCreateQuest,
                     onGenerateText = onGenerateText,
@@ -174,6 +180,8 @@ internal fun QuestBoardContent(
                     currentUserUid = currentUserUid,
                     isAdmin = isAdmin,
                     isCreatingReward = isCreatingReward,
+                    isSubmittingReward = isSubmittingReward,
+                    actionsEnabled = !isRewardActionInProgress,
                     onExchange = onExchangeReward,
                     onToggleCreateReward = onToggleCreateReward,
                     onCreateReward = onCreateReward,
@@ -198,6 +206,8 @@ private fun BoardTab(
     canCreateQuest: Boolean,
     isAiAvailable: Boolean,
     isGenerating: Boolean,
+    isSubmittingQuest: Boolean,
+    actionsEnabled: Boolean,
     currentUserUid: String,
     onCreateQuest: (String, String, QuestCategory, Int, String?) -> Unit,
     onGenerateText: (String, String, QuestCategory, Int, String?, onResult: (String, String) -> Unit, onError: (String) -> Unit) -> Unit,
@@ -225,13 +235,14 @@ private fun BoardTab(
                     onCancel = { showForm = false },
                     showCloseButton = true,
                     enabled = canCreateQuest,
+                    isSubmitting = isSubmittingQuest,
                     isAiAvailable = isAiAvailable,
                     isGenerating = isGenerating,
                     onGenerateText = onGenerateText,
                 )
                 Spacer(Modifier.height(16.dp))
             } else {
-                Button(
+                AppButton(
                     onClick = { showForm = true },
                     enabled = canCreateQuest,
                     modifier = Modifier.padding(bottom = 12.dp),
@@ -249,6 +260,7 @@ private fun BoardTab(
                 quests = quests,
                 isLoading = isLoading,
                 currentUserUid = currentUserUid,
+                actionsEnabled = actionsEnabled,
                 onAcceptQuest = onAcceptQuest,
                 onVerifyQuest = onVerifyQuest,
                 onDeleteQuest = onDeleteQuest,
@@ -262,6 +274,7 @@ private fun BoardTab(
                 quests = quests,
                 isLoading = isLoading,
                 currentUserUid = currentUserUid,
+                actionsEnabled = actionsEnabled,
                 onAcceptQuest = onAcceptQuest,
                 onVerifyQuest = onVerifyQuest,
                 onDeleteQuest = onDeleteQuest,
@@ -282,6 +295,7 @@ private fun BoardTab(
                     onCancel = {},
                     showCloseButton = false,
                     enabled = canCreateQuest,
+                    isSubmitting = isSubmittingQuest,
                     isAiAvailable = isAiAvailable,
                     isGenerating = isGenerating,
                     onGenerateText = onGenerateText,
@@ -296,6 +310,7 @@ private fun QuestListContent(
     quests: List<Quest>,
     isLoading: Boolean,
     currentUserUid: String,
+    actionsEnabled: Boolean,
     onAcceptQuest: (String) -> Unit,
     onVerifyQuest: (String) -> Unit,
     onDeleteQuest: (String) -> Unit,
@@ -337,6 +352,7 @@ private fun QuestListContent(
                         onVerify = { onVerifyQuest(quest.id) },
                         onDelete = { onDeleteQuest(quest.id) },
                         modifier = Modifier.widthIn(max = 600.dp),
+                        actionsEnabled = actionsEnabled,
                     )
                 }
             }
@@ -350,6 +366,7 @@ private fun QuestListInline(
     quests: List<Quest>,
     isLoading: Boolean,
     currentUserUid: String,
+    actionsEnabled: Boolean,
     onAcceptQuest: (String) -> Unit,
     onVerifyQuest: (String) -> Unit,
     onDeleteQuest: (String) -> Unit,
@@ -387,6 +404,7 @@ private fun QuestListInline(
                         onVerify = { onVerifyQuest(quest.id) },
                         onDelete = { onDeleteQuest(quest.id) },
                         modifier = Modifier.fillMaxWidth(),
+                        actionsEnabled = actionsEnabled,
                     )
                 }
             }
@@ -402,6 +420,8 @@ private fun RewardsTab(
     currentUserUid: String,
     isAdmin: Boolean,
     isCreatingReward: Boolean,
+    isSubmittingReward: Boolean,
+    actionsEnabled: Boolean,
     onExchange: (String) -> Unit,
     onToggleCreateReward: () -> Unit,
     onCreateReward: (String, String, Int) -> Unit,
@@ -423,7 +443,7 @@ private fun RewardsTab(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (!isCreatingReward) {
-            Button(
+            AppButton(
                 onClick = onToggleCreateReward,
                 modifier = Modifier.padding(bottom = 12.dp),
             ) {
@@ -440,6 +460,7 @@ private fun RewardsTab(
             CreateRewardForm(
                 onSubmit = onCreateReward,
                 onCancel = onToggleCreateReward,
+                isSubmitting = isSubmittingReward,
             )
         }
 
@@ -461,6 +482,7 @@ private fun RewardsTab(
                 reward = reward,
                 canExchange = (myPoints?.balance ?: 0) >= reward.cost && reward.isAvailable,
                 canDelete = reward.creatorUid == currentUserUid || isAdmin,
+                actionsEnabled = actionsEnabled,
                 onExchange = { onExchange(reward.id) },
                 onDelete = { onDeleteReward(reward.id) },
             )
@@ -473,6 +495,7 @@ private fun RewardCard(
     reward: Reward,
     canExchange: Boolean,
     canDelete: Boolean,
+    actionsEnabled: Boolean,
     onExchange: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -510,14 +533,14 @@ private fun RewardCard(
                 )
             }
             Row {
-                Button(
+                AppButton(
                     onClick = onExchange,
-                    enabled = canExchange,
+                    enabled = canExchange && actionsEnabled,
                 ) {
                     Text("交換")
                 }
                 if (canDelete) {
-                    IconButton(onClick = onDelete) {
+                    AppIconButton(onClick = onDelete, enabled = actionsEnabled) {
                         Icon(
                             Icons.Default.Delete,
                             contentDescription = "削除",
@@ -534,6 +557,7 @@ private fun RewardCard(
 private fun CreateRewardForm(
     onSubmit: (String, String, Int) -> Unit,
     onCancel: () -> Unit,
+    isSubmitting: Boolean = false,
 ) {
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -579,10 +603,10 @@ private fun CreateRewardForm(
             )
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onCancel) { Text("キャンセル") }
-                Button(
+                AppOutlinedButton(onClick = onCancel) { Text("キャンセル") }
+                AppButton(
                     onClick = { onSubmit(name, description, costText.toIntOrNull() ?: 0) },
-                    enabled = name.isNotBlank() && (costText.toIntOrNull() ?: 0) > 0,
+                    enabled = name.isNotBlank() && (costText.toIntOrNull() ?: 0) > 0 && !isSubmitting,
                 ) {
                     Text("追加")
                 }

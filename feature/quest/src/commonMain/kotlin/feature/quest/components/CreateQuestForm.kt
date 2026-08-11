@@ -18,7 +18,6 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -26,12 +25,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +38,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import core.ui.components.AppButton
+import core.ui.components.AppIconButton
+import core.ui.components.AppOutlinedButton
+import core.ui.components.AppTextButton
 import core.ui.components.CalendarView
 import core.ui.extensions.icon
 import core.ui.extensions.label
@@ -73,6 +73,7 @@ internal fun CreateQuestForm(
     modifier: Modifier = Modifier,
     showCloseButton: Boolean = true,
     enabled: Boolean = true,
+    isSubmitting: Boolean = false,
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -124,7 +125,7 @@ internal fun CreateQuestForm(
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 if (showCloseButton) {
-                    IconButton(onClick = onCancel) {
+                    AppIconButton(onClick = onCancel) {
                         Icon(Icons.Default.Close, contentDescription = "閉じる")
                     }
                 }
@@ -197,7 +198,7 @@ internal fun CreateQuestForm(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                OutlinedButton(
+                AppOutlinedButton(
                     onClick = { showCalendar = !showCalendar },
                 ) {
                     Icon(
@@ -210,7 +211,7 @@ internal fun CreateQuestForm(
                 }
 
                 if (deadlineDate.isNotBlank()) {
-                    TextButton(onClick = {
+                    AppTextButton(onClick = {
                         deadlineDate = ""
                         showCalendar = false
                         hasTime = false
@@ -312,7 +313,7 @@ internal fun CreateQuestForm(
                     )
                     Spacer(Modifier.height(4.dp))
                 }
-                Button(
+                AppButton(
                     onClick = {
                         aiError = null
                         onGenerateText(
@@ -373,7 +374,7 @@ internal fun CreateQuestForm(
                 Spacer(Modifier.height(4.dp))
             }
 
-            Button(
+            AppButton(
                 onClick = {
                     onSubmit(
                         title,
@@ -392,7 +393,7 @@ internal fun CreateQuestForm(
                     deadlineMinute = ""
                     aiError = null
                 },
-                enabled = isValid && enabled,
+                enabled = isValid && enabled && !isSubmitting,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("クエストを投稿")

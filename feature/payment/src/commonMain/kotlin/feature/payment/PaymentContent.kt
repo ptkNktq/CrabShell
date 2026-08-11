@@ -16,6 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import core.ui.WindowSizeClass
+import core.ui.components.AppButton
+import core.ui.components.AppIconButton
 import core.ui.extensions.displayName
 import core.ui.extensions.icon
 import core.ui.formatYen
@@ -92,6 +94,7 @@ internal fun PaymentContent(
                     yearMonth = currentYearMonth,
                     onPrevious = onPreviousMonth,
                     onNext = onNextMonth,
+                    enabled = !saving && deletingPaymentId == null,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 PaymentListContent(
@@ -149,6 +152,7 @@ internal fun PaymentContent(
                     yearMonth = currentYearMonth,
                     onPrevious = onPreviousMonth,
                     onNext = onNextMonth,
+                    enabled = !saving && deletingPaymentId == null,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(
@@ -364,7 +368,7 @@ private fun PaymentInlineForm(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
             ) {
-                Button(
+                AppButton(
                     onClick = { onConfirmPay(amount) },
                     enabled = amount > 0 && inputEnabled,
                 ) {
@@ -423,6 +427,7 @@ private fun MonthSelector(
     yearMonth: String,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
+    enabled: Boolean = true,
 ) {
     val parts = yearMonth.split("-")
     val displayText = "${parts[0]}年${parts[1].toInt()}月"
@@ -431,14 +436,14 @@ private fun MonthSelector(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        IconButton(onClick = onPrevious) {
+        AppIconButton(onClick = onPrevious, enabled = enabled, debounceMillis = 0) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "前月")
         }
         Text(
             text = displayText,
             style = MaterialTheme.typography.titleLarge,
         )
-        IconButton(onClick = onNext) {
+        AppIconButton(onClick = onNext, enabled = enabled, debounceMillis = 0) {
             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "翌月")
         }
     }
@@ -592,7 +597,7 @@ private fun PaymentCard(
                         color = MaterialTheme.colorScheme.error,
                     )
                 } else if (onDelete != null) {
-                    IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+                    AppIconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "支払いを取り消す",

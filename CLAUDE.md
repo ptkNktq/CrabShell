@@ -279,6 +279,9 @@ docker compose pull && docker compose up -d
 ## UI Rules
 
 - **Popup 系コンポーネント（AlertDialog, DropdownMenu 等）は使用禁止。** Compose for WASM の描画システム上、Popup の DOM teardown とリスト recomposition が同時に走ると高確率で UI フリーズが発生するため。入力フォームはインライン（Card ベース）、選択 UI はインライン（FilterChip 等）で実装すること。
+- **material3 の Button 系（`Button`, `IconButton`, `TextButton`, `OutlinedButton`）は直接使用禁止。** 必ず `core/ui` の `AppButton` / `AppIconButton` / `AppTextButton` / `AppOutlinedButton` を経由すること。デフォルトで 300ms のクリックデバウンスが入り、同一フレーム内の連続クリックによる多重実行を防ぐ（`enabled` ベースの制御は再コンポーズ反映まで効かないため、デバウンスと併用して初めて隙がなくなる）。
+  - **更新系ボタン（API でサーバー状態を変えるもの）**: ViewModel に実行中フラグ（`isSaving` 等）を持たせ、処理完了まで `enabled = false` にする。フラグは `launch` の前（メソッド先頭）で同期的にセットし、`finally` で戻す。デバウンス（0〜300ms）とフラグ（次フレーム〜完了）の合わせ技で全期間をカバーする。
+  - **画面操作系ボタン（月送り・日送りナビゲーション、ローカル UI トグル）**: 連打が正当な操作なので `debounceMillis = 0` を指定してよい。ロードを伴うナビゲーションは ViewModel 側で前のリクエストの `Job` をキャンセルし、最後の操作の結果のみ反映する（レスポンス順序逆転による表示不整合の防止）。
 
 ## Testing
 

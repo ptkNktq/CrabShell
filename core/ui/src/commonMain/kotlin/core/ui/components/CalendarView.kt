@@ -96,12 +96,13 @@ fun CalendarView(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        TextButton(
+        AppTextButton(
             onClick = {
                 displayYear = todayYear
                 displayMonth = todayMonth
                 onDateSelected(today)
             },
+            debounceMillis = 0,
             modifier = Modifier.align(Alignment.CenterHorizontally),
         ) {
             Text("今日")
@@ -121,14 +122,14 @@ private fun MonthHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        IconButton(onClick = onPreviousMonth) {
+        AppIconButton(onClick = onPreviousMonth, debounceMillis = 0) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "前月")
         }
         Text(
             text = "${year}年 ${MONTH_NAMES[month - 1]}",
             style = MaterialTheme.typography.titleMedium,
         )
-        IconButton(onClick = onNextMonth) {
+        AppIconButton(onClick = onNextMonth, debounceMillis = 0) {
             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "翌月")
         }
     }

@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import core.network.PointRepository
 import core.network.QuestRepository
 import core.network.RewardRepository
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import model.CreateQuestRequest
 import model.CreateRewardRequest
@@ -36,6 +38,10 @@ data class QuestUiState(
     val isCreatingReward: Boolean = false,
     val isAiAvailable: Boolean = false,
     val isGenerating: Boolean = false,
+    val isSubmittingQuest: Boolean = false,
+    val isSubmittingReward: Boolean = false,
+    val processingQuestId: String? = null,
+    val processingRewardId: String? = null,
 ) {
     /** 同時発行上限（Open + Accepted が10件未満なら作成可能） */
     val canCreateQuest: Boolean
@@ -49,6 +55,8 @@ class QuestViewModel(
 ) : ViewModel() {
     var uiState by mutableStateOf(QuestUiState())
         private set
+
+    private var loadJob: Job? = null
 
     init {
         loadQuests()
@@ -65,17 +73,21 @@ class QuestViewModel(
 
     fun loadQuests() {
         uiState = uiState.copy(isLoading = true, error = null)
-        viewModelScope.launch {
-            try {
-                val quests =
-                    questRepository
-                        .getQuests(null)
-                        .filter { it.status != QuestStatus.Verified }
-                uiState = uiState.copy(quests = quests, isLoading = false)
-            } catch (e: Exception) {
-                uiState = uiState.copy(error = e.message, isLoading = false)
+        loadJob?.cancel()
+        loadJob =
+            viewModelScope.launch {
+                try {
+                    val quests =
+                        questRepository
+                            .getQuests(null)
+                            .filter { it.status != QuestStatus.Verified }
+                    uiState = uiState.copy(quests = quests, isLoading = false)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    uiState = uiState.copy(error = e.message, isLoading = false)
+                }
             }
-        }
     }
 
     private fun loadPoints() {
@@ -101,26 +113,34 @@ class QuestViewModel(
 
     private fun loadRewards() {
         uiState = uiState.copy(isLoading = true)
-        viewModelScope.launch {
-            try {
-                val rewards = rewardRepository.getRewards()
-                uiState = uiState.copy(rewards = rewards, isLoading = false)
-            } catch (e: Exception) {
-                uiState = uiState.copy(error = e.message, isLoading = false)
+        loadJob?.cancel()
+        loadJob =
+            viewModelScope.launch {
+                try {
+                    val rewards = rewardRepository.getRewards()
+                    uiState = uiState.copy(rewards = rewards, isLoading = false)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    uiState = uiState.copy(error = e.message, isLoading = false)
+                }
             }
-        }
     }
 
     private fun loadHistory() {
         uiState = uiState.copy(isLoading = true)
-        viewModelScope.launch {
-            try {
-                val history = pointRepository.getHistory()
-                uiState = uiState.copy(history = history, isLoading = false)
-            } catch (e: Exception) {
-                uiState = uiState.copy(error = e.message, isLoading = false)
+        loadJob?.cancel()
+        loadJob =
+            viewModelScope.launch {
+                try {
+                    val history = pointRepository.getHistory()
+                    uiState = uiState.copy(history = history, isLoading = false)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    uiState = uiState.copy(error = e.message, isLoading = false)
+                }
             }
-        }
     }
 
     fun onToggleCreateForm() {
@@ -156,6 +176,7 @@ class QuestViewModel(
         rewardPoints: Int,
         deadline: String?,
     ) {
+        uiState = uiState.copy(isSubmittingQuest = true)
         viewModelScope.launch {
             try {
                 val quest =
@@ -175,22 +196,31 @@ class QuestViewModel(
                     )
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
+            } finally {
+                uiState = uiState.copy(isSubmittingQuest = false)
             }
         }
     }
 
     fun onAcceptQuest(id: String) {
+        uiState = uiState.copy(processingQuestId = id)
         viewModelScope.launch {
             try {
                 val updated = questRepository.acceptQuest(id)
                 uiState = uiState.copy(quests = uiState.quests.map { if (it.id == id) updated else it })
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
+            } finally {
+                // 並行操作で他 ID のフラグを消さないよう、自分が立てたときだけ解除する
+                if (uiState.processingQuestId == id) {
+                    uiState = uiState.copy(processingQuestId = null)
+                }
             }
         }
     }
 
     fun onVerifyQuest(id: String) {
+        uiState = uiState.copy(processingQuestId = id)
         viewModelScope.launch {
             try {
                 questRepository.verifyQuest(id)
@@ -198,22 +228,34 @@ class QuestViewModel(
                 loadPoints()
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
+            } finally {
+                // 並行操作で他 ID のフラグを消さないよう、自分が立てたときだけ解除する
+                if (uiState.processingQuestId == id) {
+                    uiState = uiState.copy(processingQuestId = null)
+                }
             }
         }
     }
 
     fun onDeleteQuest(id: String) {
+        uiState = uiState.copy(processingQuestId = id)
         viewModelScope.launch {
             try {
                 questRepository.deleteQuest(id)
                 uiState = uiState.copy(quests = uiState.quests.filter { it.id != id })
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
+            } finally {
+                // 並行操作で他 ID のフラグを消さないよう、自分が立てたときだけ解除する
+                if (uiState.processingQuestId == id) {
+                    uiState = uiState.copy(processingQuestId = null)
+                }
             }
         }
     }
 
     fun onExchangeReward(id: String) {
+        uiState = uiState.copy(processingRewardId = id)
         viewModelScope.launch {
             try {
                 rewardRepository.exchangeReward(id)
@@ -221,6 +263,11 @@ class QuestViewModel(
                 loadRewards()
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
+            } finally {
+                // 並行操作で他 ID のフラグを消さないよう、自分が立てたときだけ解除する
+                if (uiState.processingRewardId == id) {
+                    uiState = uiState.copy(processingRewardId = null)
+                }
             }
         }
     }
@@ -234,6 +281,7 @@ class QuestViewModel(
         description: String,
         cost: Int,
     ) {
+        uiState = uiState.copy(isSubmittingReward = true)
         viewModelScope.launch {
             try {
                 val reward = rewardRepository.createReward(CreateRewardRequest(name, description, cost))
@@ -244,17 +292,25 @@ class QuestViewModel(
                     )
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
+            } finally {
+                uiState = uiState.copy(isSubmittingReward = false)
             }
         }
     }
 
     fun onDeleteReward(id: String) {
+        uiState = uiState.copy(processingRewardId = id)
         viewModelScope.launch {
             try {
                 rewardRepository.deleteReward(id)
                 uiState = uiState.copy(rewards = uiState.rewards.filter { it.id != id })
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
+            } finally {
+                // 並行操作で他 ID のフラグを消さないよう、自分が立てたときだけ解除する
+                if (uiState.processingRewardId == id) {
+                    uiState = uiState.copy(processingRewardId = null)
+                }
             }
         }
     }

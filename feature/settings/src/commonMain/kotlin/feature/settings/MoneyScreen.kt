@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import core.ui.components.AppOutlinedButton
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -166,7 +166,7 @@ internal fun MoneyContent(
                 )
                 Text(": 00", style = MaterialTheme.typography.titleMedium)
             }
-            OutlinedButton(
+            AppOutlinedButton(
                 onClick = onDueDateTest,
                 modifier = Modifier.height(48.dp),
                 enabled =

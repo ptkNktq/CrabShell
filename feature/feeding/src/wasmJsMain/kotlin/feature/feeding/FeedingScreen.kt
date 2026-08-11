@@ -31,5 +31,8 @@ fun FeedingScreen(vm: FeedingViewModel = koinViewModel()) {
         onCancelEditTimestamp = vm::onCancelEditTimestamp,
         onSaveTimestamp = vm::onSaveTimestamp,
         windowSizeClass = windowSizeClass,
+        feedingInProgress = vm.uiState.feedingInProgress,
+        isSavingNote = vm.uiState.isSavingNote,
+        isSavingTimestamp = vm.uiState.isSavingTimestamp,
     )
 }

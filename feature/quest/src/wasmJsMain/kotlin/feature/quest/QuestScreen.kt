@@ -41,5 +41,9 @@ fun QuestScreen(vm: QuestViewModel = koinViewModel()) {
         onDeleteReward = vm::onDeleteReward,
         onDismissError = vm::onDismissError,
         windowSizeClass = windowSizeClass,
+        isSubmittingQuest = vm.uiState.isSubmittingQuest,
+        isSubmittingReward = vm.uiState.isSubmittingReward,
+        isQuestActionInProgress = vm.uiState.processingQuestId != null,
+        isRewardActionInProgress = vm.uiState.processingRewardId != null,
     )
 }

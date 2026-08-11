@@ -10,6 +10,8 @@ import androidx.lifecycle.viewModelScope
 import core.auth.toJsString
 import core.network.MoneyRepository
 import core.network.UserRepository
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import model.MoneyItem
 import model.MonthlyMoney
@@ -76,6 +78,8 @@ class MoneyViewModel(
         loadInitialData()
     }
 
+    private var loadJob: Job? = null
+
     /** 初回読み込み: ユーザー一覧と月次データを1つの coroutine で取得し、state を一度に更新 */
     private fun loadInitialData() {
         viewModelScope.launch {
@@ -85,33 +89,44 @@ class MoneyViewModel(
                 } catch (_: Exception) {
                     emptyList()
                 }
+            val yearMonth = uiState.currentYearMonth
             try {
-                val monthly = moneyRepository.getMonthlyMoney(uiState.currentYearMonth)
-                uiState =
-                    uiState.copy(
-                        users = users,
-                        monthlyMoney = monthly,
-                        isLoading = false,
-                    )
+                val monthly = moneyRepository.getMonthlyMoney(yearMonth)
+                // 初回読み込み中に月送りされた場合は、古い月次データで上書きしない
+                if (uiState.currentYearMonth == yearMonth) {
+                    uiState = uiState.copy(users = users, monthlyMoney = monthly, isLoading = false)
+                } else {
+                    uiState = uiState.copy(users = users)
+                }
             } catch (e: Exception) {
-                uiState = uiState.copy(users = users, error = e.message, isLoading = false)
+                // 成功パスと同様、初回読み込み中に月送りされた場合は古い月のエラーで上書きしない
+                if (uiState.currentYearMonth == yearMonth) {
+                    uiState = uiState.copy(users = users, error = e.message, isLoading = false)
+                } else {
+                    uiState = uiState.copy(users = users)
+                }
             }
         }
     }
 
+    /** 月送り連打時は前のリクエストをキャンセルし、最後の操作の結果のみ反映する */
     fun onLoadYearMonth(yearMonth: String) {
         uiState = uiState.copy(currentYearMonth = yearMonth, isLoading = true, error = null)
-        viewModelScope.launch {
-            try {
-                uiState =
-                    uiState.copy(
-                        monthlyMoney = moneyRepository.getMonthlyMoney(yearMonth),
-                        isLoading = false,
-                    )
-            } catch (e: Exception) {
-                uiState = uiState.copy(error = e.message, isLoading = false)
+        loadJob?.cancel()
+        loadJob =
+            viewModelScope.launch {
+                try {
+                    uiState =
+                        uiState.copy(
+                            monthlyMoney = moneyRepository.getMonthlyMoney(yearMonth),
+                            isLoading = false,
+                        )
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    uiState = uiState.copy(error = e.message, isLoading = false)
+                }
             }
-        }
     }
 
     fun onGoToPreviousMonth() {
@@ -124,11 +139,15 @@ class MoneyViewModel(
 
     fun onUpdateStatus(status: MonthlyMoneyStatus) {
         if (uiState.monthlyMoney.status == status || uiState.isStatusSaving) return
+        val yearMonth = uiState.currentYearMonth
         uiState = uiState.copy(isStatusSaving = true)
         viewModelScope.launch {
             try {
-                val updated = moneyRepository.updateStatus(uiState.currentYearMonth, status)
-                uiState = uiState.copy(monthlyMoney = updated)
+                val updated = moneyRepository.updateStatus(yearMonth, status)
+                // 保存中に月送りされていた場合、古い月のデータで現在の表示を上書きしない
+                if (uiState.currentYearMonth == yearMonth) {
+                    uiState = uiState.copy(monthlyMoney = updated)
+                }
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
             } finally {
@@ -190,11 +209,15 @@ class MoneyViewModel(
     }
 
     fun onImportRecurringItems() {
+        val yearMonth = uiState.currentYearMonth
         uiState = uiState.copy(isSaving = true)
         viewModelScope.launch {
             try {
-                val updated = moneyRepository.importRecurringItems(uiState.currentYearMonth)
-                uiState = uiState.copy(monthlyMoney = updated)
+                val updated = moneyRepository.importRecurringItems(yearMonth)
+                // 保存中に月送りされていた場合、古い月のデータで現在の表示を上書きしない
+                if (uiState.currentYearMonth == yearMonth) {
+                    uiState = uiState.copy(monthlyMoney = updated)
+                }
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
             } finally {
@@ -203,12 +226,19 @@ class MoneyViewModel(
         }
     }
 
-    /** 項目を前月または次月に移動する（一時機能） */
+    /**
+     * 項目を前月または次月に移動する（一時機能）。
+     *
+     * [MonthSelector] は保存中（[MoneyUiState.isSaving]）は disable されるため月送り自体は起こらないが、
+     * 移動元・移動先の GET → SAVE という非冪等な多段処理の途中で他の要因により
+     * [MoneyUiState.currentYearMonth] が変わった場合に備え、書き込み前後でも一致を確認する。
+     */
     fun onMoveItem(
         item: MoneyItem,
         offset: Int,
     ) {
-        val targetYearMonth = shiftYearMonthJs(uiState.currentYearMonth.toJsString(), offset).toString()
+        val sourceYearMonth = uiState.currentYearMonth
+        val targetYearMonth = shiftYearMonthJs(sourceYearMonth.toJsString(), offset).toString()
         uiState = uiState.copy(isSaving = true)
         viewModelScope.launch {
             try {
@@ -216,14 +246,16 @@ class MoneyViewModel(
                 val targetData = moneyRepository.getMonthlyMoney(targetYearMonth)
                 val updatedTarget = targetData.copy(items = targetData.items + item)
                 moneyRepository.saveMonthlyMoney(targetYearMonth, updatedTarget.toSaveRequest())
-                // 現在の月から項目を削除
-                val updatedCurrent =
-                    uiState.monthlyMoney.copy(
-                        items = uiState.monthlyMoney.items.filter { it.id != item.id },
-                    )
-                moneyRepository.saveMonthlyMoney(uiState.currentYearMonth, updatedCurrent.toSaveRequest())
-                uiState = uiState.copy(monthlyMoney = updatedCurrent)
-                if (uiState.editingItem?.id == item.id) onClearForm()
+                // 現在の月から項目を削除（表示中の月が移動時から変わっていない場合のみ）
+                if (uiState.currentYearMonth == sourceYearMonth) {
+                    val updatedCurrent =
+                        uiState.monthlyMoney.copy(
+                            items = uiState.monthlyMoney.items.filter { it.id != item.id },
+                        )
+                    moneyRepository.saveMonthlyMoney(sourceYearMonth, updatedCurrent.toSaveRequest())
+                    uiState = uiState.copy(monthlyMoney = updatedCurrent)
+                    if (uiState.editingItem?.id == item.id) onClearForm()
+                }
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
             } finally {
@@ -236,12 +268,16 @@ class MoneyViewModel(
         data: MonthlyMoney,
         onSuccess: () -> Unit,
     ) {
+        val yearMonth = uiState.currentYearMonth
         uiState = uiState.copy(isSaving = true)
         viewModelScope.launch {
             try {
-                moneyRepository.saveMonthlyMoney(uiState.currentYearMonth, data.toSaveRequest())
-                uiState = uiState.copy(monthlyMoney = data)
-                onSuccess()
+                moneyRepository.saveMonthlyMoney(yearMonth, data.toSaveRequest())
+                // 保存中に月送りされていた場合、古い月のデータで現在の表示を上書きしない
+                if (uiState.currentYearMonth == yearMonth) {
+                    uiState = uiState.copy(monthlyMoney = data)
+                    onSuccess()
+                }
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
             } finally {

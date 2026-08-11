@@ -38,6 +38,7 @@ data class DashboardUiState(
     val feedingLoading: Boolean = true,
     val feedingError: String? = null,
     val feedingActionError: String? = null,
+    val feedingInProgress: MealTime? = null,
     val petName: String? = null,
     val mealOrder: List<MealTime> = FeedingSettings.DEFAULT_MEAL_ORDER,
     val todayGarbageTypes: List<GarbageType> = emptyList(),
@@ -255,8 +256,8 @@ class DashboardViewModel(
 
     fun onFeed(mealTime: MealTime) {
         val id = petId ?: return
+        uiState = uiState.copy(feedingInProgress = mealTime, feedingActionError = null)
         viewModelScope.launch {
-            uiState = uiState.copy(feedingActionError = null)
             try {
                 val feeding = feedingRepository.feed(id, today, mealTime)
                 uiState =
@@ -268,6 +269,8 @@ class DashboardViewModel(
                     )
             } catch (e: Exception) {
                 uiState = uiState.copy(feedingActionError = e.message)
+            } finally {
+                uiState = uiState.copy(feedingInProgress = null)
             }
         }
     }

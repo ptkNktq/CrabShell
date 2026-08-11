@@ -22,23 +22,23 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import core.ui.components.AppButton
+import core.ui.components.AppIconButton
+import core.ui.components.AppOutlinedButton
+import core.ui.components.AppTextButton
 import feature.report.components.UserBalanceCard
 import model.UserBalance
 
@@ -221,7 +221,7 @@ private fun RedemptionInlineCard(
                     enabled = inputEnabled && !frozen,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
-                OutlinedButton(
+                AppOutlinedButton(
                     onClick = onFillRemaining,
                     enabled = inputEnabled && !frozen && form.selectedUid.isNotEmpty(),
                     contentPadding = PaddingValues(horizontal = 8.dp),
@@ -255,14 +255,14 @@ private fun RedemptionInlineCard(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextButton(
+                AppTextButton(
                     onClick = onClear,
                     enabled = inputEnabled,
                 ) {
                     Text("クリア")
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                Button(
+                AppButton(
                     onClick = onConfirm,
                     enabled = form.canSubmit,
                 ) {
@@ -287,14 +287,14 @@ private fun RedemptionMonthSelector(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        IconButton(onClick = onPrevious, enabled = enabled) {
+        AppIconButton(onClick = onPrevious, enabled = enabled, debounceMillis = 0) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "前月")
         }
         Text(
             text = displayText,
             style = MaterialTheme.typography.titleMedium,
         )
-        IconButton(onClick = onNext, enabled = enabled) {
+        AppIconButton(onClick = onNext, enabled = enabled, debounceMillis = 0) {
             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "翌月")
         }
     }

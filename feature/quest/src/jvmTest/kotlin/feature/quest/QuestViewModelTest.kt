@@ -432,6 +432,99 @@ class QuestViewModelTest {
             assertEquals("AI 生成に失敗しました: api error", errorMsg)
         }
 
+    // --- in-flight flags (連続クリック防止) ---
+
+    @Test
+    fun `onCreateQuest sets isSubmittingQuest while in flight`() =
+        runTest {
+            val viewModel = createViewModel()
+            advanceUntilIdle()
+
+            coEvery { questRepository.createQuest(any()) } returns Quest(id = "q9", title = "新規")
+
+            viewModel.onCreateQuest("新規", "説明", QuestCategory.Other, 5, null)
+            assertTrue(viewModel.uiState.isSubmittingQuest)
+
+            advanceUntilIdle()
+            assertFalse(viewModel.uiState.isSubmittingQuest)
+        }
+
+    @Test
+    fun `onCreateQuest clears isSubmittingQuest on failure`() =
+        runTest {
+            val viewModel = createViewModel()
+            advanceUntilIdle()
+
+            coEvery { questRepository.createQuest(any()) } throws RuntimeException("create error")
+
+            viewModel.onCreateQuest("新規", "説明", QuestCategory.Other, 5, null)
+            advanceUntilIdle()
+
+            assertFalse(viewModel.uiState.isSubmittingQuest)
+            assertEquals("create error", viewModel.uiState.error)
+        }
+
+    @Test
+    fun `onAcceptQuest sets processingQuestId while in flight`() =
+        runTest {
+            val viewModel = createViewModel()
+            advanceUntilIdle()
+
+            coEvery { questRepository.acceptQuest("q1") } returns testQuests[0].copy(status = QuestStatus.Accepted)
+
+            viewModel.onAcceptQuest("q1")
+            assertEquals("q1", viewModel.uiState.processingQuestId)
+
+            advanceUntilIdle()
+            assertNull(viewModel.uiState.processingQuestId)
+        }
+
+    @Test
+    fun `onVerifyQuest clears processingQuestId on failure`() =
+        runTest {
+            val viewModel = createViewModel()
+            advanceUntilIdle()
+
+            coEvery { questRepository.verifyQuest("q2") } throws RuntimeException("verify error")
+
+            viewModel.onVerifyQuest("q2")
+            advanceUntilIdle()
+
+            assertNull(viewModel.uiState.processingQuestId)
+            assertEquals("verify error", viewModel.uiState.error)
+        }
+
+    @Test
+    fun `onExchangeReward sets processingRewardId while in flight`() =
+        runTest {
+            val viewModel = createViewModel()
+            advanceUntilIdle()
+
+            coEvery { rewardRepository.exchangeReward("r1") } returns Unit
+            coEvery { rewardRepository.getRewards() } returns emptyList()
+
+            viewModel.onExchangeReward("r1")
+            assertEquals("r1", viewModel.uiState.processingRewardId)
+
+            advanceUntilIdle()
+            assertNull(viewModel.uiState.processingRewardId)
+        }
+
+    @Test
+    fun `onCreateReward sets isSubmittingReward while in flight`() =
+        runTest {
+            val viewModel = createViewModel()
+            advanceUntilIdle()
+
+            coEvery { rewardRepository.createReward(any()) } returns Reward(id = "r9", name = "新報酬", cost = 10)
+
+            viewModel.onCreateReward("新報酬", "", 10)
+            assertTrue(viewModel.uiState.isSubmittingReward)
+
+            advanceUntilIdle()
+            assertFalse(viewModel.uiState.isSubmittingReward)
+        }
+
     // --- error dismissal ---
 
     @Test

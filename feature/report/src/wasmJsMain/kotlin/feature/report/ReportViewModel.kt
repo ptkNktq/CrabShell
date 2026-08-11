@@ -9,6 +9,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import core.auth.toJsString
 import core.network.ReportRepository
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import model.ExpenseReport
 import model.MonthlyExpenseSummary
@@ -71,20 +73,27 @@ class ReportViewModel(
     )
         private set
 
+    private var loadJob: Job? = null
+
     init {
         loadReport(uiState.selectedYearMonth)
     }
 
+    /** 月送り連打時は前のリクエストをキャンセルし、最後の操作の結果のみ反映する */
     private fun loadReport(center: String) {
-        viewModelScope.launch {
-            try {
-                uiState = uiState.copy(isLoading = true, error = null)
-                val report = reportRepository.getExpenseReport(center)
-                uiState = uiState.copy(report = report, isLoading = false)
-            } catch (e: Exception) {
-                uiState = uiState.copy(error = e.message, isLoading = false)
+        loadJob?.cancel()
+        loadJob =
+            viewModelScope.launch {
+                try {
+                    uiState = uiState.copy(isLoading = true, error = null)
+                    val report = reportRepository.getExpenseReport(center)
+                    uiState = uiState.copy(report = report, isLoading = false)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    uiState = uiState.copy(error = e.message, isLoading = false)
+                }
             }
-        }
     }
 
     fun onGoToPreviousMonth() {

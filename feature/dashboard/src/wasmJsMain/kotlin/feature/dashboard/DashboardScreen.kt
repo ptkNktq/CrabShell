@@ -21,6 +21,7 @@ fun DashboardScreen(vm: DashboardViewModel = koinViewModel()) {
         currentYear = vm.uiState.currentYear,
         dateWithDay = vm.uiState.dateWithDay,
         onFeedClick = vm::onFeed,
+        feedingInProgress = vm.uiState.feedingInProgress,
         onRefreshFeeding = vm::onRefreshFeeding,
         windowSizeClass = windowSizeClass,
     )
