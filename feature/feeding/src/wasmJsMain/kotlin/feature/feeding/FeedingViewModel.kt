@@ -192,7 +192,8 @@ class FeedingViewModel(
                         mealTime,
                         timestamp,
                     )
-                // 保存 API 実行中に日送りされた場合、古い日付の結果を表示中ログへ混ぜない
+                // 保存 API 実行中に日送りされた場合、古い日付の結果を表示中ログへ混ぜない。
+                // editingMealTime も同様に、日送り後は別の日で開いた編集フォームを誤って閉じないよう触れない。
                 if (uiState.selectedDate == date) {
                     uiState =
                         uiState.copy(
@@ -205,8 +206,6 @@ class FeedingViewModel(
                                             .apply { put(mealTime, feeding) },
                                 ),
                         )
-                } else {
-                    uiState = uiState.copy(editingMealTime = null)
                 }
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)

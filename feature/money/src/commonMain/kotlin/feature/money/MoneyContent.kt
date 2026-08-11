@@ -137,6 +137,7 @@ internal fun MoneyContent(
                         yearMonth = currentYearMonth,
                         onPrevious = onPreviousMonth,
                         onNext = onNextMonth,
+                        enabled = !saving,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     MonthStatusSelector(
@@ -213,6 +214,7 @@ internal fun MoneyContent(
                         yearMonth = currentYearMonth,
                         onPrevious = onPreviousMonth,
                         onNext = onNextMonth,
+                        enabled = !saving,
                     )
                     MonthStatusSelector(
                         status = status,
@@ -650,6 +652,7 @@ private fun MonthSelector(
     yearMonth: String,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
+    enabled: Boolean = true,
 ) {
     val parts = yearMonth.split("-")
     val displayText = "${parts[0]}年${parts[1].toInt()}月"
@@ -658,14 +661,14 @@ private fun MonthSelector(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        AppIconButton(onClick = onPrevious, debounceMillis = 0) {
+        AppIconButton(onClick = onPrevious, enabled = enabled, debounceMillis = 0) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "前月")
         }
         Text(
             text = displayText,
             style = MaterialTheme.typography.titleLarge,
         )
-        AppIconButton(onClick = onNext, debounceMillis = 0) {
+        AppIconButton(onClick = onNext, enabled = enabled, debounceMillis = 0) {
             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "翌月")
         }
     }

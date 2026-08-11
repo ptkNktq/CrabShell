@@ -145,14 +145,16 @@ class PaymentViewModel(
     }
 
     fun onRecordPayment(amount: Long) {
+        val yearMonth = uiState.currentYearMonth
         uiState = uiState.copy(isSaving = true)
         viewModelScope.launch {
             try {
                 val request = PayRequest(amount = amount)
-                uiState =
-                    uiState.copy(
-                        monthlyMoney = moneyRepository.recordPayment(uiState.currentYearMonth, request),
-                    )
+                val monthly = moneyRepository.recordPayment(yearMonth, request)
+                // 保存中に月送りされていた場合、古い月のデータで現在の表示を上書きしない
+                if (uiState.currentYearMonth == yearMonth) {
+                    uiState = uiState.copy(monthlyMoney = monthly)
+                }
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
             } finally {
@@ -162,15 +164,17 @@ class PaymentViewModel(
     }
 
     fun onDeletePayment(paymentId: String) {
+        val yearMonth = uiState.currentYearMonth
         uiState = uiState.copy(deletingPaymentId = paymentId)
         viewModelScope.launch {
             try {
                 // サーバーは filterForUser 済みのデータを返す（onRecordPayment と同じパターン）。
                 // 他ユーザー閲覧中には削除ボタン自体が非表示なので isViewingOther の再フィルタは不要。
-                uiState =
-                    uiState.copy(
-                        monthlyMoney = moneyRepository.deletePayment(uiState.currentYearMonth, paymentId),
-                    )
+                val monthly = moneyRepository.deletePayment(yearMonth, paymentId)
+                // 保存中に月送りされていた場合、古い月のデータで現在の表示を上書きしない
+                if (uiState.currentYearMonth == yearMonth) {
+                    uiState = uiState.copy(monthlyMoney = monthly)
+                }
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
             } finally {
