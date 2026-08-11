@@ -46,6 +46,7 @@ internal fun QuestCard(
     onVerify: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    actionsEnabled: Boolean = true,
 ) {
     val isCreator = quest.creatorUid == currentUserUid
     val isAssignee = quest.assigneeUid == currentUserUid
@@ -95,7 +96,7 @@ internal fun QuestCard(
                     ) {
                         StatusBadge(status = quest.status)
                         if (isCreator && (quest.status == QuestStatus.Open || quest.status == QuestStatus.Expired)) {
-                            AppIconButton(onClick = onDelete) {
+                            AppIconButton(onClick = onDelete, enabled = actionsEnabled) {
                                 Icon(
                                     Icons.Default.Delete,
                                     contentDescription = "削除",
@@ -188,6 +189,7 @@ internal fun QuestCard(
                 QuestActionButton(
                     quest = quest,
                     isCreator = isCreator,
+                    enabled = actionsEnabled,
                     onAccept = onAccept,
                     onVerify = onVerify,
                 )
@@ -235,6 +237,7 @@ private fun StatusBadge(status: QuestStatus) {
 private fun QuestActionButton(
     quest: Quest,
     isCreator: Boolean,
+    enabled: Boolean,
     onAccept: () -> Unit,
     onVerify: () -> Unit,
 ) {
@@ -243,6 +246,7 @@ private fun QuestActionButton(
             if (!isCreator) {
                 AppButton(
                     onClick = onAccept,
+                    enabled = enabled,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text("受注する")
@@ -253,6 +257,7 @@ private fun QuestActionButton(
             if (isCreator) {
                 AppButton(
                     onClick = onVerify,
+                    enabled = enabled,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text("承認する")

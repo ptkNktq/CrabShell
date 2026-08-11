@@ -79,6 +79,10 @@ internal fun QuestBoardContent(
     onDeleteReward: (String) -> Unit,
     onDismissError: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
+    isSubmittingQuest: Boolean = false,
+    isSubmittingReward: Boolean = false,
+    isQuestActionInProgress: Boolean = false,
+    isRewardActionInProgress: Boolean = false,
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
 
@@ -156,6 +160,8 @@ internal fun QuestBoardContent(
                     canCreateQuest = canCreateQuest,
                     isAiAvailable = isAiAvailable,
                     isGenerating = isGenerating,
+                    isSubmittingQuest = isSubmittingQuest,
+                    actionsEnabled = !isQuestActionInProgress,
                     currentUserUid = currentUserUid,
                     onCreateQuest = onCreateQuest,
                     onGenerateText = onGenerateText,
@@ -174,6 +180,8 @@ internal fun QuestBoardContent(
                     currentUserUid = currentUserUid,
                     isAdmin = isAdmin,
                     isCreatingReward = isCreatingReward,
+                    isSubmittingReward = isSubmittingReward,
+                    actionsEnabled = !isRewardActionInProgress,
                     onExchange = onExchangeReward,
                     onToggleCreateReward = onToggleCreateReward,
                     onCreateReward = onCreateReward,
@@ -198,6 +206,8 @@ private fun BoardTab(
     canCreateQuest: Boolean,
     isAiAvailable: Boolean,
     isGenerating: Boolean,
+    isSubmittingQuest: Boolean,
+    actionsEnabled: Boolean,
     currentUserUid: String,
     onCreateQuest: (String, String, QuestCategory, Int, String?) -> Unit,
     onGenerateText: (String, String, QuestCategory, Int, String?, onResult: (String, String) -> Unit, onError: (String) -> Unit) -> Unit,
@@ -225,6 +235,7 @@ private fun BoardTab(
                     onCancel = { showForm = false },
                     showCloseButton = true,
                     enabled = canCreateQuest,
+                    isSubmitting = isSubmittingQuest,
                     isAiAvailable = isAiAvailable,
                     isGenerating = isGenerating,
                     onGenerateText = onGenerateText,
@@ -249,6 +260,7 @@ private fun BoardTab(
                 quests = quests,
                 isLoading = isLoading,
                 currentUserUid = currentUserUid,
+                actionsEnabled = actionsEnabled,
                 onAcceptQuest = onAcceptQuest,
                 onVerifyQuest = onVerifyQuest,
                 onDeleteQuest = onDeleteQuest,
@@ -262,6 +274,7 @@ private fun BoardTab(
                 quests = quests,
                 isLoading = isLoading,
                 currentUserUid = currentUserUid,
+                actionsEnabled = actionsEnabled,
                 onAcceptQuest = onAcceptQuest,
                 onVerifyQuest = onVerifyQuest,
                 onDeleteQuest = onDeleteQuest,
@@ -282,6 +295,7 @@ private fun BoardTab(
                     onCancel = {},
                     showCloseButton = false,
                     enabled = canCreateQuest,
+                    isSubmitting = isSubmittingQuest,
                     isAiAvailable = isAiAvailable,
                     isGenerating = isGenerating,
                     onGenerateText = onGenerateText,
@@ -296,6 +310,7 @@ private fun QuestListContent(
     quests: List<Quest>,
     isLoading: Boolean,
     currentUserUid: String,
+    actionsEnabled: Boolean,
     onAcceptQuest: (String) -> Unit,
     onVerifyQuest: (String) -> Unit,
     onDeleteQuest: (String) -> Unit,
@@ -337,6 +352,7 @@ private fun QuestListContent(
                         onVerify = { onVerifyQuest(quest.id) },
                         onDelete = { onDeleteQuest(quest.id) },
                         modifier = Modifier.widthIn(max = 600.dp),
+                        actionsEnabled = actionsEnabled,
                     )
                 }
             }
@@ -350,6 +366,7 @@ private fun QuestListInline(
     quests: List<Quest>,
     isLoading: Boolean,
     currentUserUid: String,
+    actionsEnabled: Boolean,
     onAcceptQuest: (String) -> Unit,
     onVerifyQuest: (String) -> Unit,
     onDeleteQuest: (String) -> Unit,
@@ -387,6 +404,7 @@ private fun QuestListInline(
                         onVerify = { onVerifyQuest(quest.id) },
                         onDelete = { onDeleteQuest(quest.id) },
                         modifier = Modifier.fillMaxWidth(),
+                        actionsEnabled = actionsEnabled,
                     )
                 }
             }
@@ -402,6 +420,8 @@ private fun RewardsTab(
     currentUserUid: String,
     isAdmin: Boolean,
     isCreatingReward: Boolean,
+    isSubmittingReward: Boolean,
+    actionsEnabled: Boolean,
     onExchange: (String) -> Unit,
     onToggleCreateReward: () -> Unit,
     onCreateReward: (String, String, Int) -> Unit,
@@ -440,6 +460,7 @@ private fun RewardsTab(
             CreateRewardForm(
                 onSubmit = onCreateReward,
                 onCancel = onToggleCreateReward,
+                isSubmitting = isSubmittingReward,
             )
         }
 
@@ -459,8 +480,8 @@ private fun RewardsTab(
         rewards.forEach { reward ->
             RewardCard(
                 reward = reward,
-                canExchange = (myPoints?.balance ?: 0) >= reward.cost && reward.isAvailable,
-                canDelete = reward.creatorUid == currentUserUid || isAdmin,
+                canExchange = (myPoints?.balance ?: 0) >= reward.cost && reward.isAvailable && actionsEnabled,
+                canDelete = (reward.creatorUid == currentUserUid || isAdmin) && actionsEnabled,
                 onExchange = { onExchange(reward.id) },
                 onDelete = { onDeleteReward(reward.id) },
             )
@@ -534,6 +555,7 @@ private fun RewardCard(
 private fun CreateRewardForm(
     onSubmit: (String, String, Int) -> Unit,
     onCancel: () -> Unit,
+    isSubmitting: Boolean = false,
 ) {
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -582,7 +604,7 @@ private fun CreateRewardForm(
                 AppOutlinedButton(onClick = onCancel) { Text("キャンセル") }
                 AppButton(
                     onClick = { onSubmit(name, description, costText.toIntOrNull() ?: 0) },
-                    enabled = name.isNotBlank() && (costText.toIntOrNull() ?: 0) > 0,
+                    enabled = name.isNotBlank() && (costText.toIntOrNull() ?: 0) > 0 && !isSubmitting,
                 ) {
                     Text("追加")
                 }

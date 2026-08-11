@@ -73,6 +73,7 @@ internal fun CreateQuestForm(
     modifier: Modifier = Modifier,
     showCloseButton: Boolean = true,
     enabled: Boolean = true,
+    isSubmitting: Boolean = false,
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -392,7 +393,7 @@ internal fun CreateQuestForm(
                     deadlineMinute = ""
                     aiError = null
                 },
-                enabled = isValid && enabled,
+                enabled = isValid && enabled && !isSubmitting,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("クエストを投稿")

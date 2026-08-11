@@ -54,6 +54,9 @@ internal fun FeedingContent(
     onCancelEditTimestamp: () -> Unit,
     onSaveTimestamp: (MealTime, Int, Int) -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
+    feedingInProgress: MealTime? = null,
+    isSavingNote: Boolean = false,
+    isSavingTimestamp: Boolean = false,
 ) {
     val isCompact = windowSizeClass == WindowSizeClass.Compact
 
@@ -98,6 +101,9 @@ internal fun FeedingContent(
                     onStartEditTimestamp = onStartEditTimestamp,
                     onCancelEditTimestamp = onCancelEditTimestamp,
                     onSaveTimestamp = onSaveTimestamp,
+                    feedingInProgress = feedingInProgress,
+                    isSavingNote = isSavingNote,
+                    isSavingTimestamp = isSavingTimestamp,
                 )
             }
         } else {
@@ -122,6 +128,9 @@ internal fun FeedingContent(
                         onStartEditTimestamp = onStartEditTimestamp,
                         onCancelEditTimestamp = onCancelEditTimestamp,
                         onSaveTimestamp = onSaveTimestamp,
+                        feedingInProgress = feedingInProgress,
+                        isSavingNote = isSavingNote,
+                        isSavingTimestamp = isSavingTimestamp,
                     )
                 }
 
@@ -155,6 +164,9 @@ private fun FeedingDetailSection(
     onStartEditTimestamp: (MealTime) -> Unit,
     onCancelEditTimestamp: () -> Unit,
     onSaveTimestamp: (MealTime, Int, Int) -> Unit,
+    feedingInProgress: MealTime?,
+    isSavingNote: Boolean,
+    isSavingTimestamp: Boolean,
 ) {
     DateSelector(
         date = selectedDate,
@@ -182,6 +194,8 @@ private fun FeedingDetailSection(
                         mealTime = mealTime,
                         feeding = log.feedings[mealTime] ?: Feeding(),
                         isEditing = editingMealTime == mealTime,
+                        feedEnabled = feedingInProgress == null,
+                        saveTimestampEnabled = !isSavingTimestamp,
                         onFeed = { onFeed(mealTime) },
                         onStartEdit = { onStartEditTimestamp(mealTime) },
                         onCancelEdit = onCancelEditTimestamp,
@@ -194,6 +208,7 @@ private fun FeedingDetailSection(
 
             NoteSection(
                 note = noteDraft,
+                saveEnabled = !isSavingNote,
                 onNoteChange = onNoteChange,
                 onSave = onSaveNote,
             )
@@ -230,6 +245,8 @@ private fun MealCard(
     mealTime: MealTime,
     feeding: Feeding,
     isEditing: Boolean,
+    feedEnabled: Boolean,
+    saveTimestampEnabled: Boolean,
     onFeed: () -> Unit,
     onStartEdit: () -> Unit,
     onCancelEdit: () -> Unit,
@@ -279,6 +296,7 @@ private fun MealCard(
                     if (isEditing) {
                         TimestampEditor(
                             timestamp = ts,
+                            saveEnabled = saveTimestampEnabled,
                             onCancel = onCancelEdit,
                             onSave = onSaveTimestamp,
                         )
@@ -298,7 +316,7 @@ private fun MealCard(
                         modifier = Modifier.size(24.dp),
                     )
                 } else {
-                    AppButton(onClick = onFeed) {
+                    AppButton(onClick = onFeed, enabled = feedEnabled) {
                         Text("あげる")
                     }
                 }
@@ -329,6 +347,7 @@ private fun TimestampBadge(
 @Composable
 private fun TimestampEditor(
     timestamp: String,
+    saveEnabled: Boolean,
     onCancel: () -> Unit,
     onSave: (hour: Int, minute: Int) -> Unit,
 ) {
@@ -378,6 +397,7 @@ private fun TimestampEditor(
                         onSave(h, m)
                     }
                 },
+                enabled = saveEnabled,
                 modifier = Modifier.size(28.dp),
             ) {
                 Icon(
@@ -405,6 +425,7 @@ private fun TimestampEditor(
 @Composable
 private fun NoteSection(
     note: String,
+    saveEnabled: Boolean,
     onNoteChange: (String) -> Unit,
     onSave: () -> Unit,
 ) {
@@ -422,7 +443,7 @@ private fun NoteSection(
         maxLines = 4,
     )
     Spacer(modifier = Modifier.height(8.dp))
-    AppButton(onClick = onSave) {
+    AppButton(onClick = onSave, enabled = saveEnabled) {
         Text("保存する")
     }
 }

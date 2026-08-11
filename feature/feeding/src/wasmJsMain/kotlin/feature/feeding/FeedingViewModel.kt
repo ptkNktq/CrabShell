@@ -30,6 +30,9 @@ data class FeedingUiState(
     val pet: Pet? = null,
     val editingMealTime: MealTime? = null,
     val mealOrder: List<MealTime> = FeedingSettings.DEFAULT_MEAL_ORDER,
+    val feedingInProgress: MealTime? = null,
+    val isSavingNote: Boolean = false,
+    val isSavingTimestamp: Boolean = false,
 )
 
 class FeedingViewModel(
@@ -107,6 +110,7 @@ class FeedingViewModel(
 
     fun onFeed(mealTime: MealTime) {
         val petId = uiState.pet?.id ?: return
+        uiState = uiState.copy(feedingInProgress = mealTime)
         viewModelScope.launch {
             try {
                 val feeding = feedingRepository.feed(petId, uiState.selectedDate, mealTime)
@@ -122,6 +126,8 @@ class FeedingViewModel(
                     )
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
+            } finally {
+                uiState = uiState.copy(feedingInProgress = null)
             }
         }
     }
@@ -132,12 +138,15 @@ class FeedingViewModel(
 
     fun onSaveNote() {
         val petId = uiState.pet?.id ?: return
+        uiState = uiState.copy(isSavingNote = true)
         viewModelScope.launch {
             try {
                 feedingRepository.updateNote(petId, uiState.selectedDate, uiState.noteDraft)
                 uiState = uiState.copy(log = uiState.log.copy(note = uiState.noteDraft))
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
+            } finally {
+                uiState = uiState.copy(isSavingNote = false)
             }
         }
     }
@@ -157,6 +166,7 @@ class FeedingViewModel(
     ) {
         val petId = uiState.pet?.id ?: return
         val timestamp = "${uiState.selectedDate}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00+09:00"
+        uiState = uiState.copy(isSavingTimestamp = true)
         viewModelScope.launch {
             try {
                 val feeding =
@@ -179,6 +189,8 @@ class FeedingViewModel(
                     )
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
+            } finally {
+                uiState = uiState.copy(isSavingTimestamp = false)
             }
         }
     }

@@ -46,6 +46,7 @@ internal fun DashboardContent(
     onFeedClick: (MealTime) -> Unit,
     onRefreshFeeding: () -> Unit,
     windowSizeClass: WindowSizeClass = WindowSizeClass.Expanded,
+    feedingInProgress: MealTime? = null,
 ) {
     Column(
         modifier =
@@ -78,6 +79,7 @@ internal fun DashboardContent(
                     isLoading = feedingLoading,
                     error = feedingError,
                     actionError = feedingActionError,
+                    feedingInProgress = feedingInProgress,
                     onFeedClick = onFeedClick,
                     onRefresh = onRefreshFeeding,
                 )
@@ -106,6 +108,7 @@ internal fun DashboardContent(
                     isLoading = feedingLoading,
                     error = feedingError,
                     actionError = feedingActionError,
+                    feedingInProgress = feedingInProgress,
                     onFeedClick = onFeedClick,
                     onRefresh = onRefreshFeeding,
                 )
@@ -228,6 +231,7 @@ fun DailyFeedingCard(
     isLoading: Boolean,
     error: String?,
     actionError: String?,
+    feedingInProgress: MealTime?,
     onFeedClick: (MealTime) -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
@@ -310,6 +314,7 @@ fun DailyFeedingCard(
                                 tint = mealTime.color,
                                 isDone = feeding?.done == true,
                                 time = feeding?.timestamp?.let { toJstHHMM(it) },
+                                feedEnabled = feedingInProgress == null,
                                 onClick = { onFeedClick(mealTime) },
                                 modifier = Modifier.weight(1f),
                             )
@@ -399,6 +404,7 @@ private fun FeedingSection(
     tint: Color,
     isDone: Boolean,
     time: String?,
+    feedEnabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -448,6 +454,7 @@ private fun FeedingSection(
         } else {
             AppButton(
                 onClick = onClick,
+                enabled = feedEnabled,
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(0.dp),
             ) {

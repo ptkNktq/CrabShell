@@ -36,6 +36,10 @@ data class QuestUiState(
     val isCreatingReward: Boolean = false,
     val isAiAvailable: Boolean = false,
     val isGenerating: Boolean = false,
+    val isSubmittingQuest: Boolean = false,
+    val isSubmittingReward: Boolean = false,
+    val processingQuestId: String? = null,
+    val processingRewardId: String? = null,
 ) {
     /** 同時発行上限（Open + Accepted が10件未満なら作成可能） */
     val canCreateQuest: Boolean
@@ -156,6 +160,7 @@ class QuestViewModel(
         rewardPoints: Int,
         deadline: String?,
     ) {
+        uiState = uiState.copy(isSubmittingQuest = true)
         viewModelScope.launch {
             try {
                 val quest =
@@ -175,22 +180,28 @@ class QuestViewModel(
                     )
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
+            } finally {
+                uiState = uiState.copy(isSubmittingQuest = false)
             }
         }
     }
 
     fun onAcceptQuest(id: String) {
+        uiState = uiState.copy(processingQuestId = id)
         viewModelScope.launch {
             try {
                 val updated = questRepository.acceptQuest(id)
                 uiState = uiState.copy(quests = uiState.quests.map { if (it.id == id) updated else it })
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
+            } finally {
+                uiState = uiState.copy(processingQuestId = null)
             }
         }
     }
 
     fun onVerifyQuest(id: String) {
+        uiState = uiState.copy(processingQuestId = id)
         viewModelScope.launch {
             try {
                 questRepository.verifyQuest(id)
@@ -198,22 +209,28 @@ class QuestViewModel(
                 loadPoints()
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
+            } finally {
+                uiState = uiState.copy(processingQuestId = null)
             }
         }
     }
 
     fun onDeleteQuest(id: String) {
+        uiState = uiState.copy(processingQuestId = id)
         viewModelScope.launch {
             try {
                 questRepository.deleteQuest(id)
                 uiState = uiState.copy(quests = uiState.quests.filter { it.id != id })
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
+            } finally {
+                uiState = uiState.copy(processingQuestId = null)
             }
         }
     }
 
     fun onExchangeReward(id: String) {
+        uiState = uiState.copy(processingRewardId = id)
         viewModelScope.launch {
             try {
                 rewardRepository.exchangeReward(id)
@@ -221,6 +238,8 @@ class QuestViewModel(
                 loadRewards()
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
+            } finally {
+                uiState = uiState.copy(processingRewardId = null)
             }
         }
     }
@@ -234,6 +253,7 @@ class QuestViewModel(
         description: String,
         cost: Int,
     ) {
+        uiState = uiState.copy(isSubmittingReward = true)
         viewModelScope.launch {
             try {
                 val reward = rewardRepository.createReward(CreateRewardRequest(name, description, cost))
@@ -244,17 +264,22 @@ class QuestViewModel(
                     )
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
+            } finally {
+                uiState = uiState.copy(isSubmittingReward = false)
             }
         }
     }
 
     fun onDeleteReward(id: String) {
+        uiState = uiState.copy(processingRewardId = id)
         viewModelScope.launch {
             try {
                 rewardRepository.deleteReward(id)
                 uiState = uiState.copy(rewards = uiState.rewards.filter { it.id != id })
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
+            } finally {
+                uiState = uiState.copy(processingRewardId = null)
             }
         }
     }
