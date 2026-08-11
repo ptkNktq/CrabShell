@@ -176,6 +176,7 @@ internal fun MoneyContent(
                     MoneyListContent(
                         monthlyMoney = monthlyMoney,
                         loading = loading,
+                        saving = saving,
                         error = error,
                         users = users,
                         isCompact = true,
@@ -234,6 +235,7 @@ internal fun MoneyContent(
                     MoneyListContent(
                         monthlyMoney = monthlyMoney,
                         loading = loading,
+                        saving = saving,
                         error = error,
                         users = users,
                         isCompact = false,
@@ -271,6 +273,7 @@ internal fun MoneyContent(
 private fun MoneyListContent(
     monthlyMoney: MonthlyMoney,
     loading: Boolean,
+    saving: Boolean,
     error: String?,
     users: List<User>,
     isCompact: Boolean,
@@ -347,6 +350,7 @@ private fun MoneyListContent(
                             onMoveNext = { onMoveItem(item, 1) },
                             isCompact = isCompact,
                             frozen = frozen,
+                            saving = saving,
                         )
                     }
                 }
@@ -836,6 +840,7 @@ private fun MoneyItemCard(
     onMoveNext: () -> Unit,
     isCompact: Boolean,
     frozen: Boolean,
+    saving: Boolean,
 ) {
     val shareTotal = item.shares.sumOf { it.amount }
     val mismatch = shareTotal != item.amount && item.shares.isNotEmpty()
@@ -888,28 +893,28 @@ private fun MoneyItemCard(
 
                 Row {
                     if (!frozen) {
-                        AppIconButton(onClick = onMovePrev) {
+                        AppIconButton(onClick = onMovePrev, enabled = !saving) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "前月へ移動",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        AppIconButton(onClick = onMoveNext) {
+                        AppIconButton(onClick = onMoveNext, enabled = !saving) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowForward,
                                 contentDescription = "次月へ移動",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        AppIconButton(onClick = onEdit) {
+                        AppIconButton(onClick = onEdit, enabled = !saving) {
                             Icon(
                                 Icons.Default.Edit,
                                 contentDescription = "編集",
                                 tint = MaterialTheme.colorScheme.primary,
                             )
                         }
-                        AppIconButton(onClick = onDelete) {
+                        AppIconButton(onClick = onDelete, enabled = !saving) {
                             Icon(
                                 Icons.Default.Delete,
                                 contentDescription = "削除",

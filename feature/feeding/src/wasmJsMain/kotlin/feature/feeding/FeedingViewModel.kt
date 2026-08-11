@@ -116,20 +116,24 @@ class FeedingViewModel(
 
     fun onFeed(mealTime: MealTime) {
         val petId = uiState.pet?.id ?: return
+        val date = uiState.selectedDate
         uiState = uiState.copy(feedingInProgress = mealTime)
         viewModelScope.launch {
             try {
-                val feeding = feedingRepository.feed(petId, uiState.selectedDate, mealTime)
-                uiState =
-                    uiState.copy(
-                        log =
-                            uiState.log.copy(
-                                feedings =
-                                    uiState.log.feedings
-                                        .toMutableMap()
-                                        .apply { put(mealTime, feeding) },
-                            ),
-                    )
+                val feeding = feedingRepository.feed(petId, date, mealTime)
+                // 給餌 API 実行中に日送りされた場合、古い日付の結果を表示中ログへ混ぜない
+                if (uiState.selectedDate == date) {
+                    uiState =
+                        uiState.copy(
+                            log =
+                                uiState.log.copy(
+                                    feedings =
+                                        uiState.log.feedings
+                                            .toMutableMap()
+                                            .apply { put(mealTime, feeding) },
+                                ),
+                        )
+                }
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
             } finally {

@@ -480,8 +480,9 @@ private fun RewardsTab(
         rewards.forEach { reward ->
             RewardCard(
                 reward = reward,
-                canExchange = (myPoints?.balance ?: 0) >= reward.cost && reward.isAvailable && actionsEnabled,
-                canDelete = (reward.creatorUid == currentUserUid || isAdmin) && actionsEnabled,
+                canExchange = (myPoints?.balance ?: 0) >= reward.cost && reward.isAvailable,
+                canDelete = reward.creatorUid == currentUserUid || isAdmin,
+                actionsEnabled = actionsEnabled,
                 onExchange = { onExchange(reward.id) },
                 onDelete = { onDeleteReward(reward.id) },
             )
@@ -494,6 +495,7 @@ private fun RewardCard(
     reward: Reward,
     canExchange: Boolean,
     canDelete: Boolean,
+    actionsEnabled: Boolean,
     onExchange: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -533,12 +535,12 @@ private fun RewardCard(
             Row {
                 AppButton(
                     onClick = onExchange,
-                    enabled = canExchange,
+                    enabled = canExchange && actionsEnabled,
                 ) {
                     Text("交換")
                 }
                 if (canDelete) {
-                    AppIconButton(onClick = onDelete) {
+                    AppIconButton(onClick = onDelete, enabled = actionsEnabled) {
                         Icon(
                             Icons.Default.Delete,
                             contentDescription = "削除",

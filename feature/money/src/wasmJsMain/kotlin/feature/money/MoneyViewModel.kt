@@ -99,7 +99,12 @@ class MoneyViewModel(
                     uiState = uiState.copy(users = users)
                 }
             } catch (e: Exception) {
-                uiState = uiState.copy(users = users, error = e.message, isLoading = false)
+                // 成功パスと同様、初回読み込み中に月送りされた場合は古い月のエラーで上書きしない
+                if (uiState.currentYearMonth == yearMonth) {
+                    uiState = uiState.copy(users = users, error = e.message, isLoading = false)
+                } else {
+                    uiState = uiState.copy(users = users)
+                }
             }
         }
     }

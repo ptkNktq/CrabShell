@@ -211,7 +211,10 @@ class QuestViewModel(
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
             } finally {
-                uiState = uiState.copy(processingQuestId = null)
+                // 並行操作で他 ID のフラグを消さないよう、自分が立てたときだけ解除する
+                if (uiState.processingQuestId == id) {
+                    uiState = uiState.copy(processingQuestId = null)
+                }
             }
         }
     }
@@ -226,7 +229,10 @@ class QuestViewModel(
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
             } finally {
-                uiState = uiState.copy(processingQuestId = null)
+                // 並行操作で他 ID のフラグを消さないよう、自分が立てたときだけ解除する
+                if (uiState.processingQuestId == id) {
+                    uiState = uiState.copy(processingQuestId = null)
+                }
             }
         }
     }
@@ -240,7 +246,10 @@ class QuestViewModel(
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
             } finally {
-                uiState = uiState.copy(processingQuestId = null)
+                // 並行操作で他 ID のフラグを消さないよう、自分が立てたときだけ解除する
+                if (uiState.processingQuestId == id) {
+                    uiState = uiState.copy(processingQuestId = null)
+                }
             }
         }
     }
@@ -255,7 +264,10 @@ class QuestViewModel(
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
             } finally {
-                uiState = uiState.copy(processingRewardId = null)
+                // 並行操作で他 ID のフラグを消さないよう、自分が立てたときだけ解除する
+                if (uiState.processingRewardId == id) {
+                    uiState = uiState.copy(processingRewardId = null)
+                }
             }
         }
     }
@@ -295,7 +307,10 @@ class QuestViewModel(
             } catch (e: Exception) {
                 uiState = uiState.copy(error = e.message)
             } finally {
-                uiState = uiState.copy(processingRewardId = null)
+                // 並行操作で他 ID のフラグを消さないよう、自分が立てたときだけ解除する
+                if (uiState.processingRewardId == id) {
+                    uiState = uiState.copy(processingRewardId = null)
+                }
             }
         }
     }
