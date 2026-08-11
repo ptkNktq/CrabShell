@@ -16,6 +16,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import core.ui.WindowSizeClass
+import core.ui.components.AppButton
+import core.ui.components.AppIconButton
 import core.ui.extensions.FeedingDoneColor
 import core.ui.extensions.color
 import core.ui.extensions.icon
@@ -255,7 +257,7 @@ fun DailyFeedingCard(
                     petName = petName,
                     modifier = Modifier.weight(1f),
                 )
-                IconButton(onClick = onRefresh) {
+                AppIconButton(onClick = onRefresh) {
                     Icon(
                         imageVector = Icons.Default.Refresh,
                         contentDescription = "更新",
@@ -444,7 +446,7 @@ private fun FeedingSection(
                 )
             }
         } else {
-            Button(
+            AppButton(
                 onClick = onClick,
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(0.dp),

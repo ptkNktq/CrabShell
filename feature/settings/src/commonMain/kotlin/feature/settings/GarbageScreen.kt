@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -30,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import core.ui.components.AppButton
 import core.ui.components.LoadableCardContent
 import core.ui.extensions.color
 import core.ui.extensions.icon
@@ -196,7 +196,7 @@ private fun GarbageScheduleCard(
                     Text(text = garbageMessage, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                 }
 
-                Button(onClick = onSaveClick, modifier = Modifier.height(48.dp), enabled = !garbageSaving) {
+                AppButton(onClick = onSaveClick, modifier = Modifier.height(48.dp), enabled = !garbageSaving) {
                     if (garbageSaving) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),

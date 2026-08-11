@@ -15,12 +15,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -32,6 +30,8 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import core.ui.components.AppButton
+import core.ui.components.AppIconButton
 import core.ui.extensions.icon
 import core.ui.extensions.label
 import core.ui.util.remainingTime
@@ -95,7 +95,7 @@ internal fun QuestCard(
                     ) {
                         StatusBadge(status = quest.status)
                         if (isCreator && (quest.status == QuestStatus.Open || quest.status == QuestStatus.Expired)) {
-                            IconButton(onClick = onDelete) {
+                            AppIconButton(onClick = onDelete) {
                                 Icon(
                                     Icons.Default.Delete,
                                     contentDescription = "削除",
@@ -241,7 +241,7 @@ private fun QuestActionButton(
     when (quest.status) {
         QuestStatus.Open -> {
             if (!isCreator) {
-                Button(
+                AppButton(
                     onClick = onAccept,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -251,7 +251,7 @@ private fun QuestActionButton(
         }
         QuestStatus.Accepted -> {
             if (isCreator) {
-                Button(
+                AppButton(
                     onClick = onVerify,
                     modifier = Modifier.fillMaxWidth(),
                 ) {

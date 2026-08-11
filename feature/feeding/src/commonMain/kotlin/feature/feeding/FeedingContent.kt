@@ -18,6 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import core.ui.WindowSizeClass
+import core.ui.components.AppButton
+import core.ui.components.AppIconButton
 import core.ui.components.CalendarView
 import core.ui.extensions.FeedingDoneColor
 import core.ui.extensions.color
@@ -210,14 +212,14 @@ private fun DateSelector(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        IconButton(onClick = onPrevious) {
+        AppIconButton(onClick = onPrevious, debounceMillis = 0) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "前日")
         }
         Text(
             text = "$date ($dow)",
             style = MaterialTheme.typography.titleLarge,
         )
-        IconButton(onClick = onNext) {
+        AppIconButton(onClick = onNext, debounceMillis = 0) {
             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "翌日")
         }
     }
@@ -296,7 +298,7 @@ private fun MealCard(
                         modifier = Modifier.size(24.dp),
                     )
                 } else {
-                    Button(onClick = onFeed) {
+                    AppButton(onClick = onFeed) {
                         Text("あげる")
                     }
                 }
@@ -368,7 +370,7 @@ private fun TimestampEditor(
                 textStyle = MaterialTheme.typography.labelMedium,
                 singleLine = true,
             )
-            IconButton(
+            AppIconButton(
                 onClick = {
                     val h = hourText.toIntOrNull()
                     val m = minuteText.toIntOrNull()
@@ -385,7 +387,7 @@ private fun TimestampEditor(
                     modifier = Modifier.size(16.dp),
                 )
             }
-            IconButton(
+            AppIconButton(
                 onClick = onCancel,
                 modifier = Modifier.size(28.dp),
             ) {
@@ -420,7 +422,7 @@ private fun NoteSection(
         maxLines = 4,
     )
     Spacer(modifier = Modifier.height(8.dp))
-    Button(onClick = onSave) {
+    AppButton(onClick = onSave) {
         Text("保存する")
     }
 }

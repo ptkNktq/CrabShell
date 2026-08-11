@@ -13,12 +13,10 @@ import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -34,6 +32,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import core.ui.components.AppButton
+import core.ui.components.AppIconButton
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -146,7 +146,7 @@ private fun PasswordChangeCard(
                 label = { Text("現在のパスワード") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                 trailingIcon = {
-                    IconButton(onClick = { currentPasswordVisible = !currentPasswordVisible }) {
+                    AppIconButton(onClick = { currentPasswordVisible = !currentPasswordVisible }, debounceMillis = 0) {
                         Icon(
                             if (currentPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                             contentDescription = if (currentPasswordVisible) "パスワードを隠す" else "パスワードを表示",
@@ -166,7 +166,7 @@ private fun PasswordChangeCard(
                 label = { Text("新しいパスワード") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                 trailingIcon = {
-                    IconButton(onClick = { newPasswordVisible = !newPasswordVisible }) {
+                    AppIconButton(onClick = { newPasswordVisible = !newPasswordVisible }, debounceMillis = 0) {
                         Icon(
                             if (newPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                             contentDescription = if (newPasswordVisible) "パスワードを隠す" else "パスワードを表示",
@@ -186,7 +186,7 @@ private fun PasswordChangeCard(
                 label = { Text("新しいパスワード（確認）") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                 trailingIcon = {
-                    IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                    AppIconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }, debounceMillis = 0) {
                         Icon(
                             if (confirmPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                             contentDescription = if (confirmPasswordVisible) "パスワードを隠す" else "パスワードを表示",
@@ -208,7 +208,7 @@ private fun PasswordChangeCard(
                 Text(text = successMessage, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
             }
 
-            Button(
+            AppButton(
                 onClick = onChangePassword,
                 modifier = Modifier.height(48.dp),
                 enabled = !isLoading,
@@ -272,7 +272,7 @@ private fun PasskeyManagementCard(
                 Text(text = successMessage, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
             }
 
-            Button(
+            AppButton(
                 onClick = onRegisterPasskey,
                 modifier = Modifier.height(48.dp),
                 enabled = !isRegistering,

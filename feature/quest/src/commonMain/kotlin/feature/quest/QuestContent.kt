@@ -20,15 +20,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,6 +38,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import core.ui.WindowSizeClass
+import core.ui.components.AppButton
+import core.ui.components.AppIconButton
+import core.ui.components.AppOutlinedButton
 import feature.quest.components.CreateQuestForm
 import feature.quest.components.QuestCard
 import model.PointHistory
@@ -231,7 +231,7 @@ private fun BoardTab(
                 )
                 Spacer(Modifier.height(16.dp))
             } else {
-                Button(
+                AppButton(
                     onClick = { showForm = true },
                     enabled = canCreateQuest,
                     modifier = Modifier.padding(bottom = 12.dp),
@@ -423,7 +423,7 @@ private fun RewardsTab(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (!isCreatingReward) {
-            Button(
+            AppButton(
                 onClick = onToggleCreateReward,
                 modifier = Modifier.padding(bottom = 12.dp),
             ) {
@@ -510,14 +510,14 @@ private fun RewardCard(
                 )
             }
             Row {
-                Button(
+                AppButton(
                     onClick = onExchange,
                     enabled = canExchange,
                 ) {
                     Text("交換")
                 }
                 if (canDelete) {
-                    IconButton(onClick = onDelete) {
+                    AppIconButton(onClick = onDelete) {
                         Icon(
                             Icons.Default.Delete,
                             contentDescription = "削除",
@@ -579,8 +579,8 @@ private fun CreateRewardForm(
             )
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onCancel) { Text("キャンセル") }
-                Button(
+                AppOutlinedButton(onClick = onCancel) { Text("キャンセル") }
+                AppButton(
                     onClick = { onSubmit(name, description, costText.toIntOrNull() ?: 0) },
                     enabled = name.isNotBlank() && (costText.toIntOrNull() ?: 0) > 0,
                 ) {
