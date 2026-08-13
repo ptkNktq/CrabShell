@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import core.ui.WindowSizeClass
 import core.ui.components.AppButton
 import core.ui.components.AppIconButton
+import core.ui.components.AppOutlinedButton
 import core.ui.extensions.displayName
 import core.ui.extensions.icon
 import core.ui.formatYen
@@ -29,6 +30,8 @@ import model.MonthlyMoneyStatus
 import model.Payment
 import model.User
 import model.groupedByDueDate
+import model.myShareTotal
+import model.shareFor
 
 @Composable
 internal fun PaymentContent(
@@ -52,10 +55,7 @@ internal fun PaymentContent(
     val isCompact = windowSizeClass == WindowSizeClass.Compact
 
     // 自分の割当合計
-    val totalAllocated =
-        monthlyMoney.items.sumOf { item ->
-            item.shares.filter { it.uid == currentUid }.sumOf { it.amount }
-        }
+    val totalAllocated = monthlyMoney.items.myShareTotal(currentUid)
     // 支払い済み合計
     val totalPaid = monthlyMoney.payments.sumOf { it.amount }
     val remaining = totalAllocated - totalPaid
@@ -107,8 +107,10 @@ internal fun PaymentContent(
                     error = error,
                     isCompact = true,
                     status = status,
+                    saving = saving,
                     onDeletePayment = if (!frozen && !isViewingOther) onDeletePayment else null,
                     deletingPaymentId = deletingPaymentId,
+                    onPayDueDate = if (!frozen && !isViewingOther) onConfirmPay else null,
                     modifier = Modifier.weight(1f),
                 )
                 if (!loading && error == null && !frozen && !isViewingOther) {
@@ -168,8 +170,10 @@ internal fun PaymentContent(
                         error = error,
                         isCompact = false,
                         status = status,
+                        saving = saving,
                         onDeletePayment = if (!frozen && !isViewingOther) onDeletePayment else null,
                         deletingPaymentId = deletingPaymentId,
+                        onPayDueDate = if (!frozen && !isViewingOther) onConfirmPay else null,
                         modifier = Modifier.weight(1f),
                     )
 
@@ -207,8 +211,10 @@ private fun PaymentListContent(
     error: String?,
     isCompact: Boolean,
     status: MonthlyMoneyStatus,
+    saving: Boolean = false,
     onDeletePayment: ((String) -> Unit)? = null,
     deletingPaymentId: String? = null,
+    onPayDueDate: ((Long) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     when {
@@ -283,10 +289,12 @@ private fun PaymentListContent(
                     }
                     for ((dueDate, groupItems) in monthlyMoney.items.groupedByDueDate()) {
                         item(key = "due-header-${dueDate ?: "none"}") {
-                            Text(
-                                text = dueDateGroupLabel(dueDate),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            val groupTotal = groupItems.myShareTotal(currentUid)
+                            DueDateGroupHeader(
+                                dueDate = dueDate,
+                                total = groupTotal,
+                                enabled = !saving && deletingPaymentId == null,
+                                onPay = if (onPayDueDate != null && groupTotal > 0) ({ onPayDueDate(groupTotal) }) else null,
                             )
                         }
                         items(groupItems, key = { it.id }) { item ->
@@ -314,6 +322,53 @@ private fun PaymentListContent(
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * 支払期日グループの見出し。合計額と、その額をそのまま支払い記録として登録するボタンを表示する。
+ *
+ * [onPay] は null（凍結中・他ユーザー閲覧中・合計額が0円のいずれか）の場合、合計額のテキスト表示のみになる。
+ * ボタンを押すと [PaymentInlineForm] で金額入力して「記録」するのと同じ処理が、合計額を引数として即実行される。
+ * 支払い記録は月次の合計にのみ加算され、どの支払期日グループ向けかという紐付けは持たない
+ * （押した後もこのグループの表示自体は変化しない）ため、ボタンラベルに金額を明記して押す前に確認できるようにしている。
+ */
+@Composable
+private fun DueDateGroupHeader(
+    dueDate: String?,
+    total: Long,
+    enabled: Boolean,
+    onPay: (() -> Unit)?,
+) {
+    val label = dueDateGroupLabel(dueDate)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (onPay != null) {
+            AppOutlinedButton(
+                onClick = onPay,
+                enabled = enabled,
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+                Text(
+                    text = "${formatYen(total)} 支払う",
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+        } else {
+            Text(
+                text = formatYen(total),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -617,7 +672,7 @@ private fun ItemBreakdownCard(
     currentUid: String,
     isCompact: Boolean,
 ) {
-    val myAllocation = item.shares.filter { it.uid == currentUid }.sumOf { it.amount }
+    val myAllocation = item.shareFor(currentUid)
     if (myAllocation == 0L) return
 
     Card(

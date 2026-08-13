@@ -168,6 +168,12 @@ fun List<MoneyItem>.groupedByDueDate(): List<Pair<String?, List<MoneyItem>>> {
     return if (withoutDueDate != null) ordered + (null to withoutDueDate) else ordered
 }
 
+/** この項目のうち、指定ユーザーが負担する金額。 */
+fun MoneyItem.shareFor(uid: String): Long = shares.filter { it.uid == uid }.sumOf { it.amount }
+
+/** 項目リストのうち、指定ユーザーが負担する金額の合計。payment 画面の集計で共用する。 */
+fun List<MoneyItem>.myShareTotal(uid: String): Long = sumOf { it.shareFor(uid) }
+
 // =================================================================================================
 // Webhook 設定（API request + response として共用、admin only エンドポイント）
 //
