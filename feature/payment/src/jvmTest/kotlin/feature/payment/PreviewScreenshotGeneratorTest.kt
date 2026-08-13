@@ -41,6 +41,20 @@ class PreviewScreenshotGeneratorTest {
                             name = "電気代",
                             amount = 8000,
                             shares = listOf(Share("user1", 4000), Share("user2", 4000)),
+                            dueDate = "2026-07-15",
+                        ),
+                        MoneyItem(
+                            id = "item2",
+                            name = "水道代",
+                            amount = 6000,
+                            shares = listOf(Share("user1", 3000), Share("user2", 3000)),
+                            dueDate = "2026-07-15",
+                        ),
+                        MoneyItem(
+                            id = "item3",
+                            name = "雑費",
+                            amount = 2000,
+                            shares = listOf(Share("user1", 2000)),
                         ),
                     ),
                 payments =
