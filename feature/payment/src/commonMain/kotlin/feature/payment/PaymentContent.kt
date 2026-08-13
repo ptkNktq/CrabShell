@@ -30,6 +30,8 @@ import model.MonthlyMoneyStatus
 import model.Payment
 import model.User
 import model.groupedByDueDate
+import model.myShareTotal
+import model.shareFor
 
 @Composable
 internal fun PaymentContent(
@@ -53,10 +55,7 @@ internal fun PaymentContent(
     val isCompact = windowSizeClass == WindowSizeClass.Compact
 
     // 自分の割当合計
-    val totalAllocated =
-        monthlyMoney.items.sumOf { item ->
-            item.shares.filter { it.uid == currentUid }.sumOf { it.amount }
-        }
+    val totalAllocated = monthlyMoney.items.myShareTotal(currentUid)
     // 支払い済み合計
     val totalPaid = monthlyMoney.payments.sumOf { it.amount }
     val remaining = totalAllocated - totalPaid
@@ -290,10 +289,7 @@ private fun PaymentListContent(
                     }
                     for ((dueDate, groupItems) in monthlyMoney.items.groupedByDueDate()) {
                         item(key = "due-header-${dueDate ?: "none"}") {
-                            val groupTotal =
-                                groupItems.sumOf { item ->
-                                    item.shares.filter { it.uid == currentUid }.sumOf { it.amount }
-                                }
+                            val groupTotal = groupItems.myShareTotal(currentUid)
                             DueDateGroupHeader(
                                 dueDate = dueDate,
                                 total = groupTotal,
@@ -676,7 +672,7 @@ private fun ItemBreakdownCard(
     currentUid: String,
     isCompact: Boolean,
 ) {
-    val myAllocation = item.shares.filter { it.uid == currentUid }.sumOf { it.amount }
+    val myAllocation = item.shareFor(currentUid)
     if (myAllocation == 0L) return
 
     Card(

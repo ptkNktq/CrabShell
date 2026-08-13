@@ -239,6 +239,45 @@ class MoneyModelsTest {
     }
 
     // ---------------------------------------------------------------------------------
+    // shareFor / myShareTotal
+    // ---------------------------------------------------------------------------------
+
+    @Test
+    fun shareForReturnsAmountForMatchingUid() {
+        val item =
+            MoneyItem(
+                id = "i1",
+                name = "Rent",
+                amount = 8000L,
+                shares = listOf(Share("u1", 5000L), Share("u2", 3000L)),
+            )
+        assertEquals(5000L, item.shareFor("u1"))
+        assertEquals(3000L, item.shareFor("u2"))
+    }
+
+    @Test
+    fun shareForReturnsZeroWhenUidHasNoShare() {
+        val item = MoneyItem(id = "i1", name = "Rent", amount = 8000L, shares = listOf(Share("u1", 8000L)))
+        assertEquals(0L, item.shareFor("u2"))
+    }
+
+    @Test
+    fun myShareTotalSumsAcrossItems() {
+        val items =
+            listOf(
+                MoneyItem(id = "i1", name = "Rent", amount = 8000L, shares = listOf(Share("u1", 5000L), Share("u2", 3000L))),
+                MoneyItem(id = "i2", name = "Food", amount = 2000L, shares = listOf(Share("u1", 2000L))),
+            )
+        assertEquals(7000L, items.myShareTotal("u1"))
+        assertEquals(3000L, items.myShareTotal("u2"))
+    }
+
+    @Test
+    fun myShareTotalReturnsZeroForEmptyList() {
+        assertEquals(0L, emptyList<MoneyItem>().myShareTotal("u1"))
+    }
+
+    // ---------------------------------------------------------------------------------
     // MoneyDueDateNotificationSettings
     // ---------------------------------------------------------------------------------
 
