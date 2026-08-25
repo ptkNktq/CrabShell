@@ -11,6 +11,8 @@ import kotlinx.coroutines.await
 import model.PasskeyAuthenticateCompleteRequest
 import model.PasskeyAuthenticateOptionsResponse
 import model.PasskeyAuthenticateResponse
+import model.PasskeyCredentialInfo
+import model.PasskeyCredentialsResponse
 import model.PasskeyRegisterCompleteRequest
 import model.PasskeyRegisterOptionsResponse
 import model.PasskeyStatusResponse
@@ -79,5 +81,15 @@ class PasskeyRepositoryImpl(
             } finally {
                 unauthClient.close()
             }
+        }
+
+    override suspend fun getPasskeyCredentials(): Result<List<PasskeyCredentialInfo>> =
+        runCatching {
+            httpClient.get("/api/passkey/credentials").body<PasskeyCredentialsResponse>().credentials
+        }
+
+    override suspend fun deletePasskey(id: Long): Result<Unit> =
+        runCatching {
+            httpClient.delete("/api/passkey/credentials/$id")
         }
 }

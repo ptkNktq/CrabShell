@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import core.previewscreenshot.PreviewScreenshotRecorder
 import core.previewscreenshot.standardSizePatterns
 import core.ui.theme.AppTheme
+import model.PasskeyCredentialInfo
 import kotlin.test.Test
 
 /**
@@ -38,8 +39,22 @@ class PreviewScreenshotGeneratorTest {
                     onNewPasswordChanged = {},
                     onConfirmPasswordChanged = {},
                     onChangePassword = {},
-                    passkeyState = PasskeyManagementUiState(isLoading = false, isAvailable = true, credentialCount = 1),
+                    passkeyState =
+                        PasskeyManagementUiState(
+                            isLoading = false,
+                            isAvailable = true,
+                            credentialCount = 1,
+                            credentials =
+                                listOf(
+                                    PasskeyCredentialInfo(
+                                        id = 1,
+                                        createdAt = "2026-01-01T00:00:00Z",
+                                        transports = listOf("internal"),
+                                    ),
+                                ),
+                        ),
                     onRegisterPasskey = {},
+                    onDeletePasskey = {},
                     loginHistoryState = LoginHistoryUiState(isLoading = false),
                     onRetryLoginHistory = {},
                     modifier = modifier,

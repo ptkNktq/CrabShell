@@ -1,5 +1,6 @@
 package server.passkey
 
+import io.github.smiley4.ktoropenapi.delete
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.*
@@ -7,6 +8,7 @@ import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.util.getOrFail
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
@@ -15,6 +17,8 @@ import kotlinx.serialization.json.jsonPrimitive
 import model.PasskeyAuthenticateCompleteRequest
 import model.PasskeyAuthenticateOptionsResponse
 import model.PasskeyAuthenticateResponse
+import model.PasskeyCredentialInfo
+import model.PasskeyCredentialsResponse
 import model.PasskeyRegisterCompleteRequest
 import model.PasskeyRegisterOptionsResponse
 import model.PasskeyStatusResponse
@@ -23,6 +27,7 @@ import server.auth.FirebaseAdmin
 import server.auth.authenticated
 import server.auth.firebasePrincipal
 import server.ratelimit.RateLimitNames
+import java.time.Instant
 import java.util.Base64
 
 private val logger = LoggerFactory.getLogger("server.passkey.PasskeyRoutes")
@@ -160,6 +165,59 @@ fun Route.passkeyRoutes() {
                     call.respond(
                         HttpStatusCode.BadRequest,
                         mapOf("error" to (e.message ?: "登録に失敗しました")),
+                    )
+                }
+            }
+
+            // 登録済みパスキー一覧
+            get("/credentials", {
+                tags = listOf("passkey")
+                summary = "登録済みパスキー一覧取得"
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<PasskeyCredentialsResponse>()
+                    }
+                }
+            }) {
+                val uid = call.firebasePrincipal.uid
+                val credentials =
+                    PasskeyService.findCredentialsByUid(uid).map {
+                        PasskeyCredentialInfo(
+                            id = it.id,
+                            createdAt = Instant.ofEpochMilli(it.createdAt).toString(),
+                            transports = it.transports?.split(",") ?: emptyList(),
+                        )
+                    }
+                call.respond(PasskeyCredentialsResponse(credentials = credentials))
+            }
+
+            // パスキー削除
+            delete("/credentials/{id}", {
+                tags = listOf("passkey")
+                summary = "パスキー削除"
+                request {
+                    pathParameter<String>("id") { description = "削除対象のパスキー ID" }
+                }
+                response {
+                    code(HttpStatusCode.NoContent) { description = "削除成功" }
+                    code(HttpStatusCode.BadRequest) { description = "ID が不正" }
+                    code(HttpStatusCode.NotFound) { description = "対象のパスキーが見つからない" }
+                }
+            }) {
+                val uid = call.firebasePrincipal.uid
+                val id =
+                    call.parameters.getOrFail("id").toLongOrNull()
+                        ?: return@delete call.respond(
+                            HttpStatusCode.BadRequest,
+                            mapOf("error" to "ID が不正です"),
+                        )
+
+                if (PasskeyService.deleteCredential(uid, id)) {
+                    call.respond(HttpStatusCode.NoContent)
+                } else {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "対象のパスキーが見つかりません"),
                     )
                 }
             }

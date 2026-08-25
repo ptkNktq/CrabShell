@@ -71,4 +71,20 @@ class PasskeyTest {
             ),
         )
     }
+
+    @Test
+    fun passkeyCredentialsResponseRoundTrip() {
+        val response =
+            PasskeyCredentialsResponse(
+                credentials =
+                    listOf(
+                        PasskeyCredentialInfo(id = 1, createdAt = "2026-01-01T00:00:00Z", transports = listOf("internal")),
+                        PasskeyCredentialInfo(id = 2, createdAt = "2026-02-01T00:00:00Z"),
+                    ),
+            )
+        val encoded = json.encodeToString(PasskeyCredentialsResponse.serializer(), response)
+        val decoded = json.decodeFromString(PasskeyCredentialsResponse.serializer(), encoded)
+        assertEquals(response, decoded)
+        assertEquals(emptyList(), decoded.credentials[1].transports)
+    }
 }

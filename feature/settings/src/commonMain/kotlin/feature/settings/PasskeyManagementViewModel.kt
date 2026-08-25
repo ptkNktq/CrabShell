@@ -7,12 +7,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import core.network.PasskeyRepository
 import kotlinx.coroutines.launch
+import model.PasskeyCredentialInfo
 
 data class PasskeyManagementUiState(
     val isLoading: Boolean = true,
     val isAvailable: Boolean = false,
     val isRegistering: Boolean = false,
     val credentialCount: Int = 0,
+    val credentials: List<PasskeyCredentialInfo> = emptyList(),
+    val deletingCredentialId: Long? = null,
     val errorMessage: String? = null,
     val successMessage: String? = null,
 )
@@ -40,14 +43,28 @@ class PasskeyManagementViewModel(
                         isLoading = false,
                         isAvailable = available,
                         credentialCount = status.credentialCount,
+                        credentials = if (available) uiState.credentials else emptyList(),
                     )
+                if (available) {
+                    loadCredentials()
+                }
             } else {
                 uiState =
                     uiState.copy(
                         isLoading = false,
                         isAvailable = false,
+                        credentials = emptyList(),
                     )
             }
+        }
+    }
+
+    private fun loadCredentials() {
+        viewModelScope.launch {
+            passkeyRepository.getPasskeyCredentials().onSuccess { credentials ->
+                uiState = uiState.copy(credentials = credentials)
+            }
+            // 一覧取得の失敗は致命的ではないため、既存の一覧を残したまま errorMessage は出さない
         }
     }
 
@@ -68,6 +85,26 @@ class PasskeyManagementViewModel(
                         isRegistering = false,
                         errorMessage = result.exceptionOrNull()?.message ?: "パスキーの登録に失敗しました",
                     )
+            }
+        }
+    }
+
+    fun onDeletePasskey(id: Long) {
+        uiState = uiState.copy(deletingCredentialId = id, errorMessage = null, successMessage = null)
+        viewModelScope.launch {
+            val result = passkeyRepository.deletePasskey(id)
+            if (result.isSuccess) {
+                uiState = uiState.copy(successMessage = "パスキーを削除しました")
+                loadStatus()
+            } else {
+                uiState =
+                    uiState.copy(
+                        errorMessage = result.exceptionOrNull()?.message ?: "パスキーの削除に失敗しました",
+                    )
+            }
+            // 並行削除で他 ID のフラグを消さないよう、自分が立てたときだけ解除する
+            if (uiState.deletingCredentialId == id) {
+                uiState = uiState.copy(deletingCredentialId = null)
             }
         }
     }

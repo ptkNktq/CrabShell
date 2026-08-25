@@ -32,3 +32,15 @@ data class PasskeyAuthenticateCompleteRequest(
 data class PasskeyAuthenticateResponse(
     val customToken: String,
 )
+
+@Serializable
+data class PasskeyCredentialInfo(
+    val id: Long,
+    val createdAt: String,
+    val transports: List<String> = emptyList(),
+)
+
+@Serializable
+data class PasskeyCredentialsResponse(
+    val credentials: List<PasskeyCredentialInfo>,
+)
