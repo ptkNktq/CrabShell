@@ -6,8 +6,8 @@ import java.util.concurrent.ConcurrentHashMap
 
 /**
  * WebAuthn チャレンジの一時保持。
- * キーはユーザー識別子（登録時は firebaseUid、認証時はメールアドレス）。
- * usernameless 認証（[generateAnonymous]）はユーザー識別子が存在しないため、
+ * キーはユーザー識別子（登録時の firebaseUid）。
+ * usernameless 認証（[generateAnonymous]）はユーザー識別子が事前にわからないため、
  * チャレンジ自体をキーにする。
  * 5分 TTL で自動削除。
  */
