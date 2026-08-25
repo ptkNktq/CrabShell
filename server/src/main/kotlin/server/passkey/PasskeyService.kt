@@ -151,6 +151,7 @@ object PasskeyService {
             PasskeyCredentials
                 .selectAll()
                 .where { PasskeyCredentials.firebaseUid eq firebaseUid }
+                .orderBy(PasskeyCredentials.createdAt)
                 .map {
                     CredentialRecord(
                         id = it[PasskeyCredentials.id],
