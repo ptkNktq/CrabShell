@@ -65,6 +65,20 @@ object PasskeyService {
         return Origin.create(originStr)
     }
 
+    /**
+     * clientDataJSON からチャレンジを抽出する。
+     * usernameless 認証ではユーザー識別子が事前にわからないため、
+     * [ChallengeStore.consumeAnonymous] の検証対象を得るために呼び出す。
+     */
+    fun extractChallenge(clientDataJSON: ByteArray): ByteArray {
+        val json = String(clientDataJSON, Charsets.UTF_8)
+        val parsed = Json.parseToJsonElement(json).jsonObject
+        val challengeStr =
+            parsed["challenge"]?.jsonPrimitive?.content
+                ?: throw IllegalArgumentException("clientDataJSON に challenge がありません")
+        return Base64.getUrlDecoder().decode(challengeStr)
+    }
+
     fun isRegistered(firebaseUid: String): Boolean =
         transaction {
             PasskeyCredentials

@@ -45,18 +45,10 @@ class PasskeyTest {
 
     @Test
     fun passkeyAuthenticateModelsRoundTrip() {
-        val optReq = PasskeyAuthenticateOptionsRequest(email = "a@b.com")
         val optRes = PasskeyAuthenticateOptionsResponse(optionsJson = """{"challenge":"x"}""")
-        val completeReq = PasskeyAuthenticateCompleteRequest(email = "a@b.com", authenticationResponseJSON = """{"id":"y"}""")
+        val completeReq = PasskeyAuthenticateCompleteRequest(authenticationResponseJSON = """{"id":"y"}""")
         val authRes = PasskeyAuthenticateResponse(customToken = "token123")
 
-        assertEquals(
-            optReq,
-            json.decodeFromString(
-                PasskeyAuthenticateOptionsRequest.serializer(),
-                json.encodeToString(PasskeyAuthenticateOptionsRequest.serializer(), optReq),
-            ),
-        )
         assertEquals(
             optRes,
             json.decodeFromString(

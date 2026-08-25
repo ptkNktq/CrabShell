@@ -13,7 +13,6 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import model.PasskeyAuthenticateCompleteRequest
-import model.PasskeyAuthenticateOptionsRequest
 import model.PasskeyAuthenticateOptionsResponse
 import model.PasskeyAuthenticateResponse
 import model.PasskeyRegisterCompleteRequest
@@ -168,19 +167,15 @@ fun Route.passkeyRoutes() {
 
         // 認証なしエンドポイント（レートリミット適用）
         rateLimit(RateLimitNames.PASSKEY_AUTH) {
-            // 認証オプション生成
+            // 認証オプション生成（usernameless: ユーザー識別子不要、discoverable credential から選択させる）
             post("/authenticate/options", {
                 tags = listOf("passkey")
                 summary = "パスキー認証オプション生成"
                 securitySchemeNames()
-                request {
-                    body<PasskeyAuthenticateOptionsRequest>()
-                }
                 response {
                     code(HttpStatusCode.OK) {
                         body<PasskeyAuthenticateOptionsResponse>()
                     }
-                    code(HttpStatusCode.BadRequest) { description = "認証不可" }
                     code(HttpStatusCode.ServiceUnavailable) { description = "パスキー機能無効" }
                 }
             }) {
@@ -190,25 +185,15 @@ fun Route.passkeyRoutes() {
                         mapOf("error" to "パスキー機能が無効です"),
                     )
                 }
-                val request = call.receive<PasskeyAuthenticateOptionsRequest>()
 
-                val user = FirebaseAdmin.getUserByEmail(request.email)
-                val credentials = user?.let { PasskeyService.findCredentialsByUid(it.uid) } ?: emptyList()
-                if (credentials.isEmpty()) {
-                    return@post call.respond(
-                        HttpStatusCode.BadRequest,
-                        mapOf("error" to "認証できません"),
-                    )
-                }
-
-                val challenge = ChallengeStore.generate(request.email)
+                val challenge = ChallengeStore.generateAnonymous()
                 val challengeBase64 = Base64.getUrlEncoder().withoutPadding().encodeToString(challenge)
 
                 val options =
                     RequestOptions(
                         challenge = challengeBase64,
                         rpId = PasskeyService.rpId,
-                        allowCredentials = credentials.map { it.toDescriptor() },
+                        allowCredentials = emptyList(),
                     )
                 val optionsJson = webAuthnJson.encodeToString(options)
 
@@ -241,10 +226,6 @@ fun Route.passkeyRoutes() {
 
                 val authError = mapOf("error" to "認証に失敗しました")
 
-                val challenge =
-                    ChallengeStore.consume(request.email)
-                        ?: return@post call.respond(HttpStatusCode.BadRequest, authError)
-
                 try {
                     val responseJson =
                         Json.parseToJsonElement(request.authenticationResponseJSON).jsonObject
@@ -255,6 +236,11 @@ fun Route.passkeyRoutes() {
                         Base64.getUrlDecoder().decode(
                             response["clientDataJSON"]!!.jsonPrimitive.content,
                         )
+
+                    val challenge =
+                        ChallengeStore.consumeAnonymous(PasskeyService.extractChallenge(clientDataJSON))
+                            ?: return@post call.respond(HttpStatusCode.BadRequest, authError)
+
                     val authenticatorDataBytes =
                         Base64.getUrlDecoder().decode(
                             response["authenticatorData"]!!.jsonPrimitive.content,

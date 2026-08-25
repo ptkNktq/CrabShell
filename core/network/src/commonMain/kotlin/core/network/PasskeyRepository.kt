@@ -7,5 +7,5 @@ interface PasskeyRepository {
 
     suspend fun registerPasskey(displayName: String? = null): Result<Unit>
 
-    suspend fun authenticateWithPasskey(email: String): Result<String>
+    suspend fun authenticateWithPasskey(): Result<String>
 }

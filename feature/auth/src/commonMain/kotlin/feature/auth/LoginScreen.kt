@@ -93,47 +93,6 @@ internal fun LoginContent(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // メールアドレス入力（両モードで共通）
-                    OutlinedTextField(
-                        value = email,
-                        onValueChange = onEmailChanged,
-                        label = { Text("メールアドレス") },
-                        leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
-                        singleLine = true,
-                        keyboardOptions =
-                            KeyboardOptions(
-                                keyboardType = KeyboardType.Email,
-                                imeAction =
-                                    if (loginMode == LoginMode.PASSKEY) {
-                                        ImeAction.Done
-                                    } else {
-                                        ImeAction.Next
-                                    },
-                            ),
-                        keyboardActions =
-                            if (loginMode == LoginMode.PASSKEY) {
-                                KeyboardActions(onDone = { onPasskeySignIn() })
-                            } else {
-                                KeyboardActions.Default
-                            },
-                        modifier =
-                            Modifier.fillMaxWidth().then(
-                                if (loginMode == LoginMode.PASSKEY) {
-                                    Modifier.onPreviewKeyEvent { event ->
-                                        if (event.key == Key.Enter && event.type == KeyEventType.KeyUp) {
-                                            onPasskeySignIn()
-                                            true
-                                        } else {
-                                            false
-                                        }
-                                    }
-                                } else {
-                                    Modifier
-                                },
-                            ),
-                        enabled = !isLoading,
-                    )
-
                     when (loginMode) {
                         LoginMode.PASSKEY -> {
                             PasskeyLoginSection(
@@ -144,10 +103,12 @@ internal fun LoginContent(
                         }
                         LoginMode.EMAIL_PASSWORD -> {
                             EmailPasswordLoginSection(
+                                email = email,
                                 password = password,
                                 passwordVisible = passwordVisible,
                                 isLoading = isLoading,
                                 isWebAuthnSupported = isWebAuthnSupported,
+                                onEmailChanged = onEmailChanged,
                                 onPasswordChanged = onPasswordChanged,
                                 onTogglePasswordVisibility = onTogglePasswordVisibility,
                                 onSignIn = onSignIn,
@@ -211,15 +172,32 @@ private fun PasskeyLoginSection(
 
 @Composable
 private fun EmailPasswordLoginSection(
+    email: String,
     password: String,
     passwordVisible: Boolean,
     isLoading: Boolean,
     isWebAuthnSupported: Boolean,
+    onEmailChanged: (String) -> Unit,
     onPasswordChanged: (String) -> Unit,
     onTogglePasswordVisibility: () -> Unit,
     onSignIn: () -> Unit,
     onSwitchToPasskey: () -> Unit,
 ) {
+    OutlinedTextField(
+        value = email,
+        onValueChange = onEmailChanged,
+        label = { Text("メールアドレス") },
+        leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+        singleLine = true,
+        keyboardOptions =
+            KeyboardOptions(
+                keyboardType = KeyboardType.Email,
+                imeAction = ImeAction.Next,
+            ),
+        modifier = Modifier.fillMaxWidth(),
+        enabled = !isLoading,
+    )
+
     OutlinedTextField(
         value = password,
         onValueChange = onPasswordChanged,

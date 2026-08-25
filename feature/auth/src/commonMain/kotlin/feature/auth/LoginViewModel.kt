@@ -108,14 +108,10 @@ class LoginViewModel(
     }
 
     fun onPasskeySignIn() {
-        if (uiState.email.isBlank()) {
-            uiState = uiState.copy(errorMessage = "メールアドレスを入力してください")
-            return
-        }
         uiState = uiState.copy(isLoading = true, errorMessage = null)
         viewModelScope.launch {
             passkeyRepository
-                .authenticateWithPasskey(uiState.email)
+                .authenticateWithPasskey()
                 .onSuccess { customToken ->
                     authStateHolder.signedInViaPasskey = true
                     val result = authRepository.signInWithCustomToken(customToken)

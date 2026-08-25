@@ -142,22 +142,13 @@ class LoginViewModelTest {
     }
 
     @Test
-    fun `passkey sign in with empty email shows error`() {
-        val viewModel = createViewModel()
-        viewModel.onPasskeySignIn()
-
-        assertEquals("メールアドレスを入力してください", viewModel.uiState.errorMessage)
-    }
-
-    @Test
     fun `successful passkey sign in sets signedInViaPasskey`() =
         runTest {
             val viewModel = createViewModel()
-            coEvery { passkeyRepository.authenticateWithPasskey("test@example.com") } returns
+            coEvery { passkeyRepository.authenticateWithPasskey() } returns
                 Result.success("custom-token")
             coEvery { authRepository.signInWithCustomToken("custom-token") } returns Result.success(Unit)
 
-            viewModel.onEmailChanged("test@example.com")
             viewModel.onPasskeySignIn()
             advanceUntilIdle()
 
@@ -171,12 +162,11 @@ class LoginViewModelTest {
     fun `passkey login history failure does not block sign in`() =
         runTest {
             val viewModel = createViewModel()
-            coEvery { passkeyRepository.authenticateWithPasskey("test@example.com") } returns
+            coEvery { passkeyRepository.authenticateWithPasskey() } returns
                 Result.success("custom-token")
             coEvery { authRepository.signInWithCustomToken("custom-token") } returns Result.success(Unit)
             coEvery { loginHistoryRepository.recordLogin(LoginMethod.PASSKEY) } throws RuntimeException("Network error")
 
-            viewModel.onEmailChanged("test@example.com")
             viewModel.onPasskeySignIn()
             advanceUntilIdle()
 
@@ -189,10 +179,9 @@ class LoginViewModelTest {
     fun `failed passkey authentication shows error`() =
         runTest {
             val viewModel = createViewModel()
-            coEvery { passkeyRepository.authenticateWithPasskey("test@example.com") } returns
+            coEvery { passkeyRepository.authenticateWithPasskey() } returns
                 Result.failure(Exception("Passkey failed"))
 
-            viewModel.onEmailChanged("test@example.com")
             viewModel.onPasskeySignIn()
             advanceUntilIdle()
 

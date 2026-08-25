@@ -53,6 +53,6 @@ data class CredentialDescriptor(
 
 @Serializable
 data class AuthenticatorSelection(
-    val residentKey: String = "preferred",
+    val residentKey: String = "required",
     val userVerification: String = "preferred",
 )
