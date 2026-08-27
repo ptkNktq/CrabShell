@@ -38,4 +38,28 @@ class ChallengeStoreTest {
         // 上書きされたので最後に生成した値が返る
         assertEquals(second.toList(), consumed.toList())
     }
+
+    @Test
+    fun generateAnonymousReturnsChallengeOf32Bytes() {
+        val challenge = ChallengeStore.generateAnonymous()
+        assertEquals(32, challenge.size)
+        // cleanup
+        ChallengeStore.consumeAnonymous(challenge)
+    }
+
+    @Test
+    fun consumeAnonymousReturnsChallengeAndRemovesIt() {
+        val challenge = ChallengeStore.generateAnonymous()
+        val consumed = ChallengeStore.consumeAnonymous(challenge)
+        assertNotNull(consumed)
+        assertEquals(challenge.toList(), consumed.toList())
+        // 2回目は null
+        assertNull(ChallengeStore.consumeAnonymous(challenge))
+    }
+
+    @Test
+    fun consumeAnonymousReturnsNullForUnissuedChallenge() {
+        val neverIssued = ByteArray(32) { it.toByte() }
+        assertNull(ChallengeStore.consumeAnonymous(neverIssued))
+    }
 }

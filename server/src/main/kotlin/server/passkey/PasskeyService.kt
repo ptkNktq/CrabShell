@@ -13,6 +13,7 @@ import com.webauthn4j.server.ServerProperty
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
@@ -63,6 +64,20 @@ object PasskeyService {
             )
         }
         return Origin.create(originStr)
+    }
+
+    /**
+     * clientDataJSON からチャレンジを抽出する。
+     * usernameless 認証ではユーザー識別子が事前にわからないため、
+     * [ChallengeStore.consumeAnonymous] の検証対象を得るために呼び出す。
+     */
+    fun extractChallenge(clientDataJSON: ByteArray): ByteArray {
+        val json = String(clientDataJSON, Charsets.UTF_8)
+        val parsed = Json.parseToJsonElement(json).jsonObject
+        val challengeStr =
+            parsed["challenge"]?.jsonPrimitive?.content
+                ?: throw IllegalArgumentException("clientDataJSON に challenge がありません")
+        return Base64.getUrlDecoder().decode(challengeStr)
     }
 
     fun isRegistered(firebaseUid: String): Boolean =
@@ -128,6 +143,7 @@ object PasskeyService {
         val publicKey: ByteArray,
         val counter: Long,
         val transports: String?,
+        val createdAt: Long,
     )
 
     fun findCredentialsByUid(firebaseUid: String): List<CredentialRecord> =
@@ -135,6 +151,7 @@ object PasskeyService {
             PasskeyCredentials
                 .selectAll()
                 .where { PasskeyCredentials.firebaseUid eq firebaseUid }
+                .orderBy(PasskeyCredentials.createdAt)
                 .map {
                     CredentialRecord(
                         id = it[PasskeyCredentials.id],
@@ -144,6 +161,7 @@ object PasskeyService {
                         publicKey = it[PasskeyCredentials.publicKey],
                         counter = it[PasskeyCredentials.counter],
                         transports = it[PasskeyCredentials.transports],
+                        createdAt = it[PasskeyCredentials.createdAt],
                     )
                 }
         }
@@ -163,6 +181,7 @@ object PasskeyService {
                         publicKey = it[PasskeyCredentials.publicKey],
                         counter = it[PasskeyCredentials.counter],
                         transports = it[PasskeyCredentials.transports],
+                        createdAt = it[PasskeyCredentials.createdAt],
                     )
                 }
         }
@@ -228,4 +247,19 @@ object PasskeyService {
             PasskeyCredentials.deleteWhere { PasskeyCredentials.firebaseUid eq firebaseUid }
         }
     }
+
+    /**
+     * 指定したユーザーが所有する 1 件のパスキーを削除する。
+     * firebaseUid の一致も条件に含めることで、他ユーザーの credential ID を誤って削除できないようにする。
+     * @return 削除できた場合 true、対象が存在しない（他ユーザーの ID を含む）場合 false
+     */
+    fun deleteCredential(
+        firebaseUid: String,
+        id: Long,
+    ): Boolean =
+        transaction {
+            PasskeyCredentials.deleteWhere {
+                (PasskeyCredentials.id eq id) and (PasskeyCredentials.firebaseUid eq firebaseUid)
+            }
+        } > 0
 }

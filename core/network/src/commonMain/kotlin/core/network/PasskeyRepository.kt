@@ -1,5 +1,6 @@
 package core.network
 
+import model.PasskeyCredentialInfo
 import model.PasskeyStatusResponse
 
 interface PasskeyRepository {
@@ -7,5 +8,9 @@ interface PasskeyRepository {
 
     suspend fun registerPasskey(displayName: String? = null): Result<Unit>
 
-    suspend fun authenticateWithPasskey(email: String): Result<String>
+    suspend fun authenticateWithPasskey(): Result<String>
+
+    suspend fun getPasskeyCredentials(): Result<List<PasskeyCredentialInfo>>
+
+    suspend fun deletePasskey(id: Long): Result<Unit>
 }

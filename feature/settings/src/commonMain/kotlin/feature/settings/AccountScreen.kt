@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
@@ -16,6 +17,7 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -34,6 +36,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import core.ui.components.AppButton
 import core.ui.components.AppIconButton
+import core.ui.util.formatIsoToJst
+import model.PasskeyCredentialInfo
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -50,6 +54,7 @@ internal fun AccountScreen(modifier: Modifier = Modifier) {
         onChangePassword = passwordVm::onChangePassword,
         passkeyState = passkeyVm.uiState,
         onRegisterPasskey = passkeyVm::onRegisterPasskey,
+        onDeletePasskey = passkeyVm::onDeletePasskey,
         loginHistoryState = loginHistoryVm.uiState,
         onRetryLoginHistory = loginHistoryVm::loadHistory,
         modifier = modifier,
@@ -65,6 +70,7 @@ internal fun AccountContent(
     onChangePassword: () -> Unit,
     passkeyState: PasskeyManagementUiState,
     onRegisterPasskey: () -> Unit,
+    onDeletePasskey: (Long) -> Unit,
     loginHistoryState: LoginHistoryUiState,
     onRetryLoginHistory: () -> Unit,
     modifier: Modifier = Modifier,
@@ -87,10 +93,13 @@ internal fun AccountContent(
         if (passkeyState.isAvailable) {
             PasskeyManagementCard(
                 credentialCount = passkeyState.credentialCount,
+                credentials = passkeyState.credentials,
                 isRegistering = passkeyState.isRegistering,
+                deletingCredentialId = passkeyState.deletingCredentialId,
                 errorMessage = passkeyState.errorMessage,
                 successMessage = passkeyState.successMessage,
                 onRegisterPasskey = onRegisterPasskey,
+                onDeletePasskey = onDeletePasskey,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -230,10 +239,13 @@ private fun PasswordChangeCard(
 @Composable
 private fun PasskeyManagementCard(
     credentialCount: Int,
+    credentials: List<PasskeyCredentialInfo>,
     isRegistering: Boolean,
+    deletingCredentialId: Long?,
     errorMessage: String?,
     successMessage: String?,
     onRegisterPasskey: () -> Unit,
+    onDeletePasskey: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -264,6 +276,27 @@ private fun PasskeyManagementCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
+            if (credentials.isNotEmpty()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    credentials.forEachIndexed { index, credential ->
+                        PasskeyCredentialRow(
+                            credential = credential,
+                            isDeleting = deletingCredentialId == credential.id,
+                            onDelete = { onDeletePasskey(credential.id) },
+                        )
+                        if (index < credentials.lastIndex) {
+                            HorizontalDivider(
+                                thickness = 1.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant,
+                            )
+                        }
+                    }
+                }
+            }
+
             if (errorMessage != null) {
                 Text(text = errorMessage, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
@@ -290,3 +323,60 @@ private fun PasskeyManagementCard(
         }
     }
 }
+
+@Composable
+private fun PasskeyCredentialRow(
+    credential: PasskeyCredentialInfo,
+    isDeleting: Boolean,
+    onDelete: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = "登録日: ${formatIsoToJst(credential.createdAt)}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            val transportLabels = credential.transports.map { transportLabel(it) }
+            if (transportLabels.isNotEmpty()) {
+                Text(
+                    text = transportLabels.joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        AppIconButton(onClick = onDelete, enabled = !isDeleting) {
+            if (isDeleting) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            } else {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "削除",
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+    }
+}
+
+/** WebAuthn の transport 値を日本語表示に変換する */
+private fun transportLabel(transport: String): String =
+    when (transport) {
+        "internal" -> "この端末"
+        "usb" -> "USBセキュリティキー"
+        "nfc" -> "NFC"
+        "ble" -> "Bluetooth"
+        "hybrid" -> "ハイブリッド"
+        "smart-card" -> "スマートカード"
+        else -> transport
+    }

@@ -9,9 +9,10 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import kotlinx.coroutines.await
 import model.PasskeyAuthenticateCompleteRequest
-import model.PasskeyAuthenticateOptionsRequest
 import model.PasskeyAuthenticateOptionsResponse
 import model.PasskeyAuthenticateResponse
+import model.PasskeyCredentialInfo
+import model.PasskeyCredentialsResponse
 import model.PasskeyRegisterCompleteRequest
 import model.PasskeyRegisterOptionsResponse
 import model.PasskeyStatusResponse
@@ -47,18 +48,16 @@ class PasskeyRepositoryImpl(
             }
         }
 
-    override suspend fun authenticateWithPasskey(email: String): Result<String> =
+    override suspend fun authenticateWithPasskey(): Result<String> =
         runCatching {
             // 認証なし HttpClient を使用
             val unauthClient = createUnauthenticatedClient()
             try {
-                // 1. サーバーからオプション取得
+                // 1. サーバーからオプション取得（usernameless: リクエストボディ不要）
                 val optionsResponse =
                     unauthClient
-                        .post("/api/passkey/authenticate/options") {
-                            contentType(ContentType.Application.Json)
-                            setBody(PasskeyAuthenticateOptionsRequest(email = email))
-                        }.body<PasskeyAuthenticateOptionsResponse>()
+                        .post("/api/passkey/authenticate/options")
+                        .body<PasskeyAuthenticateOptionsResponse>()
 
                 // 2. WebAuthn API 呼出
                 val credentialJson =
@@ -73,7 +72,6 @@ class PasskeyRepositoryImpl(
                             contentType(ContentType.Application.Json)
                             setBody(
                                 PasskeyAuthenticateCompleteRequest(
-                                    email = email,
                                     authenticationResponseJSON = credentialJson,
                                 ),
                             )
@@ -83,5 +81,15 @@ class PasskeyRepositoryImpl(
             } finally {
                 unauthClient.close()
             }
+        }
+
+    override suspend fun getPasskeyCredentials(): Result<List<PasskeyCredentialInfo>> =
+        runCatching {
+            httpClient.get("/api/passkey/credentials").body<PasskeyCredentialsResponse>().credentials
+        }
+
+    override suspend fun deletePasskey(id: Long): Result<Unit> =
+        runCatching {
+            httpClient.delete("/api/passkey/credentials/$id")
         }
 }

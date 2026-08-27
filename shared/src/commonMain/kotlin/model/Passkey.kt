@@ -19,22 +19,28 @@ data class PasskeyRegisterCompleteRequest(
 )
 
 @Serializable
-data class PasskeyAuthenticateOptionsRequest(
-    val email: String,
-)
-
-@Serializable
 data class PasskeyAuthenticateOptionsResponse(
     val optionsJson: String,
 )
 
 @Serializable
 data class PasskeyAuthenticateCompleteRequest(
-    val email: String,
     val authenticationResponseJSON: String,
 )
 
 @Serializable
 data class PasskeyAuthenticateResponse(
     val customToken: String,
+)
+
+@Serializable
+data class PasskeyCredentialInfo(
+    val id: Long,
+    val createdAt: String,
+    val transports: List<String> = emptyList(),
+)
+
+@Serializable
+data class PasskeyCredentialsResponse(
+    val credentials: List<PasskeyCredentialInfo>,
 )

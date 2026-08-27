@@ -45,18 +45,10 @@ class PasskeyTest {
 
     @Test
     fun passkeyAuthenticateModelsRoundTrip() {
-        val optReq = PasskeyAuthenticateOptionsRequest(email = "a@b.com")
         val optRes = PasskeyAuthenticateOptionsResponse(optionsJson = """{"challenge":"x"}""")
-        val completeReq = PasskeyAuthenticateCompleteRequest(email = "a@b.com", authenticationResponseJSON = """{"id":"y"}""")
+        val completeReq = PasskeyAuthenticateCompleteRequest(authenticationResponseJSON = """{"id":"y"}""")
         val authRes = PasskeyAuthenticateResponse(customToken = "token123")
 
-        assertEquals(
-            optReq,
-            json.decodeFromString(
-                PasskeyAuthenticateOptionsRequest.serializer(),
-                json.encodeToString(PasskeyAuthenticateOptionsRequest.serializer(), optReq),
-            ),
-        )
         assertEquals(
             optRes,
             json.decodeFromString(
@@ -78,5 +70,21 @@ class PasskeyTest {
                 json.encodeToString(PasskeyAuthenticateResponse.serializer(), authRes),
             ),
         )
+    }
+
+    @Test
+    fun passkeyCredentialsResponseRoundTrip() {
+        val response =
+            PasskeyCredentialsResponse(
+                credentials =
+                    listOf(
+                        PasskeyCredentialInfo(id = 1, createdAt = "2026-01-01T00:00:00Z", transports = listOf("internal")),
+                        PasskeyCredentialInfo(id = 2, createdAt = "2026-02-01T00:00:00Z"),
+                    ),
+            )
+        val encoded = json.encodeToString(PasskeyCredentialsResponse.serializer(), response)
+        val decoded = json.decodeFromString(PasskeyCredentialsResponse.serializer(), encoded)
+        assertEquals(response, decoded)
+        assertEquals(emptyList(), decoded.credentials[1].transports)
     }
 }

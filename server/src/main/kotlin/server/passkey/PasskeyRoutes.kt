@@ -1,5 +1,6 @@
 package server.passkey
 
+import io.github.smiley4.ktoropenapi.delete
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.*
@@ -7,15 +8,17 @@ import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.util.getOrFail
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import model.PasskeyAuthenticateCompleteRequest
-import model.PasskeyAuthenticateOptionsRequest
 import model.PasskeyAuthenticateOptionsResponse
 import model.PasskeyAuthenticateResponse
+import model.PasskeyCredentialInfo
+import model.PasskeyCredentialsResponse
 import model.PasskeyRegisterCompleteRequest
 import model.PasskeyRegisterOptionsResponse
 import model.PasskeyStatusResponse
@@ -24,6 +27,7 @@ import server.auth.FirebaseAdmin
 import server.auth.authenticated
 import server.auth.firebasePrincipal
 import server.ratelimit.RateLimitNames
+import java.time.Instant
 import java.util.Base64
 
 private val logger = LoggerFactory.getLogger("server.passkey.PasskeyRoutes")
@@ -164,23 +168,72 @@ fun Route.passkeyRoutes() {
                     )
                 }
             }
+
+            // 登録済みパスキー一覧
+            get("/credentials", {
+                tags = listOf("passkey")
+                summary = "登録済みパスキー一覧取得"
+                response {
+                    code(HttpStatusCode.OK) {
+                        body<PasskeyCredentialsResponse>()
+                    }
+                }
+            }) {
+                val uid = call.firebasePrincipal.uid
+                val credentials =
+                    PasskeyService.findCredentialsByUid(uid).map {
+                        PasskeyCredentialInfo(
+                            id = it.id,
+                            createdAt = Instant.ofEpochMilli(it.createdAt).toString(),
+                            transports = it.transports?.split(",") ?: emptyList(),
+                        )
+                    }
+                call.respond(PasskeyCredentialsResponse(credentials = credentials))
+            }
+
+            // パスキー削除
+            delete("/credentials/{id}", {
+                tags = listOf("passkey")
+                summary = "パスキー削除"
+                request {
+                    pathParameter<String>("id") { description = "削除対象のパスキー ID" }
+                }
+                response {
+                    code(HttpStatusCode.NoContent) { description = "削除成功" }
+                    code(HttpStatusCode.BadRequest) { description = "ID が不正" }
+                    code(HttpStatusCode.NotFound) { description = "対象のパスキーが見つからない" }
+                }
+            }) {
+                val uid = call.firebasePrincipal.uid
+                val id =
+                    call.parameters.getOrFail("id").toLongOrNull()
+                        ?: return@delete call.respond(
+                            HttpStatusCode.BadRequest,
+                            mapOf("error" to "ID が不正です"),
+                        )
+
+                if (PasskeyService.deleteCredential(uid, id)) {
+                    call.respond(HttpStatusCode.NoContent)
+                } else {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "対象のパスキーが見つかりません"),
+                    )
+                }
+            }
         }
 
         // 認証なしエンドポイント（レートリミット適用）
         rateLimit(RateLimitNames.PASSKEY_AUTH) {
-            // 認証オプション生成
+            // 認証オプション生成（usernameless: ユーザー識別子不要、discoverable credential から選択させる）
             post("/authenticate/options", {
                 tags = listOf("passkey")
                 summary = "パスキー認証オプション生成"
                 securitySchemeNames()
-                request {
-                    body<PasskeyAuthenticateOptionsRequest>()
-                }
                 response {
                     code(HttpStatusCode.OK) {
                         body<PasskeyAuthenticateOptionsResponse>()
                     }
-                    code(HttpStatusCode.BadRequest) { description = "認証不可" }
                     code(HttpStatusCode.ServiceUnavailable) { description = "パスキー機能無効" }
                 }
             }) {
@@ -190,25 +243,15 @@ fun Route.passkeyRoutes() {
                         mapOf("error" to "パスキー機能が無効です"),
                     )
                 }
-                val request = call.receive<PasskeyAuthenticateOptionsRequest>()
 
-                val user = FirebaseAdmin.getUserByEmail(request.email)
-                val credentials = user?.let { PasskeyService.findCredentialsByUid(it.uid) } ?: emptyList()
-                if (credentials.isEmpty()) {
-                    return@post call.respond(
-                        HttpStatusCode.BadRequest,
-                        mapOf("error" to "認証できません"),
-                    )
-                }
-
-                val challenge = ChallengeStore.generate(request.email)
+                val challenge = ChallengeStore.generateAnonymous()
                 val challengeBase64 = Base64.getUrlEncoder().withoutPadding().encodeToString(challenge)
 
                 val options =
                     RequestOptions(
                         challenge = challengeBase64,
                         rpId = PasskeyService.rpId,
-                        allowCredentials = credentials.map { it.toDescriptor() },
+                        allowCredentials = emptyList(),
                     )
                 val optionsJson = webAuthnJson.encodeToString(options)
 
@@ -241,10 +284,6 @@ fun Route.passkeyRoutes() {
 
                 val authError = mapOf("error" to "認証に失敗しました")
 
-                val challenge =
-                    ChallengeStore.consume(request.email)
-                        ?: return@post call.respond(HttpStatusCode.BadRequest, authError)
-
                 try {
                     val responseJson =
                         Json.parseToJsonElement(request.authenticationResponseJSON).jsonObject
@@ -255,6 +294,11 @@ fun Route.passkeyRoutes() {
                         Base64.getUrlDecoder().decode(
                             response["clientDataJSON"]!!.jsonPrimitive.content,
                         )
+
+                    val challenge =
+                        ChallengeStore.consumeAnonymous(PasskeyService.extractChallenge(clientDataJSON))
+                            ?: return@post call.respond(HttpStatusCode.BadRequest, authError)
+
                     val authenticatorDataBytes =
                         Base64.getUrlDecoder().decode(
                             response["authenticatorData"]!!.jsonPrimitive.content,
