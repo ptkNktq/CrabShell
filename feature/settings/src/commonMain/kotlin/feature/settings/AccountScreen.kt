@@ -344,7 +344,7 @@ private fun PasskeyCredentialRow(
             val transportLabels = credential.transports.map { transportLabel(it) }
             if (transportLabels.isNotEmpty()) {
                 Text(
-                    text = transportLabels.joinToString(" / "),
+                    text = transportLabels.joinToString(" · "),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
