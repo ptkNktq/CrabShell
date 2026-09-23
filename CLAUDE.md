@@ -167,7 +167,7 @@ app/                 → Screen enum + Sidebar + DrawerContent + NavigationItems
 
 MVVM パターンで関心事を分離: ViewModel がビジネスロジック・状態管理を担当し、Screen (Composable) は UI 描画のみ。
 
-ViewModel のスコープはログインセッション単位。`AuthenticatedAppContent` が `Authenticated` 状態のツリーを `key(uid) { SessionViewModelStoreOwner { … } }` で包み、サインアウト・ユーザー切り替え時に全 ViewModel を clear する（ルートの ViewModelStoreOwner はページ全体で1つのため、これがないと再ログイン後もエラー状態や前ユーザーのデータを持った ViewModel が使い回される）。`koinViewModel()` はこの Owner から取得されるため、各画面側で意識する必要はない。
+ViewModel のスコープはログインセッション単位。`AuthenticatedAppContent` が `Authenticated` 状態のツリーを `key(uid) { SessionViewModelStoreOwner { … } }` で包み、サインアウト・ユーザー切り替え時に認証済みツリー配下の全 ViewModel を clear する（ルートの ViewModelStoreOwner はページ全体で1つのため、これがないと再ログイン後もエラー状態や前ユーザーのデータを持った ViewModel が使い回される）。`koinViewModel()` はこの Owner から取得されるため、各画面側で意識する必要はない。例外として `LoginViewModel` はログイン完了後の履歴記録を完走させるため意図的にルートの ViewModelStore に置いており、ログイン成功時にパスワード入力を破棄する。
 
 The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the frontend build output into the server's static resources during `processResources`, making the final server artifact self-contained.
 

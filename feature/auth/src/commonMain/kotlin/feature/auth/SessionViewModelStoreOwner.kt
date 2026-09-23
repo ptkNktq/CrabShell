@@ -16,6 +16,11 @@ import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
  * 再ログイン時に使い回されてしまう。本 Composable がコンポジションから外れた時点
  * （= 認証済みツリーが破棄された時点）で [ViewModelStore.clear] し、
  * 次回ログイン時は ViewModel を新規生成させる。
+ *
+ * [remember] はキーなしのため、ユーザー単位で分離したい場合は呼び出し側で `key(uid)` と併用すること。
+ *
+ * lifecycle 2.11.0 以降では同等の公式 API `rememberViewModelStoreOwner` が提供されている。
+ * 本プロジェクトは lifecycle 2.10.0 のため自前実装としている。
  */
 @Composable
 fun SessionViewModelStoreOwner(content: @Composable () -> Unit) {

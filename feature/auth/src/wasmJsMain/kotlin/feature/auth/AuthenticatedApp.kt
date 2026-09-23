@@ -75,6 +75,9 @@ internal fun AuthenticatedAppContent(
             }
         }
         is AuthState.Unauthenticated -> {
+            // LoginViewModel はセッションスコープ外（ルートの ViewModelStore）に置く。
+            // ログイン成功で Authenticated に切り替わり LoginScreen が破棄された後も、
+            // viewModelScope 上のログイン履歴記録を完走させるため。
             LoginScreen()
         }
         is AuthState.Authenticated -> {

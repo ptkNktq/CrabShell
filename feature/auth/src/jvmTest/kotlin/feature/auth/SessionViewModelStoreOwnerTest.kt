@@ -90,7 +90,7 @@ class SessionViewModelStoreOwnerTest {
             scene.render()
             val first = assertNotNull(vm)
 
-            // 同一ユーザーのまま再コンポーズ（トークンリフレッシュ相当）では維持される
+            // 同じ key のまま content が再コンポーズされても維持される
             tick++
             scene.recompose()
             assertSame(first, vm)
