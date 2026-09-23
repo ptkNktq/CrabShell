@@ -20,7 +20,7 @@ private const val TAG = "SignInService"
  * viewModelScope 上でサインイン → 履歴記録を行うと記録が失われるため、アプリ全体で生存する
  * [externalScope] 上で実行し、呼び出し元はその結果を await するだけにする。
  *
- * @param externalScope 画面より長く生存するスコープ。子の失敗が兄弟に波及しないよう SupervisorJob を持たせること。
+ * @param externalScope 画面より長く生存するスコープ。本番では [core.common.ApplicationScope] を注入する。
  */
 class SignInService(
     private val authRepository: AuthRepository,
