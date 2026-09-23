@@ -29,6 +29,7 @@ koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
 koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
 
 # Lifecycle ViewModel (Compose Multiplatform)
+lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel", version.ref = "lifecycle" }
 lifecycle-viewmodel-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 
 # AboutLibraries (OSS ライセンス収集・JSON パーサ。Compose UI は使わず core のみ)
@@ -83,7 +84,7 @@ ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx
 ktor-server = ["ktor-server-core", "ktor-server-netty", "ktor-server-content-negotiation", "ktor-server-auth", "ktor-server-host-common", "ktor-server-status-pages", "ktor-server-body-limit", "ktor-server-rate-limit", "ktor-server-forwarded-header", "ktor-server-call-logging", "ktor-serialization-kotlinx-json-jvm"]
 ktor-client = ["ktor-client-core", "ktor-client-content-negotiation", "ktor-serialization-kotlinx-json"]
 koin = ["koin-core", "koin-compose", "koin-compose-viewmodel"]
-feature = ["koin-core", "koin-compose", "koin-compose-viewmodel", "lifecycle-viewmodel-compose"]
+feature = ["koin-core", "koin-compose", "koin-compose-viewmodel", "lifecycle-viewmodel", "lifecycle-viewmodel-compose"]
 exposed = ["exposed-core", "exposed-jdbc"]
 
 [plugins]
