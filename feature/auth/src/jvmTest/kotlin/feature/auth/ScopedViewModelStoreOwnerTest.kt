@@ -1,7 +1,6 @@
 package feature.auth
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
@@ -37,7 +36,7 @@ class ScopedViewModelStoreOwnerTest {
         var vm: FakeViewModel? = null
         ImageComposeScene(width = 10, height = 10) {
             if (signedIn) {
-                ScopedViewModelStoreOwner { vm = viewModel { FakeViewModel() } }
+                ScopedViewModelStoreOwner(scopeKey = "scope") { vm = viewModel { FakeViewModel() } }
             }
         }.use { scene ->
             scene.render()
@@ -57,7 +56,7 @@ class ScopedViewModelStoreOwnerTest {
         var vm: FakeViewModel? = null
         ImageComposeScene(width = 10, height = 10) {
             if (signedIn) {
-                ScopedViewModelStoreOwner { vm = viewModel { FakeViewModel() } }
+                ScopedViewModelStoreOwner(scopeKey = "scope") { vm = viewModel { FakeViewModel() } }
             }
         }.use { scene ->
             scene.render()
@@ -80,11 +79,9 @@ class ScopedViewModelStoreOwnerTest {
         var tick by mutableStateOf(0)
         var vm: FakeViewModel? = null
         ImageComposeScene(width = 10, height = 10) {
-            key(uid) {
-                ScopedViewModelStoreOwner {
-                    tick
-                    vm = viewModel { FakeViewModel() }
-                }
+            ScopedViewModelStoreOwner(scopeKey = uid) {
+                tick
+                vm = viewModel { FakeViewModel() }
             }
         }.use { scene ->
             scene.render()
@@ -96,7 +93,7 @@ class ScopedViewModelStoreOwnerTest {
             assertSame(first, vm)
             assertFalse(first.cleared)
 
-            // ユーザーが切り替わると破棄されて新規生成される
+            // キーが変わると破棄されて新規生成される
             uid = "user-b"
             scene.recompose()
             assertTrue(first.cleared)

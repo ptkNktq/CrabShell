@@ -8,7 +8,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -60,39 +59,37 @@ internal fun AuthenticatedAppContent(
 ) {
     // 認証状態（とユーザー）ごとに ViewModelStore を分け、切り替わるたびに配下の ViewModel をすべて破棄する。
     // ログイン画面の LoginViewModel も含め、前の状態の ViewModel が次の状態に持ち越されない。
-    key(authState.viewModelScopeKey()) {
-        ScopedViewModelStoreOwner {
-            when (authState) {
-                is AuthState.Loading -> {
-                    MaterialTheme(colorScheme = AppColorScheme) {
-                        Surface(
+    ScopedViewModelStoreOwner(authState.viewModelScopeKey()) {
+        when (authState) {
+            is AuthState.Loading -> {
+                MaterialTheme(colorScheme = AppColorScheme) {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background,
+                    ) {
+                        Box(
                             modifier = Modifier.fillMaxSize(),
-                            color = MaterialTheme.colorScheme.background,
+                            contentAlignment = Alignment.Center,
                         ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                CircularProgressIndicator()
-                            }
+                            CircularProgressIndicator()
                         }
                     }
                 }
-                is AuthState.Unauthenticated -> {
-                    LoginScreen()
+            }
+            is AuthState.Unauthenticated -> {
+                LoginScreen()
+            }
+            is AuthState.Authenticated -> {
+                var passkeySetupDone by remember {
+                    mutableStateOf(
+                        signedInViaPasskey ||
+                            window.localStorage.getItem("passkey_registered") == "true",
+                    )
                 }
-                is AuthState.Authenticated -> {
-                    var passkeySetupDone by remember {
-                        mutableStateOf(
-                            signedInViaPasskey ||
-                                window.localStorage.getItem("passkey_registered") == "true",
-                        )
-                    }
-                    if (passkeySetupDone) {
-                        authenticatedContent()
-                    } else {
-                        PasskeySetupScreen(onSetupComplete = { passkeySetupDone = true })
-                    }
+                if (passkeySetupDone) {
+                    authenticatedContent()
+                } else {
+                    PasskeySetupScreen(onSetupComplete = { passkeySetupDone = true })
                 }
             }
         }
