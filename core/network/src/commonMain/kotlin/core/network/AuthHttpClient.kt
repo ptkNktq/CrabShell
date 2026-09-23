@@ -84,7 +84,9 @@ internal fun HttpClientConfig<*>.configureAuthenticatedClient(authRepository: Au
     install(FirebaseIdTokenAuth) {
         this.authRepository = authRepository
     }
-    // FirebaseIdTokenAuth で強制更新したトークンでも 401 の場合のみ、ここで 401 に到達する
+    // FirebaseIdTokenAuth で強制更新したトークンでも 401 の場合のみ、ここで 401 に到達する。
+    // レスポンス検証は FirebaseIdTokenAuth の on(Send) による再送が終わった後の最終レスポンスに対して行われるため、
+    // 1 回目の 401 ではサインアウトしない（AuthHttpClientTest の再送テストでこの順序を担保している）
     HttpResponseValidator {
         validateResponse { response ->
             if (response.status == HttpStatusCode.Unauthorized) {
@@ -115,6 +117,10 @@ private class FirebaseIdTokenAuthConfig {
  *
  * トークン取得に失敗した場合、セッション無効ならサインアウトし、ネットワーク断などの一時的な失敗なら
  * サインアウトせずにエラーにする（通信断だけで強制ログアウトさせないため）。
+ *
+ * 再送時はリクエストをそのまま再利用するため、JSON など再送可能なボディを前提とする。
+ * 一度しか読めないボディ（ストリーミングアップロード等）を認証付きクライアントで送る場合は、再送方法の見直しが必要。
+ * また、同時に複数のリクエストが 401 を受けた場合はそれぞれが強制更新を行う（トークンは送信前に更新されるため稀）。
  *
  * @see <a href="https://ktor.io/docs/client-custom-plugins.html">Ktor client custom plugins（on(Send) フック）</a>
  */
