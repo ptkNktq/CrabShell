@@ -21,7 +21,7 @@ Kotlin Multiplatform のダッシュボードアプリケーション。Ktor サ
 
 MVVM パターンで関心事を分離。ViewModel がビジネスロジック・状態管理を担当し、Screen (Composable) は UI 描画のみ。
 
-ViewModel は認証状態単位でスコープされる（`feature:auth` の `ScopedViewModelStoreOwner`）。ログイン・サインアウト・ユーザー切り替えのたびにログイン画面を含む全画面の ViewModel が破棄され、次の状態では新規生成される。画面破棄後も完走させる必要があるサインイン直後のログイン履歴記録は、アプリ全体スコープで動く `SignInService` が担う。
+ViewModel は認証状態単位でスコープされる（`feature:auth` の `ScopedViewModelStoreOwner`）。ログイン・サインアウト・ユーザー切り替えのたびにログイン画面を含む全画面の ViewModel が破棄され、次の状態では新規生成される。画面破棄後も完走させる必要があるサインイン直後のログイン履歴記録は、アプリ全体で 1 つの `ApplicationScope`（`core:common`）上で動く `SignInService` が担う。
 
 モジュールは4層に分かれる:
 
