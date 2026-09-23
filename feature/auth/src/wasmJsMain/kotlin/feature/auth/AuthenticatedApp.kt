@@ -51,14 +51,18 @@ fun AuthenticatedApp(authenticatedContent: @Composable () -> Unit) {
     )
 }
 
+/**
+ * 認証状態に応じてローディング・ログイン画面・認証済みコンテンツを出し分ける。
+ *
+ * 認証状態（とユーザー）ごとに ViewModelStore を分け、切り替わるたびに配下の ViewModel をすべて破棄する。
+ * ログイン画面の LoginViewModel も含め、前の状態の ViewModel が次の状態に持ち越されない。
+ */
 @Composable
 internal fun AuthenticatedAppContent(
     authState: AuthState,
     signedInViaPasskey: Boolean,
     authenticatedContent: @Composable () -> Unit,
 ) {
-    // 認証状態（とユーザー）ごとに ViewModelStore を分け、切り替わるたびに配下の ViewModel をすべて破棄する。
-    // ログイン画面の LoginViewModel も含め、前の状態の ViewModel が次の状態に持ち越されない。
     ScopedViewModelStoreOwner(authState.viewModelScopeKey()) {
         when (authState) {
             is AuthState.Loading -> {

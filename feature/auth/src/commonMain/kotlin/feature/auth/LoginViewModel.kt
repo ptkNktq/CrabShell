@@ -63,10 +63,14 @@ class LoginViewModel(
         uiState = uiState.copy(loginMode = LoginMode.EMAIL_PASSWORD, errorMessage = null)
     }
 
-    // サインイン成功時は認証状態の切り替わりで本 ViewModel ごと破棄されるため、
-    // サインイン本体と履歴記録は SignInWithHistoryService 側（画面より長く生存するスコープ）で行う。
-    // 成功時は isLoading を戻さない。認証状態が切り替わるまでの間にボタンが再度押せる状態に戻り、
-    // 二重送信の隙ができるのを防ぐため。
+    /**
+     * メールアドレス・パスワードでサインインする。
+     *
+     * サインイン成功時は認証状態の切り替わりで本 ViewModel ごと破棄されるため、
+     * サインイン本体と履歴記録は [SignInWithHistoryService] 側（画面より長く生存するスコープ）で行う。
+     * 成功時は isLoading を戻さない。認証状態が切り替わるまでの間にボタンが再度押せる状態に戻り、
+     * 二重送信の隙ができるのを防ぐため。[onPasskeySignIn] も同様。
+     */
     fun onSignIn() {
         if (uiState.email.isBlank() || uiState.password.isBlank()) {
             uiState = uiState.copy(errorMessage = "メールアドレスとパスワードを入力してください")
@@ -87,6 +91,7 @@ class LoginViewModel(
         uiState = uiState.copy(isLoading = false, errorMessage = e.message ?: defaultMessage)
     }
 
+    /** パスキーで認証し、発行されたカスタムトークンでサインインする。成功時の扱いは [onSignIn] と同じ。 */
     fun onPasskeySignIn() {
         uiState = uiState.copy(isLoading = true, errorMessage = null)
         viewModelScope.launch {

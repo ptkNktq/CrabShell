@@ -13,7 +13,8 @@ private const val TAG = "ApplicationScope"
  * DI でシングルトンとして提供し、必要なサービスに注入して使う（例: サインイン直後のログイン履歴記録）。
  *
  * - 子の失敗が兄弟に波及しないよう [SupervisorJob] を持つ
- * - UI 状態（Compose の snapshot state）に触れる処理もあるため、viewModelScope と同じく Main で実行する
+ * - UI 状態（Compose の snapshot state）に触れる処理もあるため Main で実行する。
+ *   viewModelScope は Main.immediate だが、ここでは呼び出し元と同じフレームで即時実行する必要がないため Main とする
  * - launch した子で取りこぼした例外がグローバルハンドラへ抜けないよう、最終防御としてログに残す。
  *   async の例外は Deferred に保持され await 側へ再スローされるため、このハンドラには届かない
  */
