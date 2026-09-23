@@ -138,7 +138,7 @@ core/previewscreenshot/ → PreviewScreenshotRecorder（PNG 保存 + manifest.ts
                        JVM のみのプレーンな Kotlin モジュール（KMP ではない）。Depends on :core:ui, compose.desktop.currentOs
 
 feature/auth/        → LoginViewModel + LoginScreen + LoginContent、PasskeySetupContent、
-                       ScopedViewModelStoreOwner（認証状態ごとの ViewModelStore。切り替わりで clear）、
+                       ScopedViewModelStoreOwner（認証状態ごとの ViewModelStore。公式 rememberViewModelStoreOwner を利用し切り替わりで clear）、
                        AuthStateScopeKey（認証状態 → ViewModelStore のスコープキー）、
                        SignInService（サインイン + ログイン履歴記録を ApplicationScope で実行）(commonMain)
                        AuthenticatedApp + PasskeySetupViewModel + PasskeySetupScreen (wasmJsMain)
