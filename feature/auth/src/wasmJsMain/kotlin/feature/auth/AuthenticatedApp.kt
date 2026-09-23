@@ -8,6 +8,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -77,16 +78,23 @@ internal fun AuthenticatedAppContent(
             LoginScreen()
         }
         is AuthState.Authenticated -> {
-            var passkeySetupDone by remember {
-                mutableStateOf(
-                    signedInViaPasskey ||
-                        window.localStorage.getItem("passkey_registered") == "true",
-                )
-            }
-            if (passkeySetupDone) {
-                authenticatedContent()
-            } else {
-                PasskeySetupScreen(onSetupComplete = { passkeySetupDone = true })
+            // ユーザー単位で ViewModel を分離する。トークンリフレッシュで Authenticated が
+            // 再生成されても uid が同じなら ViewModel は維持され、サインアウト
+            // （Unauthenticated への遷移）やユーザー切り替えで破棄される。
+            key(authState.user.uid) {
+                SessionViewModelStoreOwner {
+                    var passkeySetupDone by remember {
+                        mutableStateOf(
+                            signedInViaPasskey ||
+                                window.localStorage.getItem("passkey_registered") == "true",
+                        )
+                    }
+                    if (passkeySetupDone) {
+                        authenticatedContent()
+                    } else {
+                        PasskeySetupScreen(onSetupComplete = { passkeySetupDone = true })
+                    }
+                }
             }
         }
     }

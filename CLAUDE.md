@@ -137,7 +137,8 @@ core/previewscreenshot/ → PreviewScreenshotRecorder（PNG 保存 + manifest.ts
                        各 feature モジュール/app の previewScreenshotTest から testImplementation で参照される
                        JVM のみのプレーンな Kotlin モジュール（KMP ではない）。Depends on :core:ui, compose.desktop.currentOs
 
-feature/auth/        → LoginViewModel + LoginScreen + LoginContent、PasskeySetupContent (commonMain)
+feature/auth/        → LoginViewModel + LoginScreen + LoginContent、PasskeySetupContent、
+                       SessionViewModelStoreOwner（ログインセッション単位の ViewModelStore。サインアウトで clear）(commonMain)
                        AuthenticatedApp + PasskeySetupViewModel + PasskeySetupScreen (wasmJsMain)
                        Depends on :core:auth, :core:common, :core:network, :core:ui
 feature/dashboard/   → DashboardContent (commonMain) / DashboardViewModel + DashboardScreen (wasmJsMain)
@@ -165,6 +166,8 @@ app/                 → Screen enum + Sidebar + DrawerContent + NavigationItems
 ```
 
 MVVM パターンで関心事を分離: ViewModel がビジネスロジック・状態管理を担当し、Screen (Composable) は UI 描画のみ。
+
+ViewModel のスコープはログインセッション単位。`AuthenticatedAppContent` が `Authenticated` 状態のツリーを `key(uid) { SessionViewModelStoreOwner { … } }` で包み、サインアウト・ユーザー切り替え時に全 ViewModel を clear する（ルートの ViewModelStoreOwner はページ全体で1つのため、これがないと再ログイン後もエラー状態や前ユーザーのデータを持った ViewModel が使い回される）。`koinViewModel()` はこの Owner から取得されるため、各画面側で意識する必要はない。
 
 The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the frontend build output into the server's static resources during `processResources`, making the final server artifact self-contained.
 
@@ -195,7 +198,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Core theme (commonMain): `core/ui/src/commonMain/kotlin/core/ui/theme/` (Color.kt, Theme.kt, Typography.kt)
 - Core UI (commonMain): `core/ui/src/commonMain/kotlin/core/ui/` (util/DateUtils.kt, components/CalendarView.kt)
 - Core previewscreenshot: `core/previewscreenshot/src/main/kotlin/core/previewscreenshot/PreviewScreenshotRecorder.kt`
-- Feature auth (commonMain): `feature/auth/src/commonMain/kotlin/feature/auth/` (LoginViewModel, LoginScreen, LoginContent, PasskeySetupContent)
+- Feature auth (commonMain): `feature/auth/src/commonMain/kotlin/feature/auth/` (LoginViewModel, LoginScreen, LoginContent, PasskeySetupContent, SessionViewModelStoreOwner)
 - Feature auth (wasmJsMain): `feature/auth/src/wasmJsMain/kotlin/feature/auth/` (AuthenticatedApp, PasskeySetupViewModel, PasskeySetupScreen)
 - Feature settings (commonMain): `feature/settings/src/commonMain/kotlin/feature/settings/` (全ファイル。Screen/Content 分離済み。ペット設定も PetSettingsViewModel / PetSettingsCard として同居)
 - Feature dashboard (commonMain): `feature/dashboard/src/commonMain/kotlin/feature/dashboard/` (DashboardContent)
