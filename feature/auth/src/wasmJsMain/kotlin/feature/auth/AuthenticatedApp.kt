@@ -60,14 +60,7 @@ internal fun AuthenticatedAppContent(
 ) {
     // 認証状態（とユーザー）ごとに ViewModelStore を分け、切り替わるたびに配下の ViewModel をすべて破棄する。
     // ログイン画面の LoginViewModel も含め、前の状態の ViewModel が次の状態に持ち越されない。
-    // トークンリフレッシュで Authenticated が再生成されても uid が同じならキーは変わらず維持される。
-    val scopeKey =
-        when (authState) {
-            is AuthState.Loading -> "loading"
-            is AuthState.Unauthenticated -> "unauthenticated"
-            is AuthState.Authenticated -> "authenticated:${authState.user.uid}"
-        }
-    key(scopeKey) {
+    key(authState.viewModelScopeKey()) {
         ScopedViewModelStoreOwner {
             when (authState) {
                 is AuthState.Loading -> {
