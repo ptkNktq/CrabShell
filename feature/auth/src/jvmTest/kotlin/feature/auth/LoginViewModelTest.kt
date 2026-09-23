@@ -94,6 +94,37 @@ class LoginViewModelTest {
         }
 
     @Test
+    fun `successful sign in clears password input`() =
+        runTest {
+            val viewModel = createViewModel()
+            coEvery { authRepository.signIn("test@example.com", "password") } returns Result.success(Unit)
+
+            viewModel.onEmailChanged("test@example.com")
+            viewModel.onPasswordChanged("password")
+            viewModel.onTogglePasswordVisibility()
+            viewModel.onSignIn()
+            advanceUntilIdle()
+
+            assertEquals("", viewModel.uiState.password)
+            assertFalse(viewModel.uiState.isPasswordVisible)
+        }
+
+    @Test
+    fun `failed sign in keeps password input for retry`() =
+        runTest {
+            val viewModel = createViewModel()
+            coEvery { authRepository.signIn("test@example.com", "wrong") } returns
+                Result.failure(Exception("Invalid credentials"))
+
+            viewModel.onEmailChanged("test@example.com")
+            viewModel.onPasswordChanged("wrong")
+            viewModel.onSignIn()
+            advanceUntilIdle()
+
+            assertEquals("wrong", viewModel.uiState.password)
+        }
+
+    @Test
     fun `login history failure does not block sign in`() =
         runTest {
             val viewModel = createViewModel()
@@ -156,6 +187,24 @@ class LoginViewModelTest {
             assertFalse(viewModel.uiState.isLoading)
             assertNull(viewModel.uiState.errorMessage)
             coVerify { loginHistoryRepository.recordLogin(LoginMethod.PASSKEY) }
+        }
+
+    @Test
+    fun `successful passkey sign in clears password input`() =
+        runTest {
+            val viewModel = createViewModel()
+            coEvery { passkeyRepository.authenticateWithPasskey() } returns
+                Result.success("custom-token")
+            coEvery { authRepository.signInWithCustomToken("custom-token") } returns Result.success(Unit)
+
+            // メール/パスワードモードで入力した後にパスキーへ切り替えてログインしたケース
+            viewModel.onSwitchToEmailPassword()
+            viewModel.onPasswordChanged("password")
+            viewModel.onSwitchToPasskey()
+            viewModel.onPasskeySignIn()
+            advanceUntilIdle()
+
+            assertEquals("", viewModel.uiState.password)
         }
 
     @Test

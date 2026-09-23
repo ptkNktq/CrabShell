@@ -86,6 +86,15 @@ class LoginViewModel(
         }
     }
 
+    /**
+     * ログイン成功時に入力済みパスワードを破棄する。
+     * 本 ViewModel はログイン完了後の履歴記録を完走させるためルートの ViewModelStore に置かれ、
+     * サインアウト後のログイン画面で再利用される。パスワードを残すと次にログイン画面を開いた人に見えてしまう。
+     */
+    private fun clearPasswordInput() {
+        uiState = uiState.copy(password = "", isPasswordVisible = false)
+    }
+
     fun onSignIn() {
         if (uiState.email.isBlank() || uiState.password.isBlank()) {
             uiState = uiState.copy(errorMessage = "メールアドレスとパスワードを入力してください")
@@ -95,6 +104,7 @@ class LoginViewModel(
         viewModelScope.launch {
             val result = authRepository.signIn(uiState.email, uiState.password)
             if (result.isSuccess) {
+                clearPasswordInput()
                 recordLoginWithTimeout(LoginMethod.EMAIL)
             }
             uiState = uiState.copy(isLoading = false)
@@ -116,6 +126,7 @@ class LoginViewModel(
                     authStateHolder.signedInViaPasskey = true
                     val result = authRepository.signInWithCustomToken(customToken)
                     if (result.isSuccess) {
+                        clearPasswordInput()
                         recordLoginWithTimeout(LoginMethod.PASSKEY)
                     }
                     uiState = uiState.copy(isLoading = false)
