@@ -2,7 +2,6 @@ package feature.auth
 
 import core.auth.AuthRepository
 import core.auth.AuthStateHolder
-import core.network.LoginHistoryRepository
 import core.network.PasskeyRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -15,7 +14,6 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import model.LoginMethod
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -30,7 +28,7 @@ class LoginViewModelTest {
     private lateinit var authRepository: AuthRepository
     private lateinit var passkeyRepository: PasskeyRepository
     private lateinit var authStateHolder: AuthStateHolder
-    private lateinit var loginHistoryRepository: LoginHistoryRepository
+    private lateinit var signInWithHistoryService: SignInWithHistoryService
 
     @BeforeTest
     fun setUp() {
@@ -38,7 +36,7 @@ class LoginViewModelTest {
         authRepository = mockk()
         passkeyRepository = mockk()
         authStateHolder = AuthStateHolder()
-        loginHistoryRepository = mockk(relaxed = true)
+        signInWithHistoryService = mockk()
     }
 
     @AfterTest
@@ -48,7 +46,7 @@ class LoginViewModelTest {
 
     private fun createViewModel(webAuthnSupported: Boolean = true): LoginViewModel {
         every { authRepository.isWebAuthnSupported() } returns webAuthnSupported
-        return LoginViewModel(authRepository, passkeyRepository, authStateHolder, loginHistoryRepository)
+        return LoginViewModel(authRepository, passkeyRepository, authStateHolder, signInWithHistoryService)
     }
 
     @Test
@@ -78,42 +76,27 @@ class LoginViewModelTest {
     }
 
     @Test
-    fun `successful sign in sets isLoading to false`() =
+    fun `successful sign in keeps isLoading until auth state switches`() =
         runTest {
             val viewModel = createViewModel()
-            coEvery { authRepository.signIn("test@example.com", "password") } returns Result.success(Unit)
+            coEvery { signInWithHistoryService.signInWithEmail("test@example.com", "password") } returns Result.success(Unit)
 
             viewModel.onEmailChanged("test@example.com")
             viewModel.onPasswordChanged("password")
             viewModel.onSignIn()
             advanceUntilIdle()
 
-            assertFalse(viewModel.uiState.isLoading)
+            // 成功時は認証状態の切り替わりで画面ごと破棄されるため、ボタンを押せる状態には戻さない
+            assertTrue(viewModel.uiState.isLoading)
             assertNull(viewModel.uiState.errorMessage)
-            coVerify { loginHistoryRepository.recordLogin(LoginMethod.EMAIL) }
-        }
-
-    @Test
-    fun `login history failure does not block sign in`() =
-        runTest {
-            val viewModel = createViewModel()
-            coEvery { authRepository.signIn("test@example.com", "password") } returns Result.success(Unit)
-            coEvery { loginHistoryRepository.recordLogin(LoginMethod.EMAIL) } throws RuntimeException("Network error")
-
-            viewModel.onEmailChanged("test@example.com")
-            viewModel.onPasswordChanged("password")
-            viewModel.onSignIn()
-            advanceUntilIdle()
-
-            assertFalse(viewModel.uiState.isLoading)
-            assertNull(viewModel.uiState.errorMessage)
+            coVerify { signInWithHistoryService.signInWithEmail("test@example.com", "password") }
         }
 
     @Test
     fun `failed sign in shows error message`() =
         runTest {
             val viewModel = createViewModel()
-            coEvery { authRepository.signIn("test@example.com", "wrong") } returns
+            coEvery { signInWithHistoryService.signInWithEmail("test@example.com", "wrong") } returns
                 Result.failure(Exception("Invalid credentials"))
 
             viewModel.onEmailChanged("test@example.com")
@@ -147,32 +130,31 @@ class LoginViewModelTest {
             val viewModel = createViewModel()
             coEvery { passkeyRepository.authenticateWithPasskey() } returns
                 Result.success("custom-token")
-            coEvery { authRepository.signInWithCustomToken("custom-token") } returns Result.success(Unit)
+            coEvery { signInWithHistoryService.signInWithCustomToken("custom-token") } returns Result.success(Unit)
 
             viewModel.onPasskeySignIn()
             advanceUntilIdle()
 
             assertTrue(authStateHolder.signedInViaPasskey)
-            assertFalse(viewModel.uiState.isLoading)
+            assertTrue(viewModel.uiState.isLoading)
             assertNull(viewModel.uiState.errorMessage)
-            coVerify { loginHistoryRepository.recordLogin(LoginMethod.PASSKEY) }
+            coVerify { signInWithHistoryService.signInWithCustomToken("custom-token") }
         }
 
     @Test
-    fun `passkey login history failure does not block sign in`() =
+    fun `failed custom token sign in shows error`() =
         runTest {
             val viewModel = createViewModel()
             coEvery { passkeyRepository.authenticateWithPasskey() } returns
                 Result.success("custom-token")
-            coEvery { authRepository.signInWithCustomToken("custom-token") } returns Result.success(Unit)
-            coEvery { loginHistoryRepository.recordLogin(LoginMethod.PASSKEY) } throws RuntimeException("Network error")
+            coEvery { signInWithHistoryService.signInWithCustomToken("custom-token") } returns
+                Result.failure(Exception("Token rejected"))
 
             viewModel.onPasskeySignIn()
             advanceUntilIdle()
 
-            assertTrue(authStateHolder.signedInViaPasskey)
             assertFalse(viewModel.uiState.isLoading)
-            assertNull(viewModel.uiState.errorMessage)
+            assertEquals("Token rejected", viewModel.uiState.errorMessage)
         }
 
     @Test

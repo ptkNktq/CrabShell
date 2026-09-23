@@ -51,42 +51,50 @@ fun AuthenticatedApp(authenticatedContent: @Composable () -> Unit) {
     )
 }
 
+/**
+ * 認証状態に応じてローディング・ログイン画面・認証済みコンテンツを出し分ける。
+ *
+ * 認証状態（とユーザー）ごとに ViewModelStore を分け、切り替わるたびに配下の ViewModel をすべて破棄する。
+ * ログイン画面の LoginViewModel も含め、前の状態の ViewModel が次の状態に持ち越されない。
+ */
 @Composable
 internal fun AuthenticatedAppContent(
     authState: AuthState,
     signedInViaPasskey: Boolean,
     authenticatedContent: @Composable () -> Unit,
 ) {
-    when (authState) {
-        is AuthState.Loading -> {
-            MaterialTheme(colorScheme = AppColorScheme) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background,
-                ) {
-                    Box(
+    ScopedViewModelStoreOwner(authState.viewModelScopeKey()) {
+        when (authState) {
+            is AuthState.Loading -> {
+                MaterialTheme(colorScheme = AppColorScheme) {
+                    Surface(
                         modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
+                        color = MaterialTheme.colorScheme.background,
                     ) {
-                        CircularProgressIndicator()
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CircularProgressIndicator()
+                        }
                     }
                 }
             }
-        }
-        is AuthState.Unauthenticated -> {
-            LoginScreen()
-        }
-        is AuthState.Authenticated -> {
-            var passkeySetupDone by remember {
-                mutableStateOf(
-                    signedInViaPasskey ||
-                        window.localStorage.getItem("passkey_registered") == "true",
-                )
+            is AuthState.Unauthenticated -> {
+                LoginScreen()
             }
-            if (passkeySetupDone) {
-                authenticatedContent()
-            } else {
-                PasskeySetupScreen(onSetupComplete = { passkeySetupDone = true })
+            is AuthState.Authenticated -> {
+                var passkeySetupDone by remember {
+                    mutableStateOf(
+                        signedInViaPasskey ||
+                            window.localStorage.getItem("passkey_registered") == "true",
+                    )
+                }
+                if (passkeySetupDone) {
+                    authenticatedContent()
+                } else {
+                    PasskeySetupScreen(onSetupComplete = { passkeySetupDone = true })
+                }
             }
         }
     }
