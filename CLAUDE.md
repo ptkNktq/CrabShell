@@ -168,7 +168,7 @@ app/                 → Screen enum + Sidebar + DrawerContent + NavigationItems
 
 MVVM パターンで関心事を分離: ViewModel がビジネスロジック・状態管理を担当し、Screen (Composable) は UI 描画のみ。
 
-ViewModel のスコープは認証状態単位。`AuthenticatedAppContent` が認証状態（Loading / Unauthenticated / Authenticated + uid）ごとのキーで `key(scopeKey) { ScopedViewModelStoreOwner { … } }` と包み、ログイン・サインアウト・ユーザー切り替えのたびに `LoginViewModel` を含む全 ViewModel を clear する（ルートの ViewModelStoreOwner はページ全体で1つのため、これがないと再ログイン後もエラー状態や前ユーザーのデータを持った ViewModel が使い回される）。`koinViewModel()` はこの Owner から取得されるため、各画面側で意識する必要はない。画面の破棄後も完走させる必要がある処理（サインイン直後のログイン履歴記録など）は viewModelScope ではなく、アプリ全体で生存する `CoroutineScope` を持つシングルトン（例: `SignInService`）で実行し、ViewModel からは `externalScope.async { … }.await()` で結果だけを待つ。
+ViewModel のスコープは認証状態単位。`AuthenticatedAppContent` が認証状態（Loading / Unauthenticated / Authenticated + uid）ごとのキーで `key(scopeKey) { ScopedViewModelStoreOwner { … } }` と包み、ログイン・サインアウト・ユーザー切り替えのたびに `LoginViewModel` を含む全 ViewModel を clear する（ルートの ViewModelStoreOwner はページ全体で1つのため、これがないと再ログイン後もエラー状態や前ユーザーのデータを持った ViewModel が使い回される）。`koinViewModel()` はこの Owner から取得されるため、各画面側で意識する必要はない。画面の破棄後も完走させる必要がある処理（サインイン直後のログイン履歴記録など）は viewModelScope ではなく、アプリ全体で生存する `CoroutineScope` を持つシングルトン（例: `SignInService`）で実行する。シングルトン内部で `externalScope.async { … }.await()` し、ViewModel はそのサービスの suspend 関数を呼んで結果を待つだけにする（ViewModel 側は `externalScope` を知らない）。
 
 The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the frontend build output into the server's static resources during `processResources`, making the final server artifact self-contained.
 

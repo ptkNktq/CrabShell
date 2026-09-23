@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import model.LoginMethod
+import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -26,19 +27,22 @@ class SignInServiceTest {
     private lateinit var authRepository: AuthRepository
     private lateinit var loginHistoryRepository: LoginHistoryRepository
 
+    /** アプリ全体スコープ相当。呼び出し元（ViewModel 相当）のスコープとは独立させる。 */
+    private lateinit var serviceScope: CoroutineScope
+
     @BeforeTest
     fun setUp() {
         authRepository = mockk()
         loginHistoryRepository = mockk(relaxed = true)
+        serviceScope = CoroutineScope(SupervisorJob() + testDispatcher)
     }
 
-    /** アプリ全体スコープ相当。呼び出し元（ViewModel 相当）のスコープとは独立させる。 */
-    private fun createService(): SignInService =
-        SignInService(
-            authRepository,
-            loginHistoryRepository,
-            CoroutineScope(SupervisorJob() + testDispatcher),
-        )
+    @AfterTest
+    fun tearDown() {
+        serviceScope.cancel()
+    }
+
+    private fun createService(): SignInService = SignInService(authRepository, loginHistoryRepository, serviceScope)
 
     @Test
     fun `successful email sign in records login history`() =
@@ -111,6 +115,7 @@ class SignInServiceTest {
             signInGate.complete(Unit)
             advanceUntilIdle()
 
+            coVerify(exactly = 1) { authRepository.signIn("a@example.com", "pw") }
             coVerify(exactly = 1) { loginHistoryRepository.recordLogin(LoginMethod.EMAIL) }
         }
 }

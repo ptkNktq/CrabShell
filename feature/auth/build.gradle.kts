@@ -11,7 +11,7 @@ kotlin {
             implementation(project(":core:ui"))
         }
         jvmTest.dependencies {
-            // SessionViewModelStoreOwnerTest で ImageComposeScene によりコンポジションを駆動するため
+            // ScopedViewModelStoreOwnerTest で ImageComposeScene によりコンポジションを駆動するため
             implementation(compose.desktop.currentOs)
         }
     }
