@@ -9,7 +9,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import model.LoginMethod
 
-private const val TAG = "SignInService"
+private const val TAG = "SignInWithHistoryService"
 
 /**
  * サインインとログイン履歴の記録を、呼び出し元（[LoginViewModel]）のライフサイクルから切り離して実行する。
@@ -22,7 +22,7 @@ private const val TAG = "SignInService"
  *
  * @param externalScope 画面より長く生存するスコープ。本番では [core.common.ApplicationScope] を注入する。
  */
-class SignInService(
+class SignInWithHistoryService(
     private val authRepository: AuthRepository,
     private val loginHistoryRepository: LoginHistoryRepository,
     private val externalScope: CoroutineScope,
@@ -30,17 +30,17 @@ class SignInService(
     suspend fun signInWithEmail(
         email: String,
         password: String,
-    ): Result<Unit> = signInOutsideCaller(LoginMethod.EMAIL) { authRepository.signIn(email, password) }
+    ): Result<Unit> = signInAndRecordHistory(LoginMethod.EMAIL) { authRepository.signIn(email, password) }
 
     suspend fun signInWithCustomToken(token: String): Result<Unit> =
-        signInOutsideCaller(LoginMethod.PASSKEY) { authRepository.signInWithCustomToken(token) }
+        signInAndRecordHistory(LoginMethod.PASSKEY) { authRepository.signInWithCustomToken(token) }
 
     /**
      * [signIn] を [externalScope] 上で実行し、成功したら履歴記録を投げっぱなしで開始する。
      * 呼び出し元がキャンセルされても await が中断されるだけで、サインインと記録は完走する。
      * 記録の完了は待たない（記録の失敗・遅延でログインをブロックしない）。
      */
-    private suspend fun signInOutsideCaller(
+    private suspend fun signInAndRecordHistory(
         method: LoginMethod,
         signIn: suspend () -> Result<Unit>,
     ): Result<Unit> =

@@ -22,7 +22,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class SignInServiceTest {
+class SignInWithHistoryServiceTest {
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var authRepository: AuthRepository
     private lateinit var loginHistoryRepository: LoginHistoryRepository
@@ -42,7 +42,7 @@ class SignInServiceTest {
         serviceScope.cancel()
     }
 
-    private fun createService(): SignInService = SignInService(authRepository, loginHistoryRepository, serviceScope)
+    private fun createService(): SignInWithHistoryService = SignInWithHistoryService(authRepository, loginHistoryRepository, serviceScope)
 
     @Test
     fun `successful email sign in records login history`() =

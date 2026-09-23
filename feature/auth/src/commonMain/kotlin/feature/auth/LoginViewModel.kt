@@ -29,7 +29,7 @@ class LoginViewModel(
     authRepository: AuthRepository,
     private val passkeyRepository: PasskeyRepository,
     private val authStateHolder: AuthStateHolder,
-    private val signInService: SignInService,
+    private val signInWithHistoryService: SignInWithHistoryService,
 ) : ViewModel() {
     var uiState by mutableStateOf(LoginUiState())
         private set
@@ -64,7 +64,7 @@ class LoginViewModel(
     }
 
     // サインイン成功時は認証状態の切り替わりで本 ViewModel ごと破棄されるため、
-    // サインイン本体と履歴記録は SignInService 側（画面より長く生存するスコープ）で行う。
+    // サインイン本体と履歴記録は SignInWithHistoryService 側（画面より長く生存するスコープ）で行う。
     // 成功時は isLoading を戻さない。認証状態が切り替わるまでの間にボタンが再度押せる状態に戻り、
     // 二重送信の隙ができるのを防ぐため。
     fun onSignIn() {
@@ -74,7 +74,7 @@ class LoginViewModel(
         }
         uiState = uiState.copy(isLoading = true, errorMessage = null)
         viewModelScope.launch {
-            signInService
+            signInWithHistoryService
                 .signInWithEmail(uiState.email, uiState.password)
                 .onFailure { showSignInError(it, "認証に失敗しました") }
         }
@@ -94,7 +94,7 @@ class LoginViewModel(
                 .authenticateWithPasskey()
                 .onSuccess { customToken ->
                     authStateHolder.signedInViaPasskey = true
-                    signInService
+                    signInWithHistoryService
                         .signInWithCustomToken(customToken)
                         .onFailure { showSignInError(it, "認証に失敗しました") }
                 }.onFailure { showSignInError(it, "パスキー認証に失敗しました") }

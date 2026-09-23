@@ -28,7 +28,7 @@ class LoginViewModelTest {
     private lateinit var authRepository: AuthRepository
     private lateinit var passkeyRepository: PasskeyRepository
     private lateinit var authStateHolder: AuthStateHolder
-    private lateinit var signInService: SignInService
+    private lateinit var signInWithHistoryService: SignInWithHistoryService
 
     @BeforeTest
     fun setUp() {
@@ -36,7 +36,7 @@ class LoginViewModelTest {
         authRepository = mockk()
         passkeyRepository = mockk()
         authStateHolder = AuthStateHolder()
-        signInService = mockk()
+        signInWithHistoryService = mockk()
     }
 
     @AfterTest
@@ -46,7 +46,7 @@ class LoginViewModelTest {
 
     private fun createViewModel(webAuthnSupported: Boolean = true): LoginViewModel {
         every { authRepository.isWebAuthnSupported() } returns webAuthnSupported
-        return LoginViewModel(authRepository, passkeyRepository, authStateHolder, signInService)
+        return LoginViewModel(authRepository, passkeyRepository, authStateHolder, signInWithHistoryService)
     }
 
     @Test
@@ -79,7 +79,7 @@ class LoginViewModelTest {
     fun `successful sign in keeps isLoading until auth state switches`() =
         runTest {
             val viewModel = createViewModel()
-            coEvery { signInService.signInWithEmail("test@example.com", "password") } returns Result.success(Unit)
+            coEvery { signInWithHistoryService.signInWithEmail("test@example.com", "password") } returns Result.success(Unit)
 
             viewModel.onEmailChanged("test@example.com")
             viewModel.onPasswordChanged("password")
@@ -89,14 +89,14 @@ class LoginViewModelTest {
             // 成功時は認証状態の切り替わりで画面ごと破棄されるため、ボタンを押せる状態には戻さない
             assertTrue(viewModel.uiState.isLoading)
             assertNull(viewModel.uiState.errorMessage)
-            coVerify { signInService.signInWithEmail("test@example.com", "password") }
+            coVerify { signInWithHistoryService.signInWithEmail("test@example.com", "password") }
         }
 
     @Test
     fun `failed sign in shows error message`() =
         runTest {
             val viewModel = createViewModel()
-            coEvery { signInService.signInWithEmail("test@example.com", "wrong") } returns
+            coEvery { signInWithHistoryService.signInWithEmail("test@example.com", "wrong") } returns
                 Result.failure(Exception("Invalid credentials"))
 
             viewModel.onEmailChanged("test@example.com")
@@ -130,7 +130,7 @@ class LoginViewModelTest {
             val viewModel = createViewModel()
             coEvery { passkeyRepository.authenticateWithPasskey() } returns
                 Result.success("custom-token")
-            coEvery { signInService.signInWithCustomToken("custom-token") } returns Result.success(Unit)
+            coEvery { signInWithHistoryService.signInWithCustomToken("custom-token") } returns Result.success(Unit)
 
             viewModel.onPasskeySignIn()
             advanceUntilIdle()
@@ -138,7 +138,7 @@ class LoginViewModelTest {
             assertTrue(authStateHolder.signedInViaPasskey)
             assertTrue(viewModel.uiState.isLoading)
             assertNull(viewModel.uiState.errorMessage)
-            coVerify { signInService.signInWithCustomToken("custom-token") }
+            coVerify { signInWithHistoryService.signInWithCustomToken("custom-token") }
         }
 
     @Test
@@ -147,7 +147,7 @@ class LoginViewModelTest {
             val viewModel = createViewModel()
             coEvery { passkeyRepository.authenticateWithPasskey() } returns
                 Result.success("custom-token")
-            coEvery { signInService.signInWithCustomToken("custom-token") } returns
+            coEvery { signInWithHistoryService.signInWithCustomToken("custom-token") } returns
                 Result.failure(Exception("Token rejected"))
 
             viewModel.onPasskeySignIn()
