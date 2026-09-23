@@ -31,13 +31,14 @@ fun AuthenticatedApp(authenticatedContent: @Composable () -> Unit) {
     val authRepository = koinInject<AuthRepository>()
     val tabResumedEvent = koinInject<TabResumedEvent>()
 
-    // バックグラウンド復帰時にトークンリフレッシュ → 完了後に各画面へ通知
+    // バックグラウンド復帰時に Custom Claims（isAdmin）を取り込み → 完了後に各画面へ通知
+    // （ID トークン自体は各 API リクエスト時に取得・必要に応じて更新されるため、ここでの更新は不要）
     val scope = rememberCoroutineScope()
     DisposableEffect(Unit) {
         val handler =
             addPageVisibleListener {
                 scope.launch {
-                    authRepository.refreshToken()
+                    authRepository.refreshClaims()
                     tabResumedEvent.emit()
                 }
             }

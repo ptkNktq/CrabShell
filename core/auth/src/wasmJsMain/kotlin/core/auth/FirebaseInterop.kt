@@ -24,9 +24,26 @@ external fun signInWithEmailAndPassword(
 @JsFun("(auth) => auth.signOut()")
 external fun firebaseSignOut(auth: JsAny): Promise<JsAny?>
 
-// 現在のユーザーの IDトークンを取得 → Promise<string> を返す
-@JsFun("(auth) => auth.currentUser ? auth.currentUser.getIdToken() : Promise.resolve(null)")
-external fun getIdToken(auth: JsAny): Promise<JsAny?>
+// 現在のユーザーの IDトークンを取得 → Promise<{ token, error }> を返す（未サインイン時は null）
+// 失敗時も reject せず、Firebase のエラーコード（例: auth/network-request-failed）を error に入れて resolve する。
+// Kotlin/Wasm 側で JS 例外からエラーコードを取り出せないため、JS 側で変換する。
+@JsFun(
+    """(auth, forceRefresh) => {
+    if (!auth.currentUser) return Promise.resolve(null);
+    return auth.currentUser.getIdToken(forceRefresh).then(
+        (token) => ({ token: token, error: null }),
+        (e) => ({ token: null, error: (e && e.code) || 'unknown' })
+    );
+}""",
+)
+external fun getIdTokenOrError(
+    auth: JsAny,
+    forceRefresh: Boolean,
+): Promise<JsAny?>
+
+// getIdTokenOrError の結果からエラーコードを取得（成功時は null）
+@JsFun("(obj) => obj.error")
+external fun getErrorCodeFromResult(obj: JsAny): JsString?
 
 // IDトークン結果（token + custom claims）を取得 → Promise<{ token, isAdmin }> を返す
 @JsFun(

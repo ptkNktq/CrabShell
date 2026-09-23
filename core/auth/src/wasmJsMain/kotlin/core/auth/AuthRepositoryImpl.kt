@@ -17,9 +17,8 @@ class AuthRepositoryImpl(
         onAuthStateChanged(
             auth = auth,
             onUser = { uid: JsString, email: JsString, displayName: JsString ->
-                // ユーザーがサインイン中 → IDトークン + Custom Claims を取得して状態更新
+                // ユーザーがサインイン中 → Custom Claims（isAdmin）を取得して状態更新
                 getIdTokenResult(auth).then<Nothing?> { resultJs ->
-                    val token = resultJs?.let { getTokenFromResult(it).toString() } ?: ""
                     val isAdmin = resultJs?.let { getIsAdminFromResult(it).toBoolean() } ?: false
                     val user =
                         User(
@@ -29,7 +28,7 @@ class AuthRepositoryImpl(
                             isAdmin = isAdmin,
                         )
                     AppLogger.i(TAG, "Authenticated: ${user.email} (admin=$isAdmin)")
-                    authStateHolder.setAuthenticated(user, token)
+                    authStateHolder.setAuthenticated(user)
                     null
                 }
             },
@@ -47,11 +46,6 @@ class AuthRepositoryImpl(
         try {
             AppLogger.d(TAG, "Signing in: $email")
             signInWithEmailAndPassword(auth, email.toJsString(), password.toJsString()).await<Nothing?>()
-            // onAuthStateChanged コールバックは非同期に走るため、signIn 成功直後に
-            // idToken を取得して AuthStateHolder に反映する。これをしないと
-            // 直後の API リクエスト（ログイン履歴記録等）が Authorization ヘッダ無しで
-            // 送信され、401 → forceRefresh リトライの無駄打ちが発生する。
-            updateIdTokenImmediately()
             Result.success(Unit)
         } catch (e: Throwable) {
             AppLogger.e(TAG, "Sign-in failed: ${e.message}")
@@ -90,57 +84,36 @@ class AuthRepositoryImpl(
         try {
             AppLogger.d(TAG, "Signing in with custom token (passkey)")
             signInWithCustomToken(auth, token.toJsString()).await<Nothing?>()
-            updateIdTokenImmediately()
             Result.success(Unit)
         } catch (e: Throwable) {
             AppLogger.e(TAG, "Custom token sign-in failed: ${e.message}")
             Result.failure(e)
         }
 
-    /**
-     * サインイン直後の idToken を同期的に取得して [AuthStateHolder] に反映する。
-     * onAuthStateChanged コールバック経由の状態更新より先に、続く API リクエストで
-     * Authorization ヘッダを確実に付けるための処置。取得に失敗しても signIn 自体は成功扱いとする
-     * （onAuthStateChanged が後続で状態を埋めるため）。
-     *
-     * なお onAuthStateChanged 側でも再度 getIdTokenResult が走るが、Firebase JS SDK は
-     * 有効な ID Token をメモリキャッシュするため 2 回目は HTTP リクエストなしで解決される。
-     */
-    private suspend fun updateIdTokenImmediately() {
-        try {
-            val resultJs = getIdTokenResult(auth).await<JsAny?>()
-            val token = resultJs?.let { getTokenFromResult(it).toString() }
-            if (token != null) {
-                authStateHolder.idToken = token
-            }
-        } catch (e: Throwable) {
-            AppLogger.w(TAG, "Failed to fetch idToken immediately after sign-in: ${e.message}")
-        }
-    }
-
     override fun isWebAuthnSupported(): Boolean = isWebAuthnAvailable()
 
-    override suspend fun refreshToken(): String? =
-        try {
-            AppLogger.d(TAG, "Refreshing token")
-            val resultJs = forceRefreshIdToken(auth).await<JsAny?>()
-            val token = resultJs?.let { getTokenFromResult(it).toString() }
-            if (token != null) {
-                val isAdmin = getIsAdminFromResult(resultJs).toBoolean()
-                val currentState = authStateHolder.state
-                if (currentState is AuthState.Authenticated) {
-                    authStateHolder.setAuthenticated(
-                        currentState.user.copy(isAdmin = isAdmin),
-                        token,
-                    )
-                } else {
-                    authStateHolder.idToken = token
-                }
-                AppLogger.d(TAG, "Token refreshed")
-            }
-            token
-        } catch (e: Throwable) {
-            AppLogger.e(TAG, "Token refresh failed: ${e.message}")
-            null
+    override suspend fun getIdToken(forceRefresh: Boolean): IdTokenResult {
+        // getIdTokenOrError は reject せず、失敗時は Firebase のエラーコードを返す（JS 側で変換済み）
+        val resultJs = getIdTokenOrError(auth, forceRefresh).await<JsAny?>() ?: return IdTokenResult.SignedOut
+        val errorCode = getErrorCodeFromResult(resultJs)?.toString()
+        if (errorCode != null) {
+            AppLogger.w(TAG, "Failed to get ID token (forceRefresh=$forceRefresh): $errorCode")
+            return IdTokenResult.failureOf(errorCode)
         }
+        return IdTokenResult.Success(getTokenFromResult(resultJs).toString())
+    }
+
+    override suspend fun refreshClaims() {
+        try {
+            AppLogger.d(TAG, "Refreshing claims")
+            val resultJs = forceRefreshIdToken(auth).await<JsAny?>() ?: return
+            val isAdmin = getIsAdminFromResult(resultJs).toBoolean()
+            val currentState = authStateHolder.state
+            if (currentState is AuthState.Authenticated) {
+                authStateHolder.setAuthenticated(currentState.user.copy(isAdmin = isAdmin))
+            }
+        } catch (e: Throwable) {
+            AppLogger.w(TAG, "Claims refresh failed: ${e.message}")
+        }
+    }
 }

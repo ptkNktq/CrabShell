@@ -13,5 +13,10 @@ kotlin {
 
             implementation(libs.koin.core)
         }
+        jvmTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.ktor.client.mock)
+            implementation(libs.kotlinx.coroutines.test)
+        }
     }
 }
