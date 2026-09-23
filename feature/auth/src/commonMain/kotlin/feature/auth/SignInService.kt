@@ -58,7 +58,8 @@ class SignInService(
             loginHistoryRepository.recordLogin(method)
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            // Kotlin/Wasm では JS 由来の例外が Exception ではない JsException（Throwable 直下）で届くため Throwable で捕捉する
             AppLogger.w(TAG, "Failed to record login history: ${e.message}")
         }
     }
