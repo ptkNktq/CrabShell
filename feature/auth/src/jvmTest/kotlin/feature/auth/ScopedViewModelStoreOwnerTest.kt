@@ -16,7 +16,7 @@ import kotlin.test.assertNotSame
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
-class SessionViewModelStoreOwnerTest {
+class ScopedViewModelStoreOwnerTest {
     private class FakeViewModel : ViewModel() {
         var cleared = false
             private set
@@ -37,7 +37,7 @@ class SessionViewModelStoreOwnerTest {
         var vm: FakeViewModel? = null
         ImageComposeScene(width = 10, height = 10) {
             if (signedIn) {
-                SessionViewModelStoreOwner { vm = viewModel { FakeViewModel() } }
+                ScopedViewModelStoreOwner { vm = viewModel { FakeViewModel() } }
             }
         }.use { scene ->
             scene.render()
@@ -57,7 +57,7 @@ class SessionViewModelStoreOwnerTest {
         var vm: FakeViewModel? = null
         ImageComposeScene(width = 10, height = 10) {
             if (signedIn) {
-                SessionViewModelStoreOwner { vm = viewModel { FakeViewModel() } }
+                ScopedViewModelStoreOwner { vm = viewModel { FakeViewModel() } }
             }
         }.use { scene ->
             scene.render()
@@ -81,7 +81,7 @@ class SessionViewModelStoreOwnerTest {
         var vm: FakeViewModel? = null
         ImageComposeScene(width = 10, height = 10) {
             key(uid) {
-                SessionViewModelStoreOwner {
+                ScopedViewModelStoreOwner {
                     tick
                     vm = viewModel { FakeViewModel() }
                 }

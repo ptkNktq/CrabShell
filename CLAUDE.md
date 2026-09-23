@@ -138,7 +138,8 @@ core/previewscreenshot/ → PreviewScreenshotRecorder（PNG 保存 + manifest.ts
                        JVM のみのプレーンな Kotlin モジュール（KMP ではない）。Depends on :core:ui, compose.desktop.currentOs
 
 feature/auth/        → LoginViewModel + LoginScreen + LoginContent、PasskeySetupContent、
-                       SessionViewModelStoreOwner（ログインセッション単位の ViewModelStore。サインアウトで clear）(commonMain)
+                       ScopedViewModelStoreOwner（認証状態ごとの ViewModelStore。切り替わりで clear）、
+                       SignInService（サインイン + ログイン履歴記録をアプリ全体スコープで実行）(commonMain)
                        AuthenticatedApp + PasskeySetupViewModel + PasskeySetupScreen (wasmJsMain)
                        Depends on :core:auth, :core:common, :core:network, :core:ui
 feature/dashboard/   → DashboardContent (commonMain) / DashboardViewModel + DashboardScreen (wasmJsMain)
@@ -167,7 +168,7 @@ app/                 → Screen enum + Sidebar + DrawerContent + NavigationItems
 
 MVVM パターンで関心事を分離: ViewModel がビジネスロジック・状態管理を担当し、Screen (Composable) は UI 描画のみ。
 
-ViewModel のスコープはログインセッション単位。`AuthenticatedAppContent` が `Authenticated` 状態のツリーを `key(uid) { SessionViewModelStoreOwner { … } }` で包み、サインアウト・ユーザー切り替え時に認証済みツリー配下の全 ViewModel を clear する（ルートの ViewModelStoreOwner はページ全体で1つのため、これがないと再ログイン後もエラー状態や前ユーザーのデータを持った ViewModel が使い回される）。`koinViewModel()` はこの Owner から取得されるため、各画面側で意識する必要はない。例外として `LoginViewModel` はログイン完了後の履歴記録を完走させるため意図的にルートの ViewModelStore に置いており、ログイン成功時にパスワード入力を破棄する。
+ViewModel のスコープは認証状態単位。`AuthenticatedAppContent` が認証状態（Loading / Unauthenticated / Authenticated + uid）ごとのキーで `key(scopeKey) { ScopedViewModelStoreOwner { … } }` と包み、ログイン・サインアウト・ユーザー切り替えのたびに `LoginViewModel` を含む全 ViewModel を clear する（ルートの ViewModelStoreOwner はページ全体で1つのため、これがないと再ログイン後もエラー状態や前ユーザーのデータを持った ViewModel が使い回される）。`koinViewModel()` はこの Owner から取得されるため、各画面側で意識する必要はない。画面の破棄後も完走させる必要がある処理（サインイン直後のログイン履歴記録など）は viewModelScope ではなく、アプリ全体で生存する `CoroutineScope` を持つシングルトン（例: `SignInService`）で実行し、ViewModel からは `externalScope.async { … }.await()` で結果だけを待つ。
 
 The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the frontend build output into the server's static resources during `processResources`, making the final server artifact self-contained.
 
@@ -198,7 +199,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Core theme (commonMain): `core/ui/src/commonMain/kotlin/core/ui/theme/` (Color.kt, Theme.kt, Typography.kt)
 - Core UI (commonMain): `core/ui/src/commonMain/kotlin/core/ui/` (util/DateUtils.kt, components/CalendarView.kt)
 - Core previewscreenshot: `core/previewscreenshot/src/main/kotlin/core/previewscreenshot/PreviewScreenshotRecorder.kt`
-- Feature auth (commonMain): `feature/auth/src/commonMain/kotlin/feature/auth/` (LoginViewModel, LoginScreen, LoginContent, PasskeySetupContent, SessionViewModelStoreOwner)
+- Feature auth (commonMain): `feature/auth/src/commonMain/kotlin/feature/auth/` (LoginViewModel, LoginScreen, LoginContent, PasskeySetupContent, ScopedViewModelStoreOwner, SignInService)
 - Feature auth (wasmJsMain): `feature/auth/src/wasmJsMain/kotlin/feature/auth/` (AuthenticatedApp, PasskeySetupViewModel, PasskeySetupScreen)
 - Feature settings (commonMain): `feature/settings/src/commonMain/kotlin/feature/settings/` (全ファイル。Screen/Content 分離済み。ペット設定も PetSettingsViewModel / PetSettingsCard として同居)
 - Feature dashboard (commonMain): `feature/dashboard/src/commonMain/kotlin/feature/dashboard/` (DashboardContent)

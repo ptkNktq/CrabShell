@@ -58,34 +58,37 @@ internal fun AuthenticatedAppContent(
     signedInViaPasskey: Boolean,
     authenticatedContent: @Composable () -> Unit,
 ) {
-    when (authState) {
-        is AuthState.Loading -> {
-            MaterialTheme(colorScheme = AppColorScheme) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background,
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator()
+    // 認証状態（とユーザー）ごとに ViewModelStore を分け、切り替わるたびに配下の ViewModel をすべて破棄する。
+    // ログイン画面の LoginViewModel も含め、前の状態の ViewModel が次の状態に持ち越されない。
+    // トークンリフレッシュで Authenticated が再生成されても uid が同じならキーは変わらず維持される。
+    val scopeKey =
+        when (authState) {
+            is AuthState.Loading -> "loading"
+            is AuthState.Unauthenticated -> "unauthenticated"
+            is AuthState.Authenticated -> "authenticated:${authState.user.uid}"
+        }
+    key(scopeKey) {
+        ScopedViewModelStoreOwner {
+            when (authState) {
+                is AuthState.Loading -> {
+                    MaterialTheme(colorScheme = AppColorScheme) {
+                        Surface(
+                            modifier = Modifier.fillMaxSize(),
+                            color = MaterialTheme.colorScheme.background,
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
                     }
                 }
-            }
-        }
-        is AuthState.Unauthenticated -> {
-            // LoginViewModel はセッションスコープ外（ルートの ViewModelStore）に置く。
-            // ログイン成功で Authenticated に切り替わり LoginScreen が破棄された後も、
-            // viewModelScope 上のログイン履歴記録を完走させるため。
-            LoginScreen()
-        }
-        is AuthState.Authenticated -> {
-            // ユーザー単位で ViewModel を分離する。トークンリフレッシュで Authenticated が
-            // 再生成されても uid が同じなら ViewModel は維持され、サインアウト
-            // （Unauthenticated への遷移）やユーザー切り替えで破棄される。
-            key(authState.user.uid) {
-                SessionViewModelStoreOwner {
+                is AuthState.Unauthenticated -> {
+                    LoginScreen()
+                }
+                is AuthState.Authenticated -> {
                     var passkeySetupDone by remember {
                         mutableStateOf(
                             signedInViaPasskey ||
