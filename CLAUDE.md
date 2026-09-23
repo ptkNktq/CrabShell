@@ -128,6 +128,8 @@ core/auth/           → AuthRepository interface + AuthState/AuthStateHolder (c
                        Firebase/WebAuthn interop + AuthRepositoryImpl (wasmJsMain)
                        Depends on :shared, :core:common, compose.runtime
 core/network/        → 認証トークン付き HTTP client + Repository interfaces/impls (commonMain)
+                       ID トークンはキャッシュせずリクエストごとに AuthRepository.getIdToken() で取得（期限間近なら Firebase が更新）。
+                       401 時は強制更新して 1 回再送。更新失敗は IdTokenResult でセッション無効（サインアウト）と一時的失敗（サインアウトしない）を区別
                        PasskeyRepositoryImpl + NetworkModule (wasmJsMain)
                        Depends on :core:common, :core:auth, :shared, ktor-client
 core/ui/             → テーマ定義 + WindowSizeClass + 汎用UIコンポーネント (commonMain)
@@ -193,7 +195,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Server geo: `server/src/main/kotlin/server/geo/` (IpClassifier, IpGeolocationService, MaxMind/NoOp 実装)
 - Core common: `core/common/src/commonMain/kotlin/core/common/` (Environment.kt, AppLogger.kt, TabResumedEvent.kt, ApplicationScope.kt)
 - Core common (wasmJsMain): `core/common/src/wasmJsMain/kotlin/core/common/` (Environment.kt, AppLogger.wasmJs.kt, PageVisibility.kt)
-- Core auth (commonMain): `core/auth/src/commonMain/kotlin/core/auth/` (AuthRepository interface, AuthState)
+- Core auth (commonMain): `core/auth/src/commonMain/kotlin/core/auth/` (AuthRepository interface, AuthState, IdTokenResult)
 - Core auth (wasmJsMain): `core/auth/src/wasmJsMain/kotlin/core/auth/` (AuthRepositoryImpl, FirebaseInterop, WebAuthnInterop)
 - Core network (commonMain): `core/network/src/commonMain/kotlin/core/network/` (AuthHttpClient, Repository interfaces/impls)
 - Core network (wasmJsMain): `core/network/src/wasmJsMain/kotlin/core/network/` (PasskeyRepositoryImpl, NetworkModule)

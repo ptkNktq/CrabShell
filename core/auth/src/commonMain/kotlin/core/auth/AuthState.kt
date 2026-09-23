@@ -25,22 +25,16 @@ class AuthStateHolder {
     val isAdmin: Boolean
         get() = currentUser?.isAdmin == true
 
-    var idToken by mutableStateOf<String?>(null)
-        internal set
-
     /** パスキーでログインした場合 true。パスキーセットアップ画面のスキップに使用。 */
     var signedInViaPasskey by mutableStateOf(false)
 
-    fun setAuthenticated(
-        user: User,
-        token: String,
-    ) {
-        idToken = token
+    // ID トークンはここに保持しない。Firebase が裏で行う自動更新を取りこぼして期限切れトークンを
+    // 送り続けないよう、API リクエストごとに AuthRepository.getIdToken() で取得する。
+    fun setAuthenticated(user: User) {
         state = AuthState.Authenticated(user)
     }
 
     fun setUnauthenticated() {
-        idToken = null
         signedInViaPasskey = false
         state = AuthState.Unauthenticated
     }

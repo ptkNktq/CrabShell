@@ -13,5 +13,8 @@ kotlin {
         wasmJsMain.dependencies {
             implementation(libs.koin.core)
         }
+        jvmTest.dependencies {
+            implementation(kotlin("test"))
+        }
     }
 }
