@@ -139,6 +139,7 @@ core/previewscreenshot/ → PreviewScreenshotRecorder（PNG 保存 + manifest.ts
 
 feature/auth/        → LoginViewModel + LoginScreen + LoginContent、PasskeySetupContent、
                        ScopedViewModelStoreOwner（認証状態ごとの ViewModelStore。切り替わりで clear）、
+                       AuthStateScopeKey（認証状態 → ViewModelStore のスコープキー）、
                        SignInService（サインイン + ログイン履歴記録をアプリ全体スコープで実行）(commonMain)
                        AuthenticatedApp + PasskeySetupViewModel + PasskeySetupScreen (wasmJsMain)
                        Depends on :core:auth, :core:common, :core:network, :core:ui
@@ -168,7 +169,7 @@ app/                 → Screen enum + Sidebar + DrawerContent + NavigationItems
 
 MVVM パターンで関心事を分離: ViewModel がビジネスロジック・状態管理を担当し、Screen (Composable) は UI 描画のみ。
 
-ViewModel のスコープは認証状態単位。`AuthenticatedAppContent` が認証状態（Loading / Unauthenticated / Authenticated + uid）ごとのキーで `key(scopeKey) { ScopedViewModelStoreOwner { … } }` と包み、ログイン・サインアウト・ユーザー切り替えのたびに `LoginViewModel` を含む全 ViewModel を clear する（ルートの ViewModelStoreOwner はページ全体で1つのため、これがないと再ログイン後もエラー状態や前ユーザーのデータを持った ViewModel が使い回される）。`koinViewModel()` はこの Owner から取得されるため、各画面側で意識する必要はない。画面の破棄後も完走させる必要がある処理（サインイン直後のログイン履歴記録など）は viewModelScope ではなく、アプリ全体で生存する `CoroutineScope` を持つシングルトン（例: `SignInService`）で実行する。シングルトン内部で `externalScope.async { … }.await()` し、ViewModel はそのサービスの suspend 関数を呼んで結果を待つだけにする（ViewModel 側は `externalScope` を知らない）。
+ViewModel のスコープは認証状態単位。`AuthenticatedAppContent` が認証状態（Loading / Unauthenticated / Authenticated + uid）ごとのキー（`AuthStateScopeKey.kt` の `AuthState.viewModelScopeKey()`）で `key(authState.viewModelScopeKey()) { ScopedViewModelStoreOwner { … } }` と包み、ログイン・サインアウト・ユーザー切り替えのたびに `LoginViewModel` を含む全 ViewModel を clear する（ルートの ViewModelStoreOwner はページ全体で1つのため、これがないと再ログイン後もエラー状態や前ユーザーのデータを持った ViewModel が使い回される）。`koinViewModel()` はこの Owner から取得されるため、各画面側で意識する必要はない。画面の破棄後も完走させる必要がある処理（サインイン直後のログイン履歴記録など）は viewModelScope ではなく、アプリ全体で生存する `CoroutineScope` を持つシングルトン（例: `SignInService`）で実行する。シングルトン内部で `externalScope.async { … }.await()` し、ViewModel はそのサービスの suspend 関数を呼んで結果を待つだけにする（ViewModel 側は `externalScope` を知らない）。
 
 The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the frontend build output into the server's static resources during `processResources`, making the final server artifact self-contained.
 
@@ -199,7 +200,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Core theme (commonMain): `core/ui/src/commonMain/kotlin/core/ui/theme/` (Color.kt, Theme.kt, Typography.kt)
 - Core UI (commonMain): `core/ui/src/commonMain/kotlin/core/ui/` (util/DateUtils.kt, components/CalendarView.kt)
 - Core previewscreenshot: `core/previewscreenshot/src/main/kotlin/core/previewscreenshot/PreviewScreenshotRecorder.kt`
-- Feature auth (commonMain): `feature/auth/src/commonMain/kotlin/feature/auth/` (LoginViewModel, LoginScreen, LoginContent, PasskeySetupContent, ScopedViewModelStoreOwner, SignInService)
+- Feature auth (commonMain): `feature/auth/src/commonMain/kotlin/feature/auth/` (LoginViewModel, LoginScreen, LoginContent, PasskeySetupContent, ScopedViewModelStoreOwner, AuthStateScopeKey, SignInService)
 - Feature auth (wasmJsMain): `feature/auth/src/wasmJsMain/kotlin/feature/auth/` (AuthenticatedApp, PasskeySetupViewModel, PasskeySetupScreen)
 - Feature settings (commonMain): `feature/settings/src/commonMain/kotlin/feature/settings/` (全ファイル。Screen/Content 分離済み。ペット設定も PetSettingsViewModel / PetSettingsCard として同居)
 - Feature dashboard (commonMain): `feature/dashboard/src/commonMain/kotlin/feature/dashboard/` (DashboardContent)
