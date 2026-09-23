@@ -7,15 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import core.auth.AuthRepository
 import core.auth.AuthStateHolder
-import core.common.AppLogger
-import core.network.LoginHistoryRepository
 import core.network.PasskeyRepository
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
-import model.LoginMethod
-
-private const val RECORD_LOGIN_TIMEOUT_MS = 2_000L
 
 enum class LoginMode {
     PASSKEY,
@@ -33,10 +26,10 @@ data class LoginUiState(
 )
 
 class LoginViewModel(
-    private val authRepository: AuthRepository,
+    authRepository: AuthRepository,
     private val passkeyRepository: PasskeyRepository,
     private val authStateHolder: AuthStateHolder,
-    private val loginHistoryRepository: LoginHistoryRepository,
+    private val signInWithHistoryService: SignInWithHistoryService,
 ) : ViewModel() {
     var uiState by mutableStateOf(LoginUiState())
         private set
@@ -71,21 +64,13 @@ class LoginViewModel(
     }
 
     /**
-     * ログイン履歴を記録する。タイムアウト（[RECORD_LOGIN_TIMEOUT_MS]）付きで待機し、
-     * 失敗や遅延があってもログイン自体はブロックしない。
+     * メールアドレス・パスワードでサインインする。
+     *
+     * サインイン成功時は認証状態の切り替わりで本 ViewModel ごと破棄されるため、
+     * サインイン本体と履歴記録は [SignInWithHistoryService] 側（画面より長く生存するスコープ）で行う。
+     * 成功時は isLoading を戻さない。認証状態が切り替わるまでの間にボタンが再度押せる状態に戻り、
+     * 二重送信の隙ができるのを防ぐため。[onPasskeySignIn] も同様。
      */
-    private suspend fun recordLoginWithTimeout(method: LoginMethod) {
-        try {
-            withTimeout(RECORD_LOGIN_TIMEOUT_MS) {
-                loginHistoryRepository.recordLogin(method)
-            }
-        } catch (e: TimeoutCancellationException) {
-            AppLogger.w("LoginViewModel", "recordLogin timed out after ${RECORD_LOGIN_TIMEOUT_MS}ms")
-        } catch (e: Throwable) {
-            AppLogger.w("LoginViewModel", "Failed to record login history: ${e.message}")
-        }
-    }
-
     fun onSignIn() {
         if (uiState.email.isBlank() || uiState.password.isBlank()) {
             uiState = uiState.copy(errorMessage = "メールアドレスとパスワードを入力してください")
@@ -93,20 +78,20 @@ class LoginViewModel(
         }
         uiState = uiState.copy(isLoading = true, errorMessage = null)
         viewModelScope.launch {
-            val result = authRepository.signIn(uiState.email, uiState.password)
-            if (result.isSuccess) {
-                recordLoginWithTimeout(LoginMethod.EMAIL)
-            }
-            uiState = uiState.copy(isLoading = false)
-            if (result.isFailure) {
-                uiState =
-                    uiState.copy(
-                        errorMessage = result.exceptionOrNull()?.message ?: "認証に失敗しました",
-                    )
-            }
+            signInWithHistoryService
+                .signInWithEmail(uiState.email, uiState.password)
+                .onFailure { showSignInError(it, "認証に失敗しました") }
         }
     }
 
+    private fun showSignInError(
+        e: Throwable,
+        defaultMessage: String,
+    ) {
+        uiState = uiState.copy(isLoading = false, errorMessage = e.message ?: defaultMessage)
+    }
+
+    /** パスキーで認証し、発行されたカスタムトークンでサインインする。成功時の扱いは [onSignIn] と同じ。 */
     fun onPasskeySignIn() {
         uiState = uiState.copy(isLoading = true, errorMessage = null)
         viewModelScope.launch {
@@ -114,24 +99,10 @@ class LoginViewModel(
                 .authenticateWithPasskey()
                 .onSuccess { customToken ->
                     authStateHolder.signedInViaPasskey = true
-                    val result = authRepository.signInWithCustomToken(customToken)
-                    if (result.isSuccess) {
-                        recordLoginWithTimeout(LoginMethod.PASSKEY)
-                    }
-                    uiState = uiState.copy(isLoading = false)
-                    if (result.isFailure) {
-                        uiState =
-                            uiState.copy(
-                                errorMessage = result.exceptionOrNull()?.message ?: "認証に失敗しました",
-                            )
-                    }
-                }.onFailure { e ->
-                    uiState =
-                        uiState.copy(
-                            isLoading = false,
-                            errorMessage = e.message ?: "パスキー認証に失敗しました",
-                        )
-                }
+                    signInWithHistoryService
+                        .signInWithCustomToken(customToken)
+                        .onFailure { showSignInError(it, "認証に失敗しました") }
+                }.onFailure { showSignInError(it, "パスキー認証に失敗しました") }
         }
     }
 }

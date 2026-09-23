@@ -120,7 +120,7 @@ server/              → Ktor server (Netty, JVM)
                        ルートハンドラは HTTP 処理 + ビジネスルール判定のみ
                        ※ API 設計方針（リクエスト body の DTO ラップ等）は README.md の「API 設計」セクションを参照
 
-core/common/         → 環境判定（isDevEnvironment）、AppLogger、TabResumedEvent など横断的ユーティリティ (commonMain)
+core/common/         → 環境判定（isDevEnvironment）、AppLogger、TabResumedEvent、ApplicationScope（アプリ全体で 1 つの CoroutineScope）など横断的ユーティリティ (commonMain)
                        wasmJs: window.location.port による開発環境判定、PageVisibility (visibilitychange)
                        wasmJs: AppLogger → 開発環境のみ console.log/warn/error 出力（本番は no-op）
                        Compose 非依存の純粋 KMP モジュール（kotlinx-coroutines-core のみ依存）
@@ -137,7 +137,10 @@ core/previewscreenshot/ → PreviewScreenshotRecorder（PNG 保存 + manifest.ts
                        各 feature モジュール/app の previewScreenshotTest から testImplementation で参照される
                        JVM のみのプレーンな Kotlin モジュール（KMP ではない）。Depends on :core:ui, compose.desktop.currentOs
 
-feature/auth/        → LoginViewModel + LoginScreen + LoginContent、PasskeySetupContent (commonMain)
+feature/auth/        → LoginViewModel + LoginScreen + LoginContent、PasskeySetupContent、
+                       ScopedViewModelStoreOwner（認証状態ごとの ViewModelStore。公式 rememberViewModelStoreOwner を利用し切り替わりで clear）、
+                       AuthStateScopeKey（認証状態 → ViewModelStore のスコープキー）、
+                       SignInWithHistoryService（サインイン + ログイン履歴記録を ApplicationScope で実行）(commonMain)
                        AuthenticatedApp + PasskeySetupViewModel + PasskeySetupScreen (wasmJsMain)
                        Depends on :core:auth, :core:common, :core:network, :core:ui
 feature/dashboard/   → DashboardContent (commonMain) / DashboardViewModel + DashboardScreen (wasmJsMain)
@@ -166,6 +169,8 @@ app/                 → Screen enum + Sidebar + DrawerContent + NavigationItems
 
 MVVM パターンで関心事を分離: ViewModel がビジネスロジック・状態管理を担当し、Screen (Composable) は UI 描画のみ。
 
+ViewModel のスコープは認証状態単位。`AuthenticatedAppContent` が認証状態（Loading / Unauthenticated / Authenticated + uid）ごとのキー（`AuthStateScopeKey.kt` の `AuthState.viewModelScopeKey()`）で `ScopedViewModelStoreOwner(authState.viewModelScopeKey()) { … }` と包み、ログイン・サインアウト・ユーザー切り替えのたびに `LoginViewModel` を含む全 ViewModel を clear する（ルートの ViewModelStoreOwner はページ全体で1つのため、これがないと再ログイン後もエラー状態や前ユーザーのデータを持った ViewModel が使い回される）。`koinViewModel()` はこの Owner から取得されるため、各画面側で意識する必要はない。画面の破棄後も完走させる必要がある処理（サインイン直後のログイン履歴記録など）は viewModelScope ではなく、アプリ全体で 1 つの `ApplicationScope`（core:common。`AuthModule` で single 登録）を注入したシングルトン（例: `SignInWithHistoryService`）で実行する。シングルトン内部で `externalScope.async { … }.await()` し、ViewModel はそのサービスの suspend 関数を呼んで結果を待つだけにする（ViewModel 側は `externalScope` を知らない）。
+
 The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the frontend build output into the server's static resources during `processResources`, making the final server artifact self-contained.
 
 ## Tech Stack
@@ -186,7 +191,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Server DI: `server/src/main/kotlin/server/di/ServerModule.kt`
 - Server repositories: `server/src/main/kotlin/server/{money,quest,feeding,garbage,pet,loginhistory}/` (interface + Firestore 実装)
 - Server geo: `server/src/main/kotlin/server/geo/` (IpClassifier, IpGeolocationService, MaxMind/NoOp 実装)
-- Core common: `core/common/src/commonMain/kotlin/core/common/` (Environment.kt, AppLogger.kt, TabResumedEvent.kt)
+- Core common: `core/common/src/commonMain/kotlin/core/common/` (Environment.kt, AppLogger.kt, TabResumedEvent.kt, ApplicationScope.kt)
 - Core common (wasmJsMain): `core/common/src/wasmJsMain/kotlin/core/common/` (Environment.kt, AppLogger.wasmJs.kt, PageVisibility.kt)
 - Core auth (commonMain): `core/auth/src/commonMain/kotlin/core/auth/` (AuthRepository interface, AuthState)
 - Core auth (wasmJsMain): `core/auth/src/wasmJsMain/kotlin/core/auth/` (AuthRepositoryImpl, FirebaseInterop, WebAuthnInterop)
@@ -195,7 +200,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Core theme (commonMain): `core/ui/src/commonMain/kotlin/core/ui/theme/` (Color.kt, Theme.kt, Typography.kt)
 - Core UI (commonMain): `core/ui/src/commonMain/kotlin/core/ui/` (util/DateUtils.kt, components/CalendarView.kt)
 - Core previewscreenshot: `core/previewscreenshot/src/main/kotlin/core/previewscreenshot/PreviewScreenshotRecorder.kt`
-- Feature auth (commonMain): `feature/auth/src/commonMain/kotlin/feature/auth/` (LoginViewModel, LoginScreen, LoginContent, PasskeySetupContent)
+- Feature auth (commonMain): `feature/auth/src/commonMain/kotlin/feature/auth/` (LoginViewModel, LoginScreen, LoginContent, PasskeySetupContent, ScopedViewModelStoreOwner, AuthStateScopeKey, SignInWithHistoryService)
 - Feature auth (wasmJsMain): `feature/auth/src/wasmJsMain/kotlin/feature/auth/` (AuthenticatedApp, PasskeySetupViewModel, PasskeySetupScreen)
 - Feature settings (commonMain): `feature/settings/src/commonMain/kotlin/feature/settings/` (全ファイル。Screen/Content 分離済み。ペット設定も PetSettingsViewModel / PetSettingsCard として同居)
 - Feature dashboard (commonMain): `feature/dashboard/src/commonMain/kotlin/feature/dashboard/` (DashboardContent)
