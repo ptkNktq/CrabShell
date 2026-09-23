@@ -11,6 +11,11 @@ class IdTokenResultTest {
             "auth/invalid-user-token",
             "auth/user-disabled",
             "auth/user-not-found",
+            // リフレッシュトークン自体が無効（SDK が自動サインアウトしないため、ここで拾う必要がある）
+            "auth/invalid-refresh-token",
+            "auth/invalid-grant-type",
+            "auth/missing-refresh-token",
+            "auth/project-number-mismatch",
         ).forEach { code ->
             assertEquals(IdTokenResult.SessionInvalid(code), IdTokenResult.failureOf(code))
         }
