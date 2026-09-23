@@ -1,0 +1,21 @@
+# 改行コードを LF に統一する（Windows 側のエディタで保存しても CRLF が混入しないようにする）
+* text=auto eol=lf
+
+# Windows でのみ実行されるスクリプトは CRLF を維持する
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# バイナリファイルは改行変換・差分表示の対象外にする
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.otf binary
+*.ttf binary
+*.woff binary
+*.woff2 binary
+*.jar binary
+*.mmdb binary
+*.db binary

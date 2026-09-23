@@ -349,3 +349,4 @@ docker compose pull && docker compose up -d
 ## Notes
 
 - Comments in build files are in Japanese.
+- 改行コードは LF に統一している（`.gitattributes` の `* text=auto eol=lf` で管理。Windows 用スクリプト `*.bat` / `*.cmd` のみ CRLF）。
