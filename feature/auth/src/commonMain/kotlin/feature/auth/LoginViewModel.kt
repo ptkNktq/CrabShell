@@ -65,6 +65,8 @@ class LoginViewModel(
 
     // サインイン成功時は認証状態の切り替わりで本 ViewModel ごと破棄されるため、
     // サインイン本体と履歴記録は SignInService 側（画面より長く生存するスコープ）で行う。
+    // 成功時は isLoading を戻さない。認証状態が切り替わるまでの間にボタンが再度押せる状態に戻り、
+    // 二重送信の隙ができるのを防ぐため。
     fun onSignIn() {
         if (uiState.email.isBlank() || uiState.password.isBlank()) {
             uiState = uiState.copy(errorMessage = "メールアドレスとパスワードを入力してください")
@@ -72,15 +74,17 @@ class LoginViewModel(
         }
         uiState = uiState.copy(isLoading = true, errorMessage = null)
         viewModelScope.launch {
-            val result = signInService.signInWithEmail(uiState.email, uiState.password)
-            uiState = uiState.copy(isLoading = false)
-            if (result.isFailure) {
-                uiState =
-                    uiState.copy(
-                        errorMessage = result.exceptionOrNull()?.message ?: "認証に失敗しました",
-                    )
-            }
+            signInService
+                .signInWithEmail(uiState.email, uiState.password)
+                .onFailure { showSignInError(it, "認証に失敗しました") }
         }
+    }
+
+    private fun showSignInError(
+        e: Throwable,
+        defaultMessage: String,
+    ) {
+        uiState = uiState.copy(isLoading = false, errorMessage = e.message ?: defaultMessage)
     }
 
     fun onPasskeySignIn() {
@@ -90,21 +94,10 @@ class LoginViewModel(
                 .authenticateWithPasskey()
                 .onSuccess { customToken ->
                     authStateHolder.signedInViaPasskey = true
-                    val result = signInService.signInWithCustomToken(customToken)
-                    uiState = uiState.copy(isLoading = false)
-                    if (result.isFailure) {
-                        uiState =
-                            uiState.copy(
-                                errorMessage = result.exceptionOrNull()?.message ?: "認証に失敗しました",
-                            )
-                    }
-                }.onFailure { e ->
-                    uiState =
-                        uiState.copy(
-                            isLoading = false,
-                            errorMessage = e.message ?: "パスキー認証に失敗しました",
-                        )
-                }
+                    signInService
+                        .signInWithCustomToken(customToken)
+                        .onFailure { showSignInError(it, "認証に失敗しました") }
+                }.onFailure { showSignInError(it, "パスキー認証に失敗しました") }
         }
     }
 }

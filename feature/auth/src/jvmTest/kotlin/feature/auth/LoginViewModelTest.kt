@@ -76,7 +76,7 @@ class LoginViewModelTest {
     }
 
     @Test
-    fun `successful sign in sets isLoading to false`() =
+    fun `successful sign in keeps isLoading until auth state switches`() =
         runTest {
             val viewModel = createViewModel()
             coEvery { signInService.signInWithEmail("test@example.com", "password") } returns Result.success(Unit)
@@ -86,7 +86,8 @@ class LoginViewModelTest {
             viewModel.onSignIn()
             advanceUntilIdle()
 
-            assertFalse(viewModel.uiState.isLoading)
+            // 成功時は認証状態の切り替わりで画面ごと破棄されるため、ボタンを押せる状態には戻さない
+            assertTrue(viewModel.uiState.isLoading)
             assertNull(viewModel.uiState.errorMessage)
             coVerify { signInService.signInWithEmail("test@example.com", "password") }
         }
@@ -135,9 +136,25 @@ class LoginViewModelTest {
             advanceUntilIdle()
 
             assertTrue(authStateHolder.signedInViaPasskey)
-            assertFalse(viewModel.uiState.isLoading)
+            assertTrue(viewModel.uiState.isLoading)
             assertNull(viewModel.uiState.errorMessage)
             coVerify { signInService.signInWithCustomToken("custom-token") }
+        }
+
+    @Test
+    fun `failed custom token sign in shows error`() =
+        runTest {
+            val viewModel = createViewModel()
+            coEvery { passkeyRepository.authenticateWithPasskey() } returns
+                Result.success("custom-token")
+            coEvery { signInService.signInWithCustomToken("custom-token") } returns
+                Result.failure(Exception("Token rejected"))
+
+            viewModel.onPasskeySignIn()
+            advanceUntilIdle()
+
+            assertFalse(viewModel.uiState.isLoading)
+            assertEquals("Token rejected", viewModel.uiState.errorMessage)
         }
 
     @Test
