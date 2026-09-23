@@ -7,15 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import core.auth.AuthRepository
 import core.auth.AuthStateHolder
-import core.common.AppLogger
-import core.network.LoginHistoryRepository
 import core.network.PasskeyRepository
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
-import model.LoginMethod
-
-private const val RECORD_LOGIN_TIMEOUT_MS = 2_000L
 
 enum class LoginMode {
     PASSKEY,
@@ -33,10 +26,10 @@ data class LoginUiState(
 )
 
 class LoginViewModel(
-    private val authRepository: AuthRepository,
+    authRepository: AuthRepository,
     private val passkeyRepository: PasskeyRepository,
     private val authStateHolder: AuthStateHolder,
-    private val loginHistoryRepository: LoginHistoryRepository,
+    private val signInService: SignInService,
 ) : ViewModel() {
     var uiState by mutableStateOf(LoginUiState())
         private set
@@ -70,31 +63,8 @@ class LoginViewModel(
         uiState = uiState.copy(loginMode = LoginMode.EMAIL_PASSWORD, errorMessage = null)
     }
 
-    /**
-     * ログイン履歴を記録する。タイムアウト（[RECORD_LOGIN_TIMEOUT_MS]）付きで待機し、
-     * 失敗や遅延があってもログイン自体はブロックしない。
-     */
-    private suspend fun recordLoginWithTimeout(method: LoginMethod) {
-        try {
-            withTimeout(RECORD_LOGIN_TIMEOUT_MS) {
-                loginHistoryRepository.recordLogin(method)
-            }
-        } catch (e: TimeoutCancellationException) {
-            AppLogger.w("LoginViewModel", "recordLogin timed out after ${RECORD_LOGIN_TIMEOUT_MS}ms")
-        } catch (e: Throwable) {
-            AppLogger.w("LoginViewModel", "Failed to record login history: ${e.message}")
-        }
-    }
-
-    /**
-     * ログイン成功時に入力済みパスワードを破棄する。
-     * 本 ViewModel はログイン完了後の履歴記録を完走させるためルートの ViewModelStore に置かれ、
-     * サインアウト後のログイン画面で再利用される。パスワードを残すと次にログイン画面を開いた人に見えてしまう。
-     */
-    private fun clearPasswordInput() {
-        uiState = uiState.copy(password = "", isPasswordVisible = false)
-    }
-
+    // サインイン成功時は認証状態の切り替わりで本 ViewModel ごと破棄されるため、
+    // サインイン本体と履歴記録は SignInService 側（画面より長く生存するスコープ）で行う。
     fun onSignIn() {
         if (uiState.email.isBlank() || uiState.password.isBlank()) {
             uiState = uiState.copy(errorMessage = "メールアドレスとパスワードを入力してください")
@@ -102,11 +72,7 @@ class LoginViewModel(
         }
         uiState = uiState.copy(isLoading = true, errorMessage = null)
         viewModelScope.launch {
-            val result = authRepository.signIn(uiState.email, uiState.password)
-            if (result.isSuccess) {
-                clearPasswordInput()
-                recordLoginWithTimeout(LoginMethod.EMAIL)
-            }
+            val result = signInService.signInWithEmail(uiState.email, uiState.password)
             uiState = uiState.copy(isLoading = false)
             if (result.isFailure) {
                 uiState =
@@ -124,11 +90,7 @@ class LoginViewModel(
                 .authenticateWithPasskey()
                 .onSuccess { customToken ->
                     authStateHolder.signedInViaPasskey = true
-                    val result = authRepository.signInWithCustomToken(customToken)
-                    if (result.isSuccess) {
-                        clearPasswordInput()
-                        recordLoginWithTimeout(LoginMethod.PASSKEY)
-                    }
+                    val result = signInService.signInWithCustomToken(customToken)
                     uiState = uiState.copy(isLoading = false)
                     if (result.isFailure) {
                         uiState =
