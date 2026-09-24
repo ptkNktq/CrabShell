@@ -5,6 +5,8 @@ import com.google.firebase.cloud.FirestoreClient
 import com.maxmind.geoip2.DatabaseReader
 import org.koin.dsl.module
 import org.slf4j.LoggerFactory
+import server.auth.FirebaseAdmin
+import server.auth.FirebaseUserDirectory
 import server.cache.CacheManager
 import server.cache.Cacheable
 import server.config.EnvConfig
@@ -27,6 +29,9 @@ import server.money.MoneyDueDateNotificationService
 import server.money.MoneyRepository
 import server.money.MoneyWebhookService
 import server.money.PaymentWebhookService
+import server.passkey.PasskeyCredentialStore
+import server.passkey.PasskeyLoginService
+import server.passkey.PasskeyService
 import server.pet.FirestorePetRepository
 import server.pet.PetRepository
 import server.quest.FirestorePointRepository
@@ -82,6 +87,9 @@ val serverModule =
         single { GarbageNotificationService(get()) }
         single { BalanceCalculationService() }
         single { FirestoreMigrations(get()) }
+        single<FirebaseUserDirectory> { FirebaseAdmin }
+        single<PasskeyCredentialStore> { PasskeyService }
+        single { PasskeyLoginService(get(), get()) }
         single {
             CacheManager(
                 listOf(

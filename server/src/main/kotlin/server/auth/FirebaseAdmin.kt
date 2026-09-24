@@ -3,13 +3,15 @@ package server.auth
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
+import com.google.firebase.auth.AuthErrorCode
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseToken
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.FileInputStream
 
-object FirebaseAdmin {
+object FirebaseAdmin : FirebaseUserDirectory {
     private val logger = LoggerFactory.getLogger(FirebaseAdmin::class.java)
     private var initialized = false
 
@@ -45,7 +47,17 @@ object FirebaseAdmin {
         }
     }
 
-    fun createCustomToken(uid: String): String? {
+    override fun getUserStatus(uid: String): FirebaseUserStatus {
+        check(initialized) { "Firebase Admin is not initialized" }
+        return try {
+            val user = FirebaseAuth.getInstance().getUser(uid)
+            if (user.isDisabled) FirebaseUserStatus.DISABLED else FirebaseUserStatus.ACTIVE
+        } catch (e: FirebaseAuthException) {
+            if (e.authErrorCode == AuthErrorCode.USER_NOT_FOUND) FirebaseUserStatus.NOT_FOUND else throw e
+        }
+    }
+
+    override fun createCustomToken(uid: String): String? {
         if (!initialized) return null
         return try {
             FirebaseAuth.getInstance().createCustomToken(uid)

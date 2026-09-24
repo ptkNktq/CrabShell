@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory
 import server.config.EnvConfig
 import java.util.Base64
 
-object PasskeyService {
+object PasskeyService : PasskeyCredentialStore {
     private val logger = LoggerFactory.getLogger(PasskeyService::class.java)
     private val webAuthnManager = WebAuthnManager.createNonStrictWebAuthnManager()
     private val objectConverter = ObjectConverter()
@@ -242,11 +242,10 @@ object PasskeyService {
         return newCounter
     }
 
-    fun deleteCredentials(firebaseUid: String) {
+    override fun deleteCredentials(firebaseUid: String): Int =
         transaction {
             PasskeyCredentials.deleteWhere { PasskeyCredentials.firebaseUid eq firebaseUid }
         }
-    }
 
     /**
      * 指定したユーザーが所有する 1 件のパスキーを削除する。

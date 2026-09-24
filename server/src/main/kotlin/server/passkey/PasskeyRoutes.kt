@@ -22,8 +22,8 @@ import model.PasskeyCredentialsResponse
 import model.PasskeyRegisterCompleteRequest
 import model.PasskeyRegisterOptionsResponse
 import model.PasskeyStatusResponse
+import org.koin.ktor.ext.inject
 import org.slf4j.LoggerFactory
-import server.auth.FirebaseAdmin
 import server.auth.authenticated
 import server.auth.firebasePrincipal
 import server.ratelimit.RateLimitNames
@@ -36,6 +36,8 @@ private val logger = LoggerFactory.getLogger("server.passkey.PasskeyRoutes")
 private val webAuthnJson = Json { encodeDefaults = true }
 
 fun Route.passkeyRoutes() {
+    val passkeyLoginService by inject<PasskeyLoginService>()
+
     route("/passkey") {
         // 認証済みエンドポイント
         authenticated {
@@ -270,7 +272,8 @@ fun Route.passkeyRoutes() {
                     code(HttpStatusCode.OK) {
                         body<PasskeyAuthenticateResponse>()
                     }
-                    code(HttpStatusCode.BadRequest) { description = "認証失敗" }
+                    code(HttpStatusCode.BadRequest) { description = "認証失敗（パスキーの所有者が削除済み・無効化されている場合を含む）" }
+                    code(HttpStatusCode.InternalServerError) { description = "ユーザー状態の確認またはトークン発行に失敗" }
                     code(HttpStatusCode.ServiceUnavailable) { description = "パスキー機能無効" }
                 }
             }) {
@@ -322,14 +325,23 @@ fun Route.passkeyRoutes() {
                         credentialRecord = credentialRecord,
                     )
 
-                    val customToken =
-                        FirebaseAdmin.createCustomToken(credentialRecord.firebaseUid)
-                            ?: return@post call.respond(
+                    when (val result = passkeyLoginService.issueCustomToken(credentialRecord.firebaseUid)) {
+                        is PasskeyLoginResult.Success -> {
+                            call.respond(PasskeyAuthenticateResponse(customToken = result.customToken))
+                        }
+
+                        // 所有者の状態（削除済み・無効化）を区別できないよう、他の認証失敗と同じ応答にする
+                        PasskeyLoginResult.Rejected -> {
+                            call.respond(HttpStatusCode.BadRequest, authError)
+                        }
+
+                        PasskeyLoginResult.Unavailable -> {
+                            call.respond(
                                 HttpStatusCode.InternalServerError,
                                 mapOf("error" to "認証処理に失敗しました"),
                             )
-
-                    call.respond(PasskeyAuthenticateResponse(customToken = customToken))
+                        }
+                    }
                 } catch (e: Exception) {
                     logger.warn("Passkey authentication failed", e)
                     call.respond(HttpStatusCode.BadRequest, authError)
