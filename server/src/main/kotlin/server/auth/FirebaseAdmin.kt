@@ -48,6 +48,8 @@ object FirebaseAdmin : FirebaseUserDirectory {
     }
 
     override fun getUserStatus(uid: String): FirebaseUserStatus {
+        // 他のメソッドと違い null を返さず例外にする。状態が分からないことを NOT_FOUND と取り違えると、
+        // 呼び出し側が正規ユーザーのパスキーを削除してしまうため
         check(initialized) { "Firebase Admin is not initialized" }
         return try {
             val user = FirebaseAuth.getInstance().getUser(uid)
