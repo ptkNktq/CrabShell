@@ -79,5 +79,6 @@ class PasskeyLoginServiceTest {
         val result = service.authorizeLogin(uid)
 
         assertEquals(PasskeyLoginResult.Unavailable, result)
+        verify(exactly = 0) { credentialStore.deleteCredentials(any()) }
     }
 }
