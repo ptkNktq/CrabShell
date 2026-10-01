@@ -39,9 +39,14 @@ class PasskeyLoginService(
 
         return when (status) {
             FirebaseUserStatus.NOT_FOUND -> {
-                // 削除済みユーザーのパスキーは二度と使えないため、ログイン時に検出して削除する
-                val deleted = credentialStore.deleteCredentials(firebaseUid)
-                logger.warn("Rejected passkey login for non-existent uid={}; deleted {} credential(s)", firebaseUid, deleted)
+                // 削除済みユーザーのパスキーは二度と使えないため、ログイン時に検出して削除する。
+                // 削除に失敗してもログインは拒否する（次回のログイン試行で再度削除を試みる）
+                try {
+                    val deleted = credentialStore.deleteCredentials(firebaseUid)
+                    logger.warn("Rejected passkey login for non-existent uid={}; deleted {} credential(s)", firebaseUid, deleted)
+                } catch (e: Exception) {
+                    logger.warn("Rejected passkey login for non-existent uid={}; failed to delete credentials", firebaseUid, e)
+                }
                 PasskeyLoginResult.Rejected
             }
 

@@ -39,6 +39,17 @@ class PasskeyLoginServiceTest {
     }
 
     @Test
+    fun nonExistentUserIsRejectedEvenIfCredentialDeletionFails() {
+        every { userDirectory.getUserStatus(uid) } returns FirebaseUserStatus.NOT_FOUND
+        every { credentialStore.deleteCredentials(uid) } throws RuntimeException("db error")
+
+        val result = service.issueCustomToken(uid)
+
+        assertEquals(PasskeyLoginResult.Rejected, result)
+        verify(exactly = 0) { userDirectory.createCustomToken(any()) }
+    }
+
+    @Test
     fun disabledUserIsRejectedWithoutDeletingCredentials() {
         every { userDirectory.getUserStatus(uid) } returns FirebaseUserStatus.DISABLED
 
