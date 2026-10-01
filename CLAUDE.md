@@ -115,7 +115,7 @@ server/              → Ktor server (Netty, JVM)
                        Routes: /api/{firebase-config,users,pets,feeding,garbage,money,money-webhook,money-due-date-notification,payment-webhook,report,quest,point,quest-webhook,cache,login-history,passkey}
                        IP ジオロケーション: server/geo/ (MaxMind GeoLite2-City オフライン DB、ファイル不在時は NoOp)
                        Firebase Auth verification
-                       Koin DI でリポジトリ注入（ServerModule）。状態や外部 I/O を持つ処理は object にせず class にして DI 経由で注入する（定数・純粋関数の object と、Koin 起動前に読む EnvConfig は例外）
+                       Koin DI でリポジトリ注入（ServerModule）。状態や外部 I/O を持つ処理は object にせず class にして DI 経由で注入する（定数・純粋関数の object、Exposed の Table 定義、Koin 起動前に読む EnvConfig は例外）
                        Repository 層: interface + 実装 class（Firestore / Firebase Admin SDK / Exposed）
                        Firebase: FirebaseApp を DI で初期化し、Firestore・FirebaseAuth はそれに依存させて初期化順を保証
                        パスキー: PasskeyConfig（設定）/ WebAuthnVerifier（検証）/ PasskeyCredentialRepository（SQLite）/ ChallengeStore / PasskeyLoginService（ログイン判定）
