@@ -17,7 +17,8 @@ class ChallengeStore {
     private val store = ConcurrentHashMap<String, ChallengeEntry>()
     private val random = SecureRandom()
 
-    data class ChallengeEntry(
+    // ByteArray を持つため data class にしない（自動生成の equals が配列を参照で比較するため）
+    private class ChallengeEntry(
         val challenge: ByteArray,
         val createdAt: Long = System.currentTimeMillis(),
     )
