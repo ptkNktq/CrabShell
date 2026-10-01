@@ -47,6 +47,7 @@ class PasskeyLoginServiceTest {
 
         assertEquals(PasskeyLoginResult.Rejected, result)
         verify(exactly = 0) { firebaseAuthRepository.createCustomToken(any()) }
+        verify(exactly = 1) { credentialStore.deleteCredentials(uid) }
     }
 
     @Test
