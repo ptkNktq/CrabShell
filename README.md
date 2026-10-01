@@ -453,6 +453,7 @@ DB ファイルが存在しない場合はジオロケーション機能が自�
 - テスト対象は純粋ロジックに絞る（Firebase/Firestore 依存のコードは対象外）
 - shared: `@Serializable` モデルのシリアライズ往復テスト
 - server: `ChallengeStore`、`PasskeyLoginService`、money パース関数等のユニットテスト。パスキーの DB 層（`ExposedPasskeyCredentialRepository`）は一時ファイルの SQLite DB でテストする
+- server DI: `serverModule.verify()`（koin-test）で、DI 定義の登録漏れを検出する
 
 ## Lint
 

@@ -308,6 +308,7 @@ docker compose pull && docker compose up -d
 - Repository 層（interface + Koin DI）により、ルートハンドラのビジネスロジック（ステータス遷移、権限チェック、上限判定等）は Repository モックでテスト可能
 - shared: `shared/src/commonTest/kotlin/model/` — `@Serializable` モデルのシリアライズ往復テスト
 - server: `server/src/test/kotlin/server/` — `ChallengeStore`、`PasskeyLoginService`、money パース関数等のユニットテスト。`ExposedPasskeyCredentialRepository` は一時ファイルの SQLite DB でテストする
+- server DI: `ServerModuleTest` で `serverModule.verify()`（koin-test）を実行し、定義のコンストラクタ引数がすべて解決できるかを静的に検証する。DI 定義を追加・変更したら、値として作る型（DI 対象でないもの）を `extraTypes` に足す。ルートの `by inject` と修飾子の一致は検証できない
 - wasmJs ブラウザテスト (`allTests`) はヘッドレス Chrome が必要。CI 以外では `jvmTest` を使用する
 
 ### プレビュー用スクリーンショット生成
