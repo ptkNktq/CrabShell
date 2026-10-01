@@ -1,7 +1,7 @@
 package server.passkey
 
 import org.slf4j.LoggerFactory
-import server.auth.FirebaseUserDirectory
+import server.auth.FirebaseAuthRepository
 import server.auth.FirebaseUserStatus
 
 sealed interface PasskeyLoginResult {
@@ -23,7 +23,7 @@ sealed interface PasskeyLoginResult {
  * カスタムトークンは所有者が実在し有効であることを確認してから発行する。
  */
 class PasskeyLoginService(
-    private val userDirectory: FirebaseUserDirectory,
+    private val firebaseAuthRepository: FirebaseAuthRepository,
     private val credentialStore: PasskeyCredentialStore,
 ) {
     private val logger = LoggerFactory.getLogger(PasskeyLoginService::class.java)
@@ -40,7 +40,7 @@ class PasskeyLoginService(
     fun authorizeLogin(firebaseUid: String): PasskeyLoginResult {
         val status =
             try {
-                userDirectory.getUserStatus(firebaseUid)
+                firebaseAuthRepository.getUserStatus(firebaseUid)
             } catch (e: Exception) {
                 logger.warn("Failed to get user status for uid={}", firebaseUid, e)
                 return PasskeyLoginResult.Unavailable
@@ -66,7 +66,7 @@ class PasskeyLoginService(
             }
 
             FirebaseUserStatus.ACTIVE -> {
-                userDirectory
+                firebaseAuthRepository
                     .createCustomToken(firebaseUid)
                     ?.let { PasskeyLoginResult.Success(it) }
                     ?: PasskeyLoginResult.Unavailable

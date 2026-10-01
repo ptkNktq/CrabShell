@@ -6,7 +6,7 @@ import com.maxmind.geoip2.DatabaseReader
 import org.koin.dsl.module
 import org.slf4j.LoggerFactory
 import server.auth.FirebaseAdmin
-import server.auth.FirebaseUserDirectory
+import server.auth.FirebaseAuthRepository
 import server.cache.CacheManager
 import server.cache.Cacheable
 import server.config.EnvConfig
@@ -87,7 +87,7 @@ val serverModule =
         single { GarbageNotificationService(get()) }
         single { BalanceCalculationService() }
         single { FirestoreMigrations(get()) }
-        single<FirebaseUserDirectory> { FirebaseAdmin }
+        single<FirebaseAuthRepository> { FirebaseAdmin }
         single<PasskeyCredentialStore> { PasskeyService }
         single { PasskeyLoginService(get(), get()) }
         single {

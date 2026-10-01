@@ -13,10 +13,10 @@ enum class FirebaseUserStatus {
 }
 
 /**
- * Firebase Auth のユーザー照会とカスタムトークン発行。
+ * Firebase Auth への窓口（ユーザー状態の照会・カスタムトークンの発行）。
  * Firebase Admin SDK への直接依存を切り離し、呼び出し側のロジックをモックでテストできるようにする。
  */
-interface FirebaseUserDirectory {
+interface FirebaseAuthRepository {
     /**
      * uid のユーザーの状態を返す。
      * Firebase 未初期化や通信エラーなど、状態を判定できない場合は例外を投げる。
