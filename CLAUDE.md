@@ -115,8 +115,10 @@ server/              → Ktor server (Netty, JVM)
                        Routes: /api/{firebase-config,users,pets,feeding,garbage,money,money-webhook,money-due-date-notification,payment-webhook,report,quest,point,quest-webhook,cache,login-history,passkey}
                        IP ジオロケーション: server/geo/ (MaxMind GeoLite2-City オフライン DB、ファイル不在時は NoOp)
                        Firebase Auth verification
-                       Koin DI でリポジトリ注入（ServerModule）
-                       Repository 層: interface + Firestore 実装 class
+                       Koin DI でリポジトリ注入（ServerModule）。状態や外部 I/O を持つ処理は object にせず class にして DI 経由で注入する（定数・純粋関数の object と、Koin 起動前に読む EnvConfig は例外）
+                       Repository 層: interface + 実装 class（Firestore / Firebase Admin SDK / Exposed）
+                       Firebase: FirebaseApp を DI で初期化し、Firestore・FirebaseAuth はそれに依存させて初期化順を保証
+                       パスキー: PasskeyConfig（設定）/ WebAuthnVerifier（検証）/ PasskeyCredentialRepository（SQLite）/ ChallengeStore / PasskeyLoginService（ログイン判定）
                        ルートハンドラは HTTP 処理 + ビジネスルール判定のみ
                        ※ API 設計方針（リクエスト body の DTO ラップ等）は README.md の「API 設計」セクションを参照
 
@@ -192,6 +194,8 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Server entry point: `server/src/main/kotlin/server/Application.kt`
 - Server DI: `server/src/main/kotlin/server/di/ServerModule.kt`
 - Server repositories: `server/src/main/kotlin/server/{money,quest,feeding,garbage,pet,loginhistory}/` (interface + Firestore 実装)
+- Server auth: `server/src/main/kotlin/server/auth/` (AuthPlugin, FirebaseAuthRepository + FirebaseAdminAuthRepository, FirebaseAppInitializer)
+- Server passkey: `server/src/main/kotlin/server/passkey/` (PasskeyRoutes, PasskeyConfig, WebAuthnVerifier, PasskeyCredentialRepository + ExposedPasskeyCredentialRepository, ChallengeStore, PasskeyLoginService)
 - Server geo: `server/src/main/kotlin/server/geo/` (IpClassifier, IpGeolocationService, MaxMind/NoOp 実装)
 - Core common: `core/common/src/commonMain/kotlin/core/common/` (Environment.kt, AppLogger.kt, TabResumedEvent.kt, ApplicationScope.kt)
 - Core common (wasmJsMain): `core/common/src/wasmJsMain/kotlin/core/common/` (Environment.kt, AppLogger.wasmJs.kt, PageVisibility.kt)
@@ -303,7 +307,7 @@ docker compose pull && docker compose up -d
 - テスト対象: **純粋ロジック** + **Repository をモックしたビジネスロジック**
 - Repository 層（interface + Koin DI）により、ルートハンドラのビジネスロジック（ステータス遷移、権限チェック、上限判定等）は Repository モックでテスト可能
 - shared: `shared/src/commonTest/kotlin/model/` — `@Serializable` モデルのシリアライズ往復テスト
-- server: `server/src/test/kotlin/server/` — `ChallengeStore`、money パース関数等のユニットテスト
+- server: `server/src/test/kotlin/server/` — `ChallengeStore`、`PasskeyLoginService`、money パース関数等のユニットテスト。`ExposedPasskeyCredentialRepository` は一時ファイルの SQLite DB でテストする
 - wasmJs ブラウザテスト (`allTests`) はヘッドレス Chrome が必要。CI 以外では `jvmTest` を使用する
 
 ### プレビュー用スクリーンショット生成
