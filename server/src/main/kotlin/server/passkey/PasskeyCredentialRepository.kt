@@ -15,6 +15,17 @@ class PasskeyCredentialRecord(
     val createdAt: Long,
 )
 
+/**
+ * 登録検証を通ったパスキーの情報（保存前）。
+ * [WebAuthnVerifier] が生成し [PasskeyCredentialRepository.save] に渡す。
+ */
+class RegisteredCredential(
+    val credentialId: ByteArray,
+    val credentialIdBase64: String,
+    val publicKey: ByteArray,
+    val counter: Long,
+)
+
 /** パスキーのクレデンシャル保存先 */
 interface PasskeyCredentialRepository {
     /** 指定したユーザーのパスキーの件数を返す */
@@ -26,7 +37,11 @@ interface PasskeyCredentialRepository {
     /** credential ID（Base64URL）からパスキーを探す。見つからなければ null を返す */
     fun findByCredentialId(credentialIdBase64: String): PasskeyCredentialRecord?
 
-    /** 登録検証を通ったパスキーを保存する */
+    /**
+     * 登録検証を通ったパスキーを保存する。
+     * [transports] は検証結果ではなくクライアントが申告した値（認証時のヒントにのみ使う）のため、
+     * [RegisteredCredential] には含めず別に受け取る。
+     */
     fun save(
         firebaseUid: String,
         credential: RegisteredCredential,

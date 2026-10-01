@@ -15,14 +15,6 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.util.Base64
 
-/** 登録検証を通ったパスキーの情報（保存前） */
-class RegisteredCredential(
-    val credentialId: ByteArray,
-    val credentialIdBase64: String,
-    val publicKey: ByteArray,
-    val counter: Long,
-)
-
 /**
  * WebAuthn の登録・認証レスポンスを検証する（webauthn4j のラッパー）。
  * DB には触れず、検証結果を返すだけにする（保存は [PasskeyCredentialRepository] の責務）。
