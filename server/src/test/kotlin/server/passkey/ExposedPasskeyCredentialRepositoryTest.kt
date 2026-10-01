@@ -1,5 +1,6 @@
 package server.passkey
 
+import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import java.io.File
 import java.nio.file.Files
 import kotlin.test.AfterTest
@@ -13,10 +14,13 @@ import kotlin.test.assertTrue
 class ExposedPasskeyCredentialRepositoryTest {
     // テストごとに一時ファイルの SQLite DB を使い、テスト間でデータを共有しない
     private val dbDir: File = Files.createTempDirectory("passkey-test").toFile()
-    private val repository = ExposedPasskeyCredentialRepository(connectPasskeyDatabase(File(dbDir, "passkey.db").path))
+    private val database = connectPasskeyDatabase(File(dbDir, "passkey.db").path)
+    private val repository = ExposedPasskeyCredentialRepository(database)
 
     @AfterTest
     fun tearDown() {
+        // Exposed はグローバルな TransactionManager に接続を登録するため、テストごとに解除する
+        TransactionManager.closeAndUnregister(database)
         dbDir.deleteRecursively()
     }
 

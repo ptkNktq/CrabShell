@@ -6,6 +6,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.cloud.FirestoreClient
 import com.maxmind.geoip2.DatabaseReader
 import org.jetbrains.exposed.v1.jdbc.Database
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import org.slf4j.LoggerFactory
 import server.auth.FirebaseAdminAuthRepository
@@ -57,6 +58,8 @@ private const val DEFAULT_GEOIP_DB_PATH = "data/GeoLite2-City.mmdb"
 
 private const val DEFAULT_PASSKEY_DB_PATH = "data/passkey.db"
 
+private val PASSKEY_DATABASE = named("passkey")
+
 private fun loadGeolocationService(): IpGeolocationService {
     val path = EnvConfig["GEOIP_DB_PATH"] ?: DEFAULT_GEOIP_DB_PATH
     val file = File(path)
@@ -83,10 +86,11 @@ val serverModule =
         single<FirebaseAuth> { FirebaseAuth.getInstance(get<FirebaseApp>()) }
         single<FirebaseAuthRepository> { FirebaseAdminAuthRepository(get()) }
         // DB ファイルの作成・スキーマ作成を起動時に済ませる
-        single<Database>(createdAtStart = true) {
+        // Exposed の Database は汎用型のため、他の DB と取り違えないよう修飾子を付ける
+        single<Database>(PASSKEY_DATABASE, createdAtStart = true) {
             connectPasskeyDatabase(EnvConfig["PASSKEY_DB_PATH"] ?: DEFAULT_PASSKEY_DB_PATH)
         }
-        single<PasskeyCredentialRepository> { ExposedPasskeyCredentialRepository(get()) }
+        single<PasskeyCredentialRepository> { ExposedPasskeyCredentialRepository(get(PASSKEY_DATABASE)) }
         // 未設定時の警告を起動時ログに出すため eager 初期化する
         single(createdAtStart = true) { PasskeyConfig.fromEnv() }
         single { ChallengeStore() }

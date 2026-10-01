@@ -1,7 +1,10 @@
 package server.passkey
 
-/** 保存済みのパスキー（WebAuthn クレデンシャル） */
-data class PasskeyCredentialRecord(
+/**
+ * 保存済みのパスキー（WebAuthn クレデンシャル）。
+ * ByteArray を持つため data class にしない（自動生成の equals が配列を参照で比較してしまうため）。
+ */
+class PasskeyCredentialRecord(
     val id: Long,
     val firebaseUid: String,
     val credentialId: ByteArray,
