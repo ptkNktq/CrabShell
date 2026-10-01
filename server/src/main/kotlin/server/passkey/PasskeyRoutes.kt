@@ -325,7 +325,7 @@ fun Route.passkeyRoutes() {
                         credentialRecord = credentialRecord,
                     )
 
-                    when (val result = passkeyLoginService.issueCustomToken(credentialRecord.firebaseUid)) {
+                    when (val result = passkeyLoginService.authorizeLogin(credentialRecord.firebaseUid)) {
                         is PasskeyLoginResult.Success -> {
                             call.respond(PasskeyAuthenticateResponse(customToken = result.customToken))
                         }

@@ -17,10 +17,10 @@ sealed interface PasskeyLoginResult {
 }
 
 /**
- * パスキー認証（署名検証）に成功したクレデンシャルの所有者に対して、カスタムトークンを発行する。
+ * パスキー認証（署名検証）に成功したクレデンシャルの所有者について、ログインを許可するか判定する。
  *
  * 存在しない uid のカスタムトークンでサインインすると Firebase Auth にユーザーが新規作成されるため、
- * 発行前に所有者が実在し有効であることを必ず確認する。
+ * カスタムトークンは所有者が実在し有効であることを確認してから発行する。
  */
 class PasskeyLoginService(
     private val userDirectory: FirebaseUserDirectory,
@@ -28,7 +28,16 @@ class PasskeyLoginService(
 ) {
     private val logger = LoggerFactory.getLogger(PasskeyLoginService::class.java)
 
-    fun issueCustomToken(firebaseUid: String): PasskeyLoginResult {
+    /**
+     * [firebaseUid] のユーザーの状態を Firebase Auth で確認し、ログインを許可するか判定する。
+     *
+     * - 有効なユーザー: カスタムトークンを発行し [PasskeyLoginResult.Success] を返す
+     * - 存在しないユーザー: その uid のパスキーを passkey DB からすべて削除し、[PasskeyLoginResult.Rejected] を返す。
+     *   削除に失敗しても Rejected を返す
+     * - 無効化されたユーザー: パスキーは残したまま [PasskeyLoginResult.Rejected] を返す
+     * - 状態の確認またはトークンの発行に失敗: パスキーは削除せず [PasskeyLoginResult.Unavailable] を返す
+     */
+    fun authorizeLogin(firebaseUid: String): PasskeyLoginResult {
         val status =
             try {
                 userDirectory.getUserStatus(firebaseUid)

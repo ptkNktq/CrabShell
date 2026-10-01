@@ -20,7 +20,7 @@ class PasskeyLoginServiceTest {
         every { userDirectory.getUserStatus(uid) } returns FirebaseUserStatus.ACTIVE
         every { userDirectory.createCustomToken(uid) } returns "token"
 
-        val result = service.issueCustomToken(uid)
+        val result = service.authorizeLogin(uid)
 
         assertEquals(PasskeyLoginResult.Success("token"), result)
         verify(exactly = 0) { credentialStore.deleteCredentials(any()) }
@@ -31,7 +31,7 @@ class PasskeyLoginServiceTest {
         every { userDirectory.getUserStatus(uid) } returns FirebaseUserStatus.NOT_FOUND
         every { credentialStore.deleteCredentials(uid) } returns 1
 
-        val result = service.issueCustomToken(uid)
+        val result = service.authorizeLogin(uid)
 
         assertEquals(PasskeyLoginResult.Rejected, result)
         verify(exactly = 0) { userDirectory.createCustomToken(any()) }
@@ -43,7 +43,7 @@ class PasskeyLoginServiceTest {
         every { userDirectory.getUserStatus(uid) } returns FirebaseUserStatus.NOT_FOUND
         every { credentialStore.deleteCredentials(uid) } throws RuntimeException("db error")
 
-        val result = service.issueCustomToken(uid)
+        val result = service.authorizeLogin(uid)
 
         assertEquals(PasskeyLoginResult.Rejected, result)
         verify(exactly = 0) { userDirectory.createCustomToken(any()) }
@@ -53,7 +53,7 @@ class PasskeyLoginServiceTest {
     fun disabledUserIsRejectedWithoutDeletingCredentials() {
         every { userDirectory.getUserStatus(uid) } returns FirebaseUserStatus.DISABLED
 
-        val result = service.issueCustomToken(uid)
+        val result = service.authorizeLogin(uid)
 
         assertEquals(PasskeyLoginResult.Rejected, result)
         verify(exactly = 0) { userDirectory.createCustomToken(any()) }
@@ -64,7 +64,7 @@ class PasskeyLoginServiceTest {
     fun userStatusLookupFailureIsUnavailableWithoutDeletingCredentials() {
         every { userDirectory.getUserStatus(uid) } throws RuntimeException("network error")
 
-        val result = service.issueCustomToken(uid)
+        val result = service.authorizeLogin(uid)
 
         assertEquals(PasskeyLoginResult.Unavailable, result)
         verify(exactly = 0) { userDirectory.createCustomToken(any()) }
@@ -76,7 +76,7 @@ class PasskeyLoginServiceTest {
         every { userDirectory.getUserStatus(uid) } returns FirebaseUserStatus.ACTIVE
         every { userDirectory.createCustomToken(uid) } returns null
 
-        val result = service.issueCustomToken(uid)
+        val result = service.authorizeLogin(uid)
 
         assertEquals(PasskeyLoginResult.Unavailable, result)
     }
