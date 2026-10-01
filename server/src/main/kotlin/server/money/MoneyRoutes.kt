@@ -18,7 +18,7 @@ import model.MonthlyMoneyStatusUpdateRequest
 import model.PayRequest
 import model.Payment
 import org.koin.ktor.ext.inject
-import server.auth.FirebaseAdmin
+import server.auth.FirebaseAuthRepository
 import server.auth.adminOnly
 import server.auth.authenticated
 import server.auth.firebasePrincipal
@@ -29,6 +29,7 @@ fun Route.moneyRoutes() {
     val moneyRepository by inject<MoneyRepository>()
     val moneyWebhookService by inject<MoneyWebhookService>()
     val paymentWebhookService by inject<PaymentWebhookService>()
+    val firebaseAuthRepository by inject<FirebaseAuthRepository>()
 
     route("/money/{yearMonth}") {
         // 管理者: データ取得・全体保存
@@ -221,7 +222,7 @@ fun Route.moneyRoutes() {
 
                 // displayName 未設定時に Firebase UID を Webhook 経路で外部チャネル（Discord/Slack）に
                 // 流すと逆引き材料になりうるため、表示用フォールバックに置き換える。
-                val payerName = FirebaseAdmin.getDisplayName(uid) ?: "不明なユーザー"
+                val payerName = firebaseAuthRepository.getDisplayName(uid) ?: "不明なユーザー"
                 paymentWebhookService.notifyPayment(
                     yearMonth = yearMonth,
                     payerName = payerName,

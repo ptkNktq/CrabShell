@@ -1,0 +1,54 @@
+package server.passkey
+
+/** 保存済みのパスキー（WebAuthn クレデンシャル） */
+data class PasskeyCredentialRecord(
+    val id: Long,
+    val firebaseUid: String,
+    val credentialId: ByteArray,
+    val credentialIdBase64: String,
+    val publicKey: ByteArray,
+    val counter: Long,
+    val transports: String?,
+    val createdAt: Long,
+)
+
+/** パスキーのクレデンシャル保存先 */
+interface PasskeyCredentialRepository {
+    /** 指定したユーザーのパスキーの件数を返す */
+    fun countByUid(firebaseUid: String): Int
+
+    /** 指定したユーザーのパスキーを登録日時の昇順で返す */
+    fun findByUid(firebaseUid: String): List<PasskeyCredentialRecord>
+
+    /** credential ID（Base64URL）からパスキーを探す。見つからなければ null を返す */
+    fun findByCredentialId(credentialIdBase64: String): PasskeyCredentialRecord?
+
+    /** 登録検証を通ったパスキーを保存する */
+    fun save(
+        firebaseUid: String,
+        credential: RegisteredCredential,
+        transports: String?,
+    )
+
+    /** 認証に成功したパスキーの署名カウンタを更新する */
+    fun updateCounter(
+        id: Long,
+        counter: Long,
+    )
+
+    /**
+     * 指定したユーザーのパスキーをすべて削除する。
+     * @return 削除した件数
+     */
+    fun deleteByUid(firebaseUid: String): Int
+
+    /**
+     * 指定したユーザーが所有する 1 件のパスキーを削除する。
+     * firebaseUid の一致も条件に含めることで、他ユーザーの credential ID を誤って削除できないようにする。
+     * @return 削除できた場合 true、対象が存在しない（他ユーザーの ID を含む）場合 false
+     */
+    fun deleteByIdAndUid(
+        id: Long,
+        firebaseUid: String,
+    ): Boolean
+}
