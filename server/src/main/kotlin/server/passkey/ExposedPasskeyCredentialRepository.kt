@@ -28,7 +28,7 @@ class ExposedPasskeyCredentialRepository(
             PasskeyCredentials
                 .selectAll()
                 .where { PasskeyCredentials.firebaseUid eq firebaseUid }
-                .orderBy(PasskeyCredentials.createdAt)
+                .orderBy(PasskeyCredentials.id)
                 .map { it.toRecord() }
         }
 
