@@ -70,6 +70,6 @@ class MaxMindIpGeolocationService(
             ?: names["en"]?.takeIf { it.isNotBlank() }
             ?: names.values.firstOrNull { it.isNotBlank() }
 
-    /** DB ファイル（memory-mapped）を解放する。2 回目以降の呼び出しは何もしない */
+    /** DB ファイルをマップしたバッファへの参照を手放し、GC で回収できるようにする（close 時点では unmap されない） */
     override fun close() = closeOnce { reader.close() }
 }

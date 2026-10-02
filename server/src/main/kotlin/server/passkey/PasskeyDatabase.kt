@@ -27,8 +27,10 @@ class PasskeyDatabase(
                 SchemaUtils.create(PasskeyCredentials)
             }
         } catch (e: Exception) {
-            // 生成に失敗するとインスタンスが返らず close() されないため、ここで登録を解除してから投げ直す
-            TransactionManager.closeAndUnregister(database)
+            // 生成に失敗するとインスタンスが返らず close() されないため、ここで登録を解除してから投げ直す。
+            // 解除に失敗しても元の例外（失敗の本当の原因）を失わないよう、suppressed として添える
+            runCatching { TransactionManager.closeAndUnregister(database) }
+                .onFailure(e::addSuppressed)
             throw e
         }
     }
@@ -36,7 +38,6 @@ class PasskeyDatabase(
     /**
      * Exposed の TransactionManager から登録を解除し、以降のトランザクションで使えなくする。
      * URL 指定の接続はトランザクションごとに開閉するため、常駐するコネクションは持たない。
-     * 2 回目以降の呼び出しは何もしない。
      */
     override fun close() = closeOnce { TransactionManager.closeAndUnregister(database) }
 }

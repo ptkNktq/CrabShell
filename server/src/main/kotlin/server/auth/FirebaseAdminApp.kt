@@ -22,7 +22,7 @@ class FirebaseAdminApp(
 
     private val closeOnce = CloseOnce()
 
-    /** [app] を削除する。2 回目以降の呼び出しは何もしない */
+    /** [app] を削除する */
     override fun close() = closeOnce { app.delete() }
 
     private companion object {
