@@ -11,6 +11,7 @@ import com.webauthn4j.data.client.Origin
 import com.webauthn4j.data.client.challenge.DefaultChallenge
 import com.webauthn4j.server.ServerProperty
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.util.Base64
@@ -114,5 +115,8 @@ class WebAuthnVerifier(
         return Origin.create(originStr)
     }
 
-    private fun parseClientData(clientDataJSON: ByteArray) = Json.parseToJsonElement(String(clientDataJSON, Charsets.UTF_8)).jsonObject
+    private fun parseClientData(clientDataJSON: ByteArray): JsonObject =
+        Json
+            .parseToJsonElement(String(clientDataJSON, Charsets.UTF_8))
+            .jsonObject
 }
