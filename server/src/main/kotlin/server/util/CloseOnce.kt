@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  *
  * 「1 回だけ実行する」判定をここに集約し、各クラスは何を閉じるかだけを書く。
  * 後始末が例外を投げても閉じたものとして扱い、再試行はしない。
+ * 同時に呼ばれた場合、2 つ目以降の呼び出しは後始末の完了を待たずに戻る（戻った時点で閉じ終わっているとは限らない）。
  * ```
  * private val closeOnce = CloseOnce()
  * override fun close() = closeOnce { resource.close() }
