@@ -355,7 +355,7 @@ fun Route.passkeyRoutes() {
     }
 }
 
-/** CredentialRecord を WebAuthn CredentialDescriptor に変換する */
+/** [PasskeyCredentialRecord] を WebAuthn の [CredentialDescriptor] に変換する */
 private fun PasskeyCredentialRecord.toDescriptor(): CredentialDescriptor =
     CredentialDescriptor(
         id = credentialIdBase64,

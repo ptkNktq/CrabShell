@@ -450,10 +450,10 @@ DB ファイルが存在しない場合はジオロケーション機能が自�
 ./gradlew :server:test -PskipFrontend
 ```
 
-- テスト対象は純粋ロジックに絞る（Firebase/Firestore 依存のコードは対象外）
+- テスト対象: 純粋ロジック + Repository をモックしたビジネスロジック。Firebase / Firestore など外部サービスにつなぐコードは対象外
 - shared: `@Serializable` モデルのシリアライズ往復テスト
-- server: `ChallengeStore`、`PasskeyLoginService`、money パース関数等のユニットテスト。パスキーの DB 層（`ExposedPasskeyCredentialRepository`）は一時ファイルの SQLite DB でテストする
-- server DI: `serverModule.verify()`（koin-test）で、DI 定義の登録漏れを検出する
+- server: 純粋ロジック・サービス層のユニットテスト。パスキーの DB 層は一時ファイルの SQLite DB でテストする
+- server DI: `serverModule.verify()`（koin-test）で、DI 定義の登録漏れを静的に検出する（インスタンスは作らない）
 
 ## Lint
 

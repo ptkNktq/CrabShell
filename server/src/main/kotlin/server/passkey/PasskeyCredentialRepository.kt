@@ -31,7 +31,7 @@ interface PasskeyCredentialRepository {
     /** 指定したユーザーのパスキーの件数を返す */
     fun countByUid(firebaseUid: String): Int
 
-    /** 指定したユーザーのパスキーを登録日時の昇順で返す */
+    /** 指定したユーザーのパスキーを登録順で返す */
     fun findByUid(firebaseUid: String): List<PasskeyCredentialRecord>
 
     /** credential ID（Base64URL）からパスキーを探す。見つからなければ null を返す */
