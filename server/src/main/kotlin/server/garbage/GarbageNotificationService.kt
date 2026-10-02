@@ -5,6 +5,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.content.TextContent
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -37,6 +38,9 @@ class GarbageNotificationService(
         while (true) {
             try {
                 checkAndNotify()
+            } catch (e: CancellationException) {
+                // コルーチンキャンセル（サーバー停止時など）は握り潰さず親に伝播させる。
+                throw e
             } catch (e: Exception) {
                 logger.warn("Garbage notification check failed", e)
             }
