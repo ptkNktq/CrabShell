@@ -26,5 +26,6 @@ graph LR
 | `server/passkey/PasskeyRoutes.kt` | パスキー（WebAuthn）登録・認証 API ルート |
 | `server/passkey/WebAuthnVerifier.kt` | WebAuthn 登録・認証レスポンスの検証 |
 | `server/passkey/ExposedPasskeyCredentialRepository.kt` | パスキーの保存先（SQLite） |
+| `server/passkey/PasskeyDatabase.kt` | パスキー用 SQLite DB への接続・テーブル作成・停止時の登録解除 |
 | `server/pet/PetRoutes.kt` | ペット管理 API ルート |
 | `server/user/UserRoutes.kt` | ユーザー管理 API ルート |

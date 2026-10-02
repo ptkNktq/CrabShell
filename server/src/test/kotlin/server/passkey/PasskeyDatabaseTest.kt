@@ -1,6 +1,7 @@
 package server.passkey
 
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
+import org.sqlite.SQLiteException
 import java.io.File
 import java.nio.file.Files
 import kotlin.test.AfterTest
@@ -22,7 +23,8 @@ class PasskeyDatabaseTest {
         val notADirectory = File(dir, "not-a-directory").apply { writeText("") }
         val primaryBefore = TransactionManager.primaryDatabase
 
-        assertFailsWith<Exception> { PasskeyDatabase(File(notADirectory, "passkey.db").path) }
+        // 接続の登録後、テーブル作成の段階で失敗することを例外型で確かめる（登録前に失敗すると何も検証できないため）
+        assertFailsWith<SQLiteException> { PasskeyDatabase(File(notADirectory, "passkey.db").path) }
 
         // primaryDatabase は既定 DB が未設定なら最後に登録した DB を返すため、
         // 登録が残っていれば失敗した DB になる。解除されていれば失敗前と変わらない
