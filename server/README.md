@@ -15,9 +15,10 @@ graph LR
 |---|---|
 | `server/Application.kt` | サーバーエントリーポイント・ルーティング設定 |
 | `server/auth/AuthPlugin.kt` | Ktor 認証プラグイン |
-| `server/auth/FirebaseAppInitializer.kt` | Firebase Admin SDK（FirebaseApp）の初期化 |
+| `server/auth/FirebaseAdminApp.kt` | Firebase Admin SDK（FirebaseApp）の初期化と停止時の削除 |
 | `server/auth/FirebaseAdminAuthRepository.kt` | Firebase Auth 操作（ID トークン検証・ユーザー照会/更新・カスタムトークン発行） |
 | `server/di/ServerModule.kt` | Koin の DI 定義 |
+| `server/di/CloseOnStop.kt` | 停止時に AutoCloseable なリソースを閉じる DI 定義用のヘルパー |
 | `server/feeding/FeedingRoutes.kt` | ごはん記録 API ルート |
 | `server/garbage/GarbageRoutes.kt` | ゴミ出しスケジュール API ルート |
 | `server/money/MoneyRoutes.kt` | 支出管理 API ルート |

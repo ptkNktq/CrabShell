@@ -6,4 +6,7 @@ package server.geo
  */
 object NoOpIpGeolocationService : IpGeolocationService {
     override suspend fun lookup(ip: String?): GeoLocation? = null
+
+    /** 保持するリソースが無いので何もしない */
+    override fun close() = Unit
 }
