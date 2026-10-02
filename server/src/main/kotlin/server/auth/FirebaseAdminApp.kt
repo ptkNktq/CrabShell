@@ -18,31 +18,26 @@ private const val SERVICE_ACCOUNT_PATH = "firebase-service-account.json"
 class FirebaseAdminApp(
     serviceAccountFile: File = File(SERVICE_ACCOUNT_PATH),
 ) : AutoCloseable {
-    val app: FirebaseApp = initialize(serviceAccountFile)
+    val app: FirebaseApp
 
     private val closeOnce = CloseOnce()
 
+    init {
+        check(serviceAccountFile.isFile) {
+            "Firebase service account file not found at '${serviceAccountFile.absolutePath}'"
+        }
+        val options =
+            serviceAccountFile.inputStream().use { stream ->
+                FirebaseOptions
+                    .builder()
+                    .setCredentials(GoogleCredentials.fromStream(stream))
+                    .build()
+            }
+        // このクラスが作ったアプリだけを close() で削除するため、初期化済みのアプリは使い回さない
+        // （DI の single で 1 回だけ生成される。二重に初期化した場合は Firebase が例外を投げる）
+        app = FirebaseApp.initializeApp(options)
+    }
+
     /** [app] を削除する */
     override fun close() = closeOnce { app.delete() }
-
-    private companion object {
-        /**
-         * デフォルトアプリを初期化して返す。
-         * このクラスが作ったアプリだけを [close] で削除するため、初期化済みのアプリは使い回さない
-         * （DI の single で 1 回だけ生成される。二重に初期化した場合は Firebase が例外を投げる）
-         */
-        fun initialize(serviceAccountFile: File): FirebaseApp {
-            check(serviceAccountFile.isFile) {
-                "Firebase service account file not found at '${serviceAccountFile.absolutePath}'"
-            }
-            val options =
-                serviceAccountFile.inputStream().use { stream ->
-                    FirebaseOptions
-                        .builder()
-                        .setCredentials(GoogleCredentials.fromStream(stream))
-                        .build()
-                }
-            return FirebaseApp.initializeApp(options)
-        }
-    }
 }
