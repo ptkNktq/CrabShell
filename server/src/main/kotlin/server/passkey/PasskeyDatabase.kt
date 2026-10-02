@@ -4,8 +4,8 @@ import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import server.util.CloseOnce
 import java.io.File
-import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * パスキー用 SQLite DB への接続。生成時に接続し、テーブルが無ければ作成する。
@@ -17,13 +17,19 @@ class PasskeyDatabase(
 ) : AutoCloseable {
     val database: Database
 
-    private val closed = AtomicBoolean(false)
+    private val closeOnce = CloseOnce()
 
     init {
         File(dbPath).parentFile?.mkdirs()
         database = Database.connect("jdbc:sqlite:$dbPath", driver = "org.sqlite.JDBC")
-        transaction(database) {
-            SchemaUtils.create(PasskeyCredentials)
+        try {
+            transaction(database) {
+                SchemaUtils.create(PasskeyCredentials)
+            }
+        } catch (e: Exception) {
+            // 生成に失敗するとインスタンスが返らず close() されないため、ここで登録を解除してから投げ直す
+            TransactionManager.closeAndUnregister(database)
+            throw e
         }
     }
 
@@ -32,9 +38,5 @@ class PasskeyDatabase(
      * URL 指定の接続はトランザクションごとに開閉するため、常駐するコネクションは持たない。
      * 2 回目以降の呼び出しは何もしない。
      */
-    override fun close() {
-        if (closed.compareAndSet(false, true)) {
-            TransactionManager.closeAndUnregister(database)
-        }
-    }
+    override fun close() = closeOnce { TransactionManager.closeAndUnregister(database) }
 }
