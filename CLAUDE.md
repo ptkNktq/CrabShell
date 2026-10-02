@@ -121,6 +121,7 @@ server/              → Ktor server (Netty, JVM)
                        停止時の後始末: 閉じる必要があるリソースは自身が AutoCloseable を実装して閉じ方を持ち、DI 定義には closeOnStop()（server/di/CloseOnStop.kt）を付けるだけにする。
                          Ktor の ApplicationStopping で koin-ktor が Koin を close したときに呼ばれる。順序は保証されず、1 つの失敗は WARN ログにして残りを閉じる
                          ライブラリの型（FirebaseApp、Exposed の Database 等）は自前のクラスで包んで AutoCloseable にする
+                         close() は 2 回目以降何もしない（冪等）ようにし、その判定は server/util/CloseOnce.kt の CloseOnce に任せる（各クラスで AtomicBoolean を個別に持たない）
                        パスキー: PasskeyConfig（設定）/ WebAuthnVerifier（検証）/ PasskeyCredentialRepository（SQLite）/ ChallengeStore / PasskeyLoginService（ログイン判定）
                        ルートハンドラは HTTP 処理 + ビジネスルール判定のみ
                        ※ API 設計方針（リクエスト body の DTO ラップ等）は README.md の「API 設計」セクションを参照

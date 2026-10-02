@@ -19,6 +19,7 @@ graph LR
 | `server/auth/FirebaseAdminAuthRepository.kt` | Firebase Auth 操作（ID トークン検証・ユーザー照会/更新・カスタムトークン発行） |
 | `server/di/ServerModule.kt` | Koin の DI 定義 |
 | `server/di/CloseOnStop.kt` | 停止時に AutoCloseable なリソースを閉じる DI 定義用のヘルパー |
+| `server/util/CloseOnce.kt` | `close()` を冪等にする（初回だけ後始末を実行する）部品 |
 | `server/feeding/FeedingRoutes.kt` | ごはん記録 API ルート |
 | `server/garbage/GarbageRoutes.kt` | ゴミ出しスケジュール API ルート |
 | `server/money/MoneyRoutes.kt` | 支出管理 API ルート |
