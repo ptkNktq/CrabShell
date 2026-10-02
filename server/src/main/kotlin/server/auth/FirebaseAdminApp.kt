@@ -26,10 +26,12 @@ class FirebaseAdminApp(
     override fun close() = closeOnce { app.delete() }
 
     private companion object {
-        /** デフォルトアプリを初期化して返す（初期化済みならそれを返す） */
+        /**
+         * デフォルトアプリを初期化して返す。
+         * このクラスが作ったアプリだけを [close] で削除するため、初期化済みのアプリは使い回さない
+         * （DI の single で 1 回だけ生成される。二重に初期化した場合は Firebase が例外を投げる）
+         */
         fun initialize(serviceAccountFile: File): FirebaseApp {
-            FirebaseApp.getApps().firstOrNull { it.name == FirebaseApp.DEFAULT_APP_NAME }?.let { return it }
-
             check(serviceAccountFile.isFile) {
                 "Firebase service account file not found at '${serviceAccountFile.absolutePath}'"
             }
