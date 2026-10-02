@@ -6,6 +6,7 @@ import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.koin.ktor.ext.inject
 
 private const val AUTH_PROVIDER_NAME = "firebase"
 
@@ -22,11 +23,12 @@ data class FirebasePrincipal(
 
 /** Ktor Authentication プラグインを設定（Bearer トークンで Firebase ID Token を検証） */
 fun Application.configureAuth() {
+    val firebaseAuthRepository by inject<FirebaseAuthRepository>()
     install(Authentication) {
         bearer(AUTH_PROVIDER_NAME) {
             realm = "CrabShell"
             authenticate { credential ->
-                FirebaseAdmin.verifyIdToken(credential.token)?.let { FirebasePrincipal(it) }
+                firebaseAuthRepository.verifyIdToken(credential.token)?.let { FirebasePrincipal(it) }
             }
         }
     }

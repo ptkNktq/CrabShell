@@ -17,7 +17,7 @@ import model.OverpaymentRedemptionRequest
 import model.Payment
 import model.UserBalance
 import org.koin.ktor.ext.inject
-import server.auth.FirebaseAdmin
+import server.auth.FirebaseAuthRepository
 import server.auth.adminOnly
 import server.auth.authenticated
 import server.money.MoneyRepository
@@ -28,6 +28,7 @@ import java.util.UUID
 fun Route.reportRoutes() {
     val moneyRepository by inject<MoneyRepository>()
     val balanceService by inject<BalanceCalculationService>()
+    val firebaseAuthRepository by inject<FirebaseAuthRepository>()
 
     authenticated {
         get("/report", {
@@ -91,7 +92,7 @@ fun Route.reportRoutes() {
             val balances =
                 result.overpayments.mapNotNull { overpayment ->
                     if (overpayment.net <= 0L) return@mapNotNull null
-                    val displayName = FirebaseAdmin.getDisplayName(overpayment.uid) ?: overpayment.uid
+                    val displayName = firebaseAuthRepository.getDisplayName(overpayment.uid) ?: overpayment.uid
                     UserBalance(overpayment.uid, displayName, 0L, 0L, overpayment.net)
                 }
 

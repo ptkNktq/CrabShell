@@ -10,8 +10,8 @@ import kotlin.test.assertEquals
 
 class PasskeyLoginServiceTest {
     private val firebaseAuthRepository = mockk<FirebaseAuthRepository>()
-    private val credentialStore = mockk<PasskeyCredentialStore>()
-    private val service = PasskeyLoginService(firebaseAuthRepository, credentialStore)
+    private val credentialRepository = mockk<PasskeyCredentialRepository>()
+    private val service = PasskeyLoginService(firebaseAuthRepository, credentialRepository)
 
     private val uid = "user1"
 
@@ -23,31 +23,31 @@ class PasskeyLoginServiceTest {
         val result = service.authorizeLogin(uid)
 
         assertEquals(PasskeyLoginResult.Success("token"), result)
-        verify(exactly = 0) { credentialStore.deleteCredentials(any()) }
+        verify(exactly = 0) { credentialRepository.deleteByUid(any()) }
     }
 
     @Test
     fun nonExistentUserIsRejectedAndCredentialsAreDeleted() {
         every { firebaseAuthRepository.getUserStatus(uid) } returns FirebaseUserStatus.NOT_FOUND
-        every { credentialStore.deleteCredentials(uid) } returns 1
+        every { credentialRepository.deleteByUid(uid) } returns 1
 
         val result = service.authorizeLogin(uid)
 
         assertEquals(PasskeyLoginResult.Rejected, result)
         verify(exactly = 0) { firebaseAuthRepository.createCustomToken(any()) }
-        verify(exactly = 1) { credentialStore.deleteCredentials(uid) }
+        verify(exactly = 1) { credentialRepository.deleteByUid(uid) }
     }
 
     @Test
     fun nonExistentUserIsRejectedEvenIfCredentialDeletionFails() {
         every { firebaseAuthRepository.getUserStatus(uid) } returns FirebaseUserStatus.NOT_FOUND
-        every { credentialStore.deleteCredentials(uid) } throws RuntimeException("db error")
+        every { credentialRepository.deleteByUid(uid) } throws RuntimeException("db error")
 
         val result = service.authorizeLogin(uid)
 
         assertEquals(PasskeyLoginResult.Rejected, result)
         verify(exactly = 0) { firebaseAuthRepository.createCustomToken(any()) }
-        verify(exactly = 1) { credentialStore.deleteCredentials(uid) }
+        verify(exactly = 1) { credentialRepository.deleteByUid(uid) }
     }
 
     @Test
@@ -58,7 +58,7 @@ class PasskeyLoginServiceTest {
 
         assertEquals(PasskeyLoginResult.Rejected, result)
         verify(exactly = 0) { firebaseAuthRepository.createCustomToken(any()) }
-        verify(exactly = 0) { credentialStore.deleteCredentials(any()) }
+        verify(exactly = 0) { credentialRepository.deleteByUid(any()) }
     }
 
     @Test
@@ -69,7 +69,7 @@ class PasskeyLoginServiceTest {
 
         assertEquals(PasskeyLoginResult.Unavailable, result)
         verify(exactly = 0) { firebaseAuthRepository.createCustomToken(any()) }
-        verify(exactly = 0) { credentialStore.deleteCredentials(any()) }
+        verify(exactly = 0) { credentialRepository.deleteByUid(any()) }
     }
 
     @Test
@@ -80,6 +80,6 @@ class PasskeyLoginServiceTest {
         val result = service.authorizeLogin(uid)
 
         assertEquals(PasskeyLoginResult.Unavailable, result)
-        verify(exactly = 0) { credentialStore.deleteCredentials(any()) }
+        verify(exactly = 0) { credentialRepository.deleteByUid(any()) }
     }
 }

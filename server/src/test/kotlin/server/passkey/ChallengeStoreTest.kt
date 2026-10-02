@@ -6,34 +6,35 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class ChallengeStoreTest {
+    // テストごとに新しいインスタンスを使い、テスト間で発行済みチャレンジを共有しない
+    private val challengeStore = ChallengeStore()
+
     @Test
     fun generateReturnsChallengeOf32Bytes() {
-        val challenge = ChallengeStore.generate("test-user")
+        val challenge = challengeStore.generate("test-user")
         assertEquals(32, challenge.size)
-        // cleanup
-        ChallengeStore.consume("test-user")
     }
 
     @Test
     fun consumeReturnsChallengeAndRemovesIt() {
-        ChallengeStore.generate("user-a")
-        val consumed = ChallengeStore.consume("user-a")
+        challengeStore.generate("user-a")
+        val consumed = challengeStore.consume("user-a")
         assertNotNull(consumed)
         assertEquals(32, consumed.size)
         // 2回目は null
-        assertNull(ChallengeStore.consume("user-a"))
+        assertNull(challengeStore.consume("user-a"))
     }
 
     @Test
     fun consumeReturnsNullForUnknownKey() {
-        assertNull(ChallengeStore.consume("nonexistent-key"))
+        assertNull(challengeStore.consume("nonexistent-key"))
     }
 
     @Test
     fun generateOverwritesPreviousChallenge() {
-        val first = ChallengeStore.generate("user-b")
-        val second = ChallengeStore.generate("user-b")
-        val consumed = ChallengeStore.consume("user-b")
+        val first = challengeStore.generate("user-b")
+        val second = challengeStore.generate("user-b")
+        val consumed = challengeStore.consume("user-b")
         assertNotNull(consumed)
         // 上書きされたので最後に生成した値が返る
         assertEquals(second.toList(), consumed.toList())
@@ -41,25 +42,23 @@ class ChallengeStoreTest {
 
     @Test
     fun generateAnonymousReturnsChallengeOf32Bytes() {
-        val challenge = ChallengeStore.generateAnonymous()
+        val challenge = challengeStore.generateAnonymous()
         assertEquals(32, challenge.size)
-        // cleanup
-        ChallengeStore.consumeAnonymous(challenge)
     }
 
     @Test
     fun consumeAnonymousReturnsChallengeAndRemovesIt() {
-        val challenge = ChallengeStore.generateAnonymous()
-        val consumed = ChallengeStore.consumeAnonymous(challenge)
+        val challenge = challengeStore.generateAnonymous()
+        val consumed = challengeStore.consumeAnonymous(challenge)
         assertNotNull(consumed)
         assertEquals(challenge.toList(), consumed.toList())
         // 2回目は null
-        assertNull(ChallengeStore.consumeAnonymous(challenge))
+        assertNull(challengeStore.consumeAnonymous(challenge))
     }
 
     @Test
     fun consumeAnonymousReturnsNullForUnissuedChallenge() {
         val neverIssued = ByteArray(32) { it.toByte() }
-        assertNull(ChallengeStore.consumeAnonymous(neverIssued))
+        assertNull(challengeStore.consumeAnonymous(neverIssued))
     }
 }

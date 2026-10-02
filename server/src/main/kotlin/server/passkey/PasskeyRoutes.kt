@@ -36,6 +36,10 @@ private val logger = LoggerFactory.getLogger("server.passkey.PasskeyRoutes")
 private val webAuthnJson = Json { encodeDefaults = true }
 
 fun Route.passkeyRoutes() {
+    val passkeyConfig by inject<PasskeyConfig>()
+    val challengeStore by inject<ChallengeStore>()
+    val webAuthnVerifier by inject<WebAuthnVerifier>()
+    val credentialRepository by inject<PasskeyCredentialRepository>()
     val passkeyLoginService by inject<PasskeyLoginService>()
 
     route("/passkey") {
@@ -51,14 +55,12 @@ fun Route.passkeyRoutes() {
                     }
                 }
             }) {
-                if (!PasskeyService.enabled) {
+                if (!passkeyConfig.enabled) {
                     call.respond(PasskeyStatusResponse(registered = true, credentialCount = 0))
                     return@get
                 }
-                val uid = call.firebasePrincipal.uid
-                val registered = PasskeyService.isRegistered(uid)
-                val count = if (registered) PasskeyService.credentialCount(uid) else 0
-                call.respond(PasskeyStatusResponse(registered = registered, credentialCount = count))
+                val count = credentialRepository.countByUid(call.firebasePrincipal.uid)
+                call.respond(PasskeyStatusResponse(registered = count > 0, credentialCount = count))
             }
 
             // 登録オプション生成
@@ -72,7 +74,7 @@ fun Route.passkeyRoutes() {
                     code(HttpStatusCode.ServiceUnavailable) { description = "パスキー機能無効" }
                 }
             }) {
-                if (!PasskeyService.enabled) {
+                if (!passkeyConfig.enabled) {
                     return@post call.respond(
                         HttpStatusCode.ServiceUnavailable,
                         mapOf("error" to "パスキー機能が無効です（WEBAUTHN_RP_ID / WEBAUTHN_ORIGIN を設定してください）"),
@@ -83,14 +85,14 @@ fun Route.passkeyRoutes() {
                 val email = principal.email ?: ""
                 val displayName = principal.name ?: email.substringBefore("@")
 
-                val challenge = ChallengeStore.generate(uid)
+                val challenge = challengeStore.generate(uid)
                 val challengeBase64 = Base64.getUrlEncoder().withoutPadding().encodeToString(challenge)
 
-                val existingCredentials = PasskeyService.findCredentialsByUid(uid)
+                val existingCredentials = credentialRepository.findByUid(uid)
 
                 val options =
                     CreationOptions(
-                        rp = RelyingParty(name = "CrabShell", id = PasskeyService.rpId),
+                        rp = RelyingParty(name = "CrabShell", id = passkeyConfig.rpId),
                         user =
                             UserEntity(
                                 id = Base64.getUrlEncoder().withoutPadding().encodeToString(uid.toByteArray()),
@@ -119,7 +121,7 @@ fun Route.passkeyRoutes() {
                     code(HttpStatusCode.ServiceUnavailable) { description = "パスキー機能無効" }
                 }
             }) {
-                if (!PasskeyService.enabled) {
+                if (!passkeyConfig.enabled) {
                     return@post call.respond(
                         HttpStatusCode.ServiceUnavailable,
                         mapOf("error" to "パスキー機能が無効です"),
@@ -129,7 +131,7 @@ fun Route.passkeyRoutes() {
                 val request = call.receive<PasskeyRegisterCompleteRequest>()
 
                 val challenge =
-                    ChallengeStore.consume(uid)
+                    challengeStore.consume(uid)
                         ?: return@post call.respond(
                             HttpStatusCode.BadRequest,
                             mapOf("error" to "チャレンジが見つからないか期限切れです"),
@@ -153,13 +155,13 @@ fun Route.passkeyRoutes() {
                             ?.jsonArray
                             ?.joinToString(",") { it.jsonPrimitive.content }
 
-                    PasskeyService.verifyAndSaveRegistration(
-                        firebaseUid = uid,
-                        clientDataJSON = clientDataJSON,
-                        attestationObject = attestationObject,
-                        challenge = challenge,
-                        transports = transports,
-                    )
+                    val registered =
+                        webAuthnVerifier.verifyRegistration(
+                            clientDataJSON = clientDataJSON,
+                            attestationObject = attestationObject,
+                            challenge = challenge,
+                        )
+                    credentialRepository.save(uid, registered, transports)
 
                     call.respond(mapOf("status" to "ok"))
                 } catch (e: Exception) {
@@ -183,7 +185,7 @@ fun Route.passkeyRoutes() {
             }) {
                 val uid = call.firebasePrincipal.uid
                 val credentials =
-                    PasskeyService.findCredentialsByUid(uid).map {
+                    credentialRepository.findByUid(uid).map {
                         PasskeyCredentialInfo(
                             id = it.id,
                             createdAt = Instant.ofEpochMilli(it.createdAt).toString(),
@@ -214,7 +216,7 @@ fun Route.passkeyRoutes() {
                             mapOf("error" to "ID が不正です"),
                         )
 
-                if (PasskeyService.deleteCredential(uid, id)) {
+                if (credentialRepository.deleteByIdAndUid(id, uid)) {
                     call.respond(HttpStatusCode.NoContent)
                 } else {
                     call.respond(
@@ -239,20 +241,20 @@ fun Route.passkeyRoutes() {
                     code(HttpStatusCode.ServiceUnavailable) { description = "パスキー機能無効" }
                 }
             }) {
-                if (!PasskeyService.enabled) {
+                if (!passkeyConfig.enabled) {
                     return@post call.respond(
                         HttpStatusCode.ServiceUnavailable,
                         mapOf("error" to "パスキー機能が無効です"),
                     )
                 }
 
-                val challenge = ChallengeStore.generateAnonymous()
+                val challenge = challengeStore.generateAnonymous()
                 val challengeBase64 = Base64.getUrlEncoder().withoutPadding().encodeToString(challenge)
 
                 val options =
                     RequestOptions(
                         challenge = challengeBase64,
-                        rpId = PasskeyService.rpId,
+                        rpId = passkeyConfig.rpId,
                         allowCredentials = emptyList(),
                     )
                 val optionsJson = webAuthnJson.encodeToString(options)
@@ -277,7 +279,7 @@ fun Route.passkeyRoutes() {
                     code(HttpStatusCode.ServiceUnavailable) { description = "パスキー機能無効" }
                 }
             }) {
-                if (!PasskeyService.enabled) {
+                if (!passkeyConfig.enabled) {
                     return@post call.respond(
                         HttpStatusCode.ServiceUnavailable,
                         mapOf("error" to "パスキー機能が無効です"),
@@ -299,7 +301,7 @@ fun Route.passkeyRoutes() {
                         )
 
                     val challenge =
-                        ChallengeStore.consumeAnonymous(PasskeyService.extractChallenge(clientDataJSON))
+                        challengeStore.consumeAnonymous(webAuthnVerifier.extractChallenge(clientDataJSON))
                             ?: return@post call.respond(HttpStatusCode.BadRequest, authError)
 
                     val authenticatorDataBytes =
@@ -313,17 +315,19 @@ fun Route.passkeyRoutes() {
                     val credentialIdBytes = Base64.getUrlDecoder().decode(credentialIdBase64)
 
                     val credentialRecord =
-                        PasskeyService.findCredentialByCredentialId(credentialIdBase64)
+                        credentialRepository.findByCredentialId(credentialIdBase64)
                             ?: return@post call.respond(HttpStatusCode.BadRequest, authError)
 
-                    PasskeyService.verifyAuthentication(
-                        credentialIdBytes = credentialIdBytes,
-                        clientDataJSON = clientDataJSON,
-                        authenticatorData = authenticatorDataBytes,
-                        signature = signature,
-                        challenge = challenge,
-                        credentialRecord = credentialRecord,
-                    )
+                    val newCounter =
+                        webAuthnVerifier.verifyAuthentication(
+                            credentialIdBytes = credentialIdBytes,
+                            clientDataJSON = clientDataJSON,
+                            authenticatorData = authenticatorDataBytes,
+                            signature = signature,
+                            challenge = challenge,
+                            credentialRecord = credentialRecord,
+                        )
+                    credentialRepository.updateCounter(credentialRecord.id, newCounter)
 
                     when (val result = passkeyLoginService.authorizeLogin(credentialRecord.firebaseUid)) {
                         is PasskeyLoginResult.Success -> {
@@ -351,8 +355,8 @@ fun Route.passkeyRoutes() {
     }
 }
 
-/** CredentialRecord を WebAuthn CredentialDescriptor に変換する */
-private fun PasskeyService.CredentialRecord.toDescriptor(): CredentialDescriptor =
+/** [PasskeyCredentialRecord] を WebAuthn の [CredentialDescriptor] に変換する */
+private fun PasskeyCredentialRecord.toDescriptor(): CredentialDescriptor =
     CredentialDescriptor(
         id = credentialIdBase64,
         transports = transports?.split(","),

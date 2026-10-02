@@ -10,14 +10,15 @@ import java.util.concurrent.ConcurrentHashMap
  * usernameless 認証（[generateAnonymous]）はユーザー識別子が事前にわからないため、
  * チャレンジ自体をキーにする。
  * 5分 TTL で自動削除。
+ *
+ * 発行済みチャレンジをメモリに保持するため、アプリ全体で 1 インスタンスを共有すること（Koin の single で登録）。
  */
-object ChallengeStore {
+class ChallengeStore {
     private val store = ConcurrentHashMap<String, ChallengeEntry>()
     private val random = SecureRandom()
-    private const val TTL_MS = 5 * 60 * 1000L // 5 分
-    private const val ANONYMOUS_KEY_PREFIX = "anon:"
 
-    data class ChallengeEntry(
+    // ByteArray を持つため data class にしない（自動生成の equals が配列を参照で比較するため）
+    private class ChallengeEntry(
         val challenge: ByteArray,
         val createdAt: Long = System.currentTimeMillis(),
     )
@@ -60,5 +61,10 @@ object ChallengeStore {
     private fun cleanup() {
         val now = System.currentTimeMillis()
         store.entries.removeIf { now - it.value.createdAt > TTL_MS }
+    }
+
+    private companion object {
+        const val TTL_MS = 5 * 60 * 1000L // 5 分
+        const val ANONYMOUS_KEY_PREFIX = "anon:"
     }
 }

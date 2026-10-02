@@ -1,7 +1,5 @@
 package server.user
 
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.UserRecord.UpdateRequest
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.put
 import io.ktor.http.*
@@ -11,10 +9,14 @@ import io.ktor.server.routing.*
 import io.ktor.server.util.getOrFail
 import model.UpdateDisplayNameRequest
 import model.User
+import org.koin.ktor.ext.inject
+import server.auth.FirebaseAuthRepository
 import server.auth.adminOnly
 import server.auth.authenticated
 
 fun Route.userRoutes() {
+    val firebaseAuthRepository by inject<FirebaseAuthRepository>()
+
     authenticated {
         get("/users", {
             tags = listOf("user")
@@ -25,23 +27,7 @@ fun Route.userRoutes() {
                 }
             }
         }) {
-            val users = mutableListOf<User>()
-            var page = FirebaseAuth.getInstance().listUsers(null)
-            while (page != null) {
-                for (record in page.values) {
-                    val isAdmin = record.customClaims["admin"] == true
-                    users.add(
-                        User(
-                            uid = record.uid,
-                            email = record.email ?: "",
-                            displayName = record.displayName,
-                            isAdmin = isAdmin,
-                        ),
-                    )
-                }
-                page = page.nextPage
-            }
-            call.respond(users)
+            call.respond(firebaseAuthRepository.listUsers())
         }
     }
 
@@ -62,20 +48,7 @@ fun Route.userRoutes() {
             val uid = call.parameters.getOrFail("uid")
             val request = call.receive<UpdateDisplayNameRequest>()
 
-            FirebaseAuth.getInstance().updateUser(
-                UpdateRequest(uid).setDisplayName(request.displayName),
-            )
-
-            val record = FirebaseAuth.getInstance().getUser(uid)
-            val isAdmin = record.customClaims["admin"] == true
-            call.respond(
-                User(
-                    uid = record.uid,
-                    email = record.email ?: "",
-                    displayName = record.displayName,
-                    isAdmin = isAdmin,
-                ),
-            )
+            call.respond(firebaseAuthRepository.updateDisplayName(uid, request.displayName))
         }
     }
 }

@@ -31,7 +31,6 @@ import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
 import org.slf4j.LoggerFactory
 import org.slf4j.event.Level
-import server.auth.FirebaseAdmin
 import server.auth.configureAuth
 import server.auth.firebasePrincipal
 import server.cache.cacheRoutes
@@ -49,7 +48,6 @@ import server.money.moneyDueDateNotificationRoutes
 import server.money.moneyRoutes
 import server.money.moneyWebhookRoutes
 import server.money.paymentWebhookRoutes
-import server.passkey.PasskeyDatabase
 import server.passkey.passkeyRoutes
 import server.pet.PetAccessDeniedException
 import server.pet.PetRepository
@@ -83,9 +81,7 @@ fun Application.module() {
                 .valueOf(level)
     }
 
-    FirebaseAdmin.initialize()
-    PasskeyDatabase.initialize()
-
+    // Firebase・パスキー DB の初期化は serverModule の createdAtStart で行う
     install(Koin) { modules(serverModule) }
 
     // 同期実行: マイグレーション完了前に HTTP リクエストを受け付けないようにする。
