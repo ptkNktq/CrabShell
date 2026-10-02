@@ -6,7 +6,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
-import java.util.concurrent.atomic.AtomicBoolean
+import server.util.CloseOnce
 
 /**
  * MaxMind GeoLite2-City `.mmdb` を引いて [GeoLocation] を返す実装。
@@ -27,7 +27,7 @@ class MaxMindIpGeolocationService(
     private val reader: DatabaseReader,
 ) : IpGeolocationService {
     private val logger = LoggerFactory.getLogger(MaxMindIpGeolocationService::class.java)
-    private val closed = AtomicBoolean(false)
+    private val closeOnce = CloseOnce()
 
     override suspend fun lookup(ip: String?): GeoLocation? {
         val addr = IpClassifier.parsePublicAddress(ip) ?: return null
@@ -71,9 +71,5 @@ class MaxMindIpGeolocationService(
             ?: names.values.firstOrNull { it.isNotBlank() }
 
     /** DB ファイル（memory-mapped）を解放する。2 回目以降の呼び出しは何もしない */
-    override fun close() {
-        if (closed.compareAndSet(false, true)) {
-            reader.close()
-        }
-    }
+    override fun close() = closeOnce { reader.close() }
 }

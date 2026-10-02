@@ -3,8 +3,8 @@ package server.auth
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
+import server.util.CloseOnce
 import java.io.File
-import java.util.concurrent.atomic.AtomicBoolean
 
 private const val SERVICE_ACCOUNT_PATH = "firebase-service-account.json"
 
@@ -20,14 +20,10 @@ class FirebaseAdminApp(
 ) : AutoCloseable {
     val app: FirebaseApp = initialize(serviceAccountFile)
 
-    private val closed = AtomicBoolean(false)
+    private val closeOnce = CloseOnce()
 
     /** [app] を削除する。2 回目以降の呼び出しは何もしない */
-    override fun close() {
-        if (closed.compareAndSet(false, true)) {
-            app.delete()
-        }
-    }
+    override fun close() = closeOnce { app.delete() }
 
     private companion object {
         /** デフォルトアプリを初期化して返す（初期化済みならそれを返す） */
