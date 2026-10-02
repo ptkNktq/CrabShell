@@ -28,23 +28,32 @@ data class PasskeyConfig(
 
         /** 環境変数 `WEBAUTHN_RP_ID` / `WEBAUTHN_ORIGIN`（カンマ区切り）から生成する */
         fun fromEnv(): PasskeyConfig {
-            val config =
-                PasskeyConfig(
-                    rpId = EnvConfig["WEBAUTHN_RP_ID"]?.trim().orEmpty(),
-                    allowedOrigins =
-                        AllowedOrigins(
-                            EnvConfig["WEBAUTHN_ORIGIN"]
-                                .orEmpty()
-                                .split(",")
-                                .map { it.trim() }
-                                .filter { it.isNotEmpty() }
-                                .toSet(),
-                        ),
-                )
+            val config = parse(rpId = EnvConfig["WEBAUTHN_RP_ID"], origins = EnvConfig["WEBAUTHN_ORIGIN"])
             if (!config.enabled) {
                 logger.warn("WEBAUTHN_RP_ID / WEBAUTHN_ORIGIN が未設定のためパスキー機能は無効です")
             }
             return config
         }
+
+        /**
+         * 設定値の文字列から生成する。前後の空白は取り除き、空文字・空白だけの値は未設定として扱う。
+         * @param origins カンマ区切りの許可オリジン
+         */
+        fun parse(
+            rpId: String?,
+            origins: String?,
+        ): PasskeyConfig =
+            PasskeyConfig(
+                rpId = rpId?.trim().orEmpty(),
+                allowedOrigins =
+                    AllowedOrigins(
+                        origins
+                            .orEmpty()
+                            .split(",")
+                            .map { it.trim() }
+                            .filter { it.isNotEmpty() }
+                            .toSet(),
+                    ),
+            )
     }
 }
