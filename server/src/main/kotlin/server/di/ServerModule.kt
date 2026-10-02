@@ -6,6 +6,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.cloud.FirestoreClient
 import com.maxmind.geoip2.DatabaseReader
 import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
+import org.koin.core.module.dsl.onClose
+import org.koin.core.module.dsl.withOptions
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import org.slf4j.LoggerFactory
@@ -50,6 +53,7 @@ import server.quest.QuestRepository
 import server.quest.QuestService
 import server.quest.QuestWebhookService
 import server.report.BalanceCalculationService
+import java.io.Closeable
 import java.io.File
 
 private val serverModuleLogger = LoggerFactory.getLogger("server.di.ServerModule")
@@ -81,7 +85,16 @@ val serverModule =
     module {
         // Firestore・Firebase Auth はどちらも FirebaseApp に依存させ、初期化順を DI で保証する。
         // 起動時に初期化して、サービスアカウントの不備をリクエスト受付前に検出する。
-        single<FirebaseApp>(createdAtStart = true) { initializeFirebaseApp() }
+        // 停止時の onClose は、Ktor の ApplicationStopping で koin-ktor が Koin を close したときに呼ばれる
+        // （作成されていない single では null が渡る）
+        single<FirebaseApp>(createdAtStart = true) { initializeFirebaseApp() } withOptions {
+            onClose { app ->
+                app?.let {
+                    serverModuleLogger.info("Deleting FirebaseApp")
+                    it.delete()
+                }
+            }
+        }
         single<Firestore> { FirestoreClient.getFirestore(get<FirebaseApp>()) }
         single<FirebaseAuth> { FirebaseAuth.getInstance(get<FirebaseApp>()) }
         single<FirebaseAuthRepository> { FirebaseAdminAuthRepository(get()) }
@@ -89,6 +102,13 @@ val serverModule =
         // Exposed の Database は汎用型のため、他の DB と取り違えないよう修飾子を付ける
         single<Database>(PASSKEY_DATABASE, createdAtStart = true) {
             connectPasskeyDatabase(EnvConfig["PASSKEY_DB_PATH"] ?: DEFAULT_PASSKEY_DB_PATH)
+        } withOptions {
+            onClose { database ->
+                database?.let {
+                    serverModuleLogger.info("Closing passkey database")
+                    TransactionManager.closeAndUnregister(it)
+                }
+            }
         }
         single<PasskeyCredentialRepository> { ExposedPasskeyCredentialRepository(get(PASSKEY_DATABASE)) }
         // 未設定時の警告を起動時ログに出すため eager 初期化する
@@ -98,7 +118,14 @@ val serverModule =
         single { PasskeyLoginService(get(), get()) }
         // GeoLite2 DB のロード状態を起動時ログに出すため createdAtStart で eager 初期化する。
         // 遅延評価だと初回ログイン時まで「DB が読めているか / NoOp に落ちているか」が分からない。
-        single<IpGeolocationService>(createdAtStart = true) { loadGeolocationService() }
+        single<IpGeolocationService>(createdAtStart = true) { loadGeolocationService() } withOptions {
+            onClose { service ->
+                (service as? Closeable)?.let {
+                    serverModuleLogger.info("Closing GeoLite2 DB")
+                    it.close()
+                }
+            }
+        }
         single<MoneyRepository> { FirestoreMoneyRepository(get()) }
         single<QuestRepository> { FirestoreQuestRepository(get()) }
         single<PointRepository> { FirestorePointRepository(get()) }
