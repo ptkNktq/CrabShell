@@ -3,13 +3,25 @@ package server.passkey
 import org.slf4j.LoggerFactory
 import server.config.EnvConfig
 
+/** WebAuthn で許可するオリジンの集合 */
+@JvmInline
+value class AllowedOrigins(
+    private val origins: Set<String>,
+) {
+    operator fun contains(origin: String): Boolean = origin in origins
+
+    fun isEmpty(): Boolean = origins.isEmpty()
+
+    override fun toString(): String = origins.toString()
+}
+
 /** パスキー（WebAuthn）の Relying Party 設定 */
 data class PasskeyConfig(
     val rpId: String,
-    val allowedOrigins: Set<String>,
+    val allowedOrigins: AllowedOrigins,
 ) {
     /** RP ID と許可オリジンの両方が設定されている場合のみパスキー機能を有効にする */
-    val enabled: Boolean get() = rpId.isNotEmpty() && allowedOrigins.isNotEmpty()
+    val enabled: Boolean get() = rpId.isNotEmpty() && !allowedOrigins.isEmpty()
 
     companion object {
         private val logger = LoggerFactory.getLogger(PasskeyConfig::class.java)
@@ -20,12 +32,14 @@ data class PasskeyConfig(
                 PasskeyConfig(
                     rpId = EnvConfig["WEBAUTHN_RP_ID"]?.trim().orEmpty(),
                     allowedOrigins =
-                        EnvConfig["WEBAUTHN_ORIGIN"]
-                            .orEmpty()
-                            .split(",")
-                            .map { it.trim() }
-                            .filter { it.isNotEmpty() }
-                            .toSet(),
+                        AllowedOrigins(
+                            EnvConfig["WEBAUTHN_ORIGIN"]
+                                .orEmpty()
+                                .split(",")
+                                .map { it.trim() }
+                                .filter { it.isNotEmpty() }
+                                .toSet(),
+                        ),
                 )
             if (!config.enabled) {
                 logger.warn("WEBAUTHN_RP_ID / WEBAUTHN_ORIGIN が未設定のためパスキー機能は無効です")

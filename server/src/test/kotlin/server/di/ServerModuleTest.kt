@@ -2,6 +2,7 @@ package server.di
 
 import org.koin.test.verify.verify
 import server.cache.Cacheable
+import server.passkey.AllowedOrigins
 import kotlin.test.Test
 
 /**
@@ -18,8 +19,8 @@ class ServerModuleTest {
         serverModule.verify(
             extraTypes =
                 listOf(
-                    // PasskeyConfig.allowedOrigins。DI 対象ではなく環境変数から作る値
-                    Set::class,
+                    // PasskeyConfig の許可オリジン。DI 対象ではなく環境変数から作る値
+                    AllowedOrigins::class,
                     // CacheManager(List<Cacheable>)。Repository を Cacheable にキャストして渡しており、Cacheable 自体は定義しない
                     Cacheable::class,
                 ),
