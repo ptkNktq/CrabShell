@@ -41,15 +41,8 @@ class FirebaseAdminAuthRepository(
             null
         }
 
-    override fun listUsers(): List<User> {
-        val users = mutableListOf<User>()
-        var page = firebaseAuth.listUsers(null)
-        while (page != null) {
-            page.values.mapTo(users) { it.toUser() }
-            page = page.nextPage
-        }
-        return users
-    }
+    // ページ送りは SDK の iterateAll() に任せる
+    override fun listUsers(): List<User> = firebaseAuth.listUsers(null).iterateAll().map { it.toUser() }
 
     override fun updateDisplayName(
         uid: String,
