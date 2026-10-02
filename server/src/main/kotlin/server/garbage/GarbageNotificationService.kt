@@ -99,6 +99,9 @@ class GarbageNotificationService(
             client.post(url) {
                 setBody(TextContent(payload, ContentType.Application.Json))
             }
+        } catch (e: CancellationException) {
+            // 送信中のキャンセル（サーバー停止時など）を失敗扱いにせず、親に伝播させる
+            throw e
         } catch (e: Exception) {
             logger.warn("Garbage notification webhook failed", e)
         }
