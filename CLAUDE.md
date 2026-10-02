@@ -118,6 +118,7 @@ server/              → Ktor server (Netty, JVM)
                        Koin DI でリポジトリ注入（ServerModule）。状態や外部 I/O を持つ処理は object にせず class にして DI 経由で注入する（定数・純粋関数の object、Exposed の Table 定義、Koin 起動前に読む EnvConfig は例外）
                        Repository 層: interface + 実装 class（Firestore / Firebase Admin SDK / Exposed）
                        Firebase: FirebaseApp を DI で初期化し、Firestore・FirebaseAuth はそれに依存させて初期化順を保証
+                       停止時の後始末（FirebaseApp・DB 接続・GeoLite2 reader 等）は DI 定義の withOptions { onClose { } } で行う（Ktor の ApplicationStopping で koin-ktor が Koin を close したときに呼ばれる）
                        パスキー: PasskeyConfig（設定）/ WebAuthnVerifier（検証）/ PasskeyCredentialRepository（SQLite）/ ChallengeStore / PasskeyLoginService（ログイン判定）
                        ルートハンドラは HTTP 処理 + ビジネスルール判定のみ
                        ※ API 設計方針（リクエスト body の DTO ラップ等）は README.md の「API 設計」セクションを参照
