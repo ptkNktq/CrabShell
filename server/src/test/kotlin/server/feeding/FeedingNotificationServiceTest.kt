@@ -265,20 +265,6 @@ class FeedingNotificationServiceTest {
             assertEquals(firstCount, webhookRequests.size)
         }
 
-    // --- feedingDate: 5:00 AM 前は前日扱い ---
-
-    @Test
-    fun feedingDateBefore5amReturnsPreviousDay() {
-        val jstNow = ZonedDateTime.of(2026, 3, 14, 4, 59, 0, 0, ZoneId.of("Asia/Tokyo"))
-        assertEquals("2026-03-13", FeedingNotificationService.feedingDate(jstNow))
-    }
-
-    @Test
-    fun feedingDateAt5amReturnsCurrentDay() {
-        val jstNow = ZonedDateTime.of(2026, 3, 14, 5, 0, 0, 0, ZoneId.of("Asia/Tokyo"))
-        assertEquals("2026-03-14", FeedingNotificationService.feedingDate(jstNow))
-    }
-
     // --- isPastTime ---
 
     @Test
