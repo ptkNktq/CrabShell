@@ -8,8 +8,10 @@ package server.geo
  *
  * 実装はファイル I/O（memory-mapped でも cold 時はページフォルト）を伴うため suspend にし、
  * 呼び出し側で `Dispatchers.IO` への切替を保証する。
+ *
+ * DB ファイル等を保持する実装があるため [AutoCloseable] とし、サーバー停止時に [close] を呼ぶ。
  */
-interface IpGeolocationService {
+interface IpGeolocationService : AutoCloseable {
     suspend fun lookup(ip: String?): GeoLocation?
 }
 

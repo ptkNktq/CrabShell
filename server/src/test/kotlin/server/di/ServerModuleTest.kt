@@ -11,7 +11,7 @@ import kotlin.test.Test
  *
  * 検証できないもの:
  * - ルートハンドラの `by inject<T>()` で取り出す型（定義のコンストラクタ引数ではないため）
- * - 修飾子（`named(...)`）の一致（Koin の verify はクラス名でしか照合しない）
+ * - 修飾子（`named(...)`）を付けた定義を追加した場合の修飾子の一致（Koin の verify はクラス名でしか照合しない）
  */
 class ServerModuleTest {
     @Test

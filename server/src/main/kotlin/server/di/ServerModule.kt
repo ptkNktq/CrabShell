@@ -1,17 +1,14 @@
 package server.di
 
 import com.google.cloud.firestore.Firestore
-import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.cloud.FirestoreClient
 import com.maxmind.geoip2.DatabaseReader
-import org.jetbrains.exposed.v1.jdbc.Database
-import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import org.slf4j.LoggerFactory
+import server.auth.FirebaseAdminApp
 import server.auth.FirebaseAdminAuthRepository
 import server.auth.FirebaseAuthRepository
-import server.auth.initializeFirebaseApp
 import server.cache.CacheManager
 import server.cache.Cacheable
 import server.config.EnvConfig
@@ -38,9 +35,9 @@ import server.passkey.ChallengeStore
 import server.passkey.ExposedPasskeyCredentialRepository
 import server.passkey.PasskeyConfig
 import server.passkey.PasskeyCredentialRepository
+import server.passkey.PasskeyDatabase
 import server.passkey.PasskeyLoginService
 import server.passkey.WebAuthnVerifier
-import server.passkey.connectPasskeyDatabase
 import server.pet.FirestorePetRepository
 import server.pet.PetRepository
 import server.quest.FirestorePointRepository
@@ -57,8 +54,6 @@ private val serverModuleLogger = LoggerFactory.getLogger("server.di.ServerModule
 private const val DEFAULT_GEOIP_DB_PATH = "data/GeoLite2-City.mmdb"
 
 private const val DEFAULT_PASSKEY_DB_PATH = "data/passkey.db"
-
-private val PASSKEY_DATABASE = named("passkey")
 
 private fun loadGeolocationService(): IpGeolocationService {
     val path = EnvConfig["GEOIP_DB_PATH"] ?: DEFAULT_GEOIP_DB_PATH
@@ -79,18 +74,19 @@ private fun loadGeolocationService(): IpGeolocationService {
 
 val serverModule =
     module {
-        // Firestore・Firebase Auth はどちらも FirebaseApp に依存させ、初期化順を DI で保証する。
+        // 停止時に閉じる必要があるリソースは AutoCloseable にして closeOnStop() を付ける（このモジュール全体の方針）
+
+        // Firestore・Firebase Auth はどちらも FirebaseAdminApp に依存させ、初期化順を DI で保証する。
         // 起動時に初期化して、サービスアカウントの不備をリクエスト受付前に検出する。
-        single<FirebaseApp>(createdAtStart = true) { initializeFirebaseApp() }
-        single<Firestore> { FirestoreClient.getFirestore(get<FirebaseApp>()) }
-        single<FirebaseAuth> { FirebaseAuth.getInstance(get<FirebaseApp>()) }
+        single(createdAtStart = true) { FirebaseAdminApp() }.closeOnStop()
+        single<Firestore> { FirestoreClient.getFirestore(get<FirebaseAdminApp>().app) }
+        single<FirebaseAuth> { FirebaseAuth.getInstance(get<FirebaseAdminApp>().app) }
         single<FirebaseAuthRepository> { FirebaseAdminAuthRepository(get()) }
         // DB ファイルの作成・スキーマ作成を起動時に済ませる
-        // Exposed の Database は汎用型のため、他の DB と取り違えないよう修飾子を付ける
-        single<Database>(PASSKEY_DATABASE, createdAtStart = true) {
-            connectPasskeyDatabase(EnvConfig["PASSKEY_DB_PATH"] ?: DEFAULT_PASSKEY_DB_PATH)
-        }
-        single<PasskeyCredentialRepository> { ExposedPasskeyCredentialRepository(get(PASSKEY_DATABASE)) }
+        single(createdAtStart = true) {
+            PasskeyDatabase(EnvConfig["PASSKEY_DB_PATH"] ?: DEFAULT_PASSKEY_DB_PATH)
+        }.closeOnStop()
+        single<PasskeyCredentialRepository> { ExposedPasskeyCredentialRepository(get()) }
         // 未設定時の警告を起動時ログに出すため eager 初期化する
         single(createdAtStart = true) { PasskeyConfig.fromEnv() }
         single { ChallengeStore() }
@@ -98,7 +94,7 @@ val serverModule =
         single { PasskeyLoginService(get(), get()) }
         // GeoLite2 DB のロード状態を起動時ログに出すため createdAtStart で eager 初期化する。
         // 遅延評価だと初回ログイン時まで「DB が読めているか / NoOp に落ちているか」が分からない。
-        single<IpGeolocationService>(createdAtStart = true) { loadGeolocationService() }
+        single<IpGeolocationService>(createdAtStart = true) { loadGeolocationService() }.closeOnStop()
         single<MoneyRepository> { FirestoreMoneyRepository(get()) }
         single<QuestRepository> { FirestoreQuestRepository(get()) }
         single<PointRepository> { FirestorePointRepository(get()) }

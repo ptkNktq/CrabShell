@@ -5,6 +5,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.content.TextContent
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -47,6 +48,9 @@ class FeedingNotificationService(
         while (true) {
             try {
                 checkAndNotify()
+            } catch (e: CancellationException) {
+                // コルーチンキャンセル（サーバー停止時など）は握り潰さず親に伝播させる。
+                throw e
             } catch (e: Exception) {
                 logger.warn("Feeding reminder check failed", e)
             }
@@ -151,6 +155,9 @@ class FeedingNotificationService(
             client.post(url) {
                 setBody(TextContent(payload, ContentType.Application.Json))
             }
+        } catch (e: CancellationException) {
+            // 送信中のキャンセル（サーバー停止時など）を失敗扱いにせず、親に伝播させる
+            throw e
         } catch (e: Exception) {
             logger.warn("Feeding notification webhook failed (phase=$phase)", e)
         }

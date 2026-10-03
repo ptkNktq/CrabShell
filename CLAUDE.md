@@ -117,7 +117,11 @@ server/              → Ktor server (Netty, JVM)
                        Firebase Auth verification
                        Koin DI でリポジトリ注入（ServerModule）。状態や外部 I/O を持つ処理は object にせず class にして DI 経由で注入する（定数・純粋関数の object、Exposed の Table 定義、Koin 起動前に読む EnvConfig は例外）
                        Repository 層: interface + 実装 class（Firestore / Firebase Admin SDK / Exposed）
-                       Firebase: FirebaseApp を DI で初期化し、Firestore・FirebaseAuth はそれに依存させて初期化順を保証
+                       Firebase: FirebaseAdminApp（FirebaseApp を保持）を DI で初期化し、Firestore・FirebaseAuth はそれに依存させて初期化順を保証
+                       停止時の後始末: 閉じる必要があるリソースは自身が AutoCloseable を実装して閉じ方を持ち、DI 定義には closeOnStop()（server/di/CloseOnStop.kt）を付けるだけにする。
+                         Ktor の ApplicationStopping で koin-ktor が Koin を close したときに呼ばれる。順序は保証されず、1 つの失敗は WARN ログにして残りを閉じる
+                         ライブラリの型（FirebaseApp、Exposed の Database 等）は自前のクラスで包んで AutoCloseable にする
+                         close() は 2 回目以降何もしない（冪等）ようにし、その判定は server/util/CloseOnce.kt の CloseOnce に任せる（各クラスで AtomicBoolean を個別に持たない）
                        パスキー: PasskeyConfig（設定）/ WebAuthnVerifier（検証）/ PasskeyCredentialRepository（SQLite）/ ChallengeStore / PasskeyLoginService（ログイン判定）
                        ルートハンドラは HTTP 処理 + ビジネスルール判定のみ
                        ※ API 設計方針（リクエスト body の DTO ラップ等）は README.md の「API 設計」セクションを参照
@@ -194,8 +198,8 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Server entry point: `server/src/main/kotlin/server/Application.kt`
 - Server DI: `server/src/main/kotlin/server/di/ServerModule.kt`
 - Server repositories: `server/src/main/kotlin/server/{money,quest,feeding,garbage,pet,loginhistory}/` (interface + Firestore 実装)
-- Server auth: `server/src/main/kotlin/server/auth/` (AuthPlugin, FirebaseAuthRepository + FirebaseAdminAuthRepository, FirebaseAppInitializer)
-- Server passkey: `server/src/main/kotlin/server/passkey/` (PasskeyRoutes, PasskeyConfig, WebAuthnVerifier, PasskeyCredentialRepository + ExposedPasskeyCredentialRepository, ChallengeStore, PasskeyLoginService)
+- Server auth: `server/src/main/kotlin/server/auth/` (AuthPlugin, FirebaseAuthRepository + FirebaseAdminAuthRepository, FirebaseAdminApp)
+- Server passkey: `server/src/main/kotlin/server/passkey/` (PasskeyRoutes, PasskeyConfig, WebAuthnVerifier, PasskeyCredentialRepository + ExposedPasskeyCredentialRepository, PasskeyDatabase, ChallengeStore, PasskeyLoginService)
 - Server geo: `server/src/main/kotlin/server/geo/` (IpClassifier, IpGeolocationService, MaxMind/NoOp 実装)
 - Core common: `core/common/src/commonMain/kotlin/core/common/` (Environment.kt, AppLogger.kt, TabResumedEvent.kt, ApplicationScope.kt)
 - Core common (wasmJsMain): `core/common/src/wasmJsMain/kotlin/core/common/` (Environment.kt, AppLogger.wasmJs.kt, PageVisibility.kt)

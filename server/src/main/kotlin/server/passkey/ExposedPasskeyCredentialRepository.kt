@@ -12,8 +12,10 @@ import org.jetbrains.exposed.v1.jdbc.update
 
 /** Exposed（SQLite）による [PasskeyCredentialRepository] の実装 */
 class ExposedPasskeyCredentialRepository(
-    private val database: Database,
+    passkeyDatabase: PasskeyDatabase,
 ) : PasskeyCredentialRepository {
+    private val database: Database = passkeyDatabase.database
+
     override fun countByUid(firebaseUid: String): Int =
         transaction(database) {
             PasskeyCredentials

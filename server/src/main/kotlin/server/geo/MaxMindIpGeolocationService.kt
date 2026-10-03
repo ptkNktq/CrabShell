@@ -6,6 +6,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
+import server.util.CloseOnce
 
 /**
  * MaxMind GeoLite2-City `.mmdb` を引いて [GeoLocation] を返す実装。
@@ -26,6 +27,7 @@ class MaxMindIpGeolocationService(
     private val reader: DatabaseReader,
 ) : IpGeolocationService {
     private val logger = LoggerFactory.getLogger(MaxMindIpGeolocationService::class.java)
+    private val closeOnce = CloseOnce()
 
     override suspend fun lookup(ip: String?): GeoLocation? {
         val addr = IpClassifier.parsePublicAddress(ip) ?: return null
@@ -67,4 +69,7 @@ class MaxMindIpGeolocationService(
         names["ja"]?.takeIf { it.isNotBlank() }
             ?: names["en"]?.takeIf { it.isNotBlank() }
             ?: names.values.firstOrNull { it.isNotBlank() }
+
+    /** DB ファイルをマップしたバッファへの参照を手放し、GC で回収できるようにする（close 時点では unmap されない） */
+    override fun close() = closeOnce { reader.close() }
 }
