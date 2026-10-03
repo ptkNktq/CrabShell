@@ -49,7 +49,7 @@ class McpConfig(
                     appUrl = EnvConfig["APP_URL"],
                 )
             if (!config.enabled) {
-                logger.warn("WORKOS_API_KEY / WORKOS_AUTHKIT_DOMAIN / APP_URL のいずれかが未設定または不正なため MCP は無効です")
+                logger.warn("MCP disabled: WORKOS_API_KEY / WORKOS_AUTHKIT_DOMAIN / APP_URL is missing or invalid")
             }
             return config
         }
