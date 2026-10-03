@@ -82,11 +82,13 @@ cp .env.example .env
 | `GEMINI_MODEL` | Gemini モデル名（デフォルト: `gemini-2.5-flash`） | いいえ |
 | `PASSKEY_DB_PATH` | Passkey SQLite DB のパス（デフォルト: `data/passkey.db`） | いいえ |
 | `GEOIP_DB_PATH` | MaxMind GeoLite2-City `.mmdb` のパス（デフォルト: `data/GeoLite2-City.mmdb`）。ファイル不在時は IP ジオロケーション無効 | いいえ |
-| `APP_URL` | アプリケーションの公開 URL（給餌通知 Webhook のリンクに使用） | いいえ（未設定時はリンクなし） |
+| `APP_URL` | アプリケーションの公開 URL（給餌通知 Webhook のリンクと、MCP のリソース URL `${APP_URL}/mcp` に使用） | いいえ（未設定時はリンクなし・MCP 無効） |
+| `WORKOS_API_KEY` | WorkOS の API キー（MCP 連携。完了 API・ユーザー取得 API に使用） | いいえ（未設定時は MCP 無効） |
+| `WORKOS_AUTHKIT_DOMAIN` | WorkOS AuthKit のドメイン（例: `example.authkit.app`。MCP のアクセストークンの発行元） | いいえ（未設定時は MCP 無効） |
 | `SWAGGER_ENABLED` | `true` で API ドキュメント UI (`/rapidoc`) と OpenAPI spec (`/api.json`) を有効化（本番では設定しない） | いいえ |
 | `LOG_LEVEL` | サーバーのログレベル（デフォルト: `INFO`、開発時は `DEBUG` 推奨） | いいえ |
 
-- webpack dev server (port 3000) が `/api/*` を Ktor サーバー (port 8080) にプロキシ
+- webpack dev server (port 3000) が `/api/*`・`/mcp`（完全一致）・`/.well-known/*` を Ktor サーバー (port 8080) にプロキシ
 - `-PskipFrontend` を付けるとサーバービルド時に WASM フロントエンドのビルドをスキップ
 
 ### コード変更時の操作
@@ -112,7 +114,12 @@ shared/              → Kotlin Multiplatform library
 
 server/              → Ktor server (Netty, JVM)
                        Depends on :shared
-                       Routes: /api/{firebase-config,users,pets,feeding,garbage,money,money-webhook,money-due-date-notification,payment-webhook,report,quest,point,quest-webhook,cache,login-history,passkey}
+                       Routes: /api/{firebase-config,users,pets,feeding,garbage,money,money-webhook,money-due-date-notification,payment-webhook,report,quest,point,quest-webhook,cache,login-history,passkey,mcp/authorization}
+                       MCP: server/mcp/。/mcp（stateless Streamable HTTP）+ /.well-known/oauth-protected-resource/mcp。
+                         認可サーバーは WorkOS AuthKit（Standalone Connect）。JWT を JWKS・iss・aud で検証し、sub（WorkOS ユーザー ID）→ external_id（uid）を WorkOS API で変換（McpUserResolver がメモリキャッシュ）。
+                         Firebase で削除・無効化されたユーザーは拒否。リクエストごとに uid を閉じ込めた MCP Server を作る（McpServerFactory）。ツールは給餌の 3 つ（FeedingMcpTools）
+                         JSON-RPC は McpJson で返す必要があるため、ContentNegotiation はアプリ全体ではなくルーティングのルートに入れ、/mcp だけ json(McpJson) に差し替えている
+                         WORKOS_API_KEY / WORKOS_AUTHKIT_DOMAIN / APP_URL が揃っていない場合は MCP のルート・認証を登録しない
                        IP ジオロケーション: server/geo/ (MaxMind GeoLite2-City オフライン DB、ファイル不在時は NoOp)
                        Firebase Auth verification
                        Koin DI でリポジトリ注入（ServerModule）。状態や外部 I/O を持つ処理は object にせず class にして DI 経由で注入する（定数・純粋関数の object、Exposed の Table 定義、Koin 起動前に読む EnvConfig は例外）
@@ -148,8 +155,9 @@ core/previewscreenshot/ → PreviewScreenshotRecorder（PNG 保存 + manifest.ts
 feature/auth/        → LoginViewModel + LoginScreen + LoginContent、PasskeySetupContent、
                        ScopedViewModelStoreOwner（認証状態ごとの ViewModelStore。公式 rememberViewModelStoreOwner を利用し切り替わりで clear）、
                        AuthStateScopeKey（認証状態 → ViewModelStore のスコープキー）、
-                       SignInWithHistoryService（サインイン + ログイン履歴記録を ApplicationScope で実行）(commonMain)
-                       AuthenticatedApp + PasskeySetupViewModel + PasskeySetupScreen (wasmJsMain)
+                       SignInWithHistoryService（サインイン + ログイン履歴記録を ApplicationScope で実行）、
+                       McpConnectViewModel + McpConnectContent（MCP 連携画面。WorkOS AuthKit の Login URI）(commonMain)
+                       AuthenticatedApp + PasskeySetupViewModel + PasskeySetupScreen + McpConnectScreen（/mcp-connect）(wasmJsMain)
                        Depends on :core:auth, :core:common, :core:network, :core:ui
 feature/dashboard/   → DashboardContent (commonMain) / DashboardViewModel + DashboardScreen (wasmJsMain)
                        commonMain: :core:ui, :shared / wasmJs: :core:auth, :core:common, :core:network
@@ -172,6 +180,7 @@ feature/settings/    → 全ファイル commonMain（Screen/Content 分離済�
 
 app/                 → Screen enum + Sidebar + DrawerContent + NavigationItems (commonMain)
                        Main.kt + Navigator + App.kt + AppModule (wasmJsMain)
+                       Main.kt はパスが /mcp-connect のとき App() の代わりに McpConnectScreen を表示する（ナビゲーション外の単独画面）
                        Depends on :core:auth, :core:ui, :feature:auth, :feature:dashboard
 ```
 
@@ -183,7 +192,8 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 
 ## Tech Stack
 
-- **Kotlin** 2.3.10, **Compose Multiplatform** 1.10.2, **Ktor** 3.4.1
+- **Kotlin** 2.3.10, **Compose Multiplatform** 1.10.2, **Ktor** 3.6.0
+- **MCP**: MCP Kotlin SDK（kotlin-sdk-server）。アクセストークン検証は ktor-server-auth-jwt + JWKS
 - **DI**: Koin 4.2.0（クライアント + サーバー共通。Kotlin 2.3.0 wasmJs 互換の唯一のバージョン）
 - **Serialization**: kotlinx-serialization-json 1.10.0
 - **API Docs**: ktor-openapi (smiley4) で OpenAPI spec を生成し、RapiDoc (CDN 配信) で閲覧。開発モード時のみ有効
@@ -201,6 +211,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Server auth: `server/src/main/kotlin/server/auth/` (AuthPlugin, FirebaseAuthRepository + FirebaseAdminAuthRepository, FirebaseAdminApp)
 - Server passkey: `server/src/main/kotlin/server/passkey/` (PasskeyRoutes, PasskeyConfig, WebAuthnVerifier, PasskeyCredentialRepository + ExposedPasskeyCredentialRepository, PasskeyDatabase, ChallengeStore, PasskeyLoginService)
 - Server geo: `server/src/main/kotlin/server/geo/` (IpClassifier, IpGeolocationService, MaxMind/NoOp 実装)
+- Server MCP: `server/src/main/kotlin/server/mcp/` (McpConfig, WorkOsClient, McpUserResolver, McpAuth, McpAuthorizationService, McpServerFactory, FeedingMcpTools, McpRoutes)
 - Core common: `core/common/src/commonMain/kotlin/core/common/` (Environment.kt, AppLogger.kt, TabResumedEvent.kt, ApplicationScope.kt)
 - Core common (wasmJsMain): `core/common/src/wasmJsMain/kotlin/core/common/` (Environment.kt, AppLogger.wasmJs.kt, PageVisibility.kt)
 - Core auth (commonMain): `core/auth/src/commonMain/kotlin/core/auth/` (AuthRepository interface, AuthState, IdTokenResult)
@@ -210,8 +221,8 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Core theme (commonMain): `core/ui/src/commonMain/kotlin/core/ui/theme/` (Color.kt, Theme.kt, Typography.kt)
 - Core UI (commonMain): `core/ui/src/commonMain/kotlin/core/ui/` (util/DateUtils.kt, components/CalendarView.kt)
 - Core previewscreenshot: `core/previewscreenshot/src/main/kotlin/core/previewscreenshot/PreviewScreenshotRecorder.kt`
-- Feature auth (commonMain): `feature/auth/src/commonMain/kotlin/feature/auth/` (LoginViewModel, LoginScreen, LoginContent, PasskeySetupContent, ScopedViewModelStoreOwner, AuthStateScopeKey, SignInWithHistoryService)
-- Feature auth (wasmJsMain): `feature/auth/src/wasmJsMain/kotlin/feature/auth/` (AuthenticatedApp, PasskeySetupViewModel, PasskeySetupScreen)
+- Feature auth (commonMain): `feature/auth/src/commonMain/kotlin/feature/auth/` (LoginViewModel, LoginScreen, LoginContent, PasskeySetupContent, ScopedViewModelStoreOwner, AuthStateScopeKey, SignInWithHistoryService, McpConnectViewModel, McpConnectContent)
+- Feature auth (wasmJsMain): `feature/auth/src/wasmJsMain/kotlin/feature/auth/` (AuthenticatedApp, PasskeySetupViewModel, PasskeySetupScreen, McpConnectScreen)
 - Feature settings (commonMain): `feature/settings/src/commonMain/kotlin/feature/settings/` (全ファイル。Screen/Content 分離済み。ペット設定も PetSettingsViewModel / PetSettingsCard として同居)
 - Feature dashboard (commonMain): `feature/dashboard/src/commonMain/kotlin/feature/dashboard/` (DashboardContent)
 - Feature dashboard (wasmJsMain): `feature/dashboard/src/wasmJsMain/kotlin/feature/dashboard/` (DashboardViewModel, DashboardScreen)

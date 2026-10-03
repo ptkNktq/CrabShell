@@ -1,5 +1,6 @@
 package server
 
+import com.auth0.jwk.JwkProvider
 import io.github.smiley4.ktoropenapi.OpenApi
 import io.github.smiley4.ktoropenapi.config.AuthScheme
 import io.github.smiley4.ktoropenapi.config.AuthType
@@ -7,6 +8,7 @@ import io.github.smiley4.ktoropenapi.openApi
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.authentication
 import io.ktor.server.engine.*
 import io.ktor.server.http.content.*
 import io.ktor.server.netty.*
@@ -42,6 +44,12 @@ import server.feeding.feedingRoutes
 import server.garbage.GarbageNotificationService
 import server.garbage.garbageRoutes
 import server.loginhistory.loginHistoryRoutes
+import server.mcp.McpConfig
+import server.mcp.McpTokenAuthenticator
+import server.mcp.mcpAuthorizationRoutes
+import server.mcp.mcpJwt
+import server.mcp.mcpPrincipal
+import server.mcp.mcpRoutes
 import server.migration.FirestoreMigrations
 import server.money.MoneyDueDateNotificationService
 import server.money.moneyDueDateNotificationRoutes
@@ -105,11 +113,16 @@ fun Application.module() {
     launch { moneyDueDateNotificationService.runPollingLoop() }
 
     configureAuth()
+    val mcpConfig by inject<McpConfig>()
+    if (mcpConfig.enabled) {
+        val jwkProvider by inject<JwkProvider>()
+        val mcpTokenAuthenticator by inject<McpTokenAuthenticator>()
+        authentication { mcpJwt(mcpConfig, jwkProvider, mcpTokenAuthenticator) }
+    }
     install(CallLogging) {
         level = Level.DEBUG
         filter { call -> call.request.path().startsWith("/api") }
     }
-    install(ContentNegotiation) { json() }
     install(RequestBodyLimit) { bodyLimit { 256_000L } }
 
     // リバースプロキシ背後で正しいクライアント IP を取得
@@ -132,6 +145,16 @@ fun Application.module() {
         // 設定画面を開くと 2 消費する点に注意。
         register(RateLimitNames.LOGIN_HISTORY) {
             rateLimiter(limit = 10, refillPeriod = 60.seconds)
+            requestKey { call -> call.firebasePrincipal.uid }
+        }
+        // AI が連続でツールを呼ぶことを想定しつつ、暴走時に Firestore への書き込みが膨らまない程度に抑える
+        register(RateLimitNames.MCP) {
+            rateLimiter(limit = 60, refillPeriod = 60.seconds)
+            requestKey { call -> call.mcpPrincipal.uid }
+        }
+        // WorkOS API を呼ぶため、連携操作の連打で外部 API を叩きすぎないようにする
+        register(RateLimitNames.MCP_AUTHORIZATION) {
+            rateLimiter(limit = 5, refillPeriod = 60.seconds)
             requestKey { call -> call.firebasePrincipal.uid }
         }
     }
@@ -184,6 +207,10 @@ fun Application.module() {
     val swaggerEnabled = EnvConfig["SWAGGER_ENABLED"]?.toBooleanStrictOrNull() == true
 
     routing {
+        // アプリ全体ではなくルーティングのルートに入れる。MCP のルートだけ JSON 設定を差し替えるため
+        // （Ktor は同じプラグインをアプリ全体とルートの両方に入れられない）
+        install(ContentNegotiation) { json() }
+
         if (swaggerEnabled) {
             route("api.json") { openApi() }
             get("rapidoc") {
@@ -208,7 +235,10 @@ fun Application.module() {
             cacheRoutes()
             loginHistoryRoutes()
             passkeyRoutes()
+            if (mcpConfig.enabled) mcpAuthorizationRoutes()
         }
+
+        if (mcpConfig.enabled) mcpRoutes(mcpConfig)
 
         // Compose Wasm フロントエンドを配信
         staticResources("/", "static") {

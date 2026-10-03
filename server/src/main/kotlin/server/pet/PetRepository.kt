@@ -6,6 +6,9 @@ import model.Pet
 interface PetRepository {
     suspend fun getPets(): List<Pet>
 
+    /** 指定ユーザーがメンバーになっているペットの一覧を返す */
+    suspend fun getPetsForMember(uid: String): List<Pet>
+
     /** 指定ユーザーが指定ペットのメンバーかどうかを返す */
     suspend fun isMember(
         petId: String,

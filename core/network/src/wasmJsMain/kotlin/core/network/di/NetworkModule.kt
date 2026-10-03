@@ -10,6 +10,8 @@ import core.network.GarbageScheduleRepository
 import core.network.GarbageScheduleRepositoryImpl
 import core.network.LoginHistoryRepository
 import core.network.LoginHistoryRepositoryImpl
+import core.network.McpAuthorizationRepository
+import core.network.McpAuthorizationRepositoryImpl
 import core.network.MoneyDueDateNotificationRepository
 import core.network.MoneyDueDateNotificationRepositoryImpl
 import core.network.MoneyRepository
@@ -58,4 +60,5 @@ val networkModule =
         single<PaymentWebhookRepository> { PaymentWebhookRepositoryImpl(get()) }
         single<CacheRepository> { CacheRepositoryImpl(get()) }
         single<LoginHistoryRepository> { LoginHistoryRepositoryImpl(get()) }
+        single<McpAuthorizationRepository> { McpAuthorizationRepositoryImpl(get()) }
     }

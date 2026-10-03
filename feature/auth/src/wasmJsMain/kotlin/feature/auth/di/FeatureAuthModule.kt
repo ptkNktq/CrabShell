@@ -2,6 +2,7 @@ package feature.auth.di
 
 import core.common.ApplicationScope
 import feature.auth.LoginViewModel
+import feature.auth.McpConnectViewModel
 import feature.auth.PasskeySetupViewModel
 import feature.auth.SignInWithHistoryService
 import org.koin.core.module.dsl.viewModel
@@ -14,4 +15,5 @@ val featureAuthModule =
         single { SignInWithHistoryService(get(), get(), get<ApplicationScope>()) }
         viewModel { LoginViewModel(get(), get(), get(), get()) }
         viewModel { PasskeySetupViewModel(get()) }
+        viewModel { McpConnectViewModel(get()) }
     }
