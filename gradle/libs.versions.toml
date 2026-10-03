@@ -18,7 +18,7 @@ mockk = "1.14.11"
 kotlinx-coroutines = "1.11.0"
 kotlinx-browser = "0.5.0"
 kotlinx-datetime = "0.8.0"
-maxmind-geoip2 = "4.3.0"
+maxmind-geoip2 = "4.4.0"
 aboutlibraries = "14.1.0"
 
 [libraries]
