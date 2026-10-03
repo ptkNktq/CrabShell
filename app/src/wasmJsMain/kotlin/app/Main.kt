@@ -5,7 +5,10 @@ import androidx.compose.ui.window.ComposeViewport
 import app.di.appModules
 import core.auth.AuthRepository
 import feature.auth.AuthenticatedApp
+import feature.auth.MCP_CONNECT_PATH
+import feature.auth.McpConnectScreen
 import kotlinx.browser.document
+import kotlinx.browser.window
 import org.koin.compose.KoinContext
 import org.koin.core.context.startKoin
 
@@ -23,7 +26,12 @@ fun main() {
     ComposeViewport(document.getElementById("ComposeTarget")!!) {
         KoinContext {
             AuthenticatedApp {
-                App()
+                // MCP 連携（WorkOS AuthKit の Login URI）はナビゲーションの外の単独画面として表示する
+                if (window.location.pathname == MCP_CONNECT_PATH) {
+                    McpConnectScreen()
+                } else {
+                    App()
+                }
             }
         }
     }
