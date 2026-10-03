@@ -74,9 +74,10 @@ private fun loadGeolocationService(): IpGeolocationService {
 
 val serverModule =
     module {
+        // 停止時に閉じる必要があるリソースは AutoCloseable にして closeOnStop() を付ける（このモジュール全体の方針）
+
         // Firestore・Firebase Auth はどちらも FirebaseAdminApp に依存させ、初期化順を DI で保証する。
         // 起動時に初期化して、サービスアカウントの不備をリクエスト受付前に検出する。
-        // 停止時に閉じるリソースは AutoCloseable にして closeOnStop() を付ける
         single(createdAtStart = true) { FirebaseAdminApp() }.closeOnStop()
         single<Firestore> { FirestoreClient.getFirestore(get<FirebaseAdminApp>().app) }
         single<FirebaseAuth> { FirebaseAuth.getInstance(get<FirebaseAdminApp>().app) }
