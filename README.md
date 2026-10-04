@@ -483,7 +483,7 @@ WorkOS ではメールアドレスが一意のため、Firebase のユーザー�
 | `GEOIP_DB_PATH` | | MaxMind GeoLite2-City `.mmdb` のパス（デフォルト: `data/GeoLite2-City.mmdb`）。ファイル不在時はジオロケーション無効 |
 | `APP_URL` | | アプリケーションの公開 URL（例: `https://example.com`）。給餌通知 Webhook のリンクと、MCP のリソース URL（`${APP_URL}/mcp`）に使用 |
 | `WORKOS_API_KEY` | | WorkOS の API キー（MCP 連携用。未設定時は MCP 無効） |
-| `WORKOS_AUTHKIT_DOMAIN` | | WorkOS AuthKit のドメイン（例: `example.authkit.app`。MCP 連携用。未設定、または `http://` 指定時は MCP 無効） |
+| `WORKOS_AUTHKIT_DOMAIN` | | WorkOS AuthKit のドメイン（例: `example.authkit.app`。MCP 連携用。未設定、または https 以外のスキーム指定時は MCP 無効） |
 | `GEMINI_API_KEY` | | Google AI Studio の API キー（クエスト AI テキスト生成用。未設定時は AI 生成ボタン非表示） |
 | `GEMINI_MODEL` | | Gemini モデル名（デフォルト: `gemini-2.5-flash`） |
 | `SWAGGER_ENABLED` | | `true` で API ドキュメント UI (`/rapidoc`) と OpenAPI spec (`/api.json`) を有効化（本番では設定しない） |

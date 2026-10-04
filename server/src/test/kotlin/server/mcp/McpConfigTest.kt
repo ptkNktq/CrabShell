@@ -40,9 +40,9 @@ class McpConfigTest {
     @Test
     fun parseTreatsHttpAuthKitDomainAsUnset() {
         // 署名検証の公開鍵（JWKS）を平文で取得しないよう、http は受け付けない
-        val config = McpConfig.parse(apiKey = "sk_test", authKitDomain = "http://example.authkit.app", appUrl = "https://crab.example.com")
-
-        assertFalse(config.enabled)
+        listOf("http://example.authkit.app", "HTTP://example.authkit.app", "ftp://example.authkit.app", "https://").forEach { domain ->
+            assertFalse(McpConfig.parse(apiKey = "sk_test", authKitDomain = domain, appUrl = "https://crab.example.com").enabled, domain)
+        }
     }
 
     @Test

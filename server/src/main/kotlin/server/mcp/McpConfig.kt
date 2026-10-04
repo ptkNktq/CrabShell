@@ -57,7 +57,7 @@ class McpConfig(
         /**
          * 設定値の文字列から生成する。前後の空白は取り除き、空文字・空白だけの値は未設定として扱う。
          * @param authKitDomain スキームを省略した場合は `https://` を補う。署名検証の公開鍵を平文で取得しないよう、
-         *  `http://` の値は未設定として扱う
+         *  https 以外のスキームやホストのない値は未設定として扱う
          * @param appUrl `http(s)://ホスト` の形でない値は未設定として扱う
          */
         fun parse(
@@ -72,10 +72,13 @@ class McpConfig(
             )
 
         private fun normalizeAuthKitDomain(value: String?): String {
-            val trimmed = value?.trim()?.trimEnd('/').orEmpty()
+            val trimmed = value?.trim().orEmpty()
             if (trimmed.isEmpty()) return ""
-            if (trimmed.startsWith("http://")) return ""
-            return if (trimmed.startsWith("https://")) trimmed else "https://$trimmed"
+            // 末尾の `/` は、スキームの有無を判定した後で取り除く（`https://` だけの値をホストと取り違えないため）
+            val withScheme = if ("://" in trimmed) trimmed else "https://$trimmed"
+            val uri = runCatching { URI(withScheme) }.getOrNull() ?: return ""
+            val valid = uri.scheme.equals("https", ignoreCase = true) && !uri.host.isNullOrEmpty()
+            return if (valid) withScheme.trimEnd('/') else ""
         }
 
         private fun normalizeAppUrl(value: String?): String {
