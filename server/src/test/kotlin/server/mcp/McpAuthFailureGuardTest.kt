@@ -46,4 +46,19 @@ class McpAuthFailureGuardTest {
 
         assertNull(guard.remainingBlock("1.1.1.1"))
     }
+
+    @Test
+    fun ipv6AddressesInSamePrefixAreCountedTogether() {
+        repeat(McpAuthFailureGuard.MAX_FAILURES + 1) { i -> guard.recordFailure("2001:db8:1:2::${i + 1}") }
+
+        assertEquals(McpAuthFailureGuard.BLOCK_DURATION, guard.remainingBlock("2001:db8:1:2:ffff::1"))
+        assertNull(guard.remainingBlock("2001:db8:1:3::1"))
+    }
+
+    @Test
+    fun guardKeyRoundsOnlyIpv6() {
+        assertEquals("2001:db8:1:2::/64", McpAuthFailureGuard.guardKey("2001:db8:1:2:3:4:5:6"))
+        assertEquals("203.0.113.1", McpAuthFailureGuard.guardKey("203.0.113.1"))
+        assertEquals("localhost", McpAuthFailureGuard.guardKey("localhost"))
+    }
 }

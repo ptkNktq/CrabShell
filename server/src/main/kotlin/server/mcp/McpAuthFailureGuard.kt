@@ -7,6 +7,8 @@ import io.ktor.server.plugins.origin
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import org.slf4j.LoggerFactory
+import java.net.Inet6Address
+import java.net.InetAddress
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
@@ -18,6 +20,7 @@ import java.util.concurrent.atomic.AtomicReference
  * - 認証に成功したリクエストは数えない（正規の利用を制限しない）
  * - [FAILURE_WINDOW] の間に [MAX_FAILURES] 回を超えて失敗した IP を [BLOCK_DURATION] の間ブロックする。
  *   ブロック中は正しいトークンでも受け付けない
+ * - IPv6 は /64 単位で数える。利用者は通常 /64 以上を割り当てられており、アドレスを替えるだけで数え直しにさせないため
  * - 状態はメモリだけに持つ。サーバーを再起動するとブロックは解除される
  *
  * 失敗の記録とブロック状態をメモリに保持するため、アプリ全体で 1 インスタンスを共有すること（Koin の single で登録）。
@@ -38,10 +41,11 @@ class McpAuthFailureGuard(
 
     /** @return [ip] がブロック中なら解除までの残り時間。ブロックされていなければ null */
     fun remainingBlock(ip: String): Duration? {
-        val until = blockedUntil[ip] ?: return null
+        val key = guardKey(ip)
+        val until = blockedUntil[key] ?: return null
         val current = now()
         if (current >= until) {
-            blockedUntil.remove(ip, until)
+            blockedUntil.remove(key, until)
             return null
         }
         return Duration.between(current, until)
@@ -49,13 +53,14 @@ class McpAuthFailureGuard(
 
     /** [ip] からのリクエストが認証に失敗したことを記録する。失敗が続いた場合はブロックを始める */
     fun recordFailure(ip: String) {
+        val key = guardKey(ip)
         val current = now()
         cleanupIfDue(current)
         // 大量の IP から失敗させられてもメモリが増え続けないよう、上限を超えたら新しい IP は記録しない
-        if (failures.size >= MAX_TRACKED_IPS && !failures.containsKey(ip)) return
+        if (failures.size >= MAX_TRACKED_IPS && !failures.containsKey(key)) return
 
         var blocked = false
-        failures.compute(ip) { _, window ->
+        failures.compute(key) { _, window ->
             val next =
                 if (window == null || current >= window.startedAt + FAILURE_WINDOW) {
                     FailureWindow(startedAt = current, count = 1)
@@ -70,8 +75,8 @@ class McpAuthFailureGuard(
             }
         }
         if (blocked) {
-            blockedUntil[ip] = current + BLOCK_DURATION
-            logger.warn("MCP requests from {} blocked for {} after repeated authentication failures", ip, BLOCK_DURATION)
+            blockedUntil[key] = current + BLOCK_DURATION
+            logger.warn("MCP requests from {} blocked for {} after repeated authentication failures", key, BLOCK_DURATION)
         }
     }
 
@@ -85,6 +90,18 @@ class McpAuthFailureGuard(
 
     companion object {
         internal const val MAX_FAILURES = 10
+
+        /** 数える単位のキー。IPv6 は先頭 64 ビット（/64）に丸め、IPv4 やアドレスとして解釈できない値はそのまま使う */
+        internal fun guardKey(ip: String): String {
+            // IP リテラルだけを解釈する（ホスト名を渡されても DNS を引かない）
+            if (':' !in ip) return ip
+            val address = runCatching { InetAddress.getByName(ip) }.getOrNull() as? Inet6Address ?: return ip
+            val bytes = address.address
+            // 先頭 8 バイトを 16 ビットずつ 4 グループにする
+            val groups = (0 until 4).map { i -> ((bytes[2 * i].toInt() and 0xff) shl 8) or (bytes[2 * i + 1].toInt() and 0xff) }
+            return groups.joinToString(":") { "%x".format(it) } + "::/64"
+        }
+
         internal val FAILURE_WINDOW: Duration = Duration.ofMinutes(1)
         internal val BLOCK_DURATION: Duration = Duration.ofMinutes(30)
 
