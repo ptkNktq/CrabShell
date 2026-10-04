@@ -13,7 +13,7 @@ const val MCP_RESOURCE_METADATA_PATH = "/.well-known/oauth-protected-resource$MC
 /**
  * MCP サーバーの設定。認可サーバーには WorkOS AuthKit（Standalone Connect）を使う。
  *
- * @property apiKey WorkOS の API キー（完了 API・ユーザー取得 API の認証に使う）
+ * @property apiKey WorkOS の API キー（完了 API の認証に使う）
  * @property issuer AuthKit のドメイン（`https://xxx.authkit.app`）。アクセストークンの `iss`
  * @property appUrl アプリの公開 URL（末尾の `/` なし）。MCP のリソース URL の基点
  */

@@ -40,7 +40,7 @@ class FirestorePetRepository(
         return pets
     }
 
-    // ペット一覧・メンバー一覧のキャッシュを使い回すため、Firestore へのクエリは発行しない
+    // ペット一覧・メンバー一覧のキャッシュを使い回す（キャッシュにないペットだけドキュメントを読む）
     override suspend fun getPetsForMember(uid: String): List<Pet> = getPets().filter { isMember(it.id, uid) }
 
     @Suppress("UNCHECKED_CAST")

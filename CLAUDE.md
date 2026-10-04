@@ -83,7 +83,7 @@ cp .env.example .env
 | `PASSKEY_DB_PATH` | Passkey SQLite DB のパス（デフォルト: `data/passkey.db`） | いいえ |
 | `GEOIP_DB_PATH` | MaxMind GeoLite2-City `.mmdb` のパス（デフォルト: `data/GeoLite2-City.mmdb`）。ファイル不在時は IP ジオロケーション無効 | いいえ |
 | `APP_URL` | アプリケーションの公開 URL（給餌通知 Webhook のリンクと、MCP のリソース URL `${APP_URL}/mcp` に使用） | いいえ（未設定時はリンクなし・MCP 無効） |
-| `WORKOS_API_KEY` | WorkOS の API キー（MCP 連携。完了 API・ユーザー取得 API に使用） | いいえ（未設定時は MCP 無効） |
+| `WORKOS_API_KEY` | WorkOS の API キー（MCP 連携。完了 API に使用） | いいえ（未設定時は MCP 無効） |
 | `WORKOS_AUTHKIT_DOMAIN` | WorkOS AuthKit のドメイン（例: `example.authkit.app`。MCP のアクセストークンの発行元） | いいえ（未設定時は MCP 無効） |
 | `SWAGGER_ENABLED` | `true` で API ドキュメント UI (`/rapidoc`) と OpenAPI spec (`/api.json`) を有効化（本番では設定しない） | いいえ |
 | `LOG_LEVEL` | サーバーのログレベル（デフォルト: `INFO`、開発時は `DEBUG` 推奨） | いいえ |
