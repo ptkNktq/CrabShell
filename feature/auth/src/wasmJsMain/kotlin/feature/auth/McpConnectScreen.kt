@@ -21,11 +21,19 @@ fun McpConnectScreen(vm: McpConnectViewModel = koinViewModel()) {
         vm.uiState.redirectUri?.let { window.location.href = it }
     }
 
-    McpConnectContent(
-        isCompleting = vm.uiState.isCompleting,
-        errorMessage = vm.uiState.errorMessage,
-        onContinue = { vm.onContinue(externalAuthId) },
-        // 連携を中断してアプリのトップへ戻る（URL に残った external_auth_id も破棄する）
-        onCancel = { window.location.href = "/" },
-    )
+    LaunchedEffect(vm.uiState.isCancelled) {
+        // 再読み込みや戻る操作で連携を続けられないよう、URL に残った external_auth_id を破棄する
+        if (vm.uiState.isCancelled) window.history.replaceState(null, "", MCP_CONNECT_PATH)
+    }
+
+    if (vm.uiState.isCancelled) {
+        McpConnectCancelledContent()
+    } else {
+        McpConnectContent(
+            isCompleting = vm.uiState.isCompleting,
+            errorMessage = vm.uiState.errorMessage,
+            onContinue = { vm.onContinue(externalAuthId) },
+            onCancel = vm::onCancel,
+        )
+    }
 }

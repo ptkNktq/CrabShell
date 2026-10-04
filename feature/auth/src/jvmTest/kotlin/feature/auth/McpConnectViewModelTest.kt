@@ -92,4 +92,35 @@ class McpConnectViewModelTest {
 
             coVerify(exactly = 1) { repository.complete(any()) }
         }
+
+    @Test
+    fun cancelEndsConnectionWithoutRequest() =
+        runTest(testDispatcher) {
+            val vm = McpConnectViewModel(repository)
+
+            vm.onCancel()
+            // キャンセル後は連携を続けられない
+            vm.onContinue("01J3X4Y5Z6")
+            advanceUntilIdle()
+
+            assertTrue(vm.uiState.isCancelled)
+            assertFalse(vm.uiState.isCompleting)
+            coVerify(exactly = 0) { repository.complete(any()) }
+        }
+
+    @Test
+    fun cancelWhileCompletingIsIgnored() =
+        runTest(testDispatcher) {
+            val pending = CompletableDeferred<String>()
+            coEvery { repository.complete(any()) } coAnswers { pending.await() }
+            val vm = McpConnectViewModel(repository)
+
+            vm.onContinue("01J3X4Y5Z6")
+            vm.onCancel()
+            pending.complete("https://example.authkit.app/consent")
+            advanceUntilIdle()
+
+            assertFalse(vm.uiState.isCancelled)
+            assertEquals("https://example.authkit.app/consent", vm.uiState.redirectUri)
+        }
 }

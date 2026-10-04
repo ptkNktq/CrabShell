@@ -14,6 +14,8 @@ data class McpConnectUiState(
     val errorMessage: String? = null,
     /** 連携の完了後にブラウザを遷移させる先。設定されたら画面側で遷移する */
     val redirectUri: String? = null,
+    /** 連携をキャンセルした。以降は連携を続けられず、タブを閉じてもらうだけの画面になる */
+    val isCancelled: Boolean = false,
 )
 
 /** MCP クライアント（Claude Code 等）との連携画面。ユーザーの明示的な操作で連携を完了する */
@@ -30,7 +32,7 @@ class McpConnectViewModel(
      * 使用済みの externalAuthId で再送してエラーになるため。
      */
     fun onContinue(externalAuthId: String?) {
-        if (uiState.isCompleting) return
+        if (uiState.isCompleting || uiState.isCancelled) return
         if (externalAuthId.isNullOrBlank()) {
             uiState = uiState.copy(errorMessage = INVALID_LINK_MESSAGE)
             return
@@ -50,6 +52,12 @@ class McpConnectViewModel(
                     )
             }
         }
+    }
+
+    /** 連携をキャンセルする。連携のために開いた画面なので、アプリの他の画面へは進ませずに終わらせる */
+    fun onCancel() {
+        if (uiState.isCompleting) return
+        uiState = uiState.copy(isCancelled = true, errorMessage = null)
     }
 
     companion object {

@@ -439,6 +439,7 @@ Claude Code などの MCP クライアントから、ごはんの記録を見た
 1. MCP クライアントが `/mcp` を呼ぶと 401 と `WWW-Authenticate`（Protected Resource Metadata の URL）が返り、クライアントは `/.well-known/oauth-protected-resource/mcp` から AuthKit を知る
 2. ブラウザで AuthKit の認可画面が開き、Login URI（`/mcp-connect?external_auth_id=...`）に転送される
 3. CrabShell にログインし（ログイン済みならそのまま）、「連携を続ける」を押す（他人が用意したリンクを開いただけで連携されないよう、自動では完了しない）
+   - 「キャンセル」を押すと「キャンセルしました」の画面になり、そこで終わる（ダッシュボードなどアプリの他の画面へは進まない。タブを閉じる）
 4. サーバーが WorkOS の完了 API を呼び、AuthKit の同意画面を経て MCP クライアントにトークンが渡る
 
 #### セットアップ手順
