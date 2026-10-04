@@ -141,7 +141,12 @@ fun createJwkProvider(config: McpConfig): JwkProvider =
     JwkProviderBuilder(URI(config.jwksUrl).toURL())
         .cached(10, 24, TimeUnit.HOURS)
         .rateLimited(10, 1, TimeUnit.MINUTES)
+        // 既定では無期限に待つため、応答しない障害でもリクエストを止めず NetworkException（503）にする
+        .timeouts(JWKS_TIMEOUT_MILLIS, JWKS_TIMEOUT_MILLIS)
         .build()
+
+// JWKS 取得の接続・読み取りそれぞれのタイムアウト
+private const val JWKS_TIMEOUT_MILLIS = 5_000
 
 /** 一時的な障害で認証を判定できなかったことを、validate から challenge へ伝える */
 private val McpAuthUnavailableKey = AttributeKey<Unit>("McpAuthUnavailable")
