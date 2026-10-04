@@ -32,4 +32,11 @@ class McpTokenAuthenticatorTest {
             assertNull(authenticator.authenticate("uid1", null))
             assertNull(authenticator.authenticate("uid1", null))
         }
+
+    @Test
+    fun claimForLogHasNoControlCharactersAndIsTruncated() {
+        assertEquals("uid1?a?b", sanitizeClaimForLog("uid1\na\u2028b"))
+        assertEquals(128, sanitizeClaimForLog("a".repeat(1000))!!.length)
+        assertNull(sanitizeClaimForLog(null))
+    }
 }

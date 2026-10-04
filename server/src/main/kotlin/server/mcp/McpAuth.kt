@@ -76,6 +76,10 @@ class McpTokenAuthenticator(
     /**
      * 拒否したトークンのクレームをログに出す（設定の食い違いを切り分けるため）。
      * トークン本体は出さない。署名を検証していない値なので、ログ以外には使わない。
+     *
+     * 未認証の誰でも送れる値のため、改行で偽のログ行を作られたり長い値でログを膨らまされたりしないよう
+     * [sanitizeClaimForLog] を通す。出力件数はリクエスト数に比例するが、CallLogging もリクエストごとに
+     * 1 行出すため、それ以上に増えるわけではない。
      */
     fun logRejectedToken(token: String) {
         val decoded = runCatching { JWT.decode(token) }.getOrNull()
@@ -85,13 +89,22 @@ class McpTokenAuthenticator(
         }
         logger.warn(
             "MCP token rejected: iss={} aud={} sub={} exp={}",
-            decoded.issuer,
-            decoded.audience,
-            decoded.subject,
+            sanitizeClaimForLog(decoded.issuer),
+            sanitizeClaimForLog(decoded.audience?.joinToString(",")),
+            sanitizeClaimForLog(decoded.subject),
             decoded.expiresAtAsInstant,
         )
     }
 }
+
+/** ログに出すクレームの最大文字数 */
+private const val MAX_LOGGED_CLAIM_LENGTH = 128
+
+// C0/C1 制御文字に加え、行区切り（U+2028）・段落区切り（U+2029）も改行として扱われうるため対象にする
+private val CONTROL_CHARACTERS = Regex("[\\p{Cc}\\p{Zl}\\p{Zp}]")
+
+/** 署名を検証していないクレームを、制御文字を `?` に置き換え [MAX_LOGGED_CLAIM_LENGTH] 文字に切り詰めてログ用にする */
+internal fun sanitizeClaimForLog(value: String?): String? = value?.replace(CONTROL_CHARACTERS, "?")?.take(MAX_LOGGED_CLAIM_LENGTH)
 
 /** 署名検証用の公開鍵を AuthKit の JWKS から取得する [JwkProvider] を作る（鍵はキャッシュし、取得頻度も制限する） */
 fun createJwkProvider(config: McpConfig): JwkProvider =
