@@ -186,7 +186,7 @@ eval "$(./dev.sh --completions)"
 
 サーバーはプロジェクトルートの `.env` ファイルから環境変数を自動読み込みする（[dotenv-java](https://github.com/cdimascio/dotenv-java) 使用）。`.env` が存在しない場合は無視される。OS の環境変数が `.env` より優先される。
 
-- webpack dev server (port 3000) が `/api/*`・`/mcp`・`/.well-known/*` を Ktor サーバー (port 8080) にプロキシ
+- webpack dev server (port 3000) が `/api/*`・`/mcp`（完全一致）・`/.well-known/*` を Ktor サーバー (port 8080) にプロキシ
 - `-PskipFrontend` でサーバービルド時に WASM フロントエンドのビルドをスキップ
 - `BROWSER_OPEN=false` を設定するとブラウザ自動起動を抑制（dev.sh は自動で設定）
 

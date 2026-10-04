@@ -27,7 +27,7 @@ fun main() {
         KoinContext {
             AuthenticatedApp {
                 // MCP 連携（WorkOS AuthKit の Login URI）はナビゲーションの外の単独画面として表示する
-                if (window.location.pathname == MCP_CONNECT_PATH) {
+                if (window.location.pathname.trimEnd('/') == MCP_CONNECT_PATH) {
                     McpConnectScreen()
                 } else {
                     App()
