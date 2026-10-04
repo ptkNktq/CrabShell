@@ -44,6 +44,7 @@ import org.koin.dsl.module
 import org.koin.ktor.plugin.Koin
 import server.auth.FirebaseAuthRepository
 import server.auth.FirebaseUserStatus
+import server.configureStatusPages
 import server.feeding.FeedingRepository
 import server.pet.PetRepository
 import server.ratelimit.RateLimitNames
@@ -118,6 +119,8 @@ class McpRoutesTest {
 
     private fun ApplicationTestBuilder.setUp() {
         application {
+            // 本番と同じく StatusPages を入れ、429 などの応答が差し替わる構成で確認する
+            configureStatusPages()
             install(Koin) {
                 modules(
                     module {
