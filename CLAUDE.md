@@ -145,6 +145,7 @@ core/auth/           → AuthRepository interface + AuthState/AuthStateHolder (c
 core/network/        → 認証トークン付き HTTP client + Repository interfaces/impls (commonMain)
                        ID トークンはキャッシュせずリクエストごとに AuthRepository.getIdToken() で取得（期限間近なら Firebase が更新）。
                        401 時は強制更新して 1 回再送。更新失敗は IdTokenResult でセッション無効（サインアウト）と一時的失敗（サインアウトしない）を区別
+                       401 以外の失敗は ApiResponseException（statusCode とレスポンスの error 文言）で投げ、呼び出し側が原因ごとに案内を出し分けられるようにする
                        PasskeyRepositoryImpl + NetworkModule (wasmJsMain)
                        Depends on :core:common, :core:auth, :shared, ktor-client
 core/ui/             → テーマ定義 + WindowSizeClass + 汎用UIコンポーネント (commonMain)

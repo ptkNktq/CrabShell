@@ -45,11 +45,22 @@ fun createUnauthenticatedClient(): HttpClient =
         HttpResponseValidator {
             validateResponse { response ->
                 if (!response.status.isSuccess()) {
-                    throw Exception(response.extractErrorMessage())
+                    throw ApiResponseException(response.status.value, response.extractErrorMessage())
                 }
             }
         }
     }
+
+/**
+ * API が成功以外のステータスを返したことを示す。
+ *
+ * @property statusCode HTTP ステータスコード
+ * @param message レスポンスの `error`（なければステータスを含む汎用の文言）
+ */
+class ApiResponseException(
+    val statusCode: Int,
+    message: String,
+) : Exception(message)
 
 /** セッションが無効になっており、再ログインが必要なことを示す。送出前に Firebase からサインアウト済み。 */
 class AuthSessionExpiredException : Exception("認証エラー: 再ログインしてください")
@@ -98,7 +109,7 @@ internal fun HttpClientConfig<*>.configureAuthenticatedClient(authRepository: Au
             if (!response.status.isSuccess()) {
                 val message = response.extractErrorMessage()
                 AppLogger.e(TAG, "${response.request.method.value} ${response.request.url} failed: $message")
-                throw Exception(message)
+                throw ApiResponseException(response.status.value, message)
             }
         }
     }

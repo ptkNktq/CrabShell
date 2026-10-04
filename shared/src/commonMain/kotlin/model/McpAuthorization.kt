@@ -21,3 +21,10 @@ data class McpAuthorizationCompleteRequest(
 data class McpAuthorizationCompleteResponse(
     val redirectUri: String,
 )
+
+/** `POST /api/mcp/authorization/complete` が返すエラー（レスポンスの `error`）。クライアントが原因ごとに案内を出し分けられるよう共有する */
+object McpAuthorizationErrors {
+    const val INVALID_EXTERNAL_AUTH_ID = "Invalid externalAuthId"
+    const val EMAIL_NOT_REGISTERED = "Email is not registered"
+    const val UPSTREAM_FAILURE = "Failed to complete authorization"
+}

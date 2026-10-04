@@ -1,5 +1,6 @@
 package feature.auth
 
+import core.network.ApiResponseException
 import core.network.McpAuthorizationRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -12,6 +13,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import model.McpAuthorizationErrors
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -63,6 +65,29 @@ class McpConnectViewModelTest {
             assertFalse(vm.uiState.isCompleting)
             assertNull(vm.uiState.redirectUri)
             assertNotNull(vm.uiState.errorMessage)
+        }
+
+    @Test
+    fun failureMessageDependsOnCause() =
+        runTest(testDispatcher) {
+            val cases =
+                listOf(
+                    ApiResponseException(400, McpAuthorizationErrors.EMAIL_NOT_REGISTERED) to McpConnectViewModel.MISSING_EMAIL_MESSAGE,
+                    ApiResponseException(400, McpAuthorizationErrors.INVALID_EXTERNAL_AUTH_ID) to McpConnectViewModel.INVALID_LINK_MESSAGE,
+                    ApiResponseException(429, "Too many requests") to McpConnectViewModel.TOO_MANY_REQUESTS_MESSAGE,
+                    // サーバーの文言（内部情報を含みうる）はそのまま出さない
+                    ApiResponseException(502, McpAuthorizationErrors.UPSTREAM_FAILURE) to McpConnectViewModel.FAILED_MESSAGE,
+                    Exception("connection reset") to McpConnectViewModel.FAILED_MESSAGE,
+                )
+            cases.forEach { (error, expected) ->
+                coEvery { repository.complete(any()) } throws error
+                val vm = McpConnectViewModel(repository)
+
+                vm.onContinue("01J3X4Y5Z6")
+                advanceUntilIdle()
+
+                assertEquals(expected, vm.uiState.errorMessage)
+            }
         }
 
     @Test

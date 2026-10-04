@@ -5,9 +5,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import core.network.ApiResponseException
 import core.network.McpAuthorizationRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import model.McpAuthorizationErrors
 
 data class McpConnectUiState(
     val isCompleting: Boolean = false,
@@ -45,11 +47,7 @@ class McpConnectViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                uiState =
-                    uiState.copy(
-                        isCompleting = false,
-                        errorMessage = "連携を完了できませんでした。連携元のアプリからやり直してください（${e.message}）",
-                    )
+                uiState = uiState.copy(isCompleting = false, errorMessage = errorMessageFor(e))
             }
         }
     }
@@ -60,7 +58,21 @@ class McpConnectViewModel(
         uiState = uiState.copy(isCancelled = true, errorMessage = null)
     }
 
+    /** 原因ごとに、ユーザーが次に何をすればよいかを案内する（サーバーのエラー文言はそのまま出さない） */
+    private fun errorMessageFor(e: Exception): String =
+        when {
+            e is ApiResponseException && e.message == McpAuthorizationErrors.EMAIL_NOT_REGISTERED -> MISSING_EMAIL_MESSAGE
+            e is ApiResponseException && e.message == McpAuthorizationErrors.INVALID_EXTERNAL_AUTH_ID -> INVALID_LINK_MESSAGE
+            e is ApiResponseException && e.statusCode == TOO_MANY_REQUESTS -> TOO_MANY_REQUESTS_MESSAGE
+            else -> FAILED_MESSAGE
+        }
+
     companion object {
+        private const val TOO_MANY_REQUESTS = 429
+
+        internal const val MISSING_EMAIL_MESSAGE = "アカウントにメールアドレスが登録されていないため連携できません。管理者に連絡してください"
+        internal const val TOO_MANY_REQUESTS_MESSAGE = "操作が多すぎます。しばらく待ってから、連携元のアプリでやり直してください"
+        internal const val FAILED_MESSAGE = "連携を完了できませんでした。連携元のアプリからやり直してください"
         internal const val INVALID_LINK_MESSAGE = "連携用のリンクが正しくありません。連携元のアプリからやり直してください"
     }
 }

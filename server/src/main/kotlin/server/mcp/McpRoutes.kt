@@ -22,6 +22,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import model.McpAuthorizationCompleteRequest
 import model.McpAuthorizationCompleteResponse
+import model.McpAuthorizationErrors
 import org.koin.ktor.ext.inject
 import server.auth.authenticated
 import server.auth.firebasePrincipal
@@ -69,11 +70,11 @@ fun Route.mcpAuthorizationRoutes() {
                     is McpAuthorizationResult.Completed ->
                         call.respond(McpAuthorizationCompleteResponse(redirectUri = result.redirectUri))
                     McpAuthorizationResult.InvalidExternalAuthId ->
-                        call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid externalAuthId"))
+                        call.respond(HttpStatusCode.BadRequest, mapOf("error" to McpAuthorizationErrors.INVALID_EXTERNAL_AUTH_ID))
                     McpAuthorizationResult.MissingEmail ->
-                        call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Email is not registered"))
+                        call.respond(HttpStatusCode.BadRequest, mapOf("error" to McpAuthorizationErrors.EMAIL_NOT_REGISTERED))
                     McpAuthorizationResult.UpstreamFailure ->
-                        call.respond(HttpStatusCode.BadGateway, mapOf("error" to "Failed to complete authorization"))
+                        call.respond(HttpStatusCode.BadGateway, mapOf("error" to McpAuthorizationErrors.UPSTREAM_FAILURE))
                 }
             }
         }
