@@ -21,6 +21,8 @@ import java.io.IOException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 
 class WorkOsHttpClientTest {
     private val config = McpConfig.parse(apiKey = "sk_test", authKitDomain = "example.authkit.app", appUrl = "https://crab.example.com")
@@ -77,15 +79,26 @@ class WorkOsHttpClientTest {
         }
 
     @Test
-    fun completeExternalAuthWrapsConnectionAndResponseFailures() =
+    fun completeExternalAuthWrapsConnectionFailure() =
         runTest {
-            listOf(
-                client { throw IOException("connection reset") },
-                client { respondJson("""{"unexpected":true}""") },
-            ).forEach { client ->
+            val client = client { throw IOException("connection reset") }
+
+            val e =
                 assertFailsWith<WorkOsApiException> {
                     client.completeExternalAuth("01J3X4Y5Z6", WorkOsExternalUser(id = "uid1", email = "a@example.com"))
                 }
-            }
+            assertIs<IOException>(e.cause)
+        }
+
+    @Test
+    fun completeExternalAuthWrapsUnexpectedResponse() =
+        runTest {
+            val client = client { respondJson("""{"unexpected":true}""") }
+
+            val e =
+                assertFailsWith<WorkOsApiException> {
+                    client.completeExternalAuth("01J3X4Y5Z6", WorkOsExternalUser(id = "uid1", email = "a@example.com"))
+                }
+            assertNotNull(e.cause)
         }
 }
