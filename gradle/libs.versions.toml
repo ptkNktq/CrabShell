@@ -24,6 +24,7 @@ mcp-kotlin-sdk = "0.15.0"
 # ktor-server-auth-jwt が依存する版に揃える
 auth0-java-jwt = "4.6.0"
 auth0-jwks-rsa = "0.24.1"
+guava = "33.6.0-jre"
 
 [libraries]
 # Koin DI
@@ -77,6 +78,7 @@ mcp-kotlin-sdk-server = { module = "io.modelcontextprotocol:kotlin-sdk-server", 
 # JWT 検証（MCP のアクセストークン。ktor-server-auth-jwt の verifier に渡す型を直接使う）
 auth0-java-jwt = { module = "com.auth0:java-jwt", version.ref = "auth0-java-jwt" }
 auth0-jwks-rsa = { module = "com.auth0:jwks-rsa", version.ref = "auth0-jwks-rsa" }
+guava = { module = "com.google.guava:guava", version.ref = "guava" }
 
 # Coroutines
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }

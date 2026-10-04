@@ -1,5 +1,6 @@
 package server.mcp
 
+import com.google.common.net.InetAddresses
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
@@ -8,7 +9,6 @@ import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import org.slf4j.LoggerFactory
 import java.net.Inet6Address
-import java.net.InetAddress
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
@@ -94,9 +94,9 @@ class McpAuthFailureGuard(
 
         /** 数える単位のキー。IPv6 は先頭 64 ビット（/64）に丸め、IPv4 やアドレスとして解釈できない値はそのまま使う */
         internal fun guardKey(ip: String): String {
-            // IP リテラルだけを解釈する（ホスト名を渡されても DNS を引かない）
-            if (':' !in ip) return ip
-            val address = runCatching { InetAddress.getByName(ip) }.getOrNull() as? Inet6Address ?: return ip
+            // IP リテラルだけを解釈する。InetAddress.getByName はリテラルとして解釈できない値で DNS を引くため使わない
+            if (!InetAddresses.isInetAddress(ip)) return ip
+            val address = InetAddresses.forString(ip) as? Inet6Address ?: return ip
             val bytes = address.address
             // 先頭 8 バイトを 16 ビットずつ 4 グループにする
             val groups = (0 until 4).map { i -> ((bytes[2 * i].toInt() and 0xff) shl 8) or (bytes[2 * i + 1].toInt() and 0xff) }

@@ -60,6 +60,8 @@ class McpAuthFailureGuardTest {
         assertEquals("2001:db8:1:2::/64", McpAuthFailureGuard.guardKey("2001:db8:1:2:3:4:5:6"))
         assertEquals("203.0.113.1", McpAuthFailureGuard.guardKey("203.0.113.1"))
         assertEquals("localhost", McpAuthFailureGuard.guardKey("localhost"))
+        // IPv6 リテラルとして解釈できない値は、名前解決をせずそのまま使う
+        assertEquals("g::1", McpAuthFailureGuard.guardKey("g::1"))
     }
 
     @Test
