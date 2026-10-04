@@ -155,49 +155,96 @@ internal suspend fun ApplicationCall.respondMcpUnavailable() {
     respond(HttpStatusCode.ServiceUnavailable, mapOf("error" to "Service unavailable"))
 }
 
+/** リクエストの Bearer トークン。付いていなければ null */
+private fun ApplicationCall.bearerToken(): String? =
+    (request.parseAuthorizationHeader() as? HttpAuthHeader.Single)
+        ?.takeIf { it.authScheme.equals("Bearer", ignoreCase = true) }
+        ?.blob
+
 /**
- * トークンの署名検証に使う公開鍵を、認証より前に取得できるか確かめるプラグイン。
+ * MCP の認証失敗として 401 を返す。失敗を [authFailureGuard] に記録し、拒否したトークンのクレームをログに出す。
+ * MCP クライアントが認可サーバーを見つけられるよう、`WWW-Authenticate` に Protected Resource Metadata の URL を付ける。
  *
- * Ktor の jwt 認証は JWKS の取得失敗をトークン不正（401 invalid_token）として扱い、challenge も経由しない。
- * そのままだと AuthKit の JWKS に一時的に届かないだけで、正しいトークンを持つクライアントに再認可させてしまうため、
- * 通信の失敗・取得頻度の上限による失敗はここで 503 にする。取得できた鍵はキャッシュされ、続く認証で再利用される。
- * 該当する鍵がない・JWT でないといった場合は何もせず、認証にトークン不正として扱わせる。
+ * @param invalidToken トークンが付いていて不正だった場合は true（`error="invalid_token"` を付ける）
  */
-class McpJwksPreflightPluginConfig {
-    lateinit var jwkProvider: JwkProvider
+internal suspend fun ApplicationCall.respondMcpUnauthorized(
+    config: McpConfig,
+    authenticator: McpTokenAuthenticator,
+    authFailureGuard: McpAuthFailureGuard,
+    invalidToken: Boolean,
+) {
+    authFailureGuard.recordFailure(request.origin.remoteAddress)
+    bearerToken()?.let { authenticator.logRejectedToken(it) }
+    val error = if (invalidToken) "error=\"invalid_token\", " else ""
+    response.header(HttpHeaders.WWWAuthenticate, "Bearer ${error}resource_metadata=\"${config.resourceMetadataUrl}\"")
+    respond(HttpStatusCode.Unauthorized, mapOf("error" to "Unauthorized"))
 }
 
-val McpJwksPreflightPlugin =
-    createRouteScopedPlugin("McpJwksPreflight", ::McpJwksPreflightPluginConfig) {
-        val jwkProvider = pluginConfig.jwkProvider
-        val logger = LoggerFactory.getLogger("server.mcp.McpJwksPreflight")
+/**
+ * トークンの署名検証に使う公開鍵を、認証より前に取得できるか確かめる。
+ *
+ * Ktor の jwt 認証は JWKS の取得失敗を素の 401 にし、challenge も経由しない。そのままだと AuthKit の JWKS に
+ * 一時的に届かないだけで、正しいトークンを持つクライアントに再認可させてしまうため、ここで判定する。
+ *
+ * - 通信の失敗: 503（失敗に数えない）
+ * - 取得頻度の上限: 503。未知の kid の連打で上限を使い切らせ続けられないよう、失敗にも数える
+ *   （正規のクライアントは `Retry-After` に従うため、ほとんど数えられない）
+ * - 該当する鍵がない: ここで 401 にして失敗に数える（認証に回すと JWKS をもう一度取りに行くため）
+ *
+ * 取得できた鍵はキャッシュされ、続く認証で再利用される。JWT でない場合は何もせず、認証にトークン不正として扱わせる。
+ */
+class McpJwksPreflight(
+    private val config: McpConfig,
+    private val jwkProvider: JwkProvider,
+    private val authenticator: McpTokenAuthenticator,
+    private val authFailureGuard: McpAuthFailureGuard,
+) {
+    private val logger = LoggerFactory.getLogger(McpJwksPreflight::class.java)
+
+    /** 必要なら応答を返す。返した場合、以降の処理（認証）は行われない */
+    suspend fun check(call: ApplicationCall) {
+        val token = call.bearerToken() ?: return
+        val decoded = runCatching { JWT.decode(token) }.getOrNull() ?: return
+        try {
+            // kid がなくても認証は jwkProvider.get(null) を呼ぶため、同じく確かめる
+            withContext(Dispatchers.IO) { jwkProvider.get(decoded.keyId) }
+        } catch (e: NetworkException) {
+            // 実際に JWKS を取りに行って失敗した場合だけ（取得頻度の上限で回数は抑えられる）
+            logger.warn("MCP JWKS unavailable", e)
+            call.respondMcpUnavailable()
+        } catch (_: RateLimitReachedException) {
+            // 未知の kid を連打されても出力が増えないよう、ログは出さない
+            authFailureGuard.recordFailure(call.request.origin.remoteAddress)
+            call.respondMcpUnavailable()
+        } catch (_: JwkException) {
+            call.respondMcpUnauthorized(config, authenticator, authFailureGuard, invalidToken = true)
+        }
+    }
+}
+
+class McpAuthPreflightPluginConfig {
+    lateinit var authFailureGuard: McpAuthFailureGuard
+    lateinit var jwksPreflight: McpJwksPreflight
+}
+
+/**
+ * MCP の認証より前に行う確認をまとめたプラグイン。
+ * ブロック中の IP を先に弾き、そのあとで JWKS を確かめる（同じルートの別々のプラグインにすると実行順が保証されないため 1 つにする）。
+ */
+val McpAuthPreflightPlugin =
+    createRouteScopedPlugin("McpAuthPreflight", ::McpAuthPreflightPluginConfig) {
+        val authFailureGuard = pluginConfig.authFailureGuard
+        val jwksPreflight = pluginConfig.jwksPreflight
         onCall { call ->
-            val token =
-                (call.request.parseAuthorizationHeader() as? HttpAuthHeader.Single)
-                    ?.takeIf { it.authScheme.equals("Bearer", ignoreCase = true) }
-                    ?.blob ?: return@onCall
-            val keyId = runCatching { JWT.decode(token).keyId }.getOrNull() ?: return@onCall
-            try {
-                withContext(Dispatchers.IO) { jwkProvider.get(keyId) }
-            } catch (e: NetworkException) {
-                // 実際に JWKS を取りに行って失敗した場合だけ（取得頻度の上限で回数は抑えられる）
-                logger.warn("MCP JWKS unavailable", e)
-                call.respondMcpUnavailable()
-            } catch (_: RateLimitReachedException) {
-                // 未知の kid を連打されても出力が増えないよう、ログは出さない
-                call.respondMcpUnavailable()
-            } catch (_: JwkException) {
-                // 該当する鍵がない等。認証にトークン不正として扱わせる
-            }
+            if (authFailureGuard.respondIfBlocked(call)) return@onCall
+            jwksPreflight.check(call)
         }
     }
 
 /**
  * MCP のアクセストークン（WorkOS AuthKit が発行した JWT）を検証する認証プロバイダーを登録する。
  *
- * 認証に失敗した場合は、MCP クライアントが認可サーバーを見つけられるよう
- * `WWW-Authenticate` に Protected Resource Metadata の URL を付けて 401 を返す。
- * 失敗は [authFailureGuard] に記録し、失敗が続いた IP をブロックさせる。
+ * 認証に失敗した場合は [respondMcpUnauthorized] で 401 を返し、失敗が続いた IP を [authFailureGuard] にブロックさせる。
  * Firebase への問い合わせなど一時的な障害で判定できない場合は、失敗に数えずに 503 を返す。
  */
 fun AuthenticationConfig.mcpJwt(
@@ -230,17 +277,12 @@ fun AuthenticationConfig.mcpJwt(
                 call.respondMcpUnavailable()
                 return@challenge
             }
-            val error =
+            val invalidToken =
                 when (call.authentication.allFailures.firstOrNull()) {
-                    null, AuthenticationFailedCause.NoCredentials -> ""
-                    else -> "error=\"invalid_token\", "
+                    null, AuthenticationFailedCause.NoCredentials -> false
+                    else -> true
                 }
-            authFailureGuard.recordFailure(call.request.origin.remoteAddress)
-            (call.request.parseAuthorizationHeader() as? HttpAuthHeader.Single)
-                ?.takeIf { it.authScheme.equals("Bearer", ignoreCase = true) }
-                ?.let { authenticator.logRejectedToken(it.blob) }
-            call.response.header(HttpHeaders.WWWAuthenticate, "Bearer ${error}resource_metadata=\"${config.resourceMetadataUrl}\"")
-            call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Unauthorized"))
+            call.respondMcpUnauthorized(config, authenticator, authFailureGuard, invalidToken)
         }
     }
 }

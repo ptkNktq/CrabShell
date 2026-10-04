@@ -3,6 +3,8 @@ package server.mcp
 import com.auth0.jwk.Jwk
 import com.auth0.jwk.JwkProvider
 import com.auth0.jwk.NetworkException
+import com.auth0.jwk.RateLimitReachedException
+import com.auth0.jwk.SigningKeyNotFoundException
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.client.request.bearerAuth
@@ -127,7 +129,7 @@ class McpRoutesTest {
                     module {
                         single { McpServerFactory(FeedingMcpTools(feedingRepository, petRepository)) }
                         single { authFailureGuard }
-                        single { jwkProvider }
+                        single { McpJwksPreflight(config, jwkProvider, McpTokenAuthenticator(firebaseAuthRepository), authFailureGuard) }
                     },
                 )
             }
@@ -231,6 +233,35 @@ class McpRoutesTest {
                 assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
                 assertEquals("60", response.headers[HttpHeaders.RetryAfter])
             }
+        }
+
+    @Test
+    fun jwksRateLimitIsCountedAsFailure() =
+        testApplication {
+            setUp { throw RateLimitReachedException(60_000) }
+            val listTools = """{"jsonrpc":"2.0","id":1,"method":"tools/list"}"""
+
+            repeat(McpAuthFailureGuard.MAX_FAILURES + 1) {
+                assertEquals(HttpStatusCode.ServiceUnavailable, rpc(listTools).status)
+            }
+            // 取得頻度の上限を使い切らせ続ける連打は、失敗としてブロックする
+            assertEquals(HttpStatusCode.TooManyRequests, rpc(listTools).status)
+        }
+
+    @Test
+    fun unknownKeyIdIsRejectedWithoutFetchingJwksTwice() =
+        testApplication {
+            var fetches = 0
+            setUp {
+                fetches++
+                throw SigningKeyNotFoundException("No key found", null)
+            }
+
+            val response = rpc("""{"jsonrpc":"2.0","id":1,"method":"tools/list"}""")
+
+            assertEquals(HttpStatusCode.Unauthorized, response.status)
+            assertTrue(response.headers[HttpHeaders.WWWAuthenticate]!!.startsWith("Bearer error=\"invalid_token\""))
+            assertEquals(1, fetches)
         }
 
     @Test

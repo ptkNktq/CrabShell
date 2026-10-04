@@ -1,6 +1,5 @@
 package server.mcp
 
-import com.auth0.jwk.JwkProvider
 import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
@@ -94,7 +93,7 @@ fun Route.mcpAuthorizationRoutes() {
 fun Route.mcpRoutes(config: McpConfig) {
     val mcpServerFactory by inject<McpServerFactory>()
     val authFailureGuard by inject<McpAuthFailureGuard>()
-    val jwkProvider by inject<JwkProvider>()
+    val jwksPreflight by inject<McpJwksPreflight>()
 
     val metadata =
         ProtectedResourceMetadata(
@@ -106,10 +105,11 @@ fun Route.mcpRoutes(config: McpConfig) {
 
     route(MCP_PATH) {
         install(ContentNegotiation) { json(McpJson) }
-        // 認証に失敗し続けた IP は、トークンの検証より前に弾く
-        install(McpAuthFailureGuardPlugin) { guard = authFailureGuard }
-        // JWKS に一時的に届かない場合は、トークン不正にせず 503 にする（認証より前に確かめる）
-        install(McpJwksPreflightPlugin) { this.jwkProvider = jwkProvider }
+        // 認証に失敗し続けた IP を弾き、JWKS に一時的に届かない場合はトークン不正にせず 503 にする（認証より前に確かめる）
+        install(McpAuthPreflightPlugin) {
+            this.authFailureGuard = authFailureGuard
+            this.jwksPreflight = jwksPreflight
+        }
 
         mcpAuthenticated {
             rateLimit(RateLimitNames.MCP) {

@@ -2,7 +2,7 @@ package server.mcp
 
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.createRouteScopedPlugin
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.plugins.origin
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
@@ -111,18 +111,15 @@ class McpAuthFailureGuard(
     }
 }
 
-/** [McpAuthFailureGuard] でブロック中の IP からのリクエストを、認証より前に 429 で返すプラグイン */
-class McpAuthFailureGuardPluginConfig {
-    lateinit var guard: McpAuthFailureGuard
+/**
+ * [McpAuthFailureGuard] でブロック中の IP からのリクエストに 429 を返す。
+ *
+ * @return 応答を返した場合は true（以降の処理を行わない）
+ */
+internal suspend fun McpAuthFailureGuard.respondIfBlocked(call: ApplicationCall): Boolean {
+    val remaining = remainingBlock(call.request.origin.remoteAddress) ?: return false
+    // 1 秒未満の端数は切り上げる
+    call.response.header(HttpHeaders.RetryAfter, (remaining.toMillis() + 999) / 1000)
+    call.respond(HttpStatusCode.TooManyRequests, mapOf("error" to "Too many requests"))
+    return true
 }
-
-val McpAuthFailureGuardPlugin =
-    createRouteScopedPlugin("McpAuthFailureGuard", ::McpAuthFailureGuardPluginConfig) {
-        val guard = pluginConfig.guard
-        onCall { call ->
-            val remaining = guard.remainingBlock(call.request.origin.remoteAddress) ?: return@onCall
-            // 1 秒未満の端数は切り上げる
-            call.response.header(HttpHeaders.RetryAfter, (remaining.toMillis() + 999) / 1000)
-            call.respond(HttpStatusCode.TooManyRequests, mapOf("error" to "Too many requests"))
-        }
-    }

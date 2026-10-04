@@ -30,6 +30,7 @@ import server.mcp.FeedingMcpTools
 import server.mcp.McpAuthFailureGuard
 import server.mcp.McpAuthorizationService
 import server.mcp.McpConfig
+import server.mcp.McpJwksPreflight
 import server.mcp.McpServerFactory
 import server.mcp.McpTokenAuthenticator
 import server.mcp.WorkOsClient
@@ -111,6 +112,7 @@ val serverModule =
         single<JwkProvider> { createJwkProvider(get()) }
         single { McpTokenAuthenticator(get()) }
         single { McpAuthFailureGuard() }
+        single { McpJwksPreflight(get(), get(), get(), get()) }
         single { McpAuthorizationService(get()) }
         single { FeedingMcpTools(get(), get()) }
         single { McpServerFactory(get()) }
