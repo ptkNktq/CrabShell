@@ -97,8 +97,8 @@ class FeedingMcpTools(
         uid: String,
         arguments: JsonObject?,
     ): CallToolResult {
-        val pet = selectPet(uid)
         val date = parseDate(arguments)
+        val pet = selectPet(uid)
         return successResult(feedingRepository.getFeedingLog(pet.id, date).toResult(pet))
     }
 
@@ -106,9 +106,9 @@ class FeedingMcpTools(
         uid: String,
         arguments: JsonObject?,
     ): CallToolResult {
-        val pet = selectPet(uid)
         val date = parseDate(arguments)
         val mealTime = parseMealTime(arguments)
+        val pet = selectPet(uid)
         val recorded = feedingRepository.recordFeedingIfNotDone(pet.id, date, mealTime, now().toString())
         val result = RecordFeedingResult(recorded = recorded, feedingLog = feedingRepository.getFeedingLog(pet.id, date).toResult(pet))
         return successResult(json.encodeToString(RecordFeedingResult.serializer(), result))
@@ -118,9 +118,9 @@ class FeedingMcpTools(
         uid: String,
         arguments: JsonObject?,
     ): CallToolResult {
-        val pet = selectPet(uid)
         val date = parseDate(arguments)
         val note = arguments.string(ARG_NOTE) ?: throw InvalidToolArgumentException("$ARG_NOTE を指定してください")
+        val pet = selectPet(uid)
         feedingRepository.updateNote(pet.id, date, note)
         return successResult(feedingRepository.getFeedingLog(pet.id, date).toResult(pet))
     }
@@ -135,14 +135,21 @@ class FeedingMcpTools(
         petRepository.getPetsForMember(uid).firstOrNull()
             ?: throw InvalidToolArgumentException("メンバーになっているペットがいません")
 
-    /** 日付の指定がなければ現在の給餌日付（JST 5:00 で切り替わる）にする */
+    /**
+     * 日付の指定がなければ現在の給餌日付（JST 5:00 で切り替わる）にする。
+     * AI が日付を取り違えて未来の日付に記録しないよう、現在の給餌日付より後は受け付けない。
+     */
     private fun parseDate(arguments: JsonObject?): String {
-        val value = arguments.string(ARG_DATE) ?: return feedingDate(now())
-        return try {
-            LocalDate.parse(value).toString()
-        } catch (_: DateTimeParseException) {
-            throw InvalidToolArgumentException("$ARG_DATE は YYYY-MM-DD 形式で指定してください: $value")
-        }
+        val today = feedingDate(now())
+        val value = arguments.string(ARG_DATE) ?: return today
+        val date =
+            try {
+                LocalDate.parse(value)
+            } catch (_: DateTimeParseException) {
+                throw InvalidToolArgumentException("$ARG_DATE は YYYY-MM-DD 形式で指定してください: $value")
+            }
+        if (date > LocalDate.parse(today)) throw InvalidToolArgumentException("未来の日付は指定できません（今日は $today）: $value")
+        return date.toString()
     }
 
     private fun parseMealTime(arguments: JsonObject?): MealTime {
@@ -227,7 +234,7 @@ class FeedingMcpTools(
         private fun JsonObjectBuilder.putDateProperty() {
             putJsonObject(ARG_DATE) {
                 put("type", "string")
-                put("description", "日付（YYYY-MM-DD）。省略すると今日（JST 5:00 で日付が切り替わる）")
+                put("description", "日付（YYYY-MM-DD）。省略すると今日（JST 5:00 で日付が切り替わる）。未来の日付は指定できない")
             }
         }
 

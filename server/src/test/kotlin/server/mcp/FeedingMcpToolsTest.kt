@@ -150,12 +150,17 @@ class FeedingMcpToolsTest {
                     { tools.recordFeeding(uid, null) },
                     { tools.updateNote(uid, null) },
                     { tools.recordFeeding(uid, buildJsonObject { put("mealTime", JsonPrimitive(1)) }) },
+                    // 現在の給餌日付（2026-03-14）より後の日付
+                    { tools.recordFeeding(uid, args("date" to "2026-03-15", "mealTime" to "MORNING")) },
+                    { tools.updateNote(uid, args("date" to "+10000-01-01", "note" to "メモ")) },
+                    { tools.getFeedingLog(uid, args("date" to "2026-03-15")) },
                 )
             invalidCalls.forEach { call ->
                 assertTrue(runCatching { call() }.isFailure)
             }
             coVerify(exactly = 0) { feedingRepository.recordFeedingIfNotDone(any(), any(), any(), any()) }
             coVerify(exactly = 0) { feedingRepository.updateNote(any(), any(), any()) }
+            coVerify(exactly = 0) { feedingRepository.getFeedingLog(any(), any()) }
         }
 
     @Test

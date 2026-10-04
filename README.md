@@ -427,7 +427,7 @@ Claude Code などの MCP クライアントから、ごはんの記録を見た
 - MCP エンドポイント: `POST /mcp`（stateless な Streamable HTTP）
 - 公開するツール: `get_feeding_log`（記録の取得）/ `record_feeding`（給餌の記録。記録済みなら上書きせず、記録したかどうかを返す）/ `update_feeding_note`（メモの更新）
 - 操作するペットは、ユーザーがメンバーになっているペットから自動で選ぶ（複数匹は未対応で、先頭の 1 匹を選ぶ）
-- 日付を省略すると今日（JST 5:00 で切り替わる給餌日付）になる
+- 日付を省略すると今日（JST 5:00 で切り替わる給餌日付）になる。未来の日付は指定できない
 - 認可サーバーは [WorkOS AuthKit の Standalone Connect](https://workos.com/docs/authkit/connect/standalone)。ログインは CrabShell 既存のもの（パスキー / メール・パスワード）を使い、AuthKit はトークンの発行だけを担う
 - WorkOS には Firebase の uid（external_id として保存される）とメールアドレスを渡す。発行されるアクセストークンの `sub` にはこの uid がそのまま入るため、サーバーは `sub` を uid として使う
 - Firebase で削除・無効化したユーザーは、トークンが有効期限内でも拒否する
