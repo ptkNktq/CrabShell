@@ -80,8 +80,8 @@ class McpTokenAuthenticator(
      * トークン本体は出さない。署名を検証していない値なので、ログ以外には使わない。
      *
      * 未認証の誰でも送れる値のため、改行で偽のログ行を作られたり長い値でログを膨らまされたりしないよう
-     * [sanitizeClaimForLog] を通す。出力件数はリクエスト数に比例するが、CallLogging もリクエストごとに
-     * 1 行出すため、それ以上に増えるわけではない。
+     * [sanitizeClaimForLog] を通す。MCP のレート制限は認証の内側にかけているため、出力件数は
+     * 未認証リクエストの数だけ増える。
      */
     fun logRejectedToken(token: String) {
         val decoded = runCatching { JWT.decode(token) }.getOrNull()
