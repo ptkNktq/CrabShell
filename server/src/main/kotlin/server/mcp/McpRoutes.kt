@@ -91,6 +91,7 @@ fun Route.mcpAuthorizationRoutes() {
  */
 fun Route.mcpRoutes(config: McpConfig) {
     val mcpServerFactory by inject<McpServerFactory>()
+    val authFailureGuard by inject<McpAuthFailureGuard>()
 
     val metadata =
         ProtectedResourceMetadata(
@@ -102,6 +103,8 @@ fun Route.mcpRoutes(config: McpConfig) {
 
     route(MCP_PATH) {
         install(ContentNegotiation) { json(McpJson) }
+        // 認証に失敗し続けた IP は、トークンの検証より前に弾く
+        install(McpAuthFailureGuardPlugin) { guard = authFailureGuard }
 
         mcpAuthenticated {
             rateLimit(RateLimitNames.MCP) {

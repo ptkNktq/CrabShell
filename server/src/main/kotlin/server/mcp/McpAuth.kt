@@ -14,6 +14,7 @@ import io.ktor.server.auth.authentication
 import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.auth.parseAuthorizationHeader
 import io.ktor.server.auth.principal
+import io.ktor.server.plugins.origin
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -80,8 +81,8 @@ class McpTokenAuthenticator(
      * トークン本体は出さない。署名を検証していない値なので、ログ以外には使わない。
      *
      * 未認証の誰でも送れる値のため、改行で偽のログ行を作られたり長い値でログを膨らまされたりしないよう
-     * [sanitizeClaimForLog] を通す。MCP のレート制限は認証の内側にかけているため、出力件数は
-     * 未認証リクエストの数だけ増える。
+     * [sanitizeClaimForLog] を通す。失敗が続いた IP は [McpAuthFailureGuard] がブロックするため、
+     * 出力件数は IP ごとに抑えられる。
      */
     fun logRejectedToken(token: String) {
         val decoded = runCatching { JWT.decode(token) }.getOrNull()
@@ -120,11 +121,13 @@ fun createJwkProvider(config: McpConfig): JwkProvider =
  *
  * 認証に失敗した場合は、MCP クライアントが認可サーバーを見つけられるよう
  * `WWW-Authenticate` に Protected Resource Metadata の URL を付けて 401 を返す。
+ * 失敗は [authFailureGuard] に記録し、失敗が続いた IP をブロックさせる。
  */
 fun AuthenticationConfig.mcpJwt(
     config: McpConfig,
     jwkProvider: JwkProvider,
     authenticator: McpTokenAuthenticator,
+    authFailureGuard: McpAuthFailureGuard,
 ) {
     jwt(MCP_AUTH_PROVIDER_NAME) {
         realm = "CrabShell MCP"
@@ -142,6 +145,7 @@ fun AuthenticationConfig.mcpJwt(
                     null, AuthenticationFailedCause.NoCredentials -> ""
                     else -> "error=\"invalid_token\", "
                 }
+            authFailureGuard.recordFailure(call.request.origin.remoteAddress)
             (call.request.parseAuthorizationHeader() as? HttpAuthHeader.Single)
                 ?.takeIf { it.authScheme.equals("Bearer", ignoreCase = true) }
                 ?.let { authenticator.logRejectedToken(it.blob) }

@@ -27,6 +27,7 @@ import server.geo.NoOpIpGeolocationService
 import server.loginhistory.FirestoreLoginHistoryRepository
 import server.loginhistory.LoginHistoryRepository
 import server.mcp.FeedingMcpTools
+import server.mcp.McpAuthFailureGuard
 import server.mcp.McpAuthorizationService
 import server.mcp.McpConfig
 import server.mcp.McpServerFactory
@@ -109,6 +110,7 @@ val serverModule =
         single<WorkOsClient> { WorkOsHttpClient(get()) }.closeOnStop()
         single<JwkProvider> { createJwkProvider(get()) }
         single { McpTokenAuthenticator(get()) }
+        single { McpAuthFailureGuard() }
         single { McpAuthorizationService(get()) }
         single { FeedingMcpTools(get(), get()) }
         single { McpServerFactory(get()) }

@@ -88,6 +88,7 @@ class McpRoutesTest {
     private val firebaseAuthRepository = mockk<FirebaseAuthRepository>()
     private val feedingRepository = mockk<FeedingRepository>(relaxUnitFun = true)
     private val petRepository = mockk<PetRepository>()
+    private val authFailureGuard = McpAuthFailureGuard()
 
     init {
         every { firebaseAuthRepository.getUserStatus("uid1") } returns FirebaseUserStatus.ACTIVE
@@ -121,11 +122,12 @@ class McpRoutesTest {
                 modules(
                     module {
                         single { McpServerFactory(FeedingMcpTools(feedingRepository, petRepository)) }
+                        single { authFailureGuard }
                     },
                 )
             }
             install(Authentication) {
-                mcpJwt(config, jwkProvider, McpTokenAuthenticator(firebaseAuthRepository))
+                mcpJwt(config, jwkProvider, McpTokenAuthenticator(firebaseAuthRepository), authFailureGuard)
             }
             install(RateLimit) {
                 register(RateLimitNames.MCP) {
@@ -189,6 +191,26 @@ class McpRoutesTest {
                 assertEquals(HttpStatusCode.Unauthorized, response.status)
                 assertTrue(response.headers[HttpHeaders.WWWAuthenticate]!!.startsWith("Bearer error=\"invalid_token\""))
             }
+        }
+
+    @Test
+    fun repeatedAuthenticationFailuresBlockTheIpEvenWithValidToken() =
+        testApplication {
+            setUp()
+            val listTools = """{"jsonrpc":"2.0","id":1,"method":"tools/list"}"""
+            val invalid = token(issuer = "https://evil.authkit.app")
+
+            repeat(McpAuthFailureGuard.MAX_FAILURES) {
+                assertEquals(HttpStatusCode.Unauthorized, rpc(listTools, token = invalid).status)
+            }
+            // 失敗が上限以内なら、正しいトークンは通る（成功は失敗として数えない）
+            assertEquals(HttpStatusCode.OK, rpc(listTools).status)
+
+            assertEquals(HttpStatusCode.Unauthorized, rpc(listTools, token = invalid).status)
+            val blocked = rpc(listTools)
+
+            assertEquals(HttpStatusCode.TooManyRequests, blocked.status)
+            assertEquals(McpAuthFailureGuard.BLOCK_DURATION.seconds.toString(), blocked.headers[HttpHeaders.RetryAfter])
         }
 
     @Test

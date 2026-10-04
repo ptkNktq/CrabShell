@@ -46,6 +46,7 @@ import server.feeding.feedingRoutes
 import server.garbage.GarbageNotificationService
 import server.garbage.garbageRoutes
 import server.loginhistory.loginHistoryRoutes
+import server.mcp.McpAuthFailureGuard
 import server.mcp.McpConfig
 import server.mcp.McpTokenAuthenticator
 import server.mcp.mcpAuthorizationRoutes
@@ -119,7 +120,8 @@ fun Application.module() {
     if (mcpConfig.enabled) {
         val jwkProvider by inject<JwkProvider>()
         val mcpTokenAuthenticator by inject<McpTokenAuthenticator>()
-        authentication { mcpJwt(mcpConfig, jwkProvider, mcpTokenAuthenticator) }
+        val mcpAuthFailureGuard by inject<McpAuthFailureGuard>()
+        authentication { mcpJwt(mcpConfig, jwkProvider, mcpTokenAuthenticator, mcpAuthFailureGuard) }
     }
     install(CallLogging) {
         level = Level.DEBUG
