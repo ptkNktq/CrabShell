@@ -29,6 +29,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
 import org.slf4j.LoggerFactory
@@ -159,30 +161,7 @@ fun Application.module() {
         }
     }
 
-    install(StatusPages) {
-        status(HttpStatusCode.TooManyRequests) { call, status ->
-            call.respond(status, mapOf("error" to "Too many requests"))
-        }
-        exception<PetAccessDeniedException> { call, _ ->
-            call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Not a member of this pet"))
-        }
-        exception<MissingRequestParameterException> { call, cause ->
-            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "${cause.parameterName} is required"))
-        }
-        exception<ParameterConversionException> { call, cause ->
-            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid ${cause.parameterName}: ${cause.type}"))
-        }
-        exception<BadRequestException> { call, cause ->
-            call.respond(HttpStatusCode.BadRequest, mapOf("error" to (cause.message ?: "Bad request")))
-        }
-        // 不正な JSON（enum の未知値、型不一致等）は 400 で返す（Ktor デフォルトの 500 を上書き）。
-        // cause.message には内部型名・フィールド名を含みうるため、クライアントには固定メッセージを返し
-        // 詳細はサーバーログのみに出す。
-        exception<SerializationException> { call, cause ->
-            logger.warn("Invalid request body on ${call.request.path()}: ${cause.message}")
-            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid request body"))
-        }
-    }
+    configureStatusPages()
 
     install(OpenApi) {
         pathFilter = { _, url -> url.firstOrNull() == "api" }
@@ -311,3 +290,44 @@ private val RAPIDOC_HTML =
       </body>
     </html>
     """.trimIndent()
+
+/**
+ * 例外・ステータスをエラー応答（`{"error": "..."}`）に変換する。
+ *
+ * ContentNegotiation はルーティングのルートに入れているため、ルーティングの外で動く StatusPages の
+ * ハンドラからは使えない。そのため [respondError] で JSON を直接書き出す。
+ */
+internal fun Application.configureStatusPages() {
+    install(StatusPages) {
+        status(HttpStatusCode.TooManyRequests) { call, status ->
+            call.respondError(status, "Too many requests")
+        }
+        exception<PetAccessDeniedException> { call, _ ->
+            call.respondError(HttpStatusCode.Forbidden, "Not a member of this pet")
+        }
+        exception<MissingRequestParameterException> { call, cause ->
+            call.respondError(HttpStatusCode.BadRequest, "${cause.parameterName} is required")
+        }
+        exception<ParameterConversionException> { call, cause ->
+            call.respondError(HttpStatusCode.BadRequest, "Invalid ${cause.parameterName}: ${cause.type}")
+        }
+        exception<BadRequestException> { call, cause ->
+            call.respondError(HttpStatusCode.BadRequest, cause.message ?: "Bad request")
+        }
+        // 不正な JSON（enum の未知値、型不一致等）は 400 で返す（Ktor デフォルトの 500 を上書き）。
+        // cause.message には内部型名・フィールド名を含みうるため、クライアントには固定メッセージを返し
+        // 詳細はサーバーログのみに出す。
+        exception<SerializationException> { call, cause ->
+            logger.warn("Invalid request body on ${call.request.path()}: ${cause.message}")
+            call.respondError(HttpStatusCode.BadRequest, "Invalid request body")
+        }
+    }
+}
+
+/** ContentNegotiation に頼らずにエラー応答（`{"error": "..."}`）を返す */
+private suspend fun ApplicationCall.respondError(
+    status: HttpStatusCode,
+    message: String,
+) {
+    respondText(buildJsonObject { put("error", message) }.toString(), ContentType.Application.Json, status)
+}

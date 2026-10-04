@@ -118,7 +118,8 @@ server/              → Ktor server (Netty, JVM)
                        MCP: server/mcp/。/mcp（stateless Streamable HTTP）+ /.well-known/oauth-protected-resource/mcp。
                          認可サーバーは WorkOS AuthKit（Standalone Connect）。JWT を JWKS・iss・aud で検証し、sub（完了 API に渡した uid がそのまま入る）を uid として使う。検証で拒否したトークンは iss・aud・sub・exp だけを WARN ログに出す（本体は出さない）。
                          Firebase で削除・無効化されたユーザーは拒否。リクエストごとに uid を閉じ込めた MCP Server を作る（McpServerFactory）。ツールは給餌の 3 つ（FeedingMcpTools）
-                         JSON-RPC は McpJson で返す必要があるため、ContentNegotiation はアプリ全体ではなくルーティングのルートに入れ、/mcp だけ json(McpJson) に差し替えている
+                         JSON-RPC は McpJson で返す必要があるため、ContentNegotiation はアプリ全体ではなくルーティングのルートに入れ、/mcp だけ json(McpJson) に差し替えている。
+                         StatusPages のハンドラはルーティングの外で動き ContentNegotiation を使えないため、respondError で JSON を直接書き出す（configureStatusPages）
                          WORKOS_API_KEY / WORKOS_AUTHKIT_DOMAIN / APP_URL が揃っていない場合は MCP のルート・認証を登録しない
                        IP ジオロケーション: server/geo/ (MaxMind GeoLite2-City オフライン DB、ファイル不在時は NoOp)
                        Firebase Auth verification
