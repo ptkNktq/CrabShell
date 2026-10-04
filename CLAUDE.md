@@ -161,7 +161,7 @@ feature/auth/        → LoginViewModel + LoginScreen + LoginContent、PasskeySe
                        SignInWithHistoryService（サインイン + ログイン履歴記録を ApplicationScope で実行）、
                        McpConnectViewModel + McpConnectContent（MCP 連携画面。WorkOS AuthKit の Login URI）(commonMain)
                        AuthenticatedApp + PasskeySetupViewModel + PasskeySetupScreen + McpConnectScreen（/mcp-connect）(wasmJsMain)
-                       Depends on :core:auth, :core:common, :core:network, :core:ui
+                       Depends on :core:auth, :core:common, :core:network, :core:ui, :shared
 feature/dashboard/   → DashboardContent (commonMain) / DashboardViewModel + DashboardScreen (wasmJsMain)
                        commonMain: :core:ui, :shared / wasmJs: :core:auth, :core:common, :core:network
 feature/feeding/     → FeedingContent (commonMain) / FeedingViewModel + FeedingScreen (wasmJsMain)
