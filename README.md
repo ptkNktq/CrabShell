@@ -449,7 +449,9 @@ Claude Code などの MCP クライアントから、ごはんの記録を見た
    |------|------|------|
    | Login URI | `http://localhost:3000/mcp-connect` | `https://<公開ドメイン>/mcp-connect` |
    | Resource Indicator | `http://localhost:3000/mcp` | `https://<公開ドメイン>/mcp` |
-   | クライアント登録 | Client ID Metadata Document と Dynamic Client Registration を有効化 | 同左 |
+   | クライアント登録 | Client ID Metadata Document のみ有効化（Dynamic Client Registration は無効） | 同左 |
+
+   Dynamic Client Registration を有効にすると、誰でも任意のアプリ名（例: 「Claude Code」）でクライアントを登録でき、同意画面のアプリ名では本物か見分けられなくなる。Client ID Metadata Document なら client_id が URL のため、出どころのドメインで見分けられる。
 
 3. `.env` に `WORKOS_API_KEY` / `WORKOS_AUTHKIT_DOMAIN` / `APP_URL` を設定してサーバーを再起動する（3 つ揃っていない場合、MCP は無効化される）
 4. MCP クライアントに追加する（Claude Code の例）
