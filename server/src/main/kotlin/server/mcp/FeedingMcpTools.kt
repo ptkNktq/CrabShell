@@ -5,6 +5,7 @@ import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolAnnotations
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -164,6 +165,12 @@ class FeedingMcpTools(
         } catch (e: InvalidToolArgumentException) {
             logger.info("MCP tool rejected: tool={} uid={} reason={}", toolName, uid, e.message)
             error(e.message ?: "引数が正しくありません")
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // SDK に任せると例外メッセージ（Firestore のパス等）がそのままクライアントに返るため、ここで握る
+            logger.error("MCP tool failed: tool={} uid={}", toolName, uid, e)
+            error(TOOL_FAILED_MESSAGE)
         }
 
     private fun success(result: FeedingLogResult): CallToolResult =
@@ -197,6 +204,8 @@ class FeedingMcpTools(
         internal const val GET_FEEDING_LOG = "get_feeding_log"
         internal const val RECORD_FEEDING = "record_feeding"
         internal const val UPDATE_FEEDING_NOTE = "update_feeding_note"
+
+        internal const val TOOL_FAILED_MESSAGE = "処理に失敗しました。時間をおいて再度お試しください"
 
         private const val ARG_DATE = "date"
         private const val ARG_MEAL_TIME = "mealTime"

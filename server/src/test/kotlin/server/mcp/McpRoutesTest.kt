@@ -255,6 +255,26 @@ class McpRoutesTest {
         }
 
     @Test
+    fun unexpectedFailureIsReturnedWithoutInternalDetails() =
+        testApplication {
+            setUp()
+            coEvery { feedingRepository.getFeedingLog("pet1", any()) } throws IllegalStateException("projects/secret/databases")
+
+            val response = rpc(callTool("get_feeding_log", "{}"))
+
+            val result = response.resultOf(response.bodyAsText())
+            assertEquals(true, result["isError"]!!.jsonPrimitive.boolean)
+            assertEquals(
+                FeedingMcpTools.TOOL_FAILED_MESSAGE,
+                result["content"]!!
+                    .jsonArray
+                    .single()
+                    .jsonObject["text"]!!
+                    .jsonPrimitive.content,
+            )
+        }
+
+    @Test
     fun getAndDeleteAreNotAllowed() =
         testApplication {
             setUp()
