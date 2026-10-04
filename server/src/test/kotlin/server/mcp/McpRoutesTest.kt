@@ -2,6 +2,7 @@ package server.mcp
 
 import com.auth0.jwk.Jwk
 import com.auth0.jwk.JwkProvider
+import com.auth0.jwk.NetworkException
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.client.request.bearerAuth
@@ -117,7 +118,7 @@ class McpRoutesTest {
             .withExpiresAt(Date.from(expiresAt))
             .sign(Algorithm.RSA256(publicKey, privateKey))
 
-    private fun ApplicationTestBuilder.setUp() {
+    private fun ApplicationTestBuilder.setUp(jwkProvider: JwkProvider = this@McpRoutesTest.jwkProvider) {
         application {
             // 本番と同じく StatusPages を入れ、429 などの応答が差し替わる構成で確認する
             configureStatusPages()
@@ -126,6 +127,7 @@ class McpRoutesTest {
                     module {
                         single { McpServerFactory(FeedingMcpTools(feedingRepository, petRepository)) }
                         single { authFailureGuard }
+                        single { jwkProvider }
                     },
                 )
             }
@@ -214,6 +216,36 @@ class McpRoutesTest {
 
             assertEquals(HttpStatusCode.TooManyRequests, blocked.status)
             assertEquals(McpAuthFailureGuard.BLOCK_DURATION.seconds.toString(), blocked.headers[HttpHeaders.RetryAfter])
+        }
+
+    @Test
+    fun jwksUnavailableIsNotTreatedAsInvalidToken() =
+        testApplication {
+            setUp { throw NetworkException("JWKS unreachable", null) }
+            val listTools = """{"jsonrpc":"2.0","id":1,"method":"tools/list"}"""
+
+            // 失敗に数えていれば上限を超えた後は 429 になるため、上限を超える回数を送っても 503 のままであることを確かめる
+            repeat(McpAuthFailureGuard.MAX_FAILURES + 2) {
+                val response = rpc(listTools)
+                // 正しいトークンで再認可させないよう、401 ではなく 503 にする
+                assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
+                assertEquals("60", response.headers[HttpHeaders.RetryAfter])
+            }
+        }
+
+    @Test
+    fun firebaseFailureIsNotTreatedAsInvalidToken() =
+        testApplication {
+            setUp()
+            every { firebaseAuthRepository.getUserStatus("uid1") } throws RuntimeException("Firebase unreachable")
+            val listTools = """{"jsonrpc":"2.0","id":1,"method":"tools/list"}"""
+
+            // 失敗に数えていれば上限を超えた後は 429 になるため、上限を超える回数を送っても 503 のままであることを確かめる
+            repeat(McpAuthFailureGuard.MAX_FAILURES + 2) {
+                val response = rpc(listTools)
+                assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
+                assertEquals("60", response.headers[HttpHeaders.RetryAfter])
+            }
         }
 
     @Test

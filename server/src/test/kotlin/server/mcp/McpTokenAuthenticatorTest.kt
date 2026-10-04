@@ -20,7 +20,7 @@ class McpTokenAuthenticatorTest {
 
             val principal = authenticator.authenticate("uid1", "client_01")
 
-            assertEquals(McpPrincipal(uid = "uid1", clientId = "client_01"), principal)
+            assertEquals(McpAuthResult.Authenticated(McpPrincipal(uid = "uid1", clientId = "client_01")), principal)
         }
 
     @Test
@@ -29,8 +29,16 @@ class McpTokenAuthenticatorTest {
             every { firebaseAuthRepository.getUserStatus("uid1") } returnsMany
                 listOf(FirebaseUserStatus.DISABLED, FirebaseUserStatus.NOT_FOUND)
 
-            assertNull(authenticator.authenticate("uid1", null))
-            assertNull(authenticator.authenticate("uid1", null))
+            assertEquals(McpAuthResult.Rejected, authenticator.authenticate("uid1", null))
+            assertEquals(McpAuthResult.Rejected, authenticator.authenticate("uid1", null))
+        }
+
+    @Test
+    fun firebaseFailureIsUnavailableNotRejected() =
+        runTest {
+            every { firebaseAuthRepository.getUserStatus("uid1") } throws RuntimeException("Firebase unreachable")
+
+            assertEquals(McpAuthResult.Unavailable, authenticator.authenticate("uid1", null))
         }
 
     @Test

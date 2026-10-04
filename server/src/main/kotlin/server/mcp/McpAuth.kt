@@ -1,12 +1,16 @@
 package server.mcp
 
+import com.auth0.jwk.JwkException
 import com.auth0.jwk.JwkProvider
 import com.auth0.jwk.JwkProviderBuilder
+import com.auth0.jwk.NetworkException
+import com.auth0.jwk.RateLimitReachedException
 import com.auth0.jwt.JWT
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.auth.HttpAuthHeader
 import io.ktor.server.application.ApplicationCall
+import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.auth.AuthenticationConfig
 import io.ktor.server.auth.AuthenticationFailedCause
 import io.ktor.server.auth.authenticate
@@ -18,6 +22,8 @@ import io.ktor.server.plugins.origin
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.util.AttributeKey
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
@@ -59,21 +65,29 @@ class McpTokenAuthenticator(
 
     /**
      * @param uid アクセストークンの `sub`
-     * @return 利用者。利用できないユーザーの場合は null
-     * @throws com.google.firebase.auth.FirebaseAuthException Firebase への問い合わせに失敗した場合。
-     *  一時的な失敗で null（401 invalid_token）を返すとクライアントが再認可を始めてしまうため、そのまま投げて 500 にする
+     * @return 認証の結果。Firebase への問い合わせに失敗した場合は [McpAuthResult.Unavailable]
+     *  （一時的な失敗をトークン不正として扱うと、クライアントが再認可を始めてしまうため区別する）
      */
     suspend fun authenticate(
         uid: String,
         clientId: String?,
-    ): McpPrincipal? {
+    ): McpAuthResult {
+        // 無効化・削除をすぐ反映させるため、結果はキャッシュせずリクエストごとに照会する。
         // Firebase Admin SDK の呼び出しはブロッキングのため IO スレッドで行う
-        val status = withContext(Dispatchers.IO) { firebaseAuthRepository.getUserStatus(uid) }
+        val status =
+            try {
+                withContext(Dispatchers.IO) { firebaseAuthRepository.getUserStatus(uid) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                logger.warn("MCP authentication unavailable: failed to get user status for {}", uid, e)
+                return McpAuthResult.Unavailable
+            }
         if (status != FirebaseUserStatus.ACTIVE) {
             logger.warn("MCP token rejected: user {} is {}", uid, status)
-            return null
+            return McpAuthResult.Rejected
         }
-        return McpPrincipal(uid = uid, clientId = clientId)
+        return McpAuthResult.Authenticated(McpPrincipal(uid = uid, clientId = clientId))
     }
 
     /**
@@ -100,6 +114,19 @@ class McpTokenAuthenticator(
     }
 }
 
+/** [McpTokenAuthenticator.authenticate] の結果 */
+sealed interface McpAuthResult {
+    data class Authenticated(
+        val principal: McpPrincipal,
+    ) : McpAuthResult
+
+    /** 利用できないユーザー（削除・無効化） */
+    data object Rejected : McpAuthResult
+
+    /** 一時的な障害で判定できなかった（トークンの不正ではない） */
+    data object Unavailable : McpAuthResult
+}
+
 /** ログに出すクレームの最大文字数 */
 private const val MAX_LOGGED_CLAIM_LENGTH = 128
 
@@ -116,12 +143,62 @@ fun createJwkProvider(config: McpConfig): JwkProvider =
         .rateLimited(10, 1, TimeUnit.MINUTES)
         .build()
 
+/** 一時的な障害で認証を判定できなかったことを、validate から challenge へ伝える */
+private val McpAuthUnavailableKey = AttributeKey<Unit>("McpAuthUnavailable")
+
+// 一時的な障害のときにクライアントへ伝える再試行までの秒数（JWKS の取得頻度の上限が 1 分単位のため）
+private const val MCP_UNAVAILABLE_RETRY_AFTER_SECONDS = 60
+
+/** 一時的な障害で認証を判定できないことを 503 で返す。トークンの不正ではないため、401 にして再認可させない */
+internal suspend fun ApplicationCall.respondMcpUnavailable() {
+    response.header(HttpHeaders.RetryAfter, MCP_UNAVAILABLE_RETRY_AFTER_SECONDS)
+    respond(HttpStatusCode.ServiceUnavailable, mapOf("error" to "Service unavailable"))
+}
+
+/**
+ * トークンの署名検証に使う公開鍵を、認証より前に取得できるか確かめるプラグイン。
+ *
+ * Ktor の jwt 認証は JWKS の取得失敗をトークン不正（401 invalid_token）として扱い、challenge も経由しない。
+ * そのままだと AuthKit の JWKS に一時的に届かないだけで、正しいトークンを持つクライアントに再認可させてしまうため、
+ * 通信の失敗・取得頻度の上限による失敗はここで 503 にする。取得できた鍵はキャッシュされ、続く認証で再利用される。
+ * 該当する鍵がない・JWT でないといった場合は何もせず、認証にトークン不正として扱わせる。
+ */
+class McpJwksPreflightPluginConfig {
+    lateinit var jwkProvider: JwkProvider
+}
+
+val McpJwksPreflightPlugin =
+    createRouteScopedPlugin("McpJwksPreflight", ::McpJwksPreflightPluginConfig) {
+        val jwkProvider = pluginConfig.jwkProvider
+        val logger = LoggerFactory.getLogger("server.mcp.McpJwksPreflight")
+        onCall { call ->
+            val token =
+                (call.request.parseAuthorizationHeader() as? HttpAuthHeader.Single)
+                    ?.takeIf { it.authScheme.equals("Bearer", ignoreCase = true) }
+                    ?.blob ?: return@onCall
+            val keyId = runCatching { JWT.decode(token).keyId }.getOrNull() ?: return@onCall
+            try {
+                withContext(Dispatchers.IO) { jwkProvider.get(keyId) }
+            } catch (e: NetworkException) {
+                // 実際に JWKS を取りに行って失敗した場合だけ（取得頻度の上限で回数は抑えられる）
+                logger.warn("MCP JWKS unavailable", e)
+                call.respondMcpUnavailable()
+            } catch (_: RateLimitReachedException) {
+                // 未知の kid を連打されても出力が増えないよう、ログは出さない
+                call.respondMcpUnavailable()
+            } catch (_: JwkException) {
+                // 該当する鍵がない等。認証にトークン不正として扱わせる
+            }
+        }
+    }
+
 /**
  * MCP のアクセストークン（WorkOS AuthKit が発行した JWT）を検証する認証プロバイダーを登録する。
  *
  * 認証に失敗した場合は、MCP クライアントが認可サーバーを見つけられるよう
  * `WWW-Authenticate` に Protected Resource Metadata の URL を付けて 401 を返す。
  * 失敗は [authFailureGuard] に記録し、失敗が続いた IP をブロックさせる。
+ * Firebase への問い合わせなど一時的な障害で判定できない場合は、失敗に数えずに 503 を返す。
  */
 fun AuthenticationConfig.mcpJwt(
     config: McpConfig,
@@ -137,9 +214,22 @@ fun AuthenticationConfig.mcpJwt(
         }
         validate { credential ->
             val subject = credential.payload.subject ?: return@validate null
-            authenticator.authenticate(subject, credential.payload.getClaim("client_id").asString())
+            when (val result = authenticator.authenticate(subject, credential.payload.getClaim("client_id").asString())) {
+                is McpAuthResult.Authenticated -> result.principal
+                McpAuthResult.Rejected -> null
+                McpAuthResult.Unavailable -> {
+                    // 例外を投げると Ktor が素の 401 にしてしまうため、印を付けて challenge で 503 にする
+                    attributes.put(McpAuthUnavailableKey, Unit)
+                    null
+                }
+            }
         }
         challenge { _, _ ->
+            if (McpAuthUnavailableKey in call.attributes) {
+                // 一時的な障害は失敗に数えない
+                call.respondMcpUnavailable()
+                return@challenge
+            }
             val error =
                 when (call.authentication.allFailures.firstOrNull()) {
                     null, AuthenticationFailedCause.NoCredentials -> ""
