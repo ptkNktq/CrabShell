@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicReference
  */
 class McpAuthFailureGuard(
     private val now: () -> Instant = Instant::now,
+    private val maxTrackedIps: Int = MAX_TRACKED_IPS,
 ) {
     private val logger = LoggerFactory.getLogger(McpAuthFailureGuard::class.java)
 
@@ -56,8 +57,8 @@ class McpAuthFailureGuard(
         val key = guardKey(ip)
         val current = now()
         cleanupIfDue(current)
-        // 大量の IP から失敗させられてもメモリが増え続けないよう、上限を超えたら新しい IP は記録しない
-        if (failures.size >= MAX_TRACKED_IPS && !failures.containsKey(key)) return
+        // 大量の IP から失敗させられてもメモリが増え続けないよう、記録中とブロック中の合計が上限に達したら新しい IP は記録しない
+        if (failures.size + blockedUntil.size >= maxTrackedIps && !failures.containsKey(key)) return
 
         var blocked = false
         failures.compute(key) { _, window ->
