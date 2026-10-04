@@ -107,10 +107,7 @@ class FeedingMcpTools(
         val pet = selectPet(uid)
         val date = parseDate(arguments)
         val mealTime = parseMealTime(arguments)
-        val current = feedingRepository.getFeedingLog(pet.id, date)
-        if (current.feedings[mealTime]?.done != true) {
-            feedingRepository.recordFeeding(pet.id, date, mealTime, now().toString())
-        }
+        feedingRepository.recordFeedingIfNotDone(pet.id, date, mealTime, now().toString())
         return success(feedingRepository.getFeedingLog(pet.id, date).toResult(pet))
     }
 

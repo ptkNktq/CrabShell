@@ -87,16 +87,17 @@ class FeedingMcpToolsTest {
                     feedings =
                         MealTime.entries.associateWith { Feeding() } + (MealTime.MORNING to Feeding(true, now.toString())),
                 )
-            coEvery { feedingRepository.getFeedingLog("pet1", "2026-03-14") } returnsMany listOf(FeedingLog(date = "2026-03-14"), recorded)
+            coEvery { feedingRepository.recordFeedingIfNotDone("pet1", "2026-03-14", MealTime.MORNING, now.toString()) } returns true
+            coEvery { feedingRepository.getFeedingLog("pet1", "2026-03-14") } returns recorded
 
             val result = tools.recordFeeding(uid, args("mealTime" to "MORNING"))
 
-            coVerify(exactly = 1) { feedingRepository.recordFeeding("pet1", "2026-03-14", MealTime.MORNING, now.toString()) }
+            coVerify(exactly = 1) { feedingRepository.recordFeedingIfNotDone("pet1", "2026-03-14", MealTime.MORNING, now.toString()) }
             assertEquals(Feeding(true, now.toString()), result.log().feedings[MealTime.MORNING])
         }
 
     @Test
-    fun recordFeedingDoesNotOverwriteExistingRecord() =
+    fun recordFeedingReturnsExistingRecordWhenAlreadyDone() =
         runTest {
             coEvery { petRepository.getPetsForMember(uid) } returns listOf(pet)
             val existing =
@@ -105,11 +106,11 @@ class FeedingMcpToolsTest {
                     feedings =
                         MealTime.entries.associateWith { Feeding() } + (MealTime.MORNING to Feeding(true, "2026-03-13T22:00:00Z")),
                 )
+            coEvery { feedingRepository.recordFeedingIfNotDone(any(), any(), any(), any()) } returns false
             coEvery { feedingRepository.getFeedingLog("pet1", "2026-03-14") } returns existing
 
             val result = tools.recordFeeding(uid, args("mealTime" to "MORNING"))
 
-            coVerify(exactly = 0) { feedingRepository.recordFeeding(any(), any(), any(), any()) }
             assertEquals("2026-03-13T22:00:00Z", result.log().feedings[MealTime.MORNING]?.timestamp)
         }
 
@@ -142,7 +143,7 @@ class FeedingMcpToolsTest {
             invalidCalls.forEach { call ->
                 assertTrue(runCatching { call() }.isFailure)
             }
-            coVerify(exactly = 0) { feedingRepository.recordFeeding(any(), any(), any(), any()) }
+            coVerify(exactly = 0) { feedingRepository.recordFeedingIfNotDone(any(), any(), any(), any()) }
             coVerify(exactly = 0) { feedingRepository.updateNote(any(), any(), any()) }
         }
 

@@ -251,7 +251,7 @@ class McpRoutesTest {
 
             val result = response.resultOf(response.bodyAsText())
             assertEquals(true, result["isError"]!!.jsonPrimitive.boolean)
-            coVerify(exactly = 0) { feedingRepository.recordFeeding(any(), any(), any(), any()) }
+            coVerify(exactly = 0) { feedingRepository.recordFeedingIfNotDone(any(), any(), any(), any()) }
         }
 
     @Test
