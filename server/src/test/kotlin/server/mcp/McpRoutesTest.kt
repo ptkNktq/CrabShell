@@ -85,13 +85,11 @@ class McpRoutesTest {
             )
         }
 
-    private val workOsClient = mockk<WorkOsClient>()
     private val firebaseAuthRepository = mockk<FirebaseAuthRepository>()
     private val feedingRepository = mockk<FeedingRepository>(relaxUnitFun = true)
     private val petRepository = mockk<PetRepository>()
 
     init {
-        coEvery { workOsClient.getExternalId("user_01") } returns "uid1"
         every { firebaseAuthRepository.getUserStatus("uid1") } returns FirebaseUserStatus.ACTIVE
         coEvery { petRepository.getPetsForMember("uid1") } returns listOf(Pet(id = "pet1", name = "ぬい"))
         coEvery { feedingRepository.getFeedingLog("pet1", any()) } answers { FeedingLog(date = secondArg()) }
@@ -112,7 +110,7 @@ class McpRoutesTest {
             .withKeyId("key1")
             .withIssuer(issuer)
             .withAudience(audience)
-            .withSubject("user_01")
+            .withSubject("uid1")
             .withClaim("client_id", "client_01")
             .withExpiresAt(Date.from(expiresAt))
             .sign(Algorithm.RSA256(publicKey, privateKey))
@@ -127,7 +125,7 @@ class McpRoutesTest {
                 )
             }
             install(Authentication) {
-                mcpJwt(config, jwkProvider, McpTokenAuthenticator(McpUserResolver(workOsClient), firebaseAuthRepository))
+                mcpJwt(config, jwkProvider, McpTokenAuthenticator(firebaseAuthRepository))
             }
             install(RateLimit) {
                 register(RateLimitNames.MCP) {

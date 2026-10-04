@@ -4,14 +4,12 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.bearerAuth
-import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
-import io.ktor.http.encodeURLPathPart
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.SerialName
@@ -22,7 +20,7 @@ import server.util.defaultHttpClient
 
 /** WorkOS AuthKit の Standalone Connect で WorkOS に渡すユーザー情報 */
 data class WorkOsExternalUser(
-    /** Firebase の uid。WorkOS 側では external_id として保存される */
+    /** Firebase の uid。WorkOS 側では external_id として保存され、アクセストークンの `sub` にもこの値が入る */
     val id: String,
     val email: String,
 )
@@ -40,14 +38,6 @@ interface WorkOsClient : AutoCloseable {
         externalAuthId: String,
         user: WorkOsExternalUser,
     ): String
-
-    /**
-     * WorkOS のユーザー ID（アクセストークンの `sub`）から external_id（= Firebase の uid）を取得する。
-     *
-     * @return external_id。ユーザーが存在しない、または external_id が未設定の場合は null
-     * @throws WorkOsApiException WorkOS が成功・404 以外を返した場合
-     */
-    suspend fun getExternalId(workOsUserId: String): String?
 }
 
 /** WorkOS API が成功以外のステータスを返したことを表す */
@@ -77,16 +67,6 @@ class WorkOsHttpClient(
         return response.body<CompleteResponse>().redirectUri
     }
 
-    override suspend fun getExternalId(workOsUserId: String): String? {
-        val response =
-            client.get("$baseUrl/user_management/users/${workOsUserId.encodeURLPathPart()}") {
-                bearerAuth(config.apiKey)
-            }
-        if (response.status.value == 404) return null
-        response.throwIfFailed("get user")
-        return response.body<UserResponse>().externalId?.takeIf { it.isNotEmpty() }
-    }
-
     override fun close() = closeOnce { client.close() }
 
     private suspend fun HttpResponse.throwIfFailed(operation: String) {
@@ -110,11 +90,6 @@ class WorkOsHttpClient(
     @Serializable
     private data class CompleteResponse(
         @SerialName("redirect_uri") val redirectUri: String,
-    )
-
-    @Serializable
-    private data class UserResponse(
-        @SerialName("external_id") val externalId: String? = null,
     )
 
     companion object {

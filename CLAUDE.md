@@ -116,7 +116,7 @@ server/              → Ktor server (Netty, JVM)
                        Depends on :shared
                        Routes: /api/{firebase-config,users,pets,feeding,garbage,money,money-webhook,money-due-date-notification,payment-webhook,report,quest,point,quest-webhook,cache,login-history,passkey,mcp/authorization}
                        MCP: server/mcp/。/mcp（stateless Streamable HTTP）+ /.well-known/oauth-protected-resource/mcp。
-                         認可サーバーは WorkOS AuthKit（Standalone Connect）。JWT を JWKS・iss・aud で検証し、sub（WorkOS ユーザー ID）→ external_id（uid）を WorkOS API で変換（McpUserResolver がメモリキャッシュ）。
+                         認可サーバーは WorkOS AuthKit（Standalone Connect）。JWT を JWKS・iss・aud で検証し、sub（完了 API に渡した uid がそのまま入る）を uid として使う。検証で拒否したトークンは iss・aud・sub・exp だけを WARN ログに出す（本体は出さない）。
                          Firebase で削除・無効化されたユーザーは拒否。リクエストごとに uid を閉じ込めた MCP Server を作る（McpServerFactory）。ツールは給餌の 3 つ（FeedingMcpTools）
                          JSON-RPC は McpJson で返す必要があるため、ContentNegotiation はアプリ全体ではなくルーティングのルートに入れ、/mcp だけ json(McpJson) に差し替えている
                          WORKOS_API_KEY / WORKOS_AUTHKIT_DOMAIN / APP_URL が揃っていない場合は MCP のルート・認証を登録しない
@@ -211,7 +211,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Server auth: `server/src/main/kotlin/server/auth/` (AuthPlugin, FirebaseAuthRepository + FirebaseAdminAuthRepository, FirebaseAdminApp)
 - Server passkey: `server/src/main/kotlin/server/passkey/` (PasskeyRoutes, PasskeyConfig, WebAuthnVerifier, PasskeyCredentialRepository + ExposedPasskeyCredentialRepository, PasskeyDatabase, ChallengeStore, PasskeyLoginService)
 - Server geo: `server/src/main/kotlin/server/geo/` (IpClassifier, IpGeolocationService, MaxMind/NoOp 実装)
-- Server MCP: `server/src/main/kotlin/server/mcp/` (McpConfig, WorkOsClient, McpUserResolver, McpAuth, McpAuthorizationService, McpServerFactory, FeedingMcpTools, McpRoutes)
+- Server MCP: `server/src/main/kotlin/server/mcp/` (McpConfig, WorkOsClient, McpAuth, McpAuthorizationService, McpServerFactory, FeedingMcpTools, McpRoutes)
 - Core common: `core/common/src/commonMain/kotlin/core/common/` (Environment.kt, AppLogger.kt, TabResumedEvent.kt, ApplicationScope.kt)
 - Core common (wasmJsMain): `core/common/src/wasmJsMain/kotlin/core/common/` (Environment.kt, AppLogger.wasmJs.kt, PageVisibility.kt)
 - Core auth (commonMain): `core/auth/src/commonMain/kotlin/core/auth/` (AuthRepository interface, AuthState, IdTokenResult)

@@ -2,14 +2,17 @@ package server.mcp
 
 import com.auth0.jwk.JwkProvider
 import com.auth0.jwk.JwkProviderBuilder
+import com.auth0.jwt.JWT
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.auth.HttpAuthHeader
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.AuthenticationConfig
 import io.ktor.server.auth.AuthenticationFailedCause
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.authentication
 import io.ktor.server.auth.jwt.jwt
+import io.ktor.server.auth.parseAuthorizationHeader
 import io.ktor.server.auth.principal
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
@@ -29,9 +32,8 @@ private const val TOKEN_LEEWAY_SECONDS = 30L
 
 /** MCP のアクセストークンで認証された利用者 */
 data class McpPrincipal(
+    /** アクセストークンの `sub`。Standalone Connect の完了 API に渡した Firebase の uid がそのまま入る */
     val uid: String,
-    /** アクセストークンの `sub`（WorkOS のユーザー ID） */
-    val workOsUserId: String,
     /** アクセストークンの `client_id`（MCP クライアントの自己申告。ログ用で、権限の判断には使わない） */
     val clientId: String?,
 )
@@ -46,35 +48,48 @@ fun Route.mcpAuthenticated(build: Route.() -> Unit): Route = authenticate(MCP_AU
 /**
  * 署名・`iss`・`aud` の検証を通ったアクセストークンから、CrabShell の利用者を特定する。
  *
- * - `sub`（WorkOS のユーザー ID）を uid に変換する
+ * - `sub` は完了 API に渡した Firebase の uid なので、そのまま uid として使う
  * - Firebase 上で削除・無効化されたユーザーは、トークンが有効期限内でも拒否する
  */
 class McpTokenAuthenticator(
-    private val userResolver: McpUserResolver,
     private val firebaseAuthRepository: FirebaseAuthRepository,
 ) {
     private val logger = LoggerFactory.getLogger(McpTokenAuthenticator::class.java)
 
     /**
-     * @return 利用者。特定できない、または利用できないユーザーの場合は null
-     * @throws WorkOsApiException WorkOS への問い合わせに失敗した場合（一時的な失敗を認証失敗として扱わない）
+     * @param uid アクセストークンの `sub`
+     * @return 利用者。利用できないユーザーの場合は null
      */
     suspend fun authenticate(
-        workOsUserId: String,
+        uid: String,
         clientId: String?,
     ): McpPrincipal? {
-        val uid = userResolver.resolveUid(workOsUserId)
-        if (uid == null) {
-            logger.warn("MCP token rejected: no external_id for WorkOS user {}", workOsUserId)
-            return null
-        }
         // Firebase Admin SDK の呼び出しはブロッキングのため IO スレッドで行う
         val status = withContext(Dispatchers.IO) { firebaseAuthRepository.getUserStatus(uid) }
         if (status != FirebaseUserStatus.ACTIVE) {
             logger.warn("MCP token rejected: user {} is {}", uid, status)
             return null
         }
-        return McpPrincipal(uid = uid, workOsUserId = workOsUserId, clientId = clientId)
+        return McpPrincipal(uid = uid, clientId = clientId)
+    }
+
+    /**
+     * 拒否したトークンのクレームをログに出す（設定の食い違いを切り分けるため）。
+     * トークン本体は出さない。署名を検証していない値なので、ログ以外には使わない。
+     */
+    fun logRejectedToken(token: String) {
+        val decoded = runCatching { JWT.decode(token) }.getOrNull()
+        if (decoded == null) {
+            logger.warn("MCP token rejected: not a JWT")
+            return
+        }
+        logger.warn(
+            "MCP token rejected: iss={} aud={} sub={} exp={}",
+            decoded.issuer,
+            decoded.audience,
+            decoded.subject,
+            decoded.expiresAtAsInstant,
+        )
     }
 }
 
@@ -112,6 +127,9 @@ fun AuthenticationConfig.mcpJwt(
                     null, AuthenticationFailedCause.NoCredentials -> ""
                     else -> "error=\"invalid_token\", "
                 }
+            (call.request.parseAuthorizationHeader() as? HttpAuthHeader.Single)
+                ?.takeIf { it.authScheme.equals("Bearer", ignoreCase = true) }
+                ?.let { authenticator.logRejectedToken(it.blob) }
             call.response.header(HttpHeaders.WWWAuthenticate, "Bearer ${error}resource_metadata=\"${config.resourceMetadataUrl}\"")
             call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Unauthorized"))
         }

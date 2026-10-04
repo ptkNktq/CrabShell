@@ -429,7 +429,7 @@ Claude Code などの MCP クライアントから、ごはんの記録を見た
 - 操作するペットは、ユーザーがメンバーになっているペットから自動で選ぶ（複数匹は未対応で、先頭の 1 匹を選ぶ）
 - 日付を省略すると今日（JST 5:00 で切り替わる給餌日付）になる
 - 認可サーバーは [WorkOS AuthKit の Standalone Connect](https://workos.com/docs/authkit/connect/standalone)。ログインは CrabShell 既存のもの（パスキー / メール・パスワード）を使い、AuthKit はトークンの発行だけを担う
-- WorkOS には Firebase の uid（external_id として保存される）とメールアドレスを渡す。アクセストークンの `sub` は WorkOS のユーザー ID のため、サーバーは WorkOS API で external_id を引いて uid に変換する
+- WorkOS には Firebase の uid（external_id として保存される）とメールアドレスを渡す。発行されるアクセストークンの `sub` にはこの uid がそのまま入るため、サーバーは `sub` を uid として使う
 - Firebase で削除・無効化したユーザーは、トークンが有効期限内でも拒否する
 - 1 ユーザーあたり 60 リクエスト/分のレート制限あり。ツールの呼び出しはサーバーログ（INFO）に uid とツール名を記録する
 

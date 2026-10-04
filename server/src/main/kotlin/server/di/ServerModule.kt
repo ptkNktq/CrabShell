@@ -31,7 +31,6 @@ import server.mcp.McpAuthorizationService
 import server.mcp.McpConfig
 import server.mcp.McpServerFactory
 import server.mcp.McpTokenAuthenticator
-import server.mcp.McpUserResolver
 import server.mcp.WorkOsClient
 import server.mcp.WorkOsHttpClient
 import server.mcp.createJwkProvider
@@ -109,8 +108,7 @@ val serverModule =
         single(createdAtStart = true) { McpConfig.fromEnv() }
         single<WorkOsClient> { WorkOsHttpClient(get()) }.closeOnStop()
         single<JwkProvider> { createJwkProvider(get()) }
-        single { McpUserResolver(get()) }
-        single { McpTokenAuthenticator(get(), get()) }
+        single { McpTokenAuthenticator(get()) }
         single { McpAuthorizationService(get()) }
         single { FeedingMcpTools(get(), get()) }
         single { McpServerFactory(get()) }
