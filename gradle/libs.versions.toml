@@ -24,6 +24,7 @@ mcp-kotlin-sdk = "0.15.0"
 # ktor-server-auth-jwt が依存する版に揃える
 auth0-java-jwt = "4.6.0"
 auth0-jwks-rsa = "0.24.1"
+# Firebase Admin SDK 等が推移的に依存する版に揃える（直接 import しているため明示）
 guava = "33.6.0-jre"
 
 [libraries]
