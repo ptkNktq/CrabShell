@@ -12,6 +12,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -32,7 +33,7 @@ interface WorkOsClient : AutoCloseable {
      * 同じ [WorkOsExternalUser.id] で呼ぶと、WorkOS 側のユーザー情報は上書きされる。
      *
      * @return 連携を続けるためにブラウザを遷移させる先（AuthKit の同意画面）
-     * @throws WorkOsApiException WorkOS が成功以外を返した場合
+     * @throws WorkOsApiException WorkOS への通信に失敗した、成功以外を返した、または応答を読めなかった場合
      */
     suspend fun completeExternalAuth(
         externalAuthId: String,
@@ -40,10 +41,11 @@ interface WorkOsClient : AutoCloseable {
     ): String
 }
 
-/** WorkOS API が成功以外のステータスを返したことを表す */
+/** WorkOS API の呼び出しに失敗したこと（通信の失敗・成功以外のステータス・想定外の応答）を表す */
 class WorkOsApiException(
     message: String,
-) : RuntimeException(message)
+    cause: Throwable? = null,
+) : RuntimeException(message, cause)
 
 /** Ktor Client による [WorkOsClient] の実装 */
 class WorkOsHttpClient(
@@ -56,18 +58,34 @@ class WorkOsHttpClient(
     override suspend fun completeExternalAuth(
         externalAuthId: String,
         user: WorkOsExternalUser,
-    ): String {
-        val response =
-            client.post("$baseUrl/authkit/oauth2/complete") {
-                bearerAuth(config.apiKey)
-                contentType(ContentType.Application.Json)
-                setBody(CompleteRequest(externalAuthId, CompleteRequest.User(user.id, user.email)))
-            }
-        response.throwIfFailed("complete external auth")
-        return response.body<CompleteResponse>().redirectUri
-    }
+    ): String =
+        wrapFailure("complete external auth") {
+            val response =
+                client.post("$baseUrl/authkit/oauth2/complete") {
+                    bearerAuth(config.apiKey)
+                    contentType(ContentType.Application.Json)
+                    setBody(CompleteRequest(externalAuthId, CompleteRequest.User(user.id, user.email)))
+                }
+            response.throwIfFailed("complete external auth")
+            response.body<CompleteResponse>().redirectUri
+        }
 
     override fun close() = closeOnce { client.close() }
+
+    /** 呼び出し側が WorkOS の失敗を 1 種類の例外で扱えるよう、通信・応答の読み取りの失敗も [WorkOsApiException] にする */
+    private suspend fun <T> wrapFailure(
+        operation: String,
+        block: suspend () -> T,
+    ): T =
+        try {
+            block()
+        } catch (e: WorkOsApiException) {
+            throw e
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            throw WorkOsApiException("WorkOS $operation failed", e)
+        }
 
     private suspend fun HttpResponse.throwIfFailed(operation: String) {
         if (!status.isSuccess()) {

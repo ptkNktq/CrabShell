@@ -17,6 +17,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import java.io.IOException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -72,6 +73,19 @@ class WorkOsHttpClientTest {
 
             assertFailsWith<WorkOsApiException> {
                 client.completeExternalAuth("01J3X4Y5Z6", WorkOsExternalUser(id = "uid1", email = "a@example.com"))
+            }
+        }
+
+    @Test
+    fun completeExternalAuthWrapsConnectionAndResponseFailures() =
+        runTest {
+            listOf(
+                client { throw IOException("connection reset") },
+                client { respondJson("""{"unexpected":true}""") },
+            ).forEach { client ->
+                assertFailsWith<WorkOsApiException> {
+                    client.completeExternalAuth("01J3X4Y5Z6", WorkOsExternalUser(id = "uid1", email = "a@example.com"))
+                }
             }
         }
 }
