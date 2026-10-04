@@ -17,7 +17,7 @@ sealed interface McpAuthorizationResult {
     /** ユーザーにメールアドレスが登録されていない（WorkOS の完了 API で必須） */
     data object MissingEmail : McpAuthorizationResult
 
-    /** WorkOS API の呼び出しに失敗した */
+    /** WorkOS API の呼び出しに失敗した、または想定外の応答（https 以外の redirect_uri 等）を返した */
     data object UpstreamFailure : McpAuthorizationResult
 }
 
@@ -51,7 +51,7 @@ class McpAuthorizationService(
 
     private fun isHttpsUrl(value: String): Boolean =
         try {
-            URI(value).scheme.equals("https", ignoreCase = true)
+            URI(value).let { it.scheme.equals("https", ignoreCase = true) && !it.host.isNullOrEmpty() }
         } catch (_: URISyntaxException) {
             false
         }

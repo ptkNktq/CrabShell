@@ -60,7 +60,7 @@ fun Route.mcpAuthorizationRoutes() {
                         body<McpAuthorizationCompleteResponse>()
                     }
                     code(HttpStatusCode.BadRequest) { description = "external_auth_id が不正、またはメールアドレス未登録" }
-                    code(HttpStatusCode.BadGateway) { description = "WorkOS API の呼び出しに失敗" }
+                    code(HttpStatusCode.BadGateway) { description = "WorkOS API の呼び出しに失敗、または想定外の応答" }
                 }
             }) {
                 val principal = call.firebasePrincipal

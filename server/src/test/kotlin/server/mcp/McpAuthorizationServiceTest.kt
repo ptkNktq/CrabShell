@@ -51,7 +51,7 @@ class McpAuthorizationServiceTest {
     @Test
     fun rejectsNonHttpsRedirectUri() =
         runTest {
-            listOf("javascript:alert(1)", "http://example.authkit.app/consent", "not a uri").forEach { redirectUri ->
+            listOf("javascript:alert(1)", "http://example.authkit.app/consent", "https:foo", "not a uri").forEach { redirectUri ->
                 coEvery { workOsClient.completeExternalAuth(any(), any()) } returns redirectUri
 
                 assertEquals(McpAuthorizationResult.UpstreamFailure, service.complete("uid1", "a@example.com", "01J3X4Y5Z6"))
