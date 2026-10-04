@@ -1,5 +1,6 @@
 package server.di
 
+import com.auth0.jwk.JwkProvider
 import com.google.cloud.firestore.Firestore
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.cloud.FirestoreClient
@@ -25,6 +26,16 @@ import server.geo.MaxMindIpGeolocationService
 import server.geo.NoOpIpGeolocationService
 import server.loginhistory.FirestoreLoginHistoryRepository
 import server.loginhistory.LoginHistoryRepository
+import server.mcp.FeedingMcpTools
+import server.mcp.McpAuthFailureGuard
+import server.mcp.McpAuthorizationService
+import server.mcp.McpConfig
+import server.mcp.McpJwksPreflight
+import server.mcp.McpServerFactory
+import server.mcp.McpTokenAuthenticator
+import server.mcp.WorkOsClient
+import server.mcp.WorkOsHttpClient
+import server.mcp.createJwkProvider
 import server.migration.FirestoreMigrations
 import server.money.FirestoreMoneyRepository
 import server.money.MoneyDueDateNotificationService
@@ -95,6 +106,16 @@ val serverModule =
         // GeoLite2 DB のロード状態を起動時ログに出すため createdAtStart で eager 初期化する。
         // 遅延評価だと初回ログイン時まで「DB が読めているか / NoOp に落ちているか」が分からない。
         single<IpGeolocationService>(createdAtStart = true) { loadGeolocationService() }.closeOnStop()
+        // MCP（認可サーバーは WorkOS AuthKit）。未設定時の警告を起動時ログに出すため設定は eager 初期化する
+        single(createdAtStart = true) { McpConfig.fromEnv() }
+        single<WorkOsClient> { WorkOsHttpClient(get()) }.closeOnStop()
+        single<JwkProvider> { createJwkProvider(get()) }
+        single { McpTokenAuthenticator(get()) }
+        single { McpAuthFailureGuard() }
+        single { McpJwksPreflight(get(), get(), get(), get()) }
+        single { McpAuthorizationService(get()) }
+        single { FeedingMcpTools(get(), get()) }
+        single { McpServerFactory(get()) }
         single<MoneyRepository> { FirestoreMoneyRepository(get()) }
         single<QuestRepository> { FirestoreQuestRepository(get()) }
         single<PointRepository> { FirestorePointRepository(get()) }

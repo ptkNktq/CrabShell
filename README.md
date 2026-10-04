@@ -8,10 +8,11 @@ Kotlin Multiplatform のダッシュボードアプリケーション。Ktor サ
 |---|---|---|
 | 言語 | Kotlin | 2.3.10 |
 | UI | Compose Multiplatform | 1.10.2 |
-| サーバー | Ktor (Netty) | 3.4.1 |
+| サーバー | Ktor (Netty) | 3.6.0 |
 | DI | Koin | 4.2.0 |
 | 認証 | Firebase Admin / Firebase JS SDK + WebAuthn (Passkey) | 9.8.0 |
 | WebAuthn | webauthn4j | 0.31.1.RELEASE |
+| MCP | MCP Kotlin SDK（認可サーバーは WorkOS AuthKit） | 0.15.0 |
 | DB (Passkey) | Exposed + SQLite | 1.1.1 / 3.51.3.0 |
 | ViewModel | Lifecycle ViewModel Compose | 2.11.0 |
 | シリアライゼーション | kotlinx-serialization-json | 1.10.0 |
@@ -128,7 +129,7 @@ core/common/         → 環境判定・AppLogger・横断的ユーティリテ�
 core/auth/           → Firebase 認証・AuthState 管理・WebAuthn JS interop
 core/network/        → 認証付き HTTP クライアント + Repository（Passkey 含む）
 core/ui/             → テーマ・共通 UI コンポーネント
-feature/auth/        → ログイン画面（パスキー / メール・パスワード）+ パスキー登録
+feature/auth/        → ログイン画面（パスキー / メール・パスワード）+ パスキー登録 + MCP 連携画面
 feature/dashboard/   → ダッシュボード画面
 feature/feeding/     → ごはん記録画面
 feature/money/       → 支出管理画面（管理者向け）
@@ -185,7 +186,7 @@ eval "$(./dev.sh --completions)"
 
 サーバーはプロジェクトルートの `.env` ファイルから環境変数を自動読み込みする（[dotenv-java](https://github.com/cdimascio/dotenv-java) 使用）。`.env` が存在しない場合は無視される。OS の環境変数が `.env` より優先される。
 
-- webpack dev server (port 3000) が `/api/*` を Ktor サーバー (port 8080) にプロキシ
+- webpack dev server (port 3000) が `/api/*`・`/mcp`（完全一致）・`/.well-known/*` を Ktor サーバー (port 8080) にプロキシ
 - `-PskipFrontend` でサーバービルド時に WASM フロントエンドのビルドをスキップ
 - `BROWSER_OPEN=false` を設定するとブラウザ自動起動を抑制（dev.sh は自動で設定）
 
@@ -419,6 +420,53 @@ DB ファイルが存在しない場合はジオロケーション機能が自�
 >
 > DB は MaxMind が概ね 2 週間ごとに更新するため、精度を保ちたい場合は定期的に差し替える運用にする。
 
+### MCP 連携（任意）
+
+Claude Code などの MCP クライアントから、ごはんの記録を見たり付けたりできる。各ユーザーは自分の Claude アカウントでログインした MCP クライアントから、自分の CrabShell アカウントで連携する（他人の Claude の契約を経由させない）。
+
+- MCP エンドポイント: `POST /mcp`（stateless な Streamable HTTP）
+- 公開するツール: `get_feeding_log`（記録の取得）/ `record_feeding`（給餌の記録。記録済みなら上書きせず、記録したかどうかを返す）/ `update_feeding_note`（メモの更新）
+- 操作するペットは、ユーザーがメンバーになっているペットから自動で選ぶ（複数匹は未対応で、先頭の 1 匹を選ぶ）
+- 日付を省略すると今日（JST 5:00 で切り替わる給餌日付）になる。未来の日付は指定できない
+- 認可サーバーは [WorkOS AuthKit の Standalone Connect](https://workos.com/docs/authkit/connect/standalone)。ログインは CrabShell 既存のもの（パスキー / メール・パスワード）を使い、AuthKit はトークンの発行だけを担う
+- WorkOS には Firebase の uid（external_id として保存される）とメールアドレスを渡す。発行されるアクセストークンの `sub` にはこの uid がそのまま入るため、サーバーは `sub` を uid として使う
+- Firebase で削除・無効化したユーザーは、トークンが有効期限内でも拒否する
+- 1 ユーザーあたり 60 リクエスト/分のレート制限あり。ツールの呼び出しはサーバーログ（INFO）に uid とツール名を記録する
+- 認証に失敗したリクエストは IP ごと（IPv6 は /64 単位）に数え、1 分に 10 回を超えた IP からは 30 分間 `/mcp` へのリクエストを受け付けない（429）。ブロック中は正しいトークンでも拒否する。状態はメモリにだけ持つため、サーバーを再起動すると解除される
+
+#### 連携の流れ
+
+1. MCP クライアントが `/mcp` を呼ぶと 401 と `WWW-Authenticate`（Protected Resource Metadata の URL）が返り、クライアントは `/.well-known/oauth-protected-resource/mcp` から AuthKit を知る
+2. ブラウザで AuthKit の認可画面が開き、Login URI（`/mcp-connect?external_auth_id=...`）に転送される
+3. CrabShell にログインし（ログイン済みならそのまま）、「連携を続ける」を押す（他人が用意したリンクを開いただけで連携されないよう、自動では完了しない）
+   - 「キャンセル」を押すと「キャンセルしました」の画面になり、そこで終わる（ダッシュボードなどアプリの他の画面へは進まない。タブを閉じる）
+4. サーバーが WorkOS の完了 API を呼び、AuthKit の同意画面を経て MCP クライアントにトークンが渡る
+
+#### セットアップ手順
+
+1. [WorkOS](https://workos.com/) のアカウントを作成し、AuthKit を有効化する
+2. ダッシュボードの **Connect → Configuration** で以下を設定する（Staging / Production の環境ごとに設定する）
+
+   | 項目 | 開発（Staging） | 本番（Production） |
+   |------|------|------|
+   | Login URI | `http://localhost:3000/mcp-connect` | `https://<公開ドメイン>/mcp-connect` |
+   | Resource Indicator | `http://localhost:3000/mcp` | `https://<公開ドメイン>/mcp` |
+   | クライアント登録 | Client ID Metadata Document のみ有効化（Dynamic Client Registration は無効） | 同左 |
+
+   Dynamic Client Registration を有効にすると、誰でも任意のアプリ名（例: 「Claude Code」）でクライアントを登録でき、同意画面のアプリ名では本物か見分けられなくなる。Client ID Metadata Document なら client_id が URL のため、出どころのドメインで見分けられる。
+
+3. `.env` に `WORKOS_API_KEY` / `WORKOS_AUTHKIT_DOMAIN` / `APP_URL` を設定してサーバーを再起動する（3 つ揃っていない場合、MCP は無効化される）
+4. MCP クライアントに追加する（Claude Code の例）
+
+   ```bash
+   claude mcp add --transport http crabshell https://<公開ドメイン>/mcp
+   # Claude Code 内で /mcp を開き、crabshell の認証を実行する
+   ```
+
+連携を取り消すには、WorkOS ダッシュボードでそのユーザーを削除する（以降はトークンを更新できなくなる）。発行済みのアクセストークンは有効期限まで使えるため、すぐに止めたい場合は Firebase でユーザーを無効化する（サーバーが拒否する）。
+
+WorkOS ではメールアドレスが一意のため、Firebase のユーザーを作り直して uid が変わった場合は、WorkOS ダッシュボードで古いユーザーを削除してから連携し直す（残っていると連携の完了に失敗する）。
+
 ### 環境変数
 
 | 変数 | 必須 | 説明 |
@@ -433,6 +481,9 @@ DB ファイルが存在しない場合はジオロケーション機能が自�
 | `WEBAUTHN_ORIGIN` | **必須** | 許可するオリジン（カンマ区切り。例: `https://example.com`） |
 | `PASSKEY_DB_PATH` | | SQLite ファイルパス（デフォルト: `data/passkey.db`） |
 | `GEOIP_DB_PATH` | | MaxMind GeoLite2-City `.mmdb` のパス（デフォルト: `data/GeoLite2-City.mmdb`）。ファイル不在時はジオロケーション無効 |
+| `APP_URL` | | アプリケーションの公開 URL（例: `https://example.com`）。給餌通知 Webhook のリンクと、MCP のリソース URL（`${APP_URL}/mcp`）に使用 |
+| `WORKOS_API_KEY` | | WorkOS の API キー（MCP 連携用。未設定時は MCP 無効） |
+| `WORKOS_AUTHKIT_DOMAIN` | | WorkOS AuthKit のドメイン（例: `example.authkit.app`。MCP 連携用。未設定、または https 以外のスキーム指定時は MCP 無効） |
 | `GEMINI_API_KEY` | | Google AI Studio の API キー（クエスト AI テキスト生成用。未設定時は AI 生成ボタン非表示） |
 | `GEMINI_MODEL` | | Gemini モデル名（デフォルト: `gemini-2.5-flash`） |
 | `SWAGGER_ENABLED` | | `true` で API ドキュメント UI (`/rapidoc`) と OpenAPI spec (`/api.json`) を有効化（本番では設定しない） |

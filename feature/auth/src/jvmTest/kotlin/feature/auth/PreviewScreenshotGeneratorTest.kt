@@ -69,5 +69,31 @@ class PreviewScreenshotGeneratorTest {
                 )
             }
         }
+
+        standardSizePatterns.forEach { pattern ->
+            recorder.save(
+                fileName = "mcp_connect_${pattern.label}.png",
+                width = pattern.width,
+                height = pattern.height,
+            ) {
+                // McpConnectContent も内部で AppTheme + Surface を適用済み
+                McpConnectContent(
+                    isCompleting = false,
+                    errorMessage = null,
+                    onContinue = {},
+                    onCancel = {},
+                )
+            }
+        }
+
+        standardSizePatterns.forEach { pattern ->
+            recorder.save(
+                fileName = "mcp_connect_cancelled_${pattern.label}.png",
+                width = pattern.width,
+                height = pattern.height,
+            ) {
+                McpConnectCancelledContent()
+            }
+        }
     }
 }

@@ -1,5 +1,6 @@
 package server
 
+import com.auth0.jwk.JwkProvider
 import io.github.smiley4.ktoropenapi.OpenApi
 import io.github.smiley4.ktoropenapi.config.AuthScheme
 import io.github.smiley4.ktoropenapi.config.AuthType
@@ -7,6 +8,7 @@ import io.github.smiley4.ktoropenapi.openApi
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.authentication
 import io.ktor.server.engine.*
 import io.ktor.server.http.content.*
 import io.ktor.server.netty.*
@@ -27,6 +29,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
 import org.slf4j.LoggerFactory
@@ -42,6 +46,13 @@ import server.feeding.feedingRoutes
 import server.garbage.GarbageNotificationService
 import server.garbage.garbageRoutes
 import server.loginhistory.loginHistoryRoutes
+import server.mcp.McpAuthFailureGuard
+import server.mcp.McpConfig
+import server.mcp.McpTokenAuthenticator
+import server.mcp.mcpAuthorizationRoutes
+import server.mcp.mcpJwt
+import server.mcp.mcpPrincipal
+import server.mcp.mcpRoutes
 import server.migration.FirestoreMigrations
 import server.money.MoneyDueDateNotificationService
 import server.money.moneyDueDateNotificationRoutes
@@ -105,11 +116,17 @@ fun Application.module() {
     launch { moneyDueDateNotificationService.runPollingLoop() }
 
     configureAuth()
+    val mcpConfig by inject<McpConfig>()
+    if (mcpConfig.enabled) {
+        val jwkProvider by inject<JwkProvider>()
+        val mcpTokenAuthenticator by inject<McpTokenAuthenticator>()
+        val mcpAuthFailureGuard by inject<McpAuthFailureGuard>()
+        authentication { mcpJwt(mcpConfig, jwkProvider, mcpTokenAuthenticator, mcpAuthFailureGuard) }
+    }
     install(CallLogging) {
         level = Level.DEBUG
         filter { call -> call.request.path().startsWith("/api") }
     }
-    install(ContentNegotiation) { json() }
     install(RequestBodyLimit) { bodyLimit { 256_000L } }
 
     // リバースプロキシ背後で正しいクライアント IP を取得
@@ -134,32 +151,19 @@ fun Application.module() {
             rateLimiter(limit = 10, refillPeriod = 60.seconds)
             requestKey { call -> call.firebasePrincipal.uid }
         }
+        // AI が連続でツールを呼ぶことを想定しつつ、暴走時に Firestore への書き込みが膨らまない程度に抑える
+        register(RateLimitNames.MCP) {
+            rateLimiter(limit = 60, refillPeriod = 60.seconds)
+            requestKey { call -> call.mcpPrincipal.uid }
+        }
+        // WorkOS API を呼ぶため、連携操作の連打で外部 API を叩きすぎないようにする
+        register(RateLimitNames.MCP_AUTHORIZATION) {
+            rateLimiter(limit = 5, refillPeriod = 60.seconds)
+            requestKey { call -> call.firebasePrincipal.uid }
+        }
     }
 
-    install(StatusPages) {
-        status(HttpStatusCode.TooManyRequests) { call, status ->
-            call.respond(status, mapOf("error" to "Too many requests"))
-        }
-        exception<PetAccessDeniedException> { call, _ ->
-            call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Not a member of this pet"))
-        }
-        exception<MissingRequestParameterException> { call, cause ->
-            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "${cause.parameterName} is required"))
-        }
-        exception<ParameterConversionException> { call, cause ->
-            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid ${cause.parameterName}: ${cause.type}"))
-        }
-        exception<BadRequestException> { call, cause ->
-            call.respond(HttpStatusCode.BadRequest, mapOf("error" to (cause.message ?: "Bad request")))
-        }
-        // 不正な JSON（enum の未知値、型不一致等）は 400 で返す（Ktor デフォルトの 500 を上書き）。
-        // cause.message には内部型名・フィールド名を含みうるため、クライアントには固定メッセージを返し
-        // 詳細はサーバーログのみに出す。
-        exception<SerializationException> { call, cause ->
-            logger.warn("Invalid request body on ${call.request.path()}: ${cause.message}")
-            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid request body"))
-        }
-    }
+    configureStatusPages()
 
     install(OpenApi) {
         pathFilter = { _, url -> url.firstOrNull() == "api" }
@@ -184,6 +188,10 @@ fun Application.module() {
     val swaggerEnabled = EnvConfig["SWAGGER_ENABLED"]?.toBooleanStrictOrNull() == true
 
     routing {
+        // アプリ全体ではなくルーティングのルートに入れる。MCP のルートだけ JSON 設定を差し替えるため
+        // （Ktor は同じプラグインをアプリ全体とルートの両方に入れられない）
+        install(ContentNegotiation) { json() }
+
         if (swaggerEnabled) {
             route("api.json") { openApi() }
             get("rapidoc") {
@@ -208,7 +216,10 @@ fun Application.module() {
             cacheRoutes()
             loginHistoryRoutes()
             passkeyRoutes()
+            if (mcpConfig.enabled) mcpAuthorizationRoutes()
         }
+
+        if (mcpConfig.enabled) mcpRoutes(mcpConfig)
 
         // Compose Wasm フロントエンドを配信
         staticResources("/", "static") {
@@ -281,3 +292,44 @@ private val RAPIDOC_HTML =
       </body>
     </html>
     """.trimIndent()
+
+/**
+ * 例外・ステータスをエラー応答（`{"error": "..."}`）に変換する。
+ *
+ * ContentNegotiation はルーティングのルートに入れているため、ルーティングの外で動く StatusPages の
+ * ハンドラからは使えない。そのため [respondError] で JSON を直接書き出す。
+ */
+internal fun Application.configureStatusPages() {
+    install(StatusPages) {
+        status(HttpStatusCode.TooManyRequests) { call, status ->
+            call.respondError(status, "Too many requests")
+        }
+        exception<PetAccessDeniedException> { call, _ ->
+            call.respondError(HttpStatusCode.Forbidden, "Not a member of this pet")
+        }
+        exception<MissingRequestParameterException> { call, cause ->
+            call.respondError(HttpStatusCode.BadRequest, "${cause.parameterName} is required")
+        }
+        exception<ParameterConversionException> { call, cause ->
+            call.respondError(HttpStatusCode.BadRequest, "Invalid ${cause.parameterName}: ${cause.type}")
+        }
+        exception<BadRequestException> { call, cause ->
+            call.respondError(HttpStatusCode.BadRequest, cause.message ?: "Bad request")
+        }
+        // 不正な JSON（enum の未知値、型不一致等）は 400 で返す（Ktor デフォルトの 500 を上書き）。
+        // cause.message には内部型名・フィールド名を含みうるため、クライアントには固定メッセージを返し
+        // 詳細はサーバーログのみに出す。
+        exception<SerializationException> { call, cause ->
+            logger.warn("Invalid request body on ${call.request.path()}: ${cause.message}")
+            call.respondError(HttpStatusCode.BadRequest, "Invalid request body")
+        }
+    }
+}
+
+/** ContentNegotiation に頼らずにエラー応答（`{"error": "..."}`）を返す */
+private suspend fun ApplicationCall.respondError(
+    status: HttpStatusCode,
+    message: String,
+) {
+    respondText(buildJsonObject { put("error", message) }.toString(), ContentType.Application.Json, status)
+}
