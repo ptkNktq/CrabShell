@@ -59,6 +59,8 @@ class McpTokenAuthenticator(
     /**
      * @param uid アクセストークンの `sub`
      * @return 利用者。利用できないユーザーの場合は null
+     * @throws com.google.firebase.auth.FirebaseAuthException Firebase への問い合わせに失敗した場合。
+     *  一時的な失敗で null（401 invalid_token）を返すとクライアントが再認可を始めてしまうため、そのまま投げて 500 にする
      */
     suspend fun authenticate(
         uid: String,
