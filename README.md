@@ -425,7 +425,7 @@ DB ファイルが存在しない場合はジオロケーション機能が自�
 Claude Code などの MCP クライアントから、ごはんの記録を見たり付けたりできる。各ユーザーは自分の Claude アカウントでログインした MCP クライアントから、自分の CrabShell アカウントで連携する（他人の Claude の契約を経由させない）。
 
 - MCP エンドポイント: `POST /mcp`（stateless な Streamable HTTP）
-- 公開するツール: `get_feeding_log`（記録の取得）/ `record_feeding`（給餌の記録。記録済みなら上書きしない）/ `update_feeding_note`（メモの更新）
+- 公開するツール: `get_feeding_log`（記録の取得）/ `record_feeding`（給餌の記録。記録済みなら上書きせず、記録したかどうかを返す）/ `update_feeding_note`（メモの更新）
 - 操作するペットは、ユーザーがメンバーになっているペットから自動で選ぶ（複数匹は未対応で、先頭の 1 匹を選ぶ）
 - 日付を省略すると今日（JST 5:00 で切り替わる給餌日付）になる
 - 認可サーバーは [WorkOS AuthKit の Standalone Connect](https://workos.com/docs/authkit/connect/standalone)。ログインは CrabShell 既存のもの（パスキー / メール・パスワード）を使い、AuthKit はトークンの発行だけを担う

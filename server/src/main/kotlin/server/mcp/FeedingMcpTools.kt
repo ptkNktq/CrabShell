@@ -55,7 +55,9 @@ class FeedingMcpTools(
 
         server.addTool(
             name = RECORD_FEEDING,
-            description = "ペットにごはんをあげたことを、現在時刻で記録する。すでに記録済みの場合は上書きしない。",
+            description =
+                "ペットにごはんをあげたことを、現在時刻で記録する。すでに記録済みの場合は上書きしない。" +
+                    "結果の recorded が false なら、すでに誰かが記録していたため何もしていない。",
             inputSchema =
                 ToolSchema(
                     properties =
@@ -97,7 +99,7 @@ class FeedingMcpTools(
     ): CallToolResult {
         val pet = selectPet(uid)
         val date = parseDate(arguments)
-        return success(feedingRepository.getFeedingLog(pet.id, date).toResult(pet))
+        return successResult(feedingRepository.getFeedingLog(pet.id, date).toResult(pet))
     }
 
     internal suspend fun recordFeeding(
@@ -107,8 +109,9 @@ class FeedingMcpTools(
         val pet = selectPet(uid)
         val date = parseDate(arguments)
         val mealTime = parseMealTime(arguments)
-        feedingRepository.recordFeedingIfNotDone(pet.id, date, mealTime, now().toString())
-        return success(feedingRepository.getFeedingLog(pet.id, date).toResult(pet))
+        val recorded = feedingRepository.recordFeedingIfNotDone(pet.id, date, mealTime, now().toString())
+        val result = RecordFeedingResult(recorded = recorded, feedingLog = feedingRepository.getFeedingLog(pet.id, date).toResult(pet))
+        return successResult(json.encodeToString(RecordFeedingResult.serializer(), result))
     }
 
     internal suspend fun updateNote(
@@ -119,7 +122,7 @@ class FeedingMcpTools(
         val date = parseDate(arguments)
         val note = arguments.string(ARG_NOTE) ?: throw InvalidToolArgumentException("$ARG_NOTE を指定してください")
         feedingRepository.updateNote(pet.id, date, note)
-        return success(feedingRepository.getFeedingLog(pet.id, date).toResult(pet))
+        return successResult(feedingRepository.getFeedingLog(pet.id, date).toResult(pet))
     }
 
     /**
@@ -161,19 +164,21 @@ class FeedingMcpTools(
             block().also { logger.info("MCP tool called: tool={} uid={}", toolName, uid) }
         } catch (e: InvalidToolArgumentException) {
             logger.info("MCP tool rejected: tool={} uid={} reason={}", toolName, uid, e.message)
-            error(e.message ?: "引数が正しくありません")
+            errorResult(e.message ?: "引数が正しくありません")
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             // SDK に任せると例外メッセージ（Firestore のパス等）がそのままクライアントに返るため、ここで握る
             logger.error("MCP tool failed: tool={} uid={}", toolName, uid, e)
-            error(TOOL_FAILED_MESSAGE)
+            errorResult(TOOL_FAILED_MESSAGE)
         }
 
-    private fun success(result: FeedingLogResult): CallToolResult =
-        CallToolResult(content = listOf(TextContent(json.encodeToString(FeedingLogResult.serializer(), result))))
+    private fun successResult(log: FeedingLogResult): CallToolResult =
+        successResult(json.encodeToString(FeedingLogResult.serializer(), log))
 
-    private fun error(message: String): CallToolResult = CallToolResult(content = listOf(TextContent(message)), isError = true)
+    private fun successResult(text: String): CallToolResult = CallToolResult(content = listOf(TextContent(text)))
+
+    private fun errorResult(message: String): CallToolResult = CallToolResult(content = listOf(TextContent(message)), isError = true)
 
     private fun FeedingLog.toResult(pet: Pet) =
         FeedingLogResult(
@@ -190,6 +195,14 @@ class FeedingMcpTools(
         val date: String,
         val note: String,
         val feedings: Map<MealTime, Feeding>,
+    )
+
+    /** record_feeding の結果。先に誰かが記録していた（二重給餌の可能性がある）ことを AI が伝えられるよう [recorded] を返す */
+    @Serializable
+    internal data class RecordFeedingResult(
+        /** 今回記録したか。false ならすでに記録済みで、何もしていない */
+        val recorded: Boolean,
+        val feedingLog: FeedingLogResult,
     )
 
     /** ツールの引数が正しくないことを表す。メッセージは MCP クライアントにそのまま返す */

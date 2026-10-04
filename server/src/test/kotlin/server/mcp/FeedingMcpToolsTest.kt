@@ -40,6 +40,9 @@ class FeedingMcpToolsTest {
     private fun CallToolResult.log(): FeedingMcpTools.FeedingLogResult =
         Json.decodeFromString(FeedingMcpTools.FeedingLogResult.serializer(), text())
 
+    private fun CallToolResult.recordResult(): FeedingMcpTools.RecordFeedingResult =
+        Json.decodeFromString(FeedingMcpTools.RecordFeedingResult.serializer(), text())
+
     @Test
     fun getFeedingLogDefaultsToCurrentFeedingDateOfFirstMemberPet() =
         runTest {
@@ -93,7 +96,8 @@ class FeedingMcpToolsTest {
             val result = tools.recordFeeding(uid, args("mealTime" to "MORNING"))
 
             coVerify(exactly = 1) { feedingRepository.recordFeedingIfNotDone("pet1", "2026-03-14", MealTime.MORNING, now.toString()) }
-            assertEquals(Feeding(true, now.toString()), result.log().feedings[MealTime.MORNING])
+            assertEquals(true, result.recordResult().recorded)
+            assertEquals(Feeding(true, now.toString()), result.recordResult().feedingLog.feedings[MealTime.MORNING])
         }
 
     @Test
@@ -111,7 +115,14 @@ class FeedingMcpToolsTest {
 
             val result = tools.recordFeeding(uid, args("mealTime" to "MORNING"))
 
-            assertEquals("2026-03-13T22:00:00Z", result.log().feedings[MealTime.MORNING]?.timestamp)
+            assertEquals(false, result.recordResult().recorded)
+            assertEquals(
+                "2026-03-13T22:00:00Z",
+                result
+                    .recordResult()
+                    .feedingLog.feedings[MealTime.MORNING]
+                    ?.timestamp,
+            )
         }
 
     @Test
