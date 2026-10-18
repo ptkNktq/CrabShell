@@ -49,6 +49,7 @@ import server.auth.FirebaseAuthRepository
 import server.auth.FirebaseUserStatus
 import server.configureStatusPages
 import server.feeding.FeedingRepository
+import server.money.MoneyRepository
 import server.pet.PetRepository
 import server.ratelimit.RateLimitNames
 import java.security.KeyPairGenerator
@@ -92,6 +93,7 @@ class McpRoutesTest {
     private val firebaseAuthRepository = mockk<FirebaseAuthRepository>()
     private val feedingRepository = mockk<FeedingRepository>(relaxUnitFun = true)
     private val petRepository = mockk<PetRepository>()
+    private val moneyRepository = mockk<MoneyRepository>()
     private val authFailureGuard = McpAuthFailureGuard()
 
     init {
@@ -127,7 +129,7 @@ class McpRoutesTest {
             install(Koin) {
                 modules(
                     module {
-                        single { McpServerFactory(FeedingMcpTools(feedingRepository, petRepository)) }
+                        single { McpServerFactory(FeedingMcpTools(feedingRepository, petRepository), PaymentMcpTools(moneyRepository)) }
                         single { authFailureGuard }
                         single { McpJwksPreflight(config, jwkProvider, McpTokenAuthenticator(firebaseAuthRepository), authFailureGuard) }
                     },
@@ -306,7 +308,7 @@ class McpRoutesTest {
         }
 
     @Test
-    fun toolsListReturnsOnlyFeedingTools() =
+    fun toolsListReturnsFeedingAndPaymentTools() =
         testApplication {
             setUp()
 
@@ -314,7 +316,7 @@ class McpRoutesTest {
 
             assertEquals(HttpStatusCode.OK, response.status)
             val names = response.resultOf(response.bodyAsText())["tools"]!!.jsonArray.map { it.jsonObject["name"]!!.jsonPrimitive.content }
-            assertEquals(setOf("get_feeding_log", "record_feeding", "update_feeding_note"), names.toSet())
+            assertEquals(setOf("get_feeding_log", "record_feeding", "update_feeding_note", "get_payment_summary"), names.toSet())
         }
 
     @Test

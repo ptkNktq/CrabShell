@@ -13,6 +13,7 @@ import io.modelcontextprotocol.kotlin.sdk.types.ServerCapabilities
  */
 class McpServerFactory(
     private val feedingMcpTools: FeedingMcpTools,
+    private val paymentMcpTools: PaymentMcpTools,
 ) {
     fun create(uid: String): Server =
         Server(
@@ -20,6 +21,7 @@ class McpServerFactory(
             options = ServerOptions(capabilities = ServerCapabilities(tools = ServerCapabilities.Tools(listChanged = false))),
         ) {
             feedingMcpTools.register(this, uid)
+            paymentMcpTools.register(this, uid)
         }
 
     companion object {
