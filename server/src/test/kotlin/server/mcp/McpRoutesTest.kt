@@ -353,7 +353,7 @@ class McpRoutesTest {
             val result = response.resultOf(response.bodyAsText())
             assertEquals(true, result["isError"]!!.jsonPrimitive.boolean)
             assertEquals(
-                FeedingMcpTools.TOOL_FAILED_MESSAGE,
+                TOOL_FAILED_MESSAGE,
                 result["content"]!!
                     .jsonArray
                     .single()
