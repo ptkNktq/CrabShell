@@ -150,6 +150,8 @@ class FeedingMcpToolsTest {
                     { tools.recordFeeding(uid, null) },
                     { tools.updateNote(uid, null) },
                     { tools.recordFeeding(uid, buildJsonObject { put("mealTime", JsonPrimitive(1)) }) },
+                    // 省略可能な引数でも、文字列以外は今日として扱わずに拒否する
+                    { tools.getFeedingLog(uid, buildJsonObject { put("date", JsonPrimitive(20260314)) }) },
                     // 現在の給餌日付（2026-03-14）より後の日付
                     { tools.recordFeeding(uid, args("date" to "2026-03-15", "mealTime" to "MORNING")) },
                     { tools.updateNote(uid, args("date" to "+10000-01-01", "note" to "メモ")) },

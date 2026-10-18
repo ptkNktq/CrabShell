@@ -3,6 +3,7 @@ package server.mcp
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import kotlinx.coroutines.CancellationException
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -43,5 +44,13 @@ internal fun toolSuccessResult(text: String): CallToolResult = CallToolResult(co
 
 internal fun toolErrorResult(message: String): CallToolResult = CallToolResult(content = listOf(TextContent(message)), isError = true)
 
-/** ツール引数 [key] の文字列値。未指定や文字列以外は null */
-internal fun JsonObject?.stringArgument(key: String): String? = (this?.get(key) as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull
+/**
+ * ツール引数 [key] の文字列値。未指定（null を含む）なら null。
+ * 文字列以外が指定された場合は、省略扱い（既定値）にすると AI が指定したつもりの値と食い違うため拒否する。
+ */
+internal fun JsonObject?.stringArgument(key: String): String? {
+    val value = this?.get(key) ?: return null
+    if (value is JsonNull) return null
+    return (value as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull
+        ?: throw InvalidToolArgumentException("$key は文字列で指定してください")
+}
