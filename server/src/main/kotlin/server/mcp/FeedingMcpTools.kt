@@ -2,18 +2,14 @@ package server.mcp
 
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
-import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolAnnotations
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
-import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
@@ -51,7 +47,7 @@ class FeedingMcpTools(
             description = "ペットのごはんの記録（朝・昼・晩それぞれをあげたかどうかと時刻、その日のメモ）を取得する。",
             inputSchema = ToolSchema(properties = buildJsonObject { putDateProperty() }),
             toolAnnotations = ToolAnnotations(readOnlyHint = true, openWorldHint = false),
-        ) { request -> handle(GET_FEEDING_LOG, uid) { getFeedingLog(uid, request.arguments) } }
+        ) { request -> runMcpTool(logger, GET_FEEDING_LOG, uid) { getFeedingLog(uid, request.arguments) } }
 
         server.addTool(
             name = RECORD_FEEDING,
@@ -72,7 +68,7 @@ class FeedingMcpTools(
                     required = listOf(ARG_MEAL_TIME),
                 ),
             toolAnnotations = ToolAnnotations(readOnlyHint = false, destructiveHint = false, idempotentHint = true, openWorldHint = false),
-        ) { request -> handle(RECORD_FEEDING, uid) { recordFeeding(uid, request.arguments) } }
+        ) { request -> runMcpTool(logger, RECORD_FEEDING, uid) { recordFeeding(uid, request.arguments) } }
 
         server.addTool(
             name = UPDATE_FEEDING_NOTE,
@@ -90,7 +86,7 @@ class FeedingMcpTools(
                     required = listOf(ARG_NOTE),
                 ),
             toolAnnotations = ToolAnnotations(readOnlyHint = false, destructiveHint = true, idempotentHint = true, openWorldHint = false),
-        ) { request -> handle(UPDATE_FEEDING_NOTE, uid) { updateNote(uid, request.arguments) } }
+        ) { request -> runMcpTool(logger, UPDATE_FEEDING_NOTE, uid) { updateNote(uid, request.arguments) } }
     }
 
     internal suspend fun getFeedingLog(
@@ -111,7 +107,7 @@ class FeedingMcpTools(
         val pet = selectPet(uid)
         val recorded = feedingRepository.recordFeedingIfNotDone(pet.id, date, mealTime, now().toString())
         val result = RecordFeedingResult(recorded = recorded, feedingLog = feedingRepository.getFeedingLog(pet.id, date).toResult(pet))
-        return successResult(json.encodeToString(RecordFeedingResult.serializer(), result))
+        return toolSuccessResult(json.encodeToString(RecordFeedingResult.serializer(), result))
     }
 
     internal suspend fun updateNote(
@@ -119,7 +115,7 @@ class FeedingMcpTools(
         arguments: JsonObject?,
     ): CallToolResult {
         val date = parseDate(arguments)
-        val note = arguments.string(ARG_NOTE) ?: throw InvalidToolArgumentException("$ARG_NOTE を指定してください")
+        val note = arguments.stringArgument(ARG_NOTE) ?: throw InvalidToolArgumentException("$ARG_NOTE を指定してください")
         val pet = selectPet(uid)
         feedingRepository.updateNote(pet.id, date, note)
         return successResult(feedingRepository.getFeedingLog(pet.id, date).toResult(pet))
@@ -141,7 +137,7 @@ class FeedingMcpTools(
      */
     private fun parseDate(arguments: JsonObject?): String {
         val today = feedingDate(now())
-        val value = arguments.string(ARG_DATE) ?: return today
+        val value = arguments.stringArgument(ARG_DATE) ?: return today
         val date =
             try {
                 LocalDate.parse(value)
@@ -153,39 +149,13 @@ class FeedingMcpTools(
     }
 
     private fun parseMealTime(arguments: JsonObject?): MealTime {
-        val value = arguments.string(ARG_MEAL_TIME) ?: throw InvalidToolArgumentException("$ARG_MEAL_TIME を指定してください")
+        val value = arguments.stringArgument(ARG_MEAL_TIME) ?: throw InvalidToolArgumentException("$ARG_MEAL_TIME を指定してください")
         return MealTime.entries.find { it.name == value }
             ?: throw InvalidToolArgumentException("$ARG_MEAL_TIME は ${MealTime.entries.joinToString(" / ")} のいずれかを指定してください: $value")
     }
 
-    /**
-     * ツールを実行し、監査ログを残す。
-     * 引数の誤りは呼び出し側（AI）が直せるようにメッセージを返し、想定外の例外は内部情報を出さずに固定メッセージを返す。
-     */
-    private suspend fun handle(
-        toolName: String,
-        uid: String,
-        block: suspend () -> CallToolResult,
-    ): CallToolResult =
-        try {
-            block().also { logger.info("MCP tool called: tool={} uid={}", toolName, uid) }
-        } catch (e: InvalidToolArgumentException) {
-            logger.info("MCP tool rejected: tool={} uid={} reason={}", toolName, uid, e.message)
-            errorResult(e.message ?: "引数が正しくありません")
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            // SDK に任せると例外メッセージ（Firestore のパス等）がそのままクライアントに返るため、ここで握る
-            logger.error("MCP tool failed: tool={} uid={}", toolName, uid, e)
-            errorResult(TOOL_FAILED_MESSAGE)
-        }
-
     private fun successResult(log: FeedingLogResult): CallToolResult =
-        successResult(json.encodeToString(FeedingLogResult.serializer(), log))
-
-    private fun successResult(text: String): CallToolResult = CallToolResult(content = listOf(TextContent(text)))
-
-    private fun errorResult(message: String): CallToolResult = CallToolResult(content = listOf(TextContent(message)), isError = true)
+        toolSuccessResult(json.encodeToString(FeedingLogResult.serializer(), log))
 
     private fun FeedingLog.toResult(pet: Pet) =
         FeedingLogResult(
@@ -212,17 +182,10 @@ class FeedingMcpTools(
         val feedingLog: FeedingLogResult,
     )
 
-    /** ツールの引数が正しくないことを表す。メッセージは MCP クライアントにそのまま返す */
-    private class InvalidToolArgumentException(
-        message: String,
-    ) : RuntimeException(message)
-
     companion object {
         internal const val GET_FEEDING_LOG = "get_feeding_log"
         internal const val RECORD_FEEDING = "record_feeding"
         internal const val UPDATE_FEEDING_NOTE = "update_feeding_note"
-
-        internal const val TOOL_FAILED_MESSAGE = "処理に失敗しました。時間をおいて再度お試しください"
 
         private const val ARG_DATE = "date"
         private const val ARG_MEAL_TIME = "mealTime"
@@ -237,7 +200,5 @@ class FeedingMcpTools(
                 put("description", "日付（YYYY-MM-DD）。省略すると今日（JST 5:00 で日付が切り替わる）。未来の日付は指定できない")
             }
         }
-
-        private fun JsonObject?.string(key: String): String? = (this?.get(key) as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull
     }
 }
