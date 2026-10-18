@@ -1,5 +1,6 @@
 package server.feeding
 
+import com.google.cloud.firestore.FieldPath
 import com.google.cloud.firestore.Firestore
 import com.google.cloud.firestore.SetOptions
 import model.Feeding
@@ -76,31 +77,61 @@ class FirestoreFeedingRepository(
         mealTime: MealTime,
         timestamp: String,
     ) {
-        val docRef =
-            firestore
-                .collection("pets")
-                .document(petId)
-                .collection("feeding_logs")
-                .document(date)
-
-        docRef
-            .set(
-                mapOf(
-                    "date" to date,
-                    "feedings" to
-                        mapOf(
-                            mealTime.name.lowercase() to
-                                mapOf(
-                                    "done" to true,
-                                    "timestamp" to timestamp,
-                                ),
-                        ),
-                ),
-                SetOptions.mergeFields("date", "feedings.${mealTime.name.lowercase()}"),
-            ).await()
+        feedingLogRef(petId, date).set(feedingRecord(date, mealTime, timestamp), feedingRecordFields(mealTime)).await()
 
         refreshCache(petId, date)
     }
+
+    override suspend fun recordFeedingIfNotDone(
+        petId: String,
+        date: String,
+        mealTime: MealTime,
+        timestamp: String,
+    ): Boolean {
+        val docRef = feedingLogRef(petId, date)
+        // キャッシュではなくトランザクション内で読んだ値で判定し、同時に記録されたときに時刻を上書きしない
+        val recorded =
+            firestore
+                .runTransaction { transaction ->
+                    val snapshot = transaction.get(docRef).get()
+                    if (snapshot.get(FieldPath.of("feedings", mealTime.name.lowercase(), "done")) == true) {
+                        false
+                    } else {
+                        transaction.set(docRef, feedingRecord(date, mealTime, timestamp), feedingRecordFields(mealTime))
+                        true
+                    }
+                }.await()
+
+        refreshCache(petId, date)
+        return recorded
+    }
+
+    private fun feedingLogRef(
+        petId: String,
+        date: String,
+    ) = firestore
+        .collection("pets")
+        .document(petId)
+        .collection("feeding_logs")
+        .document(date)
+
+    private fun feedingRecord(
+        date: String,
+        mealTime: MealTime,
+        timestamp: String,
+    ) = mapOf(
+        "date" to date,
+        "feedings" to
+            mapOf(
+                mealTime.name.lowercase() to
+                    mapOf(
+                        "done" to true,
+                        "timestamp" to timestamp,
+                    ),
+            ),
+    )
+
+    private fun feedingRecordFields(mealTime: MealTime) = SetOptions.mergeFields("date", "feedings.${mealTime.name.lowercase()}")
 
     override suspend fun updateTimestamp(
         petId: String,
@@ -112,12 +143,7 @@ class FirestoreFeedingRepository(
         val feeding = log.feedings[mealTime]
         if (feeding == null || !feeding.done) return false
 
-        val docRef =
-            firestore
-                .collection("pets")
-                .document(petId)
-                .collection("feeding_logs")
-                .document(date)
+        val docRef = feedingLogRef(petId, date)
 
         docRef
             .set(
@@ -140,12 +166,7 @@ class FirestoreFeedingRepository(
         date: String,
         note: String,
     ) {
-        val docRef =
-            firestore
-                .collection("pets")
-                .document(petId)
-                .collection("feeding_logs")
-                .document(date)
+        val docRef = feedingLogRef(petId, date)
 
         docRef
             .set(

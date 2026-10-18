@@ -1,7 +1,7 @@
 [versions]
 kotlin = "2.4.0"
 compose-multiplatform = "1.11.1"
-ktor = "3.4.1"
+ktor = "3.6.0"
 kotlinx-serialization-json = "1.11.0"
 logback = "1.5.32"
 firebase-admin = "9.8.0"
@@ -20,6 +20,12 @@ kotlinx-browser = "0.5.0"
 kotlinx-datetime = "0.8.0"
 maxmind-geoip2 = "4.3.0"
 aboutlibraries = "14.1.0"
+mcp-kotlin-sdk = "0.15.0"
+# ktor-server-auth-jwt が依存する版に揃える
+auth0-java-jwt = "4.6.0"
+auth0-jwks-rsa = "0.24.1"
+# Firebase Admin SDK 等が推移的に依存する版に揃える（直接 import しているため明示）
+guava = "33.6.0-jre"
 
 [libraries]
 # Koin DI
@@ -48,6 +54,7 @@ ktor-server-core = { module = "io.ktor:ktor-server-core-jvm", version.ref = "kto
 ktor-server-netty = { module = "io.ktor:ktor-server-netty-jvm", version.ref = "ktor" }
 ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation-jvm", version.ref = "ktor" }
 ktor-server-auth = { module = "io.ktor:ktor-server-auth-jvm", version.ref = "ktor" }
+ktor-server-auth-jwt = { module = "io.ktor:ktor-server-auth-jwt-jvm", version.ref = "ktor" }
 ktor-server-host-common = { module = "io.ktor:ktor-server-host-common-jvm", version.ref = "ktor" }
 ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages-jvm", version.ref = "ktor" }
 ktor-server-body-limit = { module = "io.ktor:ktor-server-body-limit-jvm", version.ref = "ktor" }
@@ -64,6 +71,15 @@ sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite-jdbc" }
 dotenv-java = { module = "io.github.cdimascio:dotenv-java", version.ref = "dotenv-java" }
 ktor-openapi = { module = "io.github.smiley4:ktor-openapi", version.ref = "ktor-openapi-tools" }
 maxmind-geoip2 = { module = "com.maxmind.geoip2:geoip2", version.ref = "maxmind-geoip2" }
+
+# MCP (Model Context Protocol) サーバー
+mcp-kotlin-sdk-core = { module = "io.modelcontextprotocol:kotlin-sdk-core", version.ref = "mcp-kotlin-sdk" }
+mcp-kotlin-sdk-server = { module = "io.modelcontextprotocol:kotlin-sdk-server", version.ref = "mcp-kotlin-sdk" }
+
+# JWT 検証（MCP のアクセストークン。ktor-server-auth-jwt の verifier に渡す型を直接使う）
+auth0-java-jwt = { module = "com.auth0:java-jwt", version.ref = "auth0-java-jwt" }
+auth0-jwks-rsa = { module = "com.auth0:jwks-rsa", version.ref = "auth0-jwks-rsa" }
+guava = { module = "com.google.guava:guava", version.ref = "guava" }
 
 # Coroutines
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
@@ -82,11 +98,13 @@ ktor-client-java = { module = "io.ktor:ktor-client-java", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 
 [bundles]
-ktor-server = ["ktor-server-core", "ktor-server-netty", "ktor-server-content-negotiation", "ktor-server-auth", "ktor-server-host-common", "ktor-server-status-pages", "ktor-server-body-limit", "ktor-server-rate-limit", "ktor-server-forwarded-header", "ktor-server-call-logging", "ktor-serialization-kotlinx-json-jvm"]
+ktor-server = ["ktor-server-core", "ktor-server-netty", "ktor-server-content-negotiation", "ktor-server-auth", "ktor-server-auth-jwt", "ktor-server-host-common", "ktor-server-status-pages", "ktor-server-body-limit", "ktor-server-rate-limit", "ktor-server-forwarded-header", "ktor-server-call-logging", "ktor-serialization-kotlinx-json-jvm"]
 ktor-client = ["ktor-client-core", "ktor-client-content-negotiation", "ktor-serialization-kotlinx-json"]
 koin = ["koin-core", "koin-compose", "koin-compose-viewmodel"]
 feature = ["koin-core", "koin-compose", "koin-compose-viewmodel", "lifecycle-viewmodel", "lifecycle-viewmodel-compose"]
 exposed = ["exposed-core", "exposed-jdbc"]
+mcp-server = ["mcp-kotlin-sdk-core", "mcp-kotlin-sdk-server"]
+jwt = ["auth0-java-jwt", "auth0-jwks-rsa"]
 
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

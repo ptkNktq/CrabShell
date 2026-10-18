@@ -35,6 +35,10 @@ dependencies {
     implementation(libs.koin.ktor)
     implementation(libs.ktor.openapi)
     implementation(libs.maxmind.geoip2)
+    implementation(libs.bundles.mcp.server)
+    implementation(libs.bundles.jwt)
+    // Firebase Admin SDK の推移的依存でもあるが、直接 import している（MoreExecutors, InetAddresses）ため明示する
+    implementation(libs.guava)
 
     // Ktor Client (Gemini API + Webhook 送信用)
     implementation(libs.ktor.client.core)

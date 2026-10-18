@@ -9,6 +9,7 @@ kotlin {
             implementation(project(":core:common"))
             implementation(project(":core:network"))
             implementation(project(":core:ui"))
+            implementation(project(":shared"))
         }
         jvmTest.dependencies {
             // ScopedViewModelStoreOwnerTest で ImageComposeScene によりコンポジションを駆動するため

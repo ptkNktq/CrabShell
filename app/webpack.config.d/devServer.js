@@ -11,7 +11,13 @@ if (config.devServer) {
     // webpack 5 では proxy は配列形式が必須
     config.devServer.proxy = [
         {
-            context: ['/api', '/rapidoc', '/api.json', '/vendor'],
+            context: ['/api', '/rapidoc', '/api.json', '/vendor', '/.well-known'],
+            target: 'http://localhost:8080',
+            changeOrigin: false,
+        },
+        // MCP エンドポイント。前方一致だとフロントエンドの /mcp-connect まで転送されるため完全一致で指定する
+        {
+            context: function(pathname) { return pathname === '/mcp'; },
             target: 'http://localhost:8080',
             changeOrigin: false,
         }

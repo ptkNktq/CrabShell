@@ -23,7 +23,6 @@ import server.util.sanitizeForSlack
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
-import java.time.ZonedDateTime
 
 private val JST = ZoneId.of("Asia/Tokyo")
 
@@ -242,12 +241,6 @@ class FeedingNotificationService(
 
     companion object {
         private val appUrl: String? = EnvConfig["APP_URL"]
-
-        /** JST 5:00 AM を日付境界とする給餌日付を算出 */
-        internal fun feedingDate(jstNow: ZonedDateTime): String {
-            val adjusted = if (jstNow.hour < 5) jstNow.minusDays(1) else jstNow
-            return adjusted.toLocalDate().toString()
-        }
 
         internal fun parseTime(timeStr: String): LocalTime? =
             try {
