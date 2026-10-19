@@ -9,6 +9,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import org.slf4j.Logger
+import server.util.sanitizeForLog
 
 /** ツールの想定外の失敗時に返す固定メッセージ */
 internal const val TOOL_FAILED_MESSAGE = "処理に失敗しました。時間をおいて再度お試しください"
@@ -16,9 +17,15 @@ internal const val TOOL_FAILED_MESSAGE = "処理に失敗しました。時間�
 /** ツール結果の JSON。既定値も省略せずに出力し、AI が「項目がない」と読み違えないようにする */
 internal val McpToolResultJson = Json { encodeDefaults = true }
 
-/** ツールの引数が正しくないことを表す。メッセージは MCP クライアントにそのまま返す */
+/**
+ * ツールの引数が正しくないことを表す。
+ *
+ * [message] は MCP クライアントにそのまま返し、INFO ログにも出すため、引数の値を埋め込まない固定の文言にする
+ * （AI が渡した値を本番のログに書き込ませない）。弾いた値は [rejectedValue] に入れ、DEBUG ログにだけ出す。
+ */
 internal class InvalidToolArgumentException(
     message: String,
+    val rejectedValue: String? = null,
 ) : RuntimeException(message)
 
 /**
@@ -35,6 +42,9 @@ internal suspend fun runMcpTool(
         block().also { logger.info("MCP tool called: tool={} uid={}", toolName, uid) }
     } catch (e: InvalidToolArgumentException) {
         logger.info("MCP tool rejected: tool={} uid={} reason={}", toolName, uid, e.message)
+        if (e.rejectedValue != null && logger.isDebugEnabled) {
+            logger.debug("MCP tool rejected value: tool={} uid={} value={}", toolName, uid, sanitizeForLog(e.rejectedValue))
+        }
         toolErrorResult(e.message ?: "引数が正しくありません")
     } catch (e: CancellationException) {
         throw e
@@ -56,5 +66,5 @@ internal fun JsonObject?.stringArgument(key: String): String? {
     val value = this?.get(key) ?: return null
     if (value is JsonNull) return null
     return (value as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull
-        ?: throw InvalidToolArgumentException("$key は文字列で指定してください")
+        ?: throw InvalidToolArgumentException("$key は文字列で指定してください", rejectedValue = value.toString())
 }

@@ -141,16 +141,19 @@ class FeedingMcpTools(
             try {
                 LocalDate.parse(value)
             } catch (_: DateTimeParseException) {
-                throw InvalidToolArgumentException("$ARG_DATE は YYYY-MM-DD 形式で指定してください: $value")
+                throw InvalidToolArgumentException("$ARG_DATE は YYYY-MM-DD 形式で指定してください", rejectedValue = value)
             }
-        if (date > LocalDate.parse(today)) throw InvalidToolArgumentException("未来の日付は指定できません（今日は $today）: $value")
+        if (date > LocalDate.parse(today)) throw InvalidToolArgumentException("未来の日付は指定できません（今日は $today）", rejectedValue = value)
         return date.toString()
     }
 
     private fun parseMealTime(arguments: JsonObject?): MealTime {
         val value = arguments.stringArgument(ARG_MEAL_TIME) ?: throw InvalidToolArgumentException("$ARG_MEAL_TIME を指定してください")
         return MealTime.entries.find { it.name == value }
-            ?: throw InvalidToolArgumentException("$ARG_MEAL_TIME は ${MealTime.entries.joinToString(" / ")} のいずれかを指定してください: $value")
+            ?: throw InvalidToolArgumentException(
+                "$ARG_MEAL_TIME は ${MealTime.entries.joinToString(" / ")} のいずれかを指定してください",
+                rejectedValue = value,
+            )
     }
 
     private fun successResult(log: FeedingLogResult): CallToolResult =

@@ -7,7 +7,6 @@ import server.auth.FirebaseAuthRepository
 import server.auth.FirebaseUserStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
 
 class McpTokenAuthenticatorTest {
     private val firebaseAuthRepository = mockk<FirebaseAuthRepository>()
@@ -40,11 +39,4 @@ class McpTokenAuthenticatorTest {
 
             assertEquals(McpAuthResult.Unavailable, authenticator.authenticate("uid1", null))
         }
-
-    @Test
-    fun claimForLogHasNoControlCharactersAndIsTruncated() {
-        assertEquals("uid1?a?b", sanitizeClaimForLog("uid1\na\u2028b"))
-        assertEquals(128, sanitizeClaimForLog("a".repeat(1000))!!.length)
-        assertNull(sanitizeClaimForLog(null))
-    }
 }

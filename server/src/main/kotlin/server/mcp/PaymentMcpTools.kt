@@ -85,7 +85,7 @@ class PaymentMcpTools(
         val value = arguments.stringArgument(ARG_YEAR_MONTH) ?: return YearMonth.from(now().atZone(JST)).toString()
         // YearMonth.parse は "+10000-01" のような 4 桁を超える年も受け付けるため、形式は正規表現で絞る
         if (!YEAR_MONTH_PATTERN.matches(value)) {
-            throw InvalidToolArgumentException("$ARG_YEAR_MONTH は YYYY-MM 形式で指定してください: $value")
+            throw InvalidToolArgumentException("$ARG_YEAR_MONTH は YYYY-MM 形式で指定してください", rejectedValue = value)
         }
         return value
     }

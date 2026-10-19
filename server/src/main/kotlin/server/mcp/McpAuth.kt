@@ -29,6 +29,7 @@ import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import server.auth.FirebaseAuthRepository
 import server.auth.FirebaseUserStatus
+import server.util.sanitizeForLog
 import java.net.URI
 import java.util.concurrent.TimeUnit
 
@@ -95,7 +96,7 @@ class McpTokenAuthenticator(
      * トークン本体は出さない。署名を検証していない値なので、ログ以外には使わない。
      *
      * 未認証の誰でも送れる値のため、改行で偽のログ行を作られたり長い値でログを膨らまされたりしないよう
-     * [sanitizeClaimForLog] を通す。失敗が続いた IP は [McpAuthFailureGuard] がブロックするため、
+     * [sanitizeForLog] を通す。失敗が続いた IP は [McpAuthFailureGuard] がブロックするため、
      * 出力件数は IP ごとに抑えられる。
      */
     fun logRejectedToken(token: String) {
@@ -106,9 +107,9 @@ class McpTokenAuthenticator(
         }
         logger.warn(
             "MCP token rejected: iss={} aud={} sub={} exp={}",
-            sanitizeClaimForLog(decoded.issuer),
-            sanitizeClaimForLog(decoded.audience?.joinToString(",")),
-            sanitizeClaimForLog(decoded.subject),
+            sanitizeForLog(decoded.issuer),
+            sanitizeForLog(decoded.audience?.joinToString(",")),
+            sanitizeForLog(decoded.subject),
             decoded.expiresAtAsInstant,
         )
     }
@@ -126,15 +127,6 @@ sealed interface McpAuthResult {
     /** 一時的な障害で判定できなかった（トークンの不正ではない） */
     data object Unavailable : McpAuthResult
 }
-
-/** ログに出すクレームの最大文字数 */
-private const val MAX_LOGGED_CLAIM_LENGTH = 128
-
-// C0/C1 制御文字に加え、行区切り（U+2028）・段落区切り（U+2029）も改行として扱われうるため対象にする
-private val CONTROL_CHARACTERS = Regex("[\\p{Cc}\\p{Zl}\\p{Zp}]")
-
-/** 署名を検証していないクレームを、制御文字を `?` に置き換え [MAX_LOGGED_CLAIM_LENGTH] 文字に切り詰めてログ用にする */
-internal fun sanitizeClaimForLog(value: String?): String? = value?.replace(CONTROL_CHARACTERS, "?")?.take(MAX_LOGGED_CLAIM_LENGTH)
 
 /** 署名検証用の公開鍵を AuthKit の JWKS から取得する [JwkProvider] を作る（鍵はキャッシュし、取得頻度も制限する） */
 fun createJwkProvider(config: McpConfig): JwkProvider =

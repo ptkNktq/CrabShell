@@ -20,6 +20,7 @@ import server.pet.PetRepository
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class FeedingMcpToolsTest {
@@ -163,6 +164,19 @@ class FeedingMcpToolsTest {
             coVerify(exactly = 0) { feedingRepository.recordFeedingIfNotDone(any(), any(), any(), any()) }
             coVerify(exactly = 0) { feedingRepository.updateNote(any(), any(), any()) }
             coVerify(exactly = 0) { feedingRepository.getFeedingLog(any(), any()) }
+        }
+
+    @Test
+    fun rejectedValueIsKeptOutOfMessage() =
+        runTest {
+            // メッセージは INFO ログにも出るため、AI が渡した値（偽のログ行を作る改行など）を含めない
+            val forged = "x\n2026-03-14 08:00:00.000 [main] INFO forged"
+
+            val error = runCatching { tools.getFeedingLog(uid, args("date" to forged)) }.exceptionOrNull()
+
+            assertTrue(error is InvalidToolArgumentException)
+            assertFalse("forged" in error.message!!)
+            assertEquals(forged, error.rejectedValue)
         }
 
     @Test
