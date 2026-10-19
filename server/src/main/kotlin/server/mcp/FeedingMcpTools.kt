@@ -14,6 +14,7 @@ import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 import model.Feeding
 import model.FeedingLog
+import model.FeedingNote
 import model.MealTime
 import model.Pet
 import org.slf4j.LoggerFactory
@@ -79,7 +80,7 @@ class FeedingMcpTools(
                             putDateProperty()
                             putJsonObject(ARG_NOTE) {
                                 put("type", "string")
-                                put("description", "メモの内容。既存のメモはこの内容で置き換わる")
+                                put("description", "メモの内容（${FeedingNote.MAX_LENGTH} 文字以内）。既存のメモはこの内容で置き換わる")
                             }
                         },
                     required = listOf(ARG_NOTE),
@@ -115,6 +116,9 @@ class FeedingMcpTools(
     ): CallToolResult {
         val date = parseDate(arguments)
         val note = arguments.stringArgument(ARG_NOTE) ?: throw InvalidToolArgumentException("$ARG_NOTE を指定してください")
+        if (!FeedingNote.isValid(note)) {
+            throw InvalidToolArgumentException("$ARG_NOTE は ${FeedingNote.MAX_LENGTH} 文字以内で指定してください", rejectedValue = note)
+        }
         val pet = selectPet(uid)
         feedingRepository.updateNote(pet.id, date, note)
         return successResult(feedingRepository.getFeedingLog(pet.id, date).toResult(pet))

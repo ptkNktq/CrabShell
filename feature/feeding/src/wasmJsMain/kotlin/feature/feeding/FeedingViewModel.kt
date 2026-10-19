@@ -17,6 +17,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import model.FeedingLog
+import model.FeedingNote
 import model.FeedingSettings
 import model.MealTime
 import model.Pet
@@ -150,6 +151,8 @@ class FeedingViewModel(
         val petId = uiState.pet?.id ?: return
         val date = uiState.selectedDate
         val note = uiState.noteDraft
+        // 画面でも保存ボタンを無効にしているが、サーバーで弾かれる内容は送らない
+        if (!FeedingNote.isValid(note)) return
         uiState = uiState.copy(isSavingNote = true)
         viewModelScope.launch {
             try {

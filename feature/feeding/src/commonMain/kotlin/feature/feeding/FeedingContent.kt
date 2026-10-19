@@ -31,7 +31,9 @@ import core.ui.util.toJstHour
 import core.ui.util.toJstMinute
 import model.Feeding
 import model.FeedingLog
+import model.FeedingNote
 import model.MealTime
+import model.codePointLength
 
 @Composable
 internal fun FeedingContent(
@@ -434,16 +436,22 @@ private fun NoteSection(
         style = MaterialTheme.typography.titleMedium,
     )
     Spacer(modifier = Modifier.height(8.dp))
+    // 入力は切り詰めず（IME の変換中に文字が消えないように）、超過を表示して保存できなくする
+    val length = note.codePointLength()
+    val overLimit = length > FeedingNote.MAX_LENGTH
     OutlinedTextField(
         value = note,
         onValueChange = onNoteChange,
         modifier = Modifier.fillMaxWidth(),
         placeholder = { Text("今日の様子はどうだった？") },
+        isError = overLimit,
+        // isError の間は文字数の表示もエラー色になる
+        supportingText = { Text("$length / ${FeedingNote.MAX_LENGTH}") },
         minLines = 2,
         maxLines = 4,
     )
     Spacer(modifier = Modifier.height(8.dp))
-    AppButton(onClick = onSave, enabled = saveEnabled) {
+    AppButton(onClick = onSave, enabled = saveEnabled && !overLimit) {
         Text("保存する")
     }
 }

@@ -13,6 +13,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import model.Feeding
 import model.FeedingLog
+import model.FeedingNote
 import model.MealTime
 import model.Pet
 import server.feeding.FeedingRepository
@@ -157,6 +158,8 @@ class FeedingMcpToolsTest {
                     { tools.recordFeeding(uid, args("date" to "2026-03-15", "mealTime" to "MORNING")) },
                     { tools.updateNote(uid, args("date" to "+10000-01-01", "note" to "メモ")) },
                     { tools.getFeedingLog(uid, args("date" to "2026-03-15")) },
+                    // メモの上限（コードポイント数）を超える
+                    { tools.updateNote(uid, args("note" to "あ".repeat(FeedingNote.MAX_LENGTH + 1))) },
                 )
             invalidCalls.forEach { call ->
                 assertTrue(runCatching { call() }.isFailure)
@@ -164,6 +167,18 @@ class FeedingMcpToolsTest {
             coVerify(exactly = 0) { feedingRepository.recordFeedingIfNotDone(any(), any(), any(), any()) }
             coVerify(exactly = 0) { feedingRepository.updateNote(any(), any(), any()) }
             coVerify(exactly = 0) { feedingRepository.getFeedingLog(any(), any()) }
+        }
+
+    @Test
+    fun updateNoteAcceptsMaxLength() =
+        runTest {
+            coEvery { petRepository.getPetsForMember(uid) } returns listOf(pet)
+            coEvery { feedingRepository.getFeedingLog("pet1", "2026-03-14") } returns FeedingLog(date = "2026-03-14")
+            val note = "😺".repeat(FeedingNote.MAX_LENGTH)
+
+            tools.updateNote(uid, args("note" to note))
+
+            coVerify(exactly = 1) { feedingRepository.updateNote("pet1", "2026-03-14", note) }
         }
 
     @Test
