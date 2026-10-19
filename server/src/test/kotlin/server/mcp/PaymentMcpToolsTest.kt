@@ -84,8 +84,8 @@ class PaymentMcpToolsTest {
             assertEquals(
                 PaymentMcpTools.PaymentSummaryResult(
                     yearMonth = "2026-04",
-                    total = 56500L,
-                    byDueDate =
+                    billedTotal = 56500L,
+                    billedByDueDate =
                         listOf(
                             PaymentMcpTools.DueDateAmount("2026-04-10", 3000L),
                             PaymentMcpTools.DueDateAmount("2026-04-27", 52000L),
@@ -100,8 +100,8 @@ class PaymentMcpToolsTest {
             assertTrue("\"dueDate\":null" in result.text())
             // 合計・期日ごとの金額・振込総額以外（項目名・メモ・他人の負担額・個々の振込など）は渡さない
             val json = Json.parseToJsonElement(result.text()).jsonObject
-            assertEquals(setOf("yearMonth", "total", "byDueDate", "paidTotal"), json.keys)
-            json.getValue("byDueDate").jsonArray.forEach { assertEquals(setOf("dueDate", "amount"), it.jsonObject.keys) }
+            assertEquals(setOf("yearMonth", "billedTotal", "billedByDueDate", "paidTotal"), json.keys)
+            json.getValue("billedByDueDate").jsonArray.forEach { assertEquals(setOf("dueDate", "amount"), it.jsonObject.keys) }
         }
 
     @Test
@@ -113,7 +113,7 @@ class PaymentMcpToolsTest {
             val summary = tools.getPaymentSummary(uid, args("yearMonth" to "2026-02")).summary()
 
             assertEquals("2026-02", summary.yearMonth)
-            assertEquals(50000L, summary.total)
+            assertEquals(50000L, summary.billedTotal)
         }
 
     @Test
@@ -130,7 +130,12 @@ class PaymentMcpToolsTest {
             coEvery { moneyRepository.getMonthlyMoney("2026-04") } returns null
 
             assertEquals(
-                PaymentMcpTools.PaymentSummaryResult(yearMonth = "2026-04", total = 0L, byDueDate = emptyList(), paidTotal = 0L),
+                PaymentMcpTools.PaymentSummaryResult(
+                    yearMonth = "2026-04",
+                    billedTotal = 0L,
+                    billedByDueDate = emptyList(),
+                    paidTotal = 0L,
+                ),
                 tools.getPaymentSummary(uid, null).summary(),
             )
         }
@@ -141,7 +146,7 @@ class PaymentMcpToolsTest {
             coEvery { moneyRepository.getMonthlyMoney("2026-04") } returns
                 MonthlyMoney(yearMonth = "2026-04", items = listOf(item("1", "家賃", "2026-04-27", uid to 0L, "uid2" to 50000L)))
 
-            assertEquals(emptyList(), tools.getPaymentSummary(uid, null).summary().byDueDate)
+            assertEquals(emptyList(), tools.getPaymentSummary(uid, null).summary().billedByDueDate)
         }
 
     @Test

@@ -427,7 +427,7 @@ Claude Code などの MCP クライアントから、ごはんの記録を見た
 - MCP エンドポイント: `POST /mcp`（stateless な Streamable HTTP）
 - 公開するツール
   - 給餌: `get_feeding_log`（記録の取得）/ `record_feeding`（給餌の記録。記録済みなら上書きせず、記録したかどうかを返す）/ `update_feeding_note`（メモの更新）
-  - 支払い: `get_payment_summary`（指定月に自分が負担する金額の合計と支払期日ごとの金額、その月に振り込んだ総額（過払い金からの精算分を含む）。年月を省略すると今月（JST））。項目名・メモ・他のユーザーの負担額・個々の振込（いついくら振り込んだか）などの詳細は返さない
+  - 支払い: `get_payment_summary`（指定月の請求額（自分の負担額）の合計 `billedTotal`、支払期日ごとの請求額 `billedByDueDate`、その月に振り込んだ総額 `paidTotal`（過払い金からの精算分を含む）。年月を省略すると今月（JST））。項目名・メモ・他のユーザーの負担額・個々の振込（いついくら振り込んだか）などの詳細は返さない
 - 給餌で操作するペットは、ユーザーがメンバーになっているペットから自動で選ぶ（複数匹は未対応で、先頭の 1 匹を選ぶ）
 - 給餌の日付を省略すると今日（JST 5:00 で切り替わる給餌日付）になる。未来の日付は指定できない
 - 認可サーバーは [WorkOS AuthKit の Standalone Connect](https://workos.com/docs/authkit/connect/standalone)。ログインは CrabShell 既存のもの（パスキー / メール・パスワード）を使い、AuthKit はトークンの発行だけを担う
