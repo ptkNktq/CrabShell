@@ -7,9 +7,12 @@ import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 import model.MoneyItem
 import model.MonthlyMoney
@@ -19,7 +22,6 @@ import server.money.MoneyRepository
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class PaymentMcpToolsTest {
@@ -67,7 +69,13 @@ class PaymentMcpToolsTest {
                             // 自分の負担がない項目は含めない
                             item("5", "他人の項目", "2026-04-05", "uid2" to 9999L),
                         ),
-                    payments = listOf(Payment(id = "p1", uid = uid, amount = 10000L, paidAt = "2026-04-01T00:00:00Z")),
+                    payments =
+                        listOf(
+                            Payment(id = "p1", uid = uid, amount = 10000L, paidAt = "2026-04-01T00:00:00Z"),
+                            Payment(id = "p2", uid = uid, amount = 2000L, paidAt = "2026-04-02T00:00:00Z", isRedemption = true),
+                            // 他のユーザーの振込は含めない
+                            Payment(id = "p3", uid = "uid2", amount = 53000L, paidAt = "2026-04-03T00:00:00Z"),
+                        ),
                 )
 
             val result = tools.getPaymentSummary(uid, null)
@@ -83,15 +91,17 @@ class PaymentMcpToolsTest {
                             PaymentMcpTools.DueDateAmount("2026-04-27", 52000L),
                             PaymentMcpTools.DueDateAmount(null, 1500L),
                         ),
+                    // 過払い金からの精算分も振込として数える
+                    paidTotal = 12000L,
                 ),
                 result.summary(),
             )
             // 期日なしも null として明示的に出力する
             assertTrue("\"dueDate\":null" in result.text())
-            // 項目名・メモ・他人の負担額・振込記録は渡さない
-            listOf("家賃", "電気代", "メモ-", "uid2", "9999", "paidAt", "10000").forEach { detail ->
-                assertFalse(detail in result.text(), "結果に詳細が含まれている: $detail")
-            }
+            // 合計・期日ごとの金額・振込総額以外（項目名・メモ・他人の負担額・個々の振込など）は渡さない
+            val json = Json.parseToJsonElement(result.text()).jsonObject
+            assertEquals(setOf("yearMonth", "total", "byDueDate", "paidTotal"), json.keys)
+            json.getValue("byDueDate").jsonArray.forEach { assertEquals(setOf("dueDate", "amount"), it.jsonObject.keys) }
         }
 
     @Test
@@ -107,12 +117,20 @@ class PaymentMcpToolsTest {
         }
 
     @Test
+    fun nullYearMonthIsTreatedAsCurrentMonth() =
+        runTest {
+            coEvery { moneyRepository.getMonthlyMoney("2026-04") } returns null
+
+            assertEquals("2026-04", tools.getPaymentSummary(uid, buildJsonObject { put("yearMonth", JsonNull) }).summary().yearMonth)
+        }
+
+    @Test
     fun monthWithoutDataReturnsZero() =
         runTest {
             coEvery { moneyRepository.getMonthlyMoney("2026-04") } returns null
 
             assertEquals(
-                PaymentMcpTools.PaymentSummaryResult(yearMonth = "2026-04", total = 0L, byDueDate = emptyList()),
+                PaymentMcpTools.PaymentSummaryResult(yearMonth = "2026-04", total = 0L, byDueDate = emptyList(), paidTotal = 0L),
                 tools.getPaymentSummary(uid, null).summary(),
             )
         }
