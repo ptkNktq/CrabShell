@@ -5,7 +5,6 @@ import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.ToolAnnotations
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.add
@@ -107,7 +106,7 @@ class FeedingMcpTools(
         val pet = selectPet(uid)
         val recorded = feedingRepository.recordFeedingIfNotDone(pet.id, date, mealTime, now().toString())
         val result = RecordFeedingResult(recorded = recorded, feedingLog = feedingRepository.getFeedingLog(pet.id, date).toResult(pet))
-        return toolSuccessResult(json.encodeToString(RecordFeedingResult.serializer(), result))
+        return toolSuccessResult(McpToolResultJson.encodeToString(RecordFeedingResult.serializer(), result))
     }
 
     internal suspend fun updateNote(
@@ -155,7 +154,7 @@ class FeedingMcpTools(
     }
 
     private fun successResult(log: FeedingLogResult): CallToolResult =
-        toolSuccessResult(json.encodeToString(FeedingLogResult.serializer(), log))
+        toolSuccessResult(McpToolResultJson.encodeToString(FeedingLogResult.serializer(), log))
 
     private fun FeedingLog.toResult(pet: Pet) =
         FeedingLogResult(
@@ -190,9 +189,6 @@ class FeedingMcpTools(
         private const val ARG_DATE = "date"
         private const val ARG_MEAL_TIME = "mealTime"
         private const val ARG_NOTE = "note"
-
-        // 未給餌（done = false）も省略せず出力し、AI が読み違えないようにする
-        private val json = Json { encodeDefaults = true }
 
         private fun JsonObjectBuilder.putDateProperty() {
             putJsonObject(ARG_DATE) {

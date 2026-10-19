@@ -3,6 +3,7 @@ package server.mcp
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import kotlinx.coroutines.CancellationException
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -11,6 +12,9 @@ import org.slf4j.Logger
 
 /** ツールの想定外の失敗時に返す固定メッセージ */
 internal const val TOOL_FAILED_MESSAGE = "処理に失敗しました。時間をおいて再度お試しください"
+
+/** ツール結果の JSON。既定値も省略せずに出力し、AI が「項目がない」と読み違えないようにする */
+internal val McpToolResultJson = Json { encodeDefaults = true }
 
 /** ツールの引数が正しくないことを表す。メッセージは MCP クライアントにそのまま返す */
 internal class InvalidToolArgumentException(
