@@ -99,7 +99,7 @@ class PaymentMcpTools(
         val allocatedTotal: Long,
         /** 支払期日ごとの割当額。期日の昇順で、期日なし（null）は最後 */
         val allocatedByDueDate: List<DueDateAmount>,
-        /** この月の分として振り込んだ総額（振込日ではなく、どの月の支払いとして記録したかで数える。過払い金からの精算分を含む） */
+        /** この月の分として振り込んだ総額（振り込んだ日付ではなく、どの月の支払いとして記録したかで数える。過払い金からの精算分を含む） */
         val paidTotal: Long,
     )
 
