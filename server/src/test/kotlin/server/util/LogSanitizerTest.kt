@@ -7,7 +7,7 @@ import kotlin.test.assertNull
 class LogSanitizerTest {
     @Test
     fun valueForLogHasNoControlCharactersAndIsTruncated() {
-        assertEquals("uid1?a?b", sanitizeForLog("uid1\na b"))
+        assertEquals("uid1?a?b", sanitizeForLog("uid1\na\u2028b"))
         assertEquals(128, sanitizeForLog("a".repeat(1000))!!.length)
         assertNull(sanitizeForLog(null))
     }
