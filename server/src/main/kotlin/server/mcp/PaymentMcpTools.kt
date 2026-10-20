@@ -24,7 +24,7 @@ private val JST = ZoneId.of("Asia/Tokyo")
 /**
  * MCP で公開する支払いのツール群（自分の支払額の概要の取得）。
  *
- * 返すのは指定月の請求額（自分の負担額）の合計・支払期日ごとの請求額・振込済みの総額だけにする。
+ * 返すのは指定月の割当額（自分の負担額）の合計・支払期日ごとの割当額・振込済みの総額だけにする。
  * 項目名・メモ・他のユーザーの負担額・個々の振込（いついくら振り込んだか）などの詳細は、AI クライアントに渡さない。
  */
 class PaymentMcpTools(
@@ -42,8 +42,8 @@ class PaymentMcpTools(
             name = GET_PAYMENT_SUMMARY,
             description =
                 "指定した月の自分の支払いの概要を取得する。" +
-                    "billedTotal は請求額（自分の負担額）の合計、billedByDueDate は支払期日ごとの請求額、" +
-                    "paidTotal はその月に振り込んだ総額。dueDate が null の請求額は支払期日が決まっていない分。",
+                    "allocatedTotal は割当額（自分の負担額）の合計、allocatedByDueDate は支払期日ごとの割当額、" +
+                    "paidTotal はその月に振り込んだ総額。dueDate が null の割当額は支払期日が決まっていない分。",
             inputSchema =
                 ToolSchema(
                     properties =
@@ -64,7 +64,7 @@ class PaymentMcpTools(
     ): CallToolResult {
         val yearMonth = parseYearMonth(arguments)
         val myMoney = (moneyRepository.getMonthlyMoney(yearMonth) ?: MonthlyMoney(yearMonth = yearMonth)).filterForUser(uid)
-        val billedByDueDate =
+        val allocatedByDueDate =
             myMoney
                 .items
                 .groupedByDueDate()
@@ -73,8 +73,8 @@ class PaymentMcpTools(
         val summary =
             PaymentSummaryResult(
                 yearMonth = yearMonth,
-                billedTotal = billedByDueDate.sumOf { it.amount },
-                billedByDueDate = billedByDueDate,
+                allocatedTotal = allocatedByDueDate.sumOf { it.amount },
+                allocatedByDueDate = allocatedByDueDate,
                 // 支払い画面と同じく、過払い金からの精算分も振込として数える
                 paidTotal = myMoney.payments.sumOf { it.amount },
             )
@@ -94,10 +94,10 @@ class PaymentMcpTools(
     @Serializable
     internal data class PaymentSummaryResult(
         val yearMonth: String,
-        /** 請求額（自分の負担額）の合計 */
-        val billedTotal: Long,
-        /** 支払期日ごとの請求額。期日の昇順で、期日なし（null）は最後 */
-        val billedByDueDate: List<DueDateAmount>,
+        /** 割当額（自分の負担額）の合計 */
+        val allocatedTotal: Long,
+        /** 支払期日ごとの割当額。期日の昇順で、期日なし（null）は最後 */
+        val allocatedByDueDate: List<DueDateAmount>,
         /** その月に振り込んだ総額（過払い金からの精算分を含む） */
         val paidTotal: Long,
     )
