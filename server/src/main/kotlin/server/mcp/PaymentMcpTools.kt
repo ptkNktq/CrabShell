@@ -43,7 +43,8 @@ class PaymentMcpTools(
             description =
                 "指定した月の自分の支払いの概要を取得する。" +
                     "allocatedTotal は割当額（自分の負担額）の合計、allocatedByDueDate は支払期日ごとの割当額、" +
-                    "paidTotal はその月に振り込んだ総額。dueDate が null の割当額は支払期日が決まっていない分。",
+                    "paidTotal はこの月の分として振り込んだ総額（振り込んだ日付ではなく、どの月の支払いとして記録したかで数える）。" +
+                    "dueDate が null の割当額は支払期日が決まっていない分。",
             inputSchema =
                 ToolSchema(
                     properties =
@@ -98,7 +99,7 @@ class PaymentMcpTools(
         val allocatedTotal: Long,
         /** 支払期日ごとの割当額。期日の昇順で、期日なし（null）は最後 */
         val allocatedByDueDate: List<DueDateAmount>,
-        /** その月に振り込んだ総額（過払い金からの精算分を含む） */
+        /** この月の分として振り込んだ総額（振込日ではなく、どの月の支払いとして記録したかで数える。過払い金からの精算分を含む） */
         val paidTotal: Long,
     )
 
