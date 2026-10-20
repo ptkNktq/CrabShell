@@ -33,7 +33,6 @@ import model.Feeding
 import model.FeedingLog
 import model.FeedingNote
 import model.MealTime
-import model.codePointLength
 
 @Composable
 internal fun FeedingContent(
@@ -45,6 +44,8 @@ internal fun FeedingContent(
     log: FeedingLog,
     mealOrder: List<MealTime>,
     noteDraft: String,
+    noteLength: Int,
+    isNoteOverLimit: Boolean,
     editingMealTime: MealTime?,
     onDateSelected: (String) -> Unit,
     onPreviousDay: () -> Unit,
@@ -94,6 +95,8 @@ internal fun FeedingContent(
                     log = log,
                     mealOrder = mealOrder,
                     noteDraft = noteDraft,
+                    noteLength = noteLength,
+                    isNoteOverLimit = isNoteOverLimit,
                     editingMealTime = editingMealTime,
                     onPreviousDay = onPreviousDay,
                     onNextDay = onNextDay,
@@ -121,6 +124,8 @@ internal fun FeedingContent(
                         log = log,
                         mealOrder = mealOrder,
                         noteDraft = noteDraft,
+                        noteLength = noteLength,
+                        isNoteOverLimit = isNoteOverLimit,
                         editingMealTime = editingMealTime,
                         onPreviousDay = onPreviousDay,
                         onNextDay = onNextDay,
@@ -157,6 +162,8 @@ private fun FeedingDetailSection(
     log: FeedingLog,
     mealOrder: List<MealTime>,
     noteDraft: String,
+    noteLength: Int,
+    isNoteOverLimit: Boolean,
     editingMealTime: MealTime?,
     onPreviousDay: () -> Unit,
     onNextDay: () -> Unit,
@@ -210,6 +217,8 @@ private fun FeedingDetailSection(
 
             NoteSection(
                 note = noteDraft,
+                noteLength = noteLength,
+                isOverLimit = isNoteOverLimit,
                 saveEnabled = !isSavingNote,
                 onNoteChange = onNoteChange,
                 onSave = onSaveNote,
@@ -427,6 +436,8 @@ private fun TimestampEditor(
 @Composable
 private fun NoteSection(
     note: String,
+    noteLength: Int,
+    isOverLimit: Boolean,
     saveEnabled: Boolean,
     onNoteChange: (String) -> Unit,
     onSave: () -> Unit,
@@ -437,21 +448,19 @@ private fun NoteSection(
     )
     Spacer(modifier = Modifier.height(8.dp))
     // 入力は切り詰めず（IME の変換中に文字が消えないように）、超過を表示して保存できなくする
-    val length = note.codePointLength()
-    val overLimit = length > FeedingNote.MAX_LENGTH
     OutlinedTextField(
         value = note,
         onValueChange = onNoteChange,
         modifier = Modifier.fillMaxWidth(),
         placeholder = { Text("今日の様子はどうだった？") },
-        isError = overLimit,
+        isError = isOverLimit,
         // isError の間は文字数の表示もエラー色になる
-        supportingText = { Text("$length / ${FeedingNote.MAX_LENGTH}") },
+        supportingText = { Text("$noteLength / ${FeedingNote.MAX_LENGTH}") },
         minLines = 2,
         maxLines = 4,
     )
     Spacer(modifier = Modifier.height(8.dp))
-    AppButton(onClick = onSave, enabled = saveEnabled && !overLimit) {
+    AppButton(onClick = onSave, enabled = saveEnabled && !isOverLimit) {
         Text("保存する")
     }
 }

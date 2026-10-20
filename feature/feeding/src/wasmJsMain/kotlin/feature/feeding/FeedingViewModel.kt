@@ -21,6 +21,7 @@ import model.FeedingNote
 import model.FeedingSettings
 import model.MealTime
 import model.Pet
+import model.codePointLength
 
 data class FeedingUiState(
     val log: FeedingLog = FeedingLog(date = ""),
@@ -34,7 +35,13 @@ data class FeedingUiState(
     val feedingInProgress: MealTime? = null,
     val isSavingNote: Boolean = false,
     val isSavingTimestamp: Boolean = false,
-)
+) {
+    /** メモの文字数（コードポイント数） */
+    val noteLength: Int get() = noteDraft.codePointLength()
+
+    /** メモが上限文字数を超えているか。超えている間は保存できない */
+    val isNoteOverLimit: Boolean get() = !FeedingNote.isValid(noteDraft)
+}
 
 class FeedingViewModel(
     tabResumedEvent: TabResumedEvent,
@@ -150,9 +157,8 @@ class FeedingViewModel(
     fun onSaveNote() {
         val petId = uiState.pet?.id ?: return
         val date = uiState.selectedDate
+        if (uiState.isNoteOverLimit) return
         val note = uiState.noteDraft
-        // 画面でも保存ボタンを無効にしているが、サーバーで弾かれる内容は送らない
-        if (!FeedingNote.isValid(note)) return
         uiState = uiState.copy(isSavingNote = true)
         viewModelScope.launch {
             try {

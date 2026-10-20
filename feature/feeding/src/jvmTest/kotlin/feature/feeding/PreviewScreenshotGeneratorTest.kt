@@ -9,7 +9,9 @@ import core.previewscreenshot.standardSizePatterns
 import core.ui.theme.AppTheme
 import model.Feeding
 import model.FeedingLog
+import model.FeedingNote
 import model.MealTime
+import model.codePointLength
 import kotlin.test.Test
 
 /**
@@ -24,9 +26,22 @@ class PreviewScreenshotGeneratorTest {
 
     @Test
     fun generateFeedingScreenshots() {
+        generate(screenName = "feeding", noteDraft = "")
+    }
+
+    @Test
+    fun generateFeedingNoteOverLimitScreenshots() {
+        // 上限超過時のエラー表示（文字数のエラー色・保存ボタンの無効化）を確認する
+        generate(screenName = "feeding_note_over_limit", noteDraft = "あ".repeat(FeedingNote.MAX_LENGTH + 1))
+    }
+
+    private fun generate(
+        screenName: String,
+        noteDraft: String,
+    ) {
         standardSizePatterns.forEach { pattern ->
             recorder.save(
-                fileName = "feeding_${pattern.label}.png",
+                fileName = "${screenName}_${pattern.label}.png",
                 width = pattern.width,
                 height = pattern.height,
             ) {
@@ -47,7 +62,9 @@ class PreviewScreenshotGeneratorTest {
                                     feedings = mapOf(MealTime.MORNING to Feeding(done = true, timestamp = "2026-07-25T00:00:00Z")),
                                 ),
                             mealOrder = MealTime.entries,
-                            noteDraft = "",
+                            noteDraft = noteDraft,
+                            noteLength = noteDraft.codePointLength(),
+                            isNoteOverLimit = !FeedingNote.isValid(noteDraft),
                             editingMealTime = null,
                             onDateSelected = {},
                             onPreviousDay = {},
