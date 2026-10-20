@@ -29,3 +29,11 @@ data class FeedingTimestampUpdateRequest(
 data class FeedingNoteUpdateRequest(
     val note: String,
 )
+
+/** 給餌メモの入力ルール。サーバー（REST・MCP）とクライアントで共用する。 */
+object FeedingNote {
+    /** 1 日分のメモの上限文字数（Unicode のコードポイント数） */
+    const val MAX_LENGTH = 100
+
+    fun isValid(note: String): Boolean = note.codePointLength() <= MAX_LENGTH
+}

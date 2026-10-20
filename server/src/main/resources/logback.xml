@@ -1,6 +1,8 @@
 <configuration>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
+            <!-- 未指定だと JVM の既定（Java 17 以前はロケール依存）になり、日本語が ? に化けるため固定する -->
+            <charset>UTF-8</charset>
             <pattern>%d{YYYY-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>

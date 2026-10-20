@@ -13,6 +13,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import model.Feeding
 import model.FeedingLog
+import model.FeedingNote
 import model.MealTime
 import model.Pet
 import server.feeding.FeedingRepository
@@ -20,6 +21,7 @@ import server.pet.PetRepository
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class FeedingMcpToolsTest {
@@ -150,17 +152,47 @@ class FeedingMcpToolsTest {
                     { tools.recordFeeding(uid, null) },
                     { tools.updateNote(uid, null) },
                     { tools.recordFeeding(uid, buildJsonObject { put("mealTime", JsonPrimitive(1)) }) },
+                    // 省略可能な引数でも、文字列以外は今日として扱わずに拒否する
+                    { tools.getFeedingLog(uid, buildJsonObject { put("date", JsonPrimitive(20260314)) }) },
                     // 現在の給餌日付（2026-03-14）より後の日付
                     { tools.recordFeeding(uid, args("date" to "2026-03-15", "mealTime" to "MORNING")) },
                     { tools.updateNote(uid, args("date" to "+10000-01-01", "note" to "メモ")) },
                     { tools.getFeedingLog(uid, args("date" to "2026-03-15")) },
+                    // メモの上限（コードポイント数）を超える
+                    { tools.updateNote(uid, args("note" to "あ".repeat(FeedingNote.MAX_LENGTH + 1))) },
                 )
             invalidCalls.forEach { call ->
-                assertTrue(runCatching { call() }.isFailure)
+                // モックの設定漏れなど想定外の失敗で通らないよう、引数エラーとして弾かれたことを確かめる
+                assertTrue(runCatching { call() }.exceptionOrNull() is InvalidToolArgumentException)
             }
             coVerify(exactly = 0) { feedingRepository.recordFeedingIfNotDone(any(), any(), any(), any()) }
             coVerify(exactly = 0) { feedingRepository.updateNote(any(), any(), any()) }
             coVerify(exactly = 0) { feedingRepository.getFeedingLog(any(), any()) }
+        }
+
+    @Test
+    fun updateNoteAcceptsMaxLength() =
+        runTest {
+            coEvery { petRepository.getPetsForMember(uid) } returns listOf(pet)
+            coEvery { feedingRepository.getFeedingLog("pet1", "2026-03-14") } returns FeedingLog(date = "2026-03-14")
+            val note = "😺".repeat(FeedingNote.MAX_LENGTH)
+
+            tools.updateNote(uid, args("note" to note))
+
+            coVerify(exactly = 1) { feedingRepository.updateNote("pet1", "2026-03-14", note) }
+        }
+
+    @Test
+    fun rejectedValueIsKeptOutOfMessage() =
+        runTest {
+            // メッセージは INFO ログにも出るため、AI が渡した値（偽のログ行を作る改行など）を含めない
+            val forged = "x\n2026-03-14 08:00:00.000 [main] INFO forged"
+
+            val error = runCatching { tools.getFeedingLog(uid, args("date" to forged)) }.exceptionOrNull()
+
+            assertTrue(error is InvalidToolArgumentException)
+            assertFalse("forged" in error.message!!)
+            assertEquals(forged, error.rejectedValue)
         }
 
     @Test

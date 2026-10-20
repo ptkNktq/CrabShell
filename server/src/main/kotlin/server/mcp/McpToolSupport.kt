@@ -1,0 +1,70 @@
+package server.mcp
+
+import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
+import io.modelcontextprotocol.kotlin.sdk.types.TextContent
+import kotlinx.coroutines.CancellationException
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import org.slf4j.Logger
+import server.util.sanitizeForLog
+
+/** ツールの想定外の失敗時に返す固定メッセージ */
+internal const val TOOL_FAILED_MESSAGE = "処理に失敗しました。時間をおいて再度お試しください"
+
+/** ツール結果の JSON。既定値も省略せずに出力し、AI が「項目がない」と読み違えないようにする */
+internal val McpToolResultJson = Json { encodeDefaults = true }
+
+/**
+ * ツールの引数が正しくないことを表す。
+ *
+ * [message] は MCP クライアントにそのまま返し、INFO ログにも出すため、引数の値を埋め込まない固定の文言にする
+ * （AI が渡した値を本番のログに書き込ませない）。弾いた値は [rejectedValue] に入れ、DEBUG ログにだけ出す。
+ */
+internal class InvalidToolArgumentException(
+    message: String,
+    val rejectedValue: String? = null,
+) : RuntimeException(message)
+
+/**
+ * ツールを実行し、[logger] に監査ログを残す。
+ * 引数の誤りは呼び出し側（AI）が直せるようにメッセージを返し、想定外の例外は内部情報を出さずに固定メッセージを返す。
+ */
+internal suspend fun runMcpTool(
+    logger: Logger,
+    toolName: String,
+    uid: String,
+    block: suspend () -> CallToolResult,
+): CallToolResult =
+    try {
+        block().also { logger.info("MCP tool called: tool={} uid={}", toolName, uid) }
+    } catch (e: InvalidToolArgumentException) {
+        logger.info("MCP tool rejected: tool={} uid={} reason={}", toolName, uid, e.message)
+        if (e.rejectedValue != null && logger.isDebugEnabled) {
+            logger.debug("MCP tool rejected value: tool={} uid={} value={}", toolName, uid, sanitizeForLog(e.rejectedValue))
+        }
+        toolErrorResult(e.message ?: "引数が正しくありません")
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        // SDK に任せると例外メッセージ（Firestore のパス等）がそのままクライアントに返るため、ここで握る
+        logger.error("MCP tool failed: tool={} uid={}", toolName, uid, e)
+        toolErrorResult(TOOL_FAILED_MESSAGE)
+    }
+
+internal fun toolSuccessResult(text: String): CallToolResult = CallToolResult(content = listOf(TextContent(text)))
+
+internal fun toolErrorResult(message: String): CallToolResult = CallToolResult(content = listOf(TextContent(message)), isError = true)
+
+/**
+ * ツール引数 [key] の文字列値。未指定（null を含む）なら null。
+ * 文字列以外が指定された場合は、省略扱い（既定値）にすると AI が指定したつもりの値と食い違うため拒否する。
+ */
+internal fun JsonObject?.stringArgument(key: String): String? {
+    val value = this?.get(key) ?: return null
+    if (value is JsonNull) return null
+    return (value as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull
+        ?: throw InvalidToolArgumentException("$key は文字列で指定してください", rejectedValue = value.toString())
+}

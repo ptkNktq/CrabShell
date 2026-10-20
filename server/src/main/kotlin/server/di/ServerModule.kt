@@ -33,6 +33,7 @@ import server.mcp.McpConfig
 import server.mcp.McpJwksPreflight
 import server.mcp.McpServerFactory
 import server.mcp.McpTokenAuthenticator
+import server.mcp.PaymentMcpTools
 import server.mcp.WorkOsClient
 import server.mcp.WorkOsHttpClient
 import server.mcp.createJwkProvider
@@ -115,7 +116,8 @@ val serverModule =
         single { McpJwksPreflight(get(), get(), get(), get()) }
         single { McpAuthorizationService(get()) }
         single { FeedingMcpTools(get(), get()) }
-        single { McpServerFactory(get()) }
+        single { PaymentMcpTools(get()) }
+        single { McpServerFactory(get(), get()) }
         single<MoneyRepository> { FirestoreMoneyRepository(get()) }
         single<QuestRepository> { FirestoreQuestRepository(get()) }
         single<PointRepository> { FirestorePointRepository(get()) }

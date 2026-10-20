@@ -11,6 +11,7 @@ import io.ktor.server.routing.*
 import io.ktor.server.util.getOrFail
 import model.Feeding
 import model.FeedingLog
+import model.FeedingNote
 import model.FeedingNoteUpdateRequest
 import model.FeedingSettings
 import model.FeedingTimestampUpdateRequest
@@ -114,12 +115,20 @@ fun Route.feedingRoutes() {
                 }
                 response {
                     code(HttpStatusCode.NoContent) { description = "更新成功" }
+                    code(HttpStatusCode.BadRequest) { description = "メモが上限文字数（コードポイント数）を超えている" }
                 }
             }) {
                 val petId = call.verifyPetMember(petRepository)
                 val date = call.parameters.getOrFail("date")
 
                 val note = call.receive<FeedingNoteUpdateRequest>().note
+                if (!FeedingNote.isValid(note)) {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "note must be at most ${FeedingNote.MAX_LENGTH} characters"),
+                    )
+                    return@put
+                }
 
                 feedingRepository.updateNote(petId, date, note)
                 call.respond(HttpStatusCode.NoContent)
