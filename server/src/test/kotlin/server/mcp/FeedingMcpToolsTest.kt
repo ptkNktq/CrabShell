@@ -162,7 +162,8 @@ class FeedingMcpToolsTest {
                     { tools.updateNote(uid, args("note" to "あ".repeat(FeedingNote.MAX_LENGTH + 1))) },
                 )
             invalidCalls.forEach { call ->
-                assertTrue(runCatching { call() }.isFailure)
+                // モックの設定漏れなど想定外の失敗で通らないよう、引数エラーとして弾かれたことを確かめる
+                assertTrue(runCatching { call() }.exceptionOrNull() is InvalidToolArgumentException)
             }
             coVerify(exactly = 0) { feedingRepository.recordFeedingIfNotDone(any(), any(), any(), any()) }
             coVerify(exactly = 0) { feedingRepository.updateNote(any(), any(), any()) }
