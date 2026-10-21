@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import core.previewscreenshot.PreviewScreenshotRecorder
 import core.previewscreenshot.standardSizePatterns
 import core.ui.theme.AppTheme
+import model.McpConnection
 import model.PasskeyCredentialInfo
 import kotlin.test.Test
 
@@ -57,6 +58,16 @@ class PreviewScreenshotGeneratorTest {
                     onDeletePasskey = {},
                     loginHistoryState = LoginHistoryUiState(isLoading = false),
                     onRetryLoginHistory = {},
+                    modifier = modifier,
+                )
+            SettingsCategory.Integrations ->
+                McpConnectionsContent(
+                    state = sampleMcpConnectionsState,
+                    onRetry = {},
+                    onRequestDisable = {},
+                    onCancelDisable = {},
+                    onConfirmDisable = {},
+                    onEnable = {},
                     modifier = modifier,
                 )
             SettingsCategory.Credits ->
@@ -140,6 +151,28 @@ class PreviewScreenshotGeneratorTest {
         }
     }
 
+    private val sampleMcpConnectionsState =
+        McpConnectionsUiState(
+            isLoading = false,
+            enabled = true,
+            connections =
+                listOf(
+                    McpConnection(
+                        id = "c1",
+                        clientName = "Claude Code",
+                        firstUsedAt = "2026-10-04T11:16:46Z",
+                        lastUsedAt = "2026-10-21T00:03:04Z",
+                    ),
+                    McpConnection(
+                        id = "c2",
+                        clientName = "example.com",
+                        firstUsedAt = "2026-10-10T03:00:00Z",
+                        lastUsedAt = "2026-10-12T09:30:00Z",
+                        disabledAt = "2026-10-15T12:00:00Z",
+                    ),
+                ),
+        )
+
     @Test
     fun generateAllCategoryScreenshots() {
         standardSizePatterns.forEach { pattern ->
@@ -159,6 +192,50 @@ class PreviewScreenshotGeneratorTest {
                                 windowSizeClass = pattern.windowSizeClass,
                                 selectedCategory = category,
                                 categoryContent = { cat, mod -> RealCategoryContent(cat, mod) },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 連携カテゴリは状態ごとの見た目も確認する（無効化の確認中・空・MCP 無効）
+    @Test
+    fun generateMcpConnectionsStateScreenshots() {
+        val states =
+            mapOf(
+                "confirming" to sampleMcpConnectionsState.copy(confirmingDisableId = "c1"),
+                "empty" to McpConnectionsUiState(isLoading = false, enabled = true),
+                "disabled" to McpConnectionsUiState(isLoading = false, enabled = false),
+            )
+        standardSizePatterns.forEach { pattern ->
+            states.forEach { (label, state) ->
+                recorder.save(
+                    fileName = "settings_integrations_${label}_${pattern.label}.png",
+                    width = pattern.width,
+                    height = pattern.height,
+                ) {
+                    AppTheme {
+                        Surface(
+                            modifier = Modifier.fillMaxSize(),
+                            color = MaterialTheme.colorScheme.background,
+                        ) {
+                            SettingsCategoryLayout(
+                                isAdmin = true,
+                                windowSizeClass = pattern.windowSizeClass,
+                                selectedCategory = SettingsCategory.Integrations,
+                                categoryContent = { _, mod ->
+                                    McpConnectionsContent(
+                                        state = state,
+                                        onRetry = {},
+                                        onRequestDisable = {},
+                                        onCancelDisable = {},
+                                        onConfirmDisable = {},
+                                        onEnable = {},
+                                        modifier = mod,
+                                    )
+                                },
                             )
                         }
                     }

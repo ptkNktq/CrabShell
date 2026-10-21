@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Copyright
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Star
@@ -55,6 +56,7 @@ internal enum class SettingsCategory(
 ) {
     // 全員向けセクション
     Account("アカウント", Icons.Default.Person),
+    Integrations("連携", Icons.Default.Link),
     Credits("クレジット", Icons.Default.Copyright),
 
     // 管理者専用セクション
@@ -102,6 +104,7 @@ internal fun SettingsContent(
         categoryContent = { category, cardModifier ->
             when (category) {
                 SettingsCategory.Account -> AccountScreen(modifier = cardModifier)
+                SettingsCategory.Integrations -> McpConnectionsScreen(modifier = cardModifier)
                 SettingsCategory.Credits -> CreditsScreen(modifier = cardModifier)
                 SettingsCategory.UserManagement -> UserManagementScreen(modifier = cardModifier)
                 SettingsCategory.Pet -> PetScreen(modifier = cardModifier)
