@@ -14,6 +14,7 @@ import java.net.InetAddress
  * - CGNAT（100.64.0.0/10）
  * - IPv6 ULA（fc00::/7）
  * - any-local（0.0.0.0, ::）
+ * - マルチキャスト（224.0.0.0/4, ff00::/8）
  *
  * MaxMind の DB はパブリック IP しか含まないため、これらを問い合わせても無駄なルックアップが
  * 走り [com.maxmind.geoip2.exception.AddressNotFoundException] が出るだけ。先に弾く。
@@ -32,17 +33,23 @@ object IpClassifier {
         val normalized = ip.substringBefore('%')
         if (!looksLikeIpLiteral(normalized)) return null
         val addr = runCatching { InetAddress.getByName(normalized) }.getOrNull() ?: return null
-        if (addr.isAnyLocalAddress ||
-            addr.isLoopbackAddress ||
-            addr.isLinkLocalAddress ||
-            addr.isSiteLocalAddress ||
-            addr.isInCgnatRange() ||
-            addr.isInIpv6UniqueLocalRange()
-        ) {
-            return null
-        }
-        return addr
+        return addr.takeIf { isPublicAddress(it) }
     }
+
+    /**
+     * パブリックなユニキャストアドレスか判定する（先頭の KDoc の除外対象とマルチキャストを除く）。
+     * 外部の URL へ接続する前に、名前解決の結果が内部ネットワークを指していないかを確かめる用途にも使う。
+     */
+    fun isPublicAddress(addr: InetAddress): Boolean =
+        !(
+            addr.isAnyLocalAddress ||
+                addr.isLoopbackAddress ||
+                addr.isLinkLocalAddress ||
+                addr.isSiteLocalAddress ||
+                addr.isMulticastAddress ||
+                addr.isInCgnatRange() ||
+                addr.isInIpv6UniqueLocalRange()
+        )
 
     /**
      * 数値 IP リテラルらしき文字列か判定する。`InetAddress.getByName` にホスト名を渡すと

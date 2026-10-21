@@ -42,8 +42,8 @@ private const val TOKEN_LEEWAY_SECONDS = 30L
 data class McpPrincipal(
     /** アクセストークンの `sub`。Standalone Connect の完了 API に渡した Firebase の uid がそのまま入る */
     val uid: String,
-    /** アクセストークンの `client_id`（MCP クライアントの自己申告。ログ用で、権限の判断には使わない） */
-    val clientId: String?,
+    /** アクセストークンの `client_id`（MCP クライアントの CIMD の URL）。連携アプリごとの無効化に使う */
+    val clientId: String,
 )
 
 /** MCP 認証のルート内で [McpPrincipal] を取得する拡張プロパティ */
@@ -58,21 +58,29 @@ fun Route.mcpAuthenticated(build: Route.() -> Unit): Route = authenticate(MCP_AU
  *
  * - `sub` は完了 API に渡した Firebase の uid なので、そのまま uid として使う
  * - Firebase 上で削除・無効化されたユーザーは、トークンが有効期限内でも拒否する
+ * - `client_id` のないトークンは、連携アプリごとに無効化できないため拒否する（AuthKit のユーザートークンには必ず付く）
+ * - ユーザーが設定画面で無効にした連携アプリは拒否する（[McpConnectionService]）
  */
 class McpTokenAuthenticator(
     private val firebaseAuthRepository: FirebaseAuthRepository,
+    private val connectionService: McpConnectionService,
 ) {
     private val logger = LoggerFactory.getLogger(McpTokenAuthenticator::class.java)
 
     /**
      * @param uid アクセストークンの `sub`
-     * @return 認証の結果。Firebase への問い合わせに失敗した場合は [McpAuthResult.Unavailable]
+     * @param clientId アクセストークンの `client_id`
+     * @return 認証の結果。Firebase・Firestore への問い合わせに失敗した場合は [McpAuthResult.Unavailable]
      *  （一時的な失敗をトークン不正として扱うと、クライアントが再認可を始めてしまうため区別する）
      */
     suspend fun authenticate(
         uid: String,
         clientId: String?,
     ): McpAuthResult {
+        if (clientId.isNullOrEmpty()) {
+            logger.warn("MCP token rejected: no client_id for {}", uid)
+            return McpAuthResult.Rejected
+        }
         // 無効化・削除をすぐ反映させるため、結果はキャッシュせずリクエストごとに照会する。
         // Firebase Admin SDK の呼び出しはブロッキングのため IO スレッドで行う
         val status =
@@ -87,6 +95,19 @@ class McpTokenAuthenticator(
         if (status != FirebaseUserStatus.ACTIVE) {
             logger.warn("MCP token rejected: user {} is {}", uid, status)
             return McpAuthResult.Rejected
+        }
+        val use =
+            try {
+                connectionService.checkAndRecordUse(uid, clientId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                logger.warn("MCP authentication unavailable: failed to check connection for {}", uid, e)
+                return McpAuthResult.Unavailable
+            }
+        if (use == McpConnectionUse.DISABLED) {
+            logger.info("MCP token rejected: connection disabled by user {} client_id={}", uid, sanitizeForLog(clientId))
+            return McpAuthResult.Disabled
         }
         return McpAuthResult.Authenticated(McpPrincipal(uid = uid, clientId = clientId))
     }
@@ -121,8 +142,14 @@ sealed interface McpAuthResult {
         val principal: McpPrincipal,
     ) : McpAuthResult
 
-    /** 利用できないユーザー（削除・無効化） */
+    /** 利用できないユーザー（削除・無効化）、または client_id のないトークン */
     data object Rejected : McpAuthResult
+
+    /**
+     * ユーザーが無効にした連携アプリ。署名の正しいトークンのため認証失敗には数えない
+     * （数えると、再試行を繰り返すクライアントのせいで同じ IP の他のアプリまでブロックされる）
+     */
+    data object Disabled : McpAuthResult
 
     /** 一時的な障害で判定できなかった（トークンの不正ではない） */
     data object Unavailable : McpAuthResult
@@ -142,6 +169,9 @@ private const val JWKS_TIMEOUT_MILLIS = 5_000
 
 /** 一時的な障害で認証を判定できなかったことを、validate から challenge へ伝える */
 private val McpAuthUnavailableKey = AttributeKey<Unit>("McpAuthUnavailable")
+
+/** ユーザーが無効にした連携アプリだったことを、validate から challenge へ伝える */
+private val McpConnectionDisabledKey = AttributeKey<Unit>("McpConnectionDisabled")
 
 // 一時的な障害のときにクライアントへ伝える再試行までの秒数（JWKS の取得頻度の上限が 1 分単位のため）
 private const val MCP_UNAVAILABLE_RETRY_AFTER_SECONDS = 60
@@ -175,6 +205,19 @@ internal suspend fun ApplicationCall.respondMcpUnauthorized(
     val error = if (invalidToken) "error=\"invalid_token\", " else ""
     response.header(HttpHeaders.WWWAuthenticate, "Bearer ${error}resource_metadata=\"${config.resourceMetadataUrl}\"")
     respond(HttpStatusCode.Unauthorized, mapOf("error" to "Unauthorized"))
+}
+
+/**
+ * ユーザーが無効にした連携アプリからのリクエストに 401 を返す。認証失敗には数えない（[McpAuthResult.Disabled]）。
+ * MCP クライアントが再認可を始めた場合、CrabShell の連携画面で有効に戻せることを案内している。
+ */
+private suspend fun ApplicationCall.respondMcpConnectionDisabled(config: McpConfig) {
+    response.header(
+        HttpHeaders.WWWAuthenticate,
+        "Bearer error=\"invalid_token\", error_description=\"This application has been disabled in CrabShell settings\", " +
+            "resource_metadata=\"${config.resourceMetadataUrl}\"",
+    )
+    respond(HttpStatusCode.Unauthorized, mapOf("error" to "Application disabled"))
 }
 
 /**
@@ -261,6 +304,10 @@ fun AuthenticationConfig.mcpJwt(
             when (val result = authenticator.authenticate(subject, credential.payload.getClaim("client_id").asString())) {
                 is McpAuthResult.Authenticated -> result.principal
                 McpAuthResult.Rejected -> null
+                McpAuthResult.Disabled -> {
+                    attributes.put(McpConnectionDisabledKey, Unit)
+                    null
+                }
                 McpAuthResult.Unavailable -> {
                     // 例外を投げると Ktor が素の 401 にしてしまうため、印を付けて challenge で 503 にする
                     attributes.put(McpAuthUnavailableKey, Unit)
@@ -272,6 +319,11 @@ fun AuthenticationConfig.mcpJwt(
             if (McpAuthUnavailableKey in call.attributes) {
                 // 一時的な障害は失敗に数えない
                 call.respondMcpUnavailable()
+                return@challenge
+            }
+            if (McpConnectionDisabledKey in call.attributes) {
+                // 再認可で CrabShell の連携画面に来れば、そこで有効に戻せる
+                call.respondMcpConnectionDisabled(config)
                 return@challenge
             }
             val invalidToken =

@@ -1,0 +1,156 @@
+package server.mcp
+
+import com.google.common.net.InetAddresses
+import config.HttpTimeouts
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.request.accept
+import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsChannel
+import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
+import io.ktor.utils.io.readRemaining
+import kotlinx.coroutines.CancellationException
+import kotlinx.io.readByteArray
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import okhttp3.Dns
+import org.slf4j.LoggerFactory
+import server.geo.IpClassifier
+import server.util.CloseOnce
+import java.net.InetAddress
+import java.net.URI
+import java.net.UnknownHostException
+
+/** MCP クライアントの表示名を、クライアントの公開するメタデータから取得する */
+interface ClientMetadataFetcher : AutoCloseable {
+    /**
+     * @param clientId MCP クライアントの client_id（CIMD の URL）
+     * @return メタデータの `client_name`。取得できない・不正な場合は null
+     */
+    suspend fun fetchClientName(clientId: String): String?
+}
+
+/**
+ * Client ID Metadata Document（client_id の URL で公開される JSON）から `client_name` を読む。
+ *
+ * client_id は利用者側が用意した任意の URL のため、サーバーから内部ネットワークへ接続させられないようにする（SSRF 対策）。
+ * - https のみ。リダイレクトは追わない
+ * - 名前解決の結果からパブリックでないアドレスを除く（[PublicAddressDns]）。解決したアドレスにそのまま接続するため、
+ *   確認した後に別のアドレスへ向け直される（DNS リバインディング）こともない
+ * - 応答の大きさに上限を設け、タイムアウトも短くする
+ *
+ * CIMD の仕様どおり、文書の `client_id` が URL と一致しない場合は採用しない。
+ */
+class CimdClientMetadataFetcher(
+    private val client: HttpClient = createClient(),
+) : ClientMetadataFetcher {
+    private val logger = LoggerFactory.getLogger(CimdClientMetadataFetcher::class.java)
+    private val closeOnce = CloseOnce()
+
+    override suspend fun fetchClientName(clientId: String): String? {
+        if (!isFetchableUrl(clientId)) return null
+        return try {
+            val response = client.get(clientId) { accept(ContentType.Application.Json) }
+            if (response.status != HttpStatusCode.OK) {
+                logger.info("Client metadata unavailable: status={} client_id={}", response.status.value, clientId)
+                return null
+            }
+            // 上限を 1 バイト超えて読み、超えたかどうかで大きすぎる応答を見分ける
+            val body = response.bodyAsChannel().readRemaining(MAX_BODY_BYTES + 1).readByteArray()
+            if (body.size > MAX_BODY_BYTES) {
+                logger.info("Client metadata too large: client_id={}", clientId)
+                return null
+            }
+            parseClientName(clientId, body.decodeToString())
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            logger.info("Client metadata fetch failed: client_id={} {}", clientId, e.toString())
+            null
+        }
+    }
+
+    override fun close() = closeOnce { client.close() }
+
+    companion object {
+        // メタデータの応答の上限（CIMD の文書は数 KB 程度）
+        internal const val MAX_BODY_BYTES = 64L * 1024
+
+        // 表示名の上限（文字数）
+        internal const val MAX_CLIENT_NAME_LENGTH = 100
+
+        // 表示名から取り除く制御文字（改行・書式制御を含む）
+        private val CONTROL_CHARACTERS = Regex("[\\p{Cc}\\p{Cf}]")
+
+        private val json = Json { ignoreUnknownKeys = true }
+
+        private fun createClient(): HttpClient =
+            HttpClient(OkHttp) {
+                expectSuccess = false
+                followRedirects = false
+                install(HttpTimeout) {
+                    requestTimeoutMillis = HttpTimeouts.DEFAULT_REQUEST_TIMEOUT_MILLIS
+                }
+                engine {
+                    config {
+                        dns(PublicAddressDns())
+                        followRedirects(false)
+                        followSslRedirects(false)
+                    }
+                }
+            }
+
+        /**
+         * https でホスト名があり、資格情報を含まない URL だけを取りに行く。
+         * ホストが IP アドレスの場合は名前解決を経ず [PublicAddressDns] の確認をすり抜けるため、取りに行かない
+         */
+        internal fun isFetchableUrl(value: String): Boolean {
+            val uri = runCatching { URI(value) }.getOrNull() ?: return false
+            val host = uri.host
+            return uri.scheme.equals("https", ignoreCase = true) &&
+                !host.isNullOrEmpty() &&
+                !InetAddresses.isUriInetAddress(host) &&
+                uri.rawUserInfo == null
+        }
+
+        /** 文書の `client_id` が URL と一致する場合だけ `client_name` を返す。表示用に制御文字を除き、長さを切り詰める */
+        internal fun parseClientName(
+            clientId: String,
+            body: String,
+        ): String? {
+            val document = runCatching { json.parseToJsonElement(body) as? JsonObject }.getOrNull() ?: return null
+            val documentClientId = (document["client_id"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+            if (documentClientId != clientId) return null
+            val name = (document["client_name"] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: return null
+            return name
+                .replace(CONTROL_CHARACTERS, "")
+                .trim()
+                .let {
+                    if (it.codePointCount(0, it.length) >
+                        MAX_CLIENT_NAME_LENGTH
+                    ) {
+                        it.take(it.offsetByCodePoints(0, MAX_CLIENT_NAME_LENGTH))
+                    } else {
+                        it
+                    }
+                }.ifEmpty { null }
+        }
+    }
+}
+
+/**
+ * 名前解決の結果からパブリックでないアドレス（ループバック・プライベート・リンクローカル等）を除く。
+ * すべて除かれた場合は解決できなかったものとして扱い、接続させない。
+ */
+class PublicAddressDns(
+    private val delegate: Dns = Dns.SYSTEM,
+) : Dns {
+    override fun lookup(hostname: String): List<InetAddress> {
+        val addresses = delegate.lookup(hostname).filter { IpClassifier.isPublicAddress(it) }
+        if (addresses.isEmpty()) throw UnknownHostException("No public address for $hostname")
+        return addresses
+    }
+}

@@ -95,9 +95,11 @@ class McpRoutesTest {
     private val petRepository = mockk<PetRepository>()
     private val moneyRepository = mockk<MoneyRepository>()
     private val authFailureGuard = McpAuthFailureGuard()
+    private val connectionService = mockk<McpConnectionService>()
 
     init {
         every { firebaseAuthRepository.getUserStatus("uid1") } returns FirebaseUserStatus.ACTIVE
+        coEvery { connectionService.checkAndRecordUse("uid1", "client_01") } returns McpConnectionUse.ALLOWED
         coEvery { petRepository.getPetsForMember("uid1") } returns listOf(Pet(id = "pet1", name = "ぬい"))
         coEvery { feedingRepository.getFeedingLog("pet1", any()) } answers { FeedingLog(date = secondArg()) }
     }
@@ -111,6 +113,7 @@ class McpRoutesTest {
         issuer: String = config.issuer,
         audience: String = config.resource,
         expiresAt: Instant = Instant.now().plusSeconds(300),
+        clientId: String? = "client_01",
     ): String =
         JWT
             .create()
@@ -118,9 +121,11 @@ class McpRoutesTest {
             .withIssuer(issuer)
             .withAudience(audience)
             .withSubject("uid1")
-            .withClaim("client_id", "client_01")
+            .apply { clientId?.let { withClaim("client_id", it) } }
             .withExpiresAt(Date.from(expiresAt))
             .sign(Algorithm.RSA256(publicKey, privateKey))
+
+    private fun authenticator() = McpTokenAuthenticator(firebaseAuthRepository, connectionService)
 
     private fun ApplicationTestBuilder.setUp(jwkProvider: JwkProvider = this@McpRoutesTest.jwkProvider) {
         application {
@@ -131,12 +136,12 @@ class McpRoutesTest {
                     module {
                         single { McpServerFactory(FeedingMcpTools(feedingRepository, petRepository), PaymentMcpTools(moneyRepository)) }
                         single { authFailureGuard }
-                        single { McpJwksPreflight(config, jwkProvider, McpTokenAuthenticator(firebaseAuthRepository), authFailureGuard) }
+                        single { McpJwksPreflight(config, jwkProvider, authenticator(), authFailureGuard) }
                     },
                 )
             }
             install(Authentication) {
-                mcpJwt(config, jwkProvider, McpTokenAuthenticator(firebaseAuthRepository), authFailureGuard)
+                mcpJwt(config, jwkProvider, authenticator(), authFailureGuard)
             }
             install(RateLimit) {
                 register(RateLimitNames.MCP) {
@@ -288,6 +293,47 @@ class McpRoutesTest {
             every { firebaseAuthRepository.getUserStatus("uid1") } returns FirebaseUserStatus.DISABLED
 
             assertEquals(HttpStatusCode.Unauthorized, rpc("""{"jsonrpc":"2.0","id":1,"method":"tools/list"}""").status)
+        }
+
+    @Test
+    fun disabledConnectionIsRejectedWithoutCountingAsFailure() =
+        testApplication {
+            setUp()
+            coEvery { connectionService.checkAndRecordUse("uid1", "client_01") } returns McpConnectionUse.DISABLED
+            val listTools = """{"jsonrpc":"2.0","id":1,"method":"tools/list"}"""
+
+            // 失敗に数えていれば上限を超えた後は 429 になるため、上限を超える回数を送っても 401 のままであることを確かめる
+            repeat(McpAuthFailureGuard.MAX_FAILURES + 2) {
+                val response = rpc(listTools)
+                assertEquals(HttpStatusCode.Unauthorized, response.status)
+                assertTrue(response.headers[HttpHeaders.WWWAuthenticate]!!.contains("error_description="))
+            }
+
+            // 有効に戻せば、同じトークンがそのまま通る
+            coEvery { connectionService.checkAndRecordUse("uid1", "client_01") } returns McpConnectionUse.ALLOWED
+            assertEquals(HttpStatusCode.OK, rpc(listTools).status)
+        }
+
+    @Test
+    fun connectionCheckFailureIsNotTreatedAsInvalidToken() =
+        testApplication {
+            setUp()
+            coEvery { connectionService.checkAndRecordUse("uid1", "client_01") } throws RuntimeException("Firestore unreachable")
+
+            val response = rpc("""{"jsonrpc":"2.0","id":1,"method":"tools/list"}""")
+
+            assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
+        }
+
+    @Test
+    fun tokenWithoutClientIdIsRejected() =
+        testApplication {
+            setUp()
+
+            val response = rpc("""{"jsonrpc":"2.0","id":1,"method":"tools/list"}""", token = token(clientId = null))
+
+            assertEquals(HttpStatusCode.Unauthorized, response.status)
+            coVerify(exactly = 0) { connectionService.checkAndRecordUse(any(), any()) }
         }
 
     @Test
