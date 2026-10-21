@@ -1,7 +1,9 @@
 package feature.auth
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.*
@@ -18,6 +20,10 @@ import core.ui.theme.AppTheme
 internal fun McpConnectContent(
     isCompleting: Boolean,
     errorMessage: String?,
+    disabledConnections: DisabledConnectionsState,
+    onToggleDisabledExpanded: () -> Unit,
+    onDisabledFilterQueryChange: (String) -> Unit,
+    onEnableConnection: (String) -> Unit,
     onContinue: () -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -35,6 +41,15 @@ internal fun McpConnectContent(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+
+        if (disabledConnections.connections.isNotEmpty()) {
+            DisabledConnectionsNotice(
+                state = disabledConnections,
+                onToggleExpanded = onToggleDisabledExpanded,
+                onFilterQueryChange = onDisabledFilterQueryChange,
+                onEnable = onEnableConnection,
+            )
+        }
 
         if (errorMessage != null) {
             SelectionContainer {
@@ -96,37 +111,42 @@ private fun McpConnectFrame(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
         ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                Card(
-                    modifier = Modifier.widthIn(max = 440.dp).fillMaxWidth().padding(16.dp),
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        ),
+            // 高さが足りない画面でもボタンまで届くよう、枠ごとスクロールさせる。
+            // 収まる場合は従来どおり上下中央に置くため、最小の高さを画面の高さに揃える
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val minHeight = maxHeight
+                Box(
+                    modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).heightIn(min = minHeight),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Column(
-                        modifier = Modifier.padding(32.dp).fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    Card(
+                        modifier = Modifier.widthIn(max = 440.dp).fillMaxWidth().padding(16.dp),
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            ),
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Link,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
+                        Column(
+                            modifier = Modifier.padding(32.dp).fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Link,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
 
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                        )
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                            )
 
-                        content()
+                            content()
+                        }
                     }
                 }
             }

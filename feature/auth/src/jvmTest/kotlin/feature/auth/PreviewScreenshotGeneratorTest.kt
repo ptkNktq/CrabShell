@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import core.previewscreenshot.PreviewScreenshotRecorder
 import core.previewscreenshot.standardSizePatterns
 import core.ui.theme.AppTheme
+import model.McpConnection
 import kotlin.test.Test
 
 /**
@@ -80,9 +81,49 @@ class PreviewScreenshotGeneratorTest {
                 McpConnectContent(
                     isCompleting = false,
                     errorMessage = null,
+                    disabledConnections = DisabledConnectionsState(),
+                    onToggleDisabledExpanded = {},
+                    onDisabledFilterQueryChange = {},
+                    onEnableConnection = {},
                     onContinue = {},
                     onCancel = {},
                 )
+            }
+        }
+
+        // 無効にした連携アプリがある場合の案内（件数・開閉・絞り込み・有効化の状態ごと）
+        val disabledStates =
+            mapOf(
+                "disabled_few" to DisabledConnectionsState(connections = sampleDisabledConnections(2)),
+                "disabled_many_collapsed" to DisabledConnectionsState(connections = sampleDisabledConnections(12)),
+                "disabled_many_expanded" to DisabledConnectionsState(connections = sampleDisabledConnections(12), isExpanded = true),
+                "disabled_many_filtered" to
+                    DisabledConnectionsState(connections = sampleDisabledConnections(12), isExpanded = true, filterQuery = "claude"),
+                "disabled_enabling" to
+                    DisabledConnectionsState(
+                        connections = sampleDisabledConnections(3),
+                        enablingId = "c1",
+                        enabledIds = setOf("c0"),
+                    ),
+            )
+        standardSizePatterns.forEach { pattern ->
+            disabledStates.forEach { (label, state) ->
+                recorder.save(
+                    fileName = "mcp_connect_${label}_${pattern.label}.png",
+                    width = pattern.width,
+                    height = pattern.height,
+                ) {
+                    McpConnectContent(
+                        isCompleting = false,
+                        errorMessage = null,
+                        disabledConnections = state,
+                        onToggleDisabledExpanded = {},
+                        onDisabledFilterQueryChange = {},
+                        onEnableConnection = {},
+                        onContinue = {},
+                        onCancel = {},
+                    )
+                }
             }
         }
 
@@ -94,6 +135,34 @@ class PreviewScreenshotGeneratorTest {
             ) {
                 McpConnectCancelledContent()
             }
+        }
+    }
+
+    private fun sampleDisabledConnections(count: Int): List<McpConnection> {
+        val names =
+            listOf(
+                "Claude Code",
+                "Cursor",
+                "Claude Desktop",
+                "VS Code",
+                "Windsurf",
+                "Zed",
+                "claude.example.com",
+                "Cline",
+                "Goose",
+                "Continue",
+                "Raycast",
+                "LibreChat",
+            )
+        return List(count) { i ->
+            McpConnection(
+                id = "c$i",
+                clientName = names[i % names.size],
+                firstUsedAt = "2026-09-01T00:00:00Z",
+                lastUsedAt = "2026-10-01T00:00:00Z",
+                // 無効にした日の新しい順
+                disabledAt = "2026-10-${(20 - i).toString().padStart(2, '0')}T03:00:00Z",
+            )
         }
     }
 }
