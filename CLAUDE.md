@@ -114,18 +114,22 @@ shared/              → Kotlin Multiplatform library
 
 server/              → Ktor server (Netty, JVM)
                        Depends on :shared
-                       Routes: /api/{firebase-config,users,pets,feeding,garbage,money,money-webhook,money-due-date-notification,payment-webhook,report,quest,point,quest-webhook,cache,login-history,passkey,mcp/authorization}
+                       Routes: /api/{firebase-config,users,pets,feeding,garbage,money,money-webhook,money-due-date-notification,payment-webhook,report,quest,point,quest-webhook,cache,login-history,passkey,mcp/authorization,mcp/connections}
                        MCP: server/mcp/。/mcp（stateless Streamable HTTP）+ /.well-known/oauth-protected-resource/mcp。
                          認可サーバーは WorkOS AuthKit（Standalone Connect）。JWT を JWKS・iss・aud で検証し、sub（完了 API に渡した uid がそのまま入る）を uid として使う。検証で拒否したトークンは iss・aud・sub・exp だけを WARN ログに出す（本体は出さない）。
                          認証失敗は IP ごと（IPv6 は /64 単位）に数え、1 分に 10 回を超えた IP は 30 分間 /mcp を 429 で拒否する（McpAuthFailureGuard。認証より前に判定し、正しいトークンも拒否。メモリのみで再起動で解除）。
                          JWKS の鍵は McpJwksPreflight が認証前に確認する（通信の失敗は 503 で失敗に数えない、取得頻度の上限は 503 で失敗に数える、該当する鍵がなければ 401）。Firebase への問い合わせ失敗も 503 にし、失敗に数えない（Ktor の jwt 認証は検証中の例外を素の 401 にするため、validate では例外を投げない）
-                         Firebase で削除・無効化されたユーザーは拒否。リクエストごとに uid を閉じ込めた MCP Server を作る（McpServerFactory）。ツールは給餌の 3 つ（FeedingMcpTools）と支払額の概要（PaymentMcpTools。指定月の自分の負担額の合計・支払期日ごとの金額・振込総額だけを返し、項目名や個々の振込などの詳細は返さない）。
+                         Firebase で削除・無効化されたユーザーは拒否。client_id のないトークンも拒否。リクエストごとに uid を閉じ込めた MCP Server を作る（McpServerFactory）。
+                         連携アプリ（uid × client_id）は McpConnectionService が認証のたびに記録し（users/{uid}/mcpConnections。最終利用日時は 5 分ごと）、ユーザーが無効にしたアプリは 401 で拒否する（認証失敗には数えない）。
+                           WorkOS は許可をユーザー × クライアント単位でしか持たず、トークンの更新と連携し直しを sid・iat で見分けられないため、「無効」は CrabShell 側で通さない状態として持ち、有効に戻せる
+                           一覧・無効化・有効化は /api/mcp/connections（MCP 無効時も登録し、一覧は enabled=false を返す）。表示名は一覧の取得時に CIMD の client_name を取得して 7 日キャッシュ（CimdClientMetadataFetcher。OkHttp の DNS で非公開アドレスを除き、IP リテラル・リダイレクトは不可）
+                         ツールは給餌の 3 つ（FeedingMcpTools）と支払額の概要（PaymentMcpTools。指定月の自分の負担額の合計・支払期日ごとの金額・振込総額だけを返し、項目名や個々の振込などの詳細は返さない）。
                          ツール共通の実行・監査ログ・エラー変換（runMcpTool）と結果の JSON 設定（McpToolResultJson。既定値も省略しない）は McpToolSupport に置く。
                          InvalidToolArgumentException のメッセージは AI への返答と INFO ログに出るため引数の値を埋め込まず、値は rejectedValue に入れて DEBUG ログにだけ出す（server/util/LogSanitizer.kt の sanitizeForLog を通す）
                          JSON-RPC は McpJson で返す必要があるため、ContentNegotiation はアプリ全体ではなくルーティングのルートに入れ、/mcp だけ json(McpJson) に差し替えている。
                          StatusPages のハンドラはルーティングの外で動き ContentNegotiation を使えないため、respondError で JSON を直接書き出す（configureStatusPages）
                          WORKOS_API_KEY / WORKOS_AUTHKIT_DOMAIN / APP_URL が揃っていない場合は MCP のルート・認証を登録しない
-                       IP ジオロケーション: server/geo/ (MaxMind GeoLite2-City オフライン DB、ファイル不在時は NoOp)
+                       IP ジオロケーション: server/geo/ (MaxMind GeoLite2-City オフライン DB、ファイル不在時は NoOp)。IpClassifier.isPublicAddress は SSRF 対策にも使う
                        Firebase Auth verification
                        Koin DI でリポジトリ注入（ServerModule）。状態や外部 I/O を持つ処理は object にせず class にして DI 経由で注入する（定数・純粋関数の object、Exposed の Table 定義、Koin 起動前に読む EnvConfig は例外）
                        Repository 層: interface + 実装 class（Firestore / Firebase Admin SDK / Exposed）
@@ -162,7 +166,8 @@ feature/auth/        → LoginViewModel + LoginScreen + LoginContent、PasskeySe
                        ScopedViewModelStoreOwner（認証状態ごとの ViewModelStore。公式 rememberViewModelStoreOwner を利用し切り替わりで clear）、
                        AuthStateScopeKey（認証状態 → ViewModelStore のスコープキー）、
                        SignInWithHistoryService（サインイン + ログイン履歴記録を ApplicationScope で実行）、
-                       McpConnectViewModel + McpConnectContent（MCP 連携画面。WorkOS AuthKit の Login URI）(commonMain)
+                       McpConnectViewModel + McpConnectContent（MCP 連携画面。WorkOS AuthKit の Login URI）、
+                       DisabledConnectionsNotice（連携画面で無効にしたアプリを有効に戻す。先頭 3 件 + 展開、10 件超で絞り込み）(commonMain)
                        AuthenticatedApp + PasskeySetupViewModel + PasskeySetupScreen + McpConnectScreen（/mcp-connect）(wasmJsMain)
                        Depends on :core:auth, :core:common, :core:network, :core:ui, :shared
 feature/dashboard/   → DashboardContent (commonMain) / DashboardViewModel + DashboardScreen (wasmJsMain)
@@ -182,6 +187,7 @@ feature/report/      → ReportSummaryCard + MonthlyBarChart + CategoryBreakdown
                        commonMain: :core:ui, :shared / wasmJs: :core:auth, :core:network
 feature/settings/    → 全ファイル commonMain（Screen/Content 分離済み、wasmJs 固有 API 不使用）
                        ペット設定（ペット名・ごはん設定）も settings カテゴリとして統合
+                       「連携」カテゴリ（全員向け）: McpConnectionsViewModel + McpConnectionsScreen（MCP の連携アプリの一覧・無効化・有効化）
                        Depends on :core:auth, :core:network, :core:ui, :shared
 
 app/                 → Screen enum + Sidebar + DrawerContent + NavigationItems (commonMain)
@@ -217,7 +223,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Server auth: `server/src/main/kotlin/server/auth/` (AuthPlugin, FirebaseAuthRepository + FirebaseAdminAuthRepository, FirebaseAdminApp)
 - Server passkey: `server/src/main/kotlin/server/passkey/` (PasskeyRoutes, PasskeyConfig, WebAuthnVerifier, PasskeyCredentialRepository + ExposedPasskeyCredentialRepository, PasskeyDatabase, ChallengeStore, PasskeyLoginService)
 - Server geo: `server/src/main/kotlin/server/geo/` (IpClassifier, IpGeolocationService, MaxMind/NoOp 実装)
-- Server MCP: `server/src/main/kotlin/server/mcp/` (McpConfig, WorkOsClient, McpAuth（McpTokenAuthenticator・McpJwksPreflight）, McpAuthFailureGuard, McpAuthorizationService, McpServerFactory, McpToolSupport, FeedingMcpTools, PaymentMcpTools, McpRoutes)
+- Server MCP: `server/src/main/kotlin/server/mcp/` (McpConfig, WorkOsClient, McpAuth（McpTokenAuthenticator・McpJwksPreflight）, McpAuthFailureGuard, McpAuthorizationService, McpConnectionService + McpConnectionRepository + FirestoreMcpConnectionRepository, ClientMetadataFetcher（CimdClientMetadataFetcher・PublicAddressDns）, McpServerFactory, McpToolSupport, FeedingMcpTools, PaymentMcpTools, McpRoutes, McpConnectionRoutes)
 - Core common: `core/common/src/commonMain/kotlin/core/common/` (Environment.kt, AppLogger.kt, TabResumedEvent.kt, ApplicationScope.kt)
 - Core common (wasmJsMain): `core/common/src/wasmJsMain/kotlin/core/common/` (Environment.kt, AppLogger.wasmJs.kt, PageVisibility.kt)
 - Core auth (commonMain): `core/auth/src/commonMain/kotlin/core/auth/` (AuthRepository interface, AuthState, IdTokenResult)
@@ -227,7 +233,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Core theme (commonMain): `core/ui/src/commonMain/kotlin/core/ui/theme/` (Color.kt, Theme.kt, Typography.kt)
 - Core UI (commonMain): `core/ui/src/commonMain/kotlin/core/ui/` (util/DateUtils.kt, components/CalendarView.kt)
 - Core previewscreenshot: `core/previewscreenshot/src/main/kotlin/core/previewscreenshot/PreviewScreenshotRecorder.kt`
-- Feature auth (commonMain): `feature/auth/src/commonMain/kotlin/feature/auth/` (LoginViewModel, LoginScreen, LoginContent, PasskeySetupContent, ScopedViewModelStoreOwner, AuthStateScopeKey, SignInWithHistoryService, McpConnectViewModel, McpConnectContent)
+- Feature auth (commonMain): `feature/auth/src/commonMain/kotlin/feature/auth/` (LoginViewModel, LoginScreen, LoginContent, PasskeySetupContent, ScopedViewModelStoreOwner, AuthStateScopeKey, SignInWithHistoryService, McpConnectViewModel, McpConnectContent, DisabledConnectionsNotice)
 - Feature auth (wasmJsMain): `feature/auth/src/wasmJsMain/kotlin/feature/auth/` (AuthenticatedApp, PasskeySetupViewModel, PasskeySetupScreen, McpConnectScreen)
 - Feature settings (commonMain): `feature/settings/src/commonMain/kotlin/feature/settings/` (全ファイル。Screen/Content 分離済み。ペット設定も PetSettingsViewModel / PetSettingsCard として同居)
 - Feature dashboard (commonMain): `feature/dashboard/src/commonMain/kotlin/feature/dashboard/` (DashboardContent)
