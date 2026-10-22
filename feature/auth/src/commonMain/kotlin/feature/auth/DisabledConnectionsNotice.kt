@@ -90,6 +90,8 @@ internal fun DisabledConnectionsNotice(
     onFilterQueryChange: (String) -> Unit,
     onEnable: (String) -> Unit,
     modifier: Modifier = Modifier,
+    /** 連携の完了処理中など、画面全体の操作を止めている間は false にする */
+    enabled: Boolean = true,
 ) {
     val contentColor = MaterialTheme.colorScheme.onSecondaryContainer
 
@@ -118,11 +120,14 @@ internal fun DisabledConnectionsNotice(
                     color = contentColor,
                 )
             }
-            Text(
-                text = "連携し直すアプリは、ここで有効にしてから続けてください。無効のまま続けても、そのアプリからは使えません。",
-                style = MaterialTheme.typography.bodySmall,
-                color = contentColor,
-            )
+            // すべて有効にした後は、有効にするよう促す案内は要らない
+            if (state.remainingDisabledCount > 0) {
+                Text(
+                    text = "連携し直すアプリは、ここで有効にしてから続けてください。無効のまま続けても、そのアプリからは使えません。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = contentColor,
+                )
+            }
 
             if (state.showsFilter) {
                 OutlinedTextField(
@@ -163,7 +168,7 @@ internal fun DisabledConnectionsNotice(
                         isEnabling = state.enablingId == connection.id,
                         isEnabled = connection.id in state.enabledIds,
                         // 実行中は他の行も押せなくし、結果の表示が入れ替わらないようにする
-                        buttonEnabled = state.enablingId == null,
+                        buttonEnabled = enabled && state.enablingId == null,
                         onEnable = { onEnable(connection.id) },
                     )
                     if (index < visible.lastIndex) {

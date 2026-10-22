@@ -51,6 +51,7 @@ internal fun McpConnectContent(
                 onToggleExpanded = onToggleDisabledExpanded,
                 onFilterQueryChange = onDisabledFilterQueryChange,
                 onEnable = onEnableConnection,
+                enabled = !isCompleting,
             )
         }
 
