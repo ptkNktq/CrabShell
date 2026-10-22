@@ -74,14 +74,26 @@ internal fun McpConnectContent(
             // 無効にしたアプリの案内が出る前に続けられないよう、読み込みを待つ
             enabled = actionsEnabled && !isLoadingDisabledConnections,
         ) {
-            if (isCompleting) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-            } else {
-                Text("連携を続ける")
+            when {
+                isCompleting -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+                // 押せない理由が分かるよう、読み込み中であることを出す（無効表示の色に合わせる）
+                isLoadingDisabledConnections -> {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = LocalContentColor.current,
+                        )
+                        Text("連携の状態を確認しています")
+                    }
+                }
+                else -> Text("連携を続ける")
             }
         }
 

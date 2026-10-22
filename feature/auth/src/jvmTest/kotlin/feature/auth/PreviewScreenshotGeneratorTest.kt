@@ -92,6 +92,27 @@ class PreviewScreenshotGeneratorTest {
             }
         }
 
+        // 無効にした連携アプリを読み込み中（「連携を続ける」は押せない）
+        standardSizePatterns.forEach { pattern ->
+            recorder.save(
+                fileName = "mcp_connect_loading_${pattern.label}.png",
+                width = pattern.width,
+                height = pattern.height,
+            ) {
+                McpConnectContent(
+                    isCompleting = false,
+                    isLoadingDisabledConnections = true,
+                    errorMessage = null,
+                    disabledConnections = DisabledConnectionsState(),
+                    onToggleDisabledExpanded = {},
+                    onDisabledFilterQueryChange = {},
+                    onEnableConnection = {},
+                    onContinue = {},
+                    onCancel = {},
+                )
+            }
+        }
+
         // 無効にした連携アプリがある場合の案内（件数・開閉・絞り込み・有効化の状態ごと）
         val disabledStates =
             mapOf(
