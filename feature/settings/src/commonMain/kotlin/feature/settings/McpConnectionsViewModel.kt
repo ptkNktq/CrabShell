@@ -78,7 +78,12 @@ class McpConnectionsViewModel(
                     uiState.copy(
                         connections = uiState.connections.map { if (it.id == updated.id) updated else it },
                         confirmingDisableId = null,
-                        successMessage = "「${updated.clientName}」を${if (disable) "無効" else "有効"}にしました",
+                        successMessage =
+                            if (disable) {
+                                "「${updated.clientName}」を無効にしました"
+                            } else {
+                                "「${updated.clientName}」を有効にしました。$ENABLED_RECONNECT_NOTE"
+                            },
                     )
             } catch (e: CancellationException) {
                 throw e
@@ -94,5 +99,10 @@ class McpConnectionsViewModel(
         internal const val LOAD_FAILED_MESSAGE = "連携アプリの取得に失敗しました"
         internal const val DISABLE_FAILED_MESSAGE = "無効にできませんでした。時間をおいて再度お試しください"
         internal const val ENABLE_FAILED_MESSAGE = "有効にできませんでした。時間をおいて再度お試しください"
+
+        // 無効の間に 401 を受けたクライアントは、有効に戻しても再認証するまで接続しないことがある（Claude Code など）。
+        // 挙動はクライアントごとに違い、サーバーからは分からないため、有効に戻したときは常に案内する
+        internal const val ENABLED_RECONNECT_NOTE =
+            "無効の間にこのアプリを使っていた場合は、アプリ側で連携し直すまで使えないことがあります"
     }
 }

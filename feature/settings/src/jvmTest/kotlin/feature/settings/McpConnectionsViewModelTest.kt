@@ -110,7 +110,10 @@ class McpConnectionsViewModelTest {
             advanceUntilIdle()
 
             assertEquals(listOf(claudeCode, cursor), vm.uiState.connections)
-            assertEquals("「Cursor」を有効にしました", vm.uiState.successMessage)
+            assertEquals(
+                "「Cursor」を有効にしました。${McpConnectionsViewModel.ENABLED_RECONNECT_NOTE}",
+                vm.uiState.successMessage,
+            )
         }
 
     @Test
