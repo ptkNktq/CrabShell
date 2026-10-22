@@ -20,11 +20,13 @@ import core.ui.theme.AppTheme
 internal fun McpConnectContent(
     isCompleting: Boolean,
     isLoadingDisabledConnections: Boolean,
+    disabledConnectionsLoadFailed: Boolean,
     errorMessage: String?,
     disabledConnections: DisabledConnectionsState,
     onToggleDisabledExpanded: () -> Unit,
     onDisabledFilterQueryChange: (String) -> Unit,
     onEnableConnection: (String) -> Unit,
+    onRetryLoadDisabledConnections: () -> Unit,
     onContinue: () -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -54,6 +56,10 @@ internal fun McpConnectContent(
                 onEnable = onEnableConnection,
                 enabled = !isCompleting,
             )
+        }
+
+        if (disabledConnectionsLoadFailed) {
+            DisabledConnectionsLoadFailedNotice(onRetry = onRetryLoadDisabledConnections, retryEnabled = !isCompleting)
         }
 
         if (errorMessage != null) {
@@ -102,6 +108,39 @@ internal fun McpConnectContent(
             enabled = actionsEnabled,
         ) {
             Text("キャンセル")
+        }
+    }
+}
+
+/**
+ * 無効にした連携アプリを読み込めなかったことの注意。
+ * 連携は続けられるが、連携し直すアプリを無効にしていた場合は、無効のまま続けると使えないため気付けるようにする
+ */
+@Composable
+private fun DisabledConnectionsLoadFailedNotice(
+    onRetry: () -> Unit,
+    retryEnabled: Boolean,
+) {
+    val contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.secondaryContainer,
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text =
+                    "無効にしたアプリを確認できませんでした。連携し直すアプリを無効にしていた場合は、" +
+                        "もう一度確認して有効にするか、設定の「連携」で有効にしてから続けてください。",
+                style = MaterialTheme.typography.bodySmall,
+                color = contentColor,
+            )
+            AppTextButton(onClick = onRetry, enabled = retryEnabled) {
+                Text("もう一度確認する")
+            }
         }
     }
 }

@@ -81,11 +81,13 @@ class PreviewScreenshotGeneratorTest {
                 McpConnectContent(
                     isCompleting = false,
                     isLoadingDisabledConnections = false,
+                    disabledConnectionsLoadFailed = false,
                     errorMessage = null,
                     disabledConnections = DisabledConnectionsState(),
                     onToggleDisabledExpanded = {},
                     onDisabledFilterQueryChange = {},
                     onEnableConnection = {},
+                    onRetryLoadDisabledConnections = {},
                     onContinue = {},
                     onCancel = {},
                 )
@@ -102,11 +104,36 @@ class PreviewScreenshotGeneratorTest {
                 McpConnectContent(
                     isCompleting = false,
                     isLoadingDisabledConnections = true,
+                    disabledConnectionsLoadFailed = false,
                     errorMessage = null,
                     disabledConnections = DisabledConnectionsState(),
                     onToggleDisabledExpanded = {},
                     onDisabledFilterQueryChange = {},
                     onEnableConnection = {},
+                    onRetryLoadDisabledConnections = {},
+                    onContinue = {},
+                    onCancel = {},
+                )
+            }
+        }
+
+        // 無効にした連携アプリを読み込めなかった（連携は続けられるが、注意と再試行を出す）
+        standardSizePatterns.forEach { pattern ->
+            recorder.save(
+                fileName = "mcp_connect_load_failed_${pattern.label}.png",
+                width = pattern.width,
+                height = pattern.height,
+            ) {
+                McpConnectContent(
+                    isCompleting = false,
+                    isLoadingDisabledConnections = false,
+                    disabledConnectionsLoadFailed = true,
+                    errorMessage = null,
+                    disabledConnections = DisabledConnectionsState(),
+                    onToggleDisabledExpanded = {},
+                    onDisabledFilterQueryChange = {},
+                    onEnableConnection = {},
+                    onRetryLoadDisabledConnections = {},
                     onContinue = {},
                     onCancel = {},
                 )
@@ -138,11 +165,13 @@ class PreviewScreenshotGeneratorTest {
                     McpConnectContent(
                         isCompleting = false,
                         isLoadingDisabledConnections = false,
+                        disabledConnectionsLoadFailed = false,
                         errorMessage = null,
                         disabledConnections = state,
                         onToggleDisabledExpanded = {},
                         onDisabledFilterQueryChange = {},
                         onEnableConnection = {},
+                        onRetryLoadDisabledConnections = {},
                         onContinue = {},
                         onCancel = {},
                     )

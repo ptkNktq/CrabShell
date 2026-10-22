@@ -25,6 +25,8 @@ data class McpConnectUiState(
     val disabledConnections: DisabledConnectionsState = DisabledConnectionsState(),
     /** 無効にした連携アプリを読み込み中。終わるまで（失敗した場合を除く）連携を続けられない */
     val isLoadingDisabledConnections: Boolean = true,
+    /** 無効にした連携アプリを読み込めなかった。連携は続けられるが、気付かずに続けないよう注意と再試行を出す */
+    val disabledConnectionsLoadFailed: Boolean = false,
 )
 
 /** MCP クライアント（Claude Code 等）との連携画面。ユーザーの明示的な操作で連携を完了する */
@@ -41,10 +43,12 @@ class McpConnectViewModel(
 
     /**
      * 無効にした連携アプリを取得する（無効にした日の新しい順）。
-     * 取得できなくても連携は続けられるため、案内を出さないだけにする。
-     * 読み込み中に続けられると、無効にしたアプリだと気付かずに連携してしまうため、終わるまで続けさせない
+     * 取得できなくても連携は続けられるが、無効にしたアプリがあるかどうか分からないことを伝えて再試行できるようにする。
+     * 読み込み中に続けられると、無効にしたアプリだと気付かずに連携してしまうため、終わるまで続けさせない。
+     * 読み込み中フラグは launch の前に立てる（再試行の連打で重ねて読み込まないように）
      */
     private fun loadDisabledConnections() {
+        uiState = uiState.copy(isLoadingDisabledConnections = true, disabledConnectionsLoadFailed = false)
         viewModelScope.launch {
             try {
                 val disabled =
@@ -59,10 +63,17 @@ class McpConnectViewModel(
                 throw e
             } catch (e: Exception) {
                 AppLogger.w(TAG, "Failed to load MCP connections: ${e.message}")
+                uiState = uiState.copy(disabledConnectionsLoadFailed = true)
             } finally {
                 uiState = uiState.copy(isLoadingDisabledConnections = false)
             }
         }
+    }
+
+    /** 読み込めなかった無効にした連携アプリを、もう一度読み込む */
+    fun onRetryLoadDisabledConnections() {
+        if (uiState.isLoadingDisabledConnections || uiState.isCompleting || uiState.isCancelled) return
+        loadDisabledConnections()
     }
 
     fun onToggleDisabledExpanded() {

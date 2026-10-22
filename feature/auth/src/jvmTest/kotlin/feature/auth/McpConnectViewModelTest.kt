@@ -254,10 +254,42 @@ class McpConnectViewModelTest {
                     .isEmpty(),
             )
             assertNull(vm.uiState.errorMessage)
+            // 無効にしたアプリがあるか分からないことは伝える
+            assertTrue(vm.uiState.disabledConnectionsLoadFailed)
 
             vm.onContinue("01J3X4Y5Z6")
             advanceUntilIdle()
             assertEquals("https://example.authkit.app/consent", vm.uiState.redirectUri)
+        }
+
+    @Test
+    fun retryLoadsDisabledConnectionsAfterFailure() =
+        runTest(testDispatcher) {
+            coEvery { connectionRepository.getConnections() } throws Exception("network error")
+            val vm = McpConnectViewModel(repository, connectionRepository)
+            advanceUntilIdle()
+            assertTrue(vm.uiState.disabledConnectionsLoadFailed)
+
+            val connections = CompletableDeferred<McpConnectionsResponse>()
+            coEvery { connectionRepository.getConnections() } coAnswers { connections.await() }
+            vm.onRetryLoadDisabledConnections()
+            // 読み込み中フラグは launch の前に立ち、重ねて読み込まない
+            assertTrue(vm.uiState.isLoadingDisabledConnections)
+            assertFalse(vm.uiState.disabledConnectionsLoadFailed)
+            vm.onRetryLoadDisabledConnections()
+
+            connections.complete(McpConnectionsResponse(enabled = true, connections = listOf(connection("a", "2026-10-20T00:00:00Z"))))
+            advanceUntilIdle()
+
+            assertFalse(vm.uiState.isLoadingDisabledConnections)
+            assertFalse(vm.uiState.disabledConnectionsLoadFailed)
+            assertEquals(
+                listOf("a"),
+                vm.uiState.disabledConnections.connections
+                    .map { it.id },
+            )
+            // 初回 + 再試行 1 回
+            coVerify(exactly = 2) { connectionRepository.getConnections() }
         }
 
     @Test

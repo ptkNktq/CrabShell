@@ -32,11 +32,13 @@ fun McpConnectScreen(vm: McpConnectViewModel = koinViewModel()) {
         McpConnectContent(
             isCompleting = vm.uiState.isCompleting,
             isLoadingDisabledConnections = vm.uiState.isLoadingDisabledConnections,
+            disabledConnectionsLoadFailed = vm.uiState.disabledConnectionsLoadFailed,
             errorMessage = vm.uiState.errorMessage,
             disabledConnections = vm.uiState.disabledConnections,
             onToggleDisabledExpanded = vm::onToggleDisabledExpanded,
             onDisabledFilterQueryChange = vm::onDisabledFilterQueryChange,
             onEnableConnection = vm::onEnableConnection,
+            onRetryLoadDisabledConnections = vm::onRetryLoadDisabledConnections,
             onContinue = { vm.onContinue(externalAuthId) },
             onCancel = vm::onCancel,
         )
