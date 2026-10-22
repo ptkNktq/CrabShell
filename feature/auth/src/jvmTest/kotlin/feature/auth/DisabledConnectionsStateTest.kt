@@ -54,4 +54,13 @@ class DisabledConnectionsStateTest {
         assertTrue(state.visibleConnections.all { it.clientName.startsWith("Claude") })
         assertEquals(many, state.copy(filterQuery = " ").visibleConnections)
     }
+
+    @Test
+    fun remainingDisabledCountExcludesConnectionsEnabledHere() {
+        val state = DisabledConnectionsState(connections = connections("A", "B", "C"))
+
+        assertEquals(3, state.remainingDisabledCount)
+        assertEquals(2, state.copy(enabledIds = setOf("c0")).remainingDisabledCount)
+        assertEquals(0, state.copy(enabledIds = setOf("c0", "c1", "c2")).remainingDisabledCount)
+    }
 }

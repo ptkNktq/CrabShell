@@ -57,6 +57,9 @@ data class DisabledConnectionsState(
     val enabledIds: Set<String> = emptySet(),
     val errorMessage: String? = null,
 ) {
+    /** まだ無効のままの件数（この画面で有効にした分は除く） */
+    val remainingDisabledCount: Int get() = connections.count { it.id !in enabledIds }
+
     /** 絞り込み欄を出すか（開いていて、件数が多い場合だけ） */
     val showsFilter: Boolean get() = isExpanded && connections.size > DISABLED_FILTER_THRESHOLD
 
@@ -105,7 +108,12 @@ internal fun DisabledConnectionsNotice(
             ) {
                 Icon(imageVector = Icons.Default.Info, contentDescription = null, modifier = Modifier.size(20.dp), tint = contentColor)
                 Text(
-                    text = "無効にしたアプリが ${state.connections.size} 件あります",
+                    text =
+                        if (state.remainingDisabledCount > 0) {
+                            "無効にしたアプリが ${state.remainingDisabledCount} 件あります"
+                        } else {
+                            "無効にしたアプリはすべて有効にしました"
+                        },
                     style = MaterialTheme.typography.titleSmall,
                     color = contentColor,
                 )
