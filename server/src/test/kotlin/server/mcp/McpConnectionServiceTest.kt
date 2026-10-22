@@ -3,6 +3,7 @@ package server.mcp
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import model.McpConnection
 import java.time.Clock
@@ -153,6 +154,48 @@ class McpConnectionServiceTest {
             // 取り直せなくても前回の名前を残し、名前がなければホスト名を出す
             assertEquals(listOf("Claude Code", "example.com"), names)
             coVerify { repository.updateClientName("uid1", connectionId, "Claude Code", now) }
+        }
+
+    @Test
+    fun missingClientNameIsRetriedSoonerThanCachedName() =
+        runTest {
+            val retryDue = now.minus(McpConnectionService.CLIENT_NAME_RETRY_INTERVAL)
+            val other =
+                record(
+                    clientName = null,
+                    clientNameFetchedAt = retryDue,
+                ).copy(id = "other", clientId = "https://example.com/client.json")
+            coEvery { repository.list("uid1", any()) } returns
+                listOf(record(clientName = "Claude Code", clientNameFetchedAt = retryDue), other)
+            coEvery { fetcher.fetchClientName("https://example.com/client.json") } returns "Example"
+
+            assertEquals(listOf("Claude Code", "Example"), service.list("uid1").map { it.clientName })
+            // 名前が取れているものは 7 日間取り直さない
+            coVerify(exactly = 0) { fetcher.fetchClientName(clientId) }
+        }
+
+    @Test
+    fun slowMetadataFetchDoesNotBlockList() =
+        runTest {
+            val other =
+                record(
+                    clientName = null,
+                    clientNameFetchedAt = null,
+                ).copy(id = "other", clientId = "https://example.com/client.json")
+            coEvery { repository.list("uid1", any()) } returns listOf(record(clientName = null, clientNameFetchedAt = null), other)
+            coEvery { fetcher.fetchClientName(clientId) } coAnswers {
+                delay(McpConnectionService.METADATA_FETCH_DEADLINE_MILLIS * 10)
+                "Claude Code"
+            }
+            coEvery { fetcher.fetchClientName("https://example.com/client.json") } returns "Example"
+
+            val names = service.list("uid1").map { it.clientName }
+
+            // 間に合わなかったものはホスト名で返し、保存もしない
+            assertEquals(listOf("claude.ai", "Example"), names)
+            assertEquals(McpConnectionService.METADATA_FETCH_DEADLINE_MILLIS, testScheduler.currentTime)
+            coVerify(exactly = 0) { repository.updateClientName("uid1", connectionId, any(), any()) }
+            coVerify { repository.updateClientName("uid1", "other", "Example", now) }
         }
 
     @Test

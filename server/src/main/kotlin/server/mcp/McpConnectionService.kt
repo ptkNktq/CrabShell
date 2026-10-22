@@ -6,6 +6,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withTimeoutOrNull
 import model.McpConnection
 import org.slf4j.LoggerFactory
 import server.util.sanitizeForLog
@@ -83,8 +84,11 @@ class McpConnectionService(
 
     /**
      * ユーザーの連携アプリの一覧（最終利用日時の新しい順）。
-     * 表示名が未取得、または取得から [CLIENT_NAME_REFRESH_INTERVAL] が過ぎたものは、ここでメタデータを取り直して保存する
-     * （`/mcp` の応答を遅らせないよう、認証の中では取りに行かない）。
+     * 表示名が未取得、または取り直す間隔（[CLIENT_NAME_REFRESH_INTERVAL]。名前が取れていなければ [CLIENT_NAME_RETRY_INTERVAL]）が
+     * 過ぎたものは、ここでメタデータを取り直して保存する（`/mcp` の応答を遅らせないよう、認証の中では取りに行かない）。
+     *
+     * 応答の遅いホストがあっても一覧を返せるよう、取り直しは [METADATA_FETCH_DEADLINE_MILLIS] で打ち切る。
+     * 間に合わなかったものは今の表示名のまま返し、保存もしない（次に一覧を開いたときに取り直す）。
      */
     suspend fun list(uid: String): List<McpConnection> {
         val now = clock.instant()
@@ -94,7 +98,11 @@ class McpConnectionService(
             records
                 .map { record ->
                     async {
-                        if (needsClientNameRefresh(record, now)) semaphore.withPermit { refreshClientName(uid, record, now) } else record
+                        if (!needsClientNameRefresh(record, now)) return@async record
+                        // 締め切りは全件で同時に数え始めるため、待ち行列で待った時間も含めて一覧全体の上限になる
+                        withTimeoutOrNull(METADATA_FETCH_DEADLINE_MILLIS) {
+                            semaphore.withPermit { refreshClientName(uid, record, now) }
+                        } ?: record
                     }
                 }.awaitAll()
         }.map { it.toModel() }
@@ -119,7 +127,9 @@ class McpConnectionService(
         now: Instant,
     ): Boolean {
         val fetchedAt = record.clientNameFetchedAt ?: return true
-        return Duration.between(fetchedAt, now) >= CLIENT_NAME_REFRESH_INTERVAL
+        // 名前が取れていない（前回の取得に失敗した）ものは、一時的な障害から早く戻れるよう短い間隔で取り直す
+        val interval = if (record.clientName == null) CLIENT_NAME_RETRY_INTERVAL else CLIENT_NAME_REFRESH_INTERVAL
+        return Duration.between(fetchedAt, now) >= interval
     }
 
     /** 取り直せなかった場合は前回の表示名を残す（一時的な障害で名前が消えないように） */
@@ -154,6 +164,12 @@ class McpConnectionService(
 
         // 表示名を取り直す間隔
         internal val CLIENT_NAME_REFRESH_INTERVAL: Duration = Duration.ofDays(7)
+
+        // 表示名が取れていないものを取り直す間隔
+        internal val CLIENT_NAME_RETRY_INTERVAL: Duration = Duration.ofHours(1)
+
+        // 一覧の表示時にメタデータの取り直しを待つ上限。フロントの API のタイムアウト（10 秒）に収める
+        internal const val METADATA_FETCH_DEADLINE_MILLIS = 5_000L
 
         // 一覧に出す連携アプリの上限
         internal const val MAX_CONNECTIONS = 100
