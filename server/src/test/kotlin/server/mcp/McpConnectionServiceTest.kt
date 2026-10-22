@@ -201,7 +201,9 @@ class McpConnectionServiceTest {
 
     @Test
     fun listDeadlineFitsFrontendTimeout() {
-        // 締め切りは 1 件の取得のタイムアウト + 保存の時間から作る。Firestore の読み書きも含めて、フロントの API のタイムアウトに収める
+        // 締め切りは 1 件の取得のタイムアウト + 保存の時間から作る。
+        // 締め切りの外の処理（一覧の読み込み・認証・レート制限・通信）にも締め切りと同じだけの時間を残すため、
+        // 締め切りの 2 倍がフロントの API のタイムアウトに収まることを確かめる
         assertTrue(McpConnectionService.METADATA_SAVE_MARGIN_MILLIS > 0)
         assertTrue(McpConnectionService.METADATA_FETCH_DEADLINE_MILLIS * 2 <= HttpTimeouts.DEFAULT_REQUEST_TIMEOUT_MILLIS)
     }
