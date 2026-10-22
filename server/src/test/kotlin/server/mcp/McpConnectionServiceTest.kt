@@ -199,6 +199,13 @@ class McpConnectionServiceTest {
         }
 
     @Test
+    fun metadataFetchTimesOutBeforeListDeadline() {
+        // 応答しないホストは締め切りより先に取得のタイムアウトで失敗させ、失敗として保存させる
+        // （Ktor の requestTimeoutMillis は接続を含むリクエスト全体の上限）
+        assertTrue(CimdClientMetadataFetcher.REQUEST_TIMEOUT_MILLIS < McpConnectionService.METADATA_FETCH_DEADLINE_MILLIS)
+    }
+
+    @Test
     fun setDisabledReturnsUpdatedConnectionOrNull() =
         runTest {
             coEvery { repository.updateDisabledAt("uid1", connectionId, now) } returns record(disabledAt = now)

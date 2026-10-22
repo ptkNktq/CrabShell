@@ -90,9 +90,11 @@ class CimdClientMetadataFetcher(
         // メタデータの応答の上限（CIMD の文書は数 KB 程度）
         internal const val MAX_BODY_BYTES = 64L * 1024
 
-        // 取得のタイムアウト。一覧の応答を待たせないよう、アプリの API の既定値より短くする
-        internal const val CONNECT_TIMEOUT_MILLIS = 3_000L
-        internal const val REQUEST_TIMEOUT_MILLIS = 5_000L
+        // 取得のタイムアウト。一覧の応答を待たせないよう、アプリの API の既定値より短くする。
+        // 一覧の締め切り（McpConnectionService.METADATA_FETCH_DEADLINE_MILLIS）より十分短くし、応答しないホストでも
+        // 締め切りより先にこちらで失敗させる（失敗として保存され、取り直しの間隔が効くように）
+        internal const val CONNECT_TIMEOUT_MILLIS = 2_000L
+        internal const val REQUEST_TIMEOUT_MILLIS = 3_000L
 
         // 表示名の上限（文字数）
         internal const val MAX_CLIENT_NAME_LENGTH = 100

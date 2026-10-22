@@ -89,6 +89,8 @@ class McpConnectionService(
      *
      * 応答の遅いホストがあっても一覧を返せるよう、取り直しは [METADATA_FETCH_DEADLINE_MILLIS] で打ち切る。
      * 間に合わなかったものは今の表示名のまま返し、保存もしない（次に一覧を開いたときに取り直す）。
+     * 1 件の取得のタイムアウト（[CimdClientMetadataFetcher.REQUEST_TIMEOUT_MILLIS]）はこれより短いため、
+     * 応答しないホストは締め切りの前に失敗として保存され、毎回待たされることはない（打ち切られるのは待ち行列に残ったものだけ）。
      */
     suspend fun list(uid: String): List<McpConnection> {
         val now = clock.instant()
