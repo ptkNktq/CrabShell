@@ -12,6 +12,7 @@ import core.network.McpConnectionRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import model.McpAuthorizationErrors
+import kotlin.time.Instant
 
 data class McpConnectUiState(
     val isCompleting: Boolean = false,
@@ -48,7 +49,8 @@ class McpConnectViewModel(
                         .getConnections()
                         .connections
                         .filter { it.disabledAt != null }
-                        .sortedByDescending { it.disabledAt }
+                        // 文字列のままだと端数秒の桁数（`…:05Z` と `…:05.123Z`）で順序が逆転するため、時刻として比べる
+                        .sortedByDescending { it.disabledAt?.let(Instant::parseOrNull) }
                 uiState = uiState.copy(disabledConnections = uiState.disabledConnections.copy(connections = disabled))
             } catch (e: CancellationException) {
                 throw e

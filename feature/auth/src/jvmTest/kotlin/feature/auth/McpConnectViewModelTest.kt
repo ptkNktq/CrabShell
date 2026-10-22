@@ -189,6 +189,28 @@ class McpConnectViewModelTest {
         }
 
     @Test
+    fun disabledConnectionsAreSortedByTimeNotByString() =
+        runTest(testDispatcher) {
+            coEvery { connectionRepository.getConnections() } returns
+                McpConnectionsResponse(
+                    enabled = true,
+                    connections =
+                        listOf(
+                            connection("whole-second", disabledAt = "2026-10-20T00:00:05Z"),
+                            connection("later-in-second", disabledAt = "2026-10-20T00:00:05.123Z"),
+                        ),
+                )
+            val vm = McpConnectViewModel(repository, connectionRepository)
+            advanceUntilIdle()
+
+            assertEquals(
+                listOf("later-in-second", "whole-second"),
+                vm.uiState.disabledConnections.connections
+                    .map { it.id },
+            )
+        }
+
+    @Test
     fun connectionsLoadFailureDoesNotBlockConnecting() =
         runTest(testDispatcher) {
             coEvery { connectionRepository.getConnections() } throws Exception("network error")
