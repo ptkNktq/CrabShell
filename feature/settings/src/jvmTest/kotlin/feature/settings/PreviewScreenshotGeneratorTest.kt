@@ -64,6 +64,7 @@ class PreviewScreenshotGeneratorTest {
                 McpConnectionsContent(
                     state = sampleMcpConnectionsState,
                     onRetry = {},
+                    onRefresh = {},
                     onRequestDisable = {},
                     onCancelDisable = {},
                     onConfirmDisable = {},
@@ -206,6 +207,7 @@ class PreviewScreenshotGeneratorTest {
         val states =
             mapOf(
                 "confirming" to sampleMcpConnectionsState.copy(confirmingDisableId = "c1"),
+                "refreshing" to sampleMcpConnectionsState.copy(isRefreshing = true),
                 "empty" to McpConnectionsUiState(isLoading = false, enabled = true),
                 "disabled" to McpConnectionsUiState(isLoading = false, enabled = false),
             )
@@ -229,6 +231,7 @@ class PreviewScreenshotGeneratorTest {
                                     McpConnectionsContent(
                                         state = state,
                                         onRetry = {},
+                                        onRefresh = {},
                                         onRequestDisable = {},
                                         onCancelDisable = {},
                                         onConfirmDisable = {},

@@ -132,4 +132,81 @@ class McpConnectionsViewModelTest {
             assertEquals(McpConnectionsViewModel.DISABLE_FAILED_MESSAGE, vm.uiState.errorMessage)
             assertEquals(listOf(claudeCode, cursor), vm.uiState.connections)
         }
+
+    @Test
+    fun refreshKeepsListWhileLoadingAndReplacesIt() =
+        runTest(testDispatcher) {
+            val vm = McpConnectionsViewModel(repository)
+            advanceUntilIdle()
+            val disabledCursor = cursor.copy(disabledAt = "2026-10-23T00:00:00Z")
+            val result = CompletableDeferred<McpConnectionsResponse>()
+            coEvery { repository.getConnections() } coAnswers { result.await() }
+
+            vm.refresh()
+            // 実行中フラグは launch の前に立ち、読み込み中の表示には切り替えない
+            assertTrue(vm.uiState.isRefreshing)
+            assertFalse(vm.uiState.isLoading)
+            assertEquals(listOf(claudeCode, cursor), vm.uiState.connections)
+            // 再読み込み中は無効化・有効化を受け付けない
+            vm.onEnable("c2")
+            assertNull(vm.uiState.updatingId)
+
+            result.complete(McpConnectionsResponse(enabled = true, connections = listOf(claudeCode, disabledCursor)))
+            advanceUntilIdle()
+
+            assertFalse(vm.uiState.isRefreshing)
+            assertEquals(listOf(claudeCode, disabledCursor), vm.uiState.connections)
+            coVerify(exactly = 0) { repository.enable(any()) }
+        }
+
+    @Test
+    fun refreshIsIgnoredWhileUpdating() =
+        runTest(testDispatcher) {
+            val result = CompletableDeferred<McpConnection>()
+            coEvery { repository.enable("c2") } coAnswers { result.await() }
+            val vm = McpConnectionsViewModel(repository)
+            advanceUntilIdle()
+
+            vm.onEnable("c2")
+            vm.refresh()
+
+            assertFalse(vm.uiState.isRefreshing)
+            result.complete(cursor)
+            advanceUntilIdle()
+            // 初回の読み込みの 1 回だけ
+            coVerify(exactly = 1) { repository.getConnections() }
+        }
+
+    @Test
+    fun refreshClosesConfirmationForRemovedConnection() =
+        runTest(testDispatcher) {
+            val vm = McpConnectionsViewModel(repository)
+            advanceUntilIdle()
+            vm.onRequestDisable("c2")
+            coEvery { repository.getConnections() } returns McpConnectionsResponse(enabled = true, connections = listOf(claudeCode))
+
+            vm.refresh()
+            advanceUntilIdle()
+
+            assertNull(vm.uiState.confirmingDisableId)
+            assertEquals(listOf(claudeCode), vm.uiState.connections)
+        }
+
+    @Test
+    fun refreshFailureKeepsListAndShowsError() =
+        runTest(testDispatcher) {
+            val vm = McpConnectionsViewModel(repository)
+            advanceUntilIdle()
+            vm.onRequestDisable("c1")
+            coEvery { repository.getConnections() } throws Exception("network error")
+
+            vm.refresh()
+            advanceUntilIdle()
+
+            assertFalse(vm.uiState.isRefreshing)
+            assertFalse(vm.uiState.loadError)
+            assertEquals("c1", vm.uiState.confirmingDisableId)
+            assertEquals(listOf(claudeCode, cursor), vm.uiState.connections)
+            assertEquals(McpConnectionsViewModel.REFRESH_FAILED_MESSAGE, vm.uiState.errorMessage)
+        }
 }

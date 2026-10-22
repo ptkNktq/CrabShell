@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -23,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import core.ui.components.AppButton
+import core.ui.components.AppIconButton
 import core.ui.components.AppOutlinedButton
 import core.ui.components.AppTextButton
 import core.ui.components.LoadableCardContent
@@ -37,6 +39,7 @@ internal fun McpConnectionsScreen(modifier: Modifier = Modifier) {
     McpConnectionsContent(
         state = vm.uiState,
         onRetry = vm::load,
+        onRefresh = vm::refresh,
         onRequestDisable = vm::onRequestDisable,
         onCancelDisable = vm::onCancelDisable,
         onConfirmDisable = vm::onConfirmDisable,
@@ -49,6 +52,7 @@ internal fun McpConnectionsScreen(modifier: Modifier = Modifier) {
 internal fun McpConnectionsContent(
     state: McpConnectionsUiState,
     onRetry: () -> Unit,
+    onRefresh: () -> Unit,
     onRequestDisable: (String) -> Unit,
     onCancelDisable: () -> Unit,
     onConfirmDisable: (String) -> Unit,
@@ -70,11 +74,33 @@ internal fun McpConnectionsContent(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Icon(imageVector = Icons.Default.Link, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Text(text = "AI アプリとの連携", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
+                    Text(
+                        text = "AI アプリとの連携",
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    // 無効化・有効化の実行中は、古い一覧で結果を上書きしないよう押せなくする
+                    AppIconButton(onClick = onRefresh, enabled = !state.isRefreshing && state.updatingId == null) {
+                        if (state.isRefreshing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "再読み込み",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
 
                 if (!state.enabled) {
@@ -110,8 +136,8 @@ internal fun McpConnectionsContent(
                                 connection = connection,
                                 isConfirmingDisable = state.confirmingDisableId == connection.id,
                                 isUpdating = state.updatingId == connection.id,
-                                // 実行中は他の行の操作も止め、結果の表示が入れ替わらないようにする
-                                actionsEnabled = state.updatingId == null,
+                                // 実行中・再読み込み中は他の行の操作も止め、結果の表示が入れ替わらないようにする
+                                actionsEnabled = state.updatingId == null && !state.isRefreshing,
                                 onRequestDisable = { onRequestDisable(connection.id) },
                                 onCancelDisable = onCancelDisable,
                                 onConfirmDisable = { onConfirmDisable(connection.id) },
@@ -219,6 +245,7 @@ private fun McpConnectionRow(
             DisableConfirmation(
                 clientName = connection.clientName,
                 isDisabling = isUpdating,
+                confirmEnabled = actionsEnabled,
                 onConfirm = onConfirmDisable,
                 onCancel = onCancelDisable,
             )
@@ -231,6 +258,7 @@ private fun McpConnectionRow(
 private fun DisableConfirmation(
     clientName: String,
     isDisabling: Boolean,
+    confirmEnabled: Boolean,
     onConfirm: () -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -258,7 +286,7 @@ private fun DisableConfirmation(
                 }
                 AppButton(
                     onClick = onConfirm,
-                    enabled = !isDisabling,
+                    enabled = confirmEnabled,
                     colors =
                         ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.error,

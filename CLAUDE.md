@@ -187,7 +187,7 @@ feature/report/      → ReportSummaryCard + MonthlyBarChart + CategoryBreakdown
                        commonMain: :core:ui, :shared / wasmJs: :core:auth, :core:network
 feature/settings/    → 全ファイル commonMain（Screen/Content 分離済み、wasmJs 固有 API 不使用）
                        ペット設定（ペット名・ごはん設定）も settings カテゴリとして統合
-                       「連携」カテゴリ（全員向け）: McpConnectionsViewModel + McpConnectionsScreen（MCP の連携アプリの一覧・無効化・有効化）
+                       「連携」カテゴリ（全員向け）: McpConnectionsViewModel + McpConnectionsScreen（MCP の連携アプリの一覧・再読み込み・無効化・有効化）
                        Depends on :core:auth, :core:network, :core:ui, :shared
 
 app/                 → Screen enum + Sidebar + DrawerContent + NavigationItems (commonMain)
