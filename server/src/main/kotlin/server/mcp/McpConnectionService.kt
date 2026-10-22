@@ -88,9 +88,10 @@ class McpConnectionService(
      * 過ぎたものは、ここでメタデータを取り直して保存する（`/mcp` の応答を遅らせないよう、認証の中では取りに行かない）。
      *
      * 応答の遅いホストがあっても一覧を返せるよう、取り直しは [METADATA_FETCH_DEADLINE_MILLIS] で打ち切る。
-     * 間に合わなかったものは今の表示名のまま返し、保存もしない（次に一覧を開いたときに取り直す）。
-     * 1 件の取得のタイムアウト（[CimdClientMetadataFetcher.REQUEST_TIMEOUT_MILLIS]）はこれより短いため、
-     * 応答しないホストは締め切りの前に失敗として保存され、毎回待たされることはない（打ち切られるのは待ち行列に残ったものだけ）。
+     * 締め切りまでに終わらなかったもの（同時取得数の枠を待ち、遅れて始めたものを含む）は今の表示名のまま返し、
+     * 保存もしない（次に一覧を開いたときに取り直す）。
+     * 1 件の取得のタイムアウト（[CimdClientMetadataFetcher.REQUEST_TIMEOUT_MILLIS]）は保存の時間を見込んでこれより短くしてあり、
+     * すぐに取り始めた応答しないホストは締め切りの前に失敗として保存されるため、毎回待たされ続けることはない。
      */
     suspend fun list(uid: String): List<McpConnection> {
         val now = clock.instant()
@@ -172,6 +173,9 @@ class McpConnectionService(
 
         // 一覧の表示時にメタデータの取り直しを待つ上限。フロントの API のタイムアウト（10 秒）に収める
         internal const val METADATA_FETCH_DEADLINE_MILLIS = 5_000L
+
+        // 取得に失敗した後、締め切りまでに表示名（の取得日時）を保存するために残しておく時間
+        internal const val METADATA_SAVE_MARGIN_MILLIS = 1_000L
 
         // 一覧に出す連携アプリの上限
         internal const val MAX_CONNECTIONS = 100

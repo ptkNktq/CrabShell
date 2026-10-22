@@ -200,9 +200,13 @@ class McpConnectionServiceTest {
 
     @Test
     fun metadataFetchTimesOutBeforeListDeadline() {
-        // 応答しないホストは締め切りより先に取得のタイムアウトで失敗させ、失敗として保存させる
+        // 応答しないホストは締め切りより先に取得のタイムアウトで失敗させ、失敗として保存させる。
+        // 保存（Firestore への書き込み）も締め切りの中で終える必要があるため、その分の余裕を空けておく
         // （Ktor の requestTimeoutMillis は接続を含むリクエスト全体の上限）
-        assertTrue(CimdClientMetadataFetcher.REQUEST_TIMEOUT_MILLIS < McpConnectionService.METADATA_FETCH_DEADLINE_MILLIS)
+        assertTrue(
+            CimdClientMetadataFetcher.REQUEST_TIMEOUT_MILLIS + McpConnectionService.METADATA_SAVE_MARGIN_MILLIS <=
+                McpConnectionService.METADATA_FETCH_DEADLINE_MILLIS,
+        )
     }
 
     @Test
