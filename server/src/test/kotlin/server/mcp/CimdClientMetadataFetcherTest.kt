@@ -6,6 +6,7 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import io.ktor.utils.io.ByteReadChannel
 import kotlinx.coroutines.test.runTest
 import okhttp3.Dns
 import java.net.InetAddress
@@ -65,6 +66,48 @@ class CimdClientMetadataFetcherTest {
             val fetcher = fetcher(body = """{"client_id":"$clientId","client_name":"Claude Code","pad":"$padding"}""")
 
             assertNull(fetcher.fetchClientName(clientId))
+        }
+
+    @Test
+    fun rejectsTooLargeBodyWithoutContentLength() =
+        runTest {
+            val padding = "x".repeat(CimdClientMetadataFetcher.MAX_BODY_BYTES.toInt())
+            val body = """{"client_id":"$clientId","client_name":"Claude Code","pad":"$padding"}""".encodeToByteArray()
+            // 大きさを宣言しない応答でも、読みながら上限で打ち切る
+            val fetcher =
+                CimdClientMetadataFetcher(
+                    HttpClient(
+                        MockEngine {
+                            respond(
+                                ByteReadChannel(body),
+                                HttpStatusCode.OK,
+                                headersOf(HttpHeaders.ContentType, "application/json"),
+                            )
+                        },
+                    ) { expectSuccess = false },
+                )
+
+            assertNull(fetcher.fetchClientName(clientId))
+        }
+
+    @Test
+    fun readsClientNameWithoutContentLength() =
+        runTest {
+            val body = """{"client_id":"$clientId","client_name":"Claude Code"}""".encodeToByteArray()
+            val fetcher =
+                CimdClientMetadataFetcher(
+                    HttpClient(
+                        MockEngine {
+                            respond(
+                                ByteReadChannel(body),
+                                HttpStatusCode.OK,
+                                headersOf(HttpHeaders.ContentType, "application/json"),
+                            )
+                        },
+                    ) { expectSuccess = false },
+                )
+
+            assertEquals("Claude Code", fetcher.fetchClientName(clientId))
         }
 
     @Test

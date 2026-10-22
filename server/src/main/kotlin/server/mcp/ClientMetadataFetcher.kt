@@ -1,7 +1,6 @@
 package server.mcp
 
 import com.google.common.net.InetAddresses
-import config.HttpTimeouts
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.HttpTimeout
@@ -42,7 +41,7 @@ interface ClientMetadataFetcher : AutoCloseable {
  * - https のみ。リダイレクトは追わない。プロキシも使わない（名前解決がプロキシ側で行われ、[PublicAddressDns] が効かなくなるため）
  * - 名前解決の結果からパブリックでないアドレスを除く（[PublicAddressDns]）。解決したアドレスにそのまま接続するため、
  *   確認した後に別のアドレスへ向け直される（DNS リバインディング）こともない
- * - 応答の大きさに上限を設け、タイムアウトも短くする
+ * - 応答の大きさに上限を設け（受信しながら数え、上限を超えたら読むのをやめる）、タイムアウトも短くする
  *
  * CIMD の仕様どおり、文書の `client_id` が URL と一致しない場合は採用しない。
  */
@@ -55,18 +54,26 @@ class CimdClientMetadataFetcher(
     override suspend fun fetchClientName(clientId: String): String? {
         if (!isFetchableUrl(clientId)) return null
         return try {
-            val response = client.get(clientId) { accept(ContentType.Application.Json) }
-            if (response.status != HttpStatusCode.OK) {
-                logger.info("Client metadata unavailable: status={} client_id={}", response.status.value, sanitizeForLog(clientId))
-                return null
+            // get() は本文をすべてメモリに読み込んでから返すため、execute の中で読む量を制限する
+            // （https://ktor.io/docs/client-responses.html の「Streaming data」）
+            client.prepareGet(clientId) { accept(ContentType.Application.Json) }.execute { response ->
+                if (response.status != HttpStatusCode.OK) {
+                    logger.info("Client metadata unavailable: status={} client_id={}", response.status.value, sanitizeForLog(clientId))
+                    return@execute null
+                }
+                // 宣言された大きさで超えると分かる場合は読まない
+                if ((response.contentLength() ?: 0) > MAX_BODY_BYTES) {
+                    logger.info("Client metadata too large: client_id={}", sanitizeForLog(clientId))
+                    return@execute null
+                }
+                // 上限を 1 バイト超えて読み、超えたかどうかで大きすぎる応答を見分ける
+                val body = response.bodyAsChannel().readRemaining(MAX_BODY_BYTES + 1).readByteArray()
+                if (body.size > MAX_BODY_BYTES) {
+                    logger.info("Client metadata too large: client_id={}", sanitizeForLog(clientId))
+                    return@execute null
+                }
+                parseClientName(clientId, body.decodeToString())
             }
-            // 上限を 1 バイト超えて読み、超えたかどうかで大きすぎる応答を見分ける
-            val body = response.bodyAsChannel().readRemaining(MAX_BODY_BYTES + 1).readByteArray()
-            if (body.size > MAX_BODY_BYTES) {
-                logger.info("Client metadata too large: client_id={}", sanitizeForLog(clientId))
-                return null
-            }
-            parseClientName(clientId, body.decodeToString())
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -81,6 +88,10 @@ class CimdClientMetadataFetcher(
     companion object {
         // メタデータの応答の上限（CIMD の文書は数 KB 程度）
         internal const val MAX_BODY_BYTES = 64L * 1024
+
+        // 取得のタイムアウト。一覧の応答を待たせないよう、アプリの API の既定値より短くする
+        internal const val CONNECT_TIMEOUT_MILLIS = 3_000L
+        internal const val REQUEST_TIMEOUT_MILLIS = 5_000L
 
         // 表示名の上限（文字数）
         internal const val MAX_CLIENT_NAME_LENGTH = 100
@@ -99,7 +110,8 @@ class CimdClientMetadataFetcher(
                 expectSuccess = false
                 followRedirects = false
                 install(HttpTimeout) {
-                    requestTimeoutMillis = HttpTimeouts.DEFAULT_REQUEST_TIMEOUT_MILLIS
+                    connectTimeoutMillis = CONNECT_TIMEOUT_MILLIS
+                    requestTimeoutMillis = REQUEST_TIMEOUT_MILLIS
                 }
                 engine {
                     config {
