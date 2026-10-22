@@ -20,6 +20,7 @@ import okhttp3.Dns
 import org.slf4j.LoggerFactory
 import server.geo.IpClassifier
 import server.util.CloseOnce
+import server.util.sanitizeForLog
 import java.net.InetAddress
 import java.net.Proxy
 import java.net.URI
@@ -56,20 +57,21 @@ class CimdClientMetadataFetcher(
         return try {
             val response = client.get(clientId) { accept(ContentType.Application.Json) }
             if (response.status != HttpStatusCode.OK) {
-                logger.info("Client metadata unavailable: status={} client_id={}", response.status.value, clientId)
+                logger.info("Client metadata unavailable: status={} client_id={}", response.status.value, sanitizeForLog(clientId))
                 return null
             }
             // 上限を 1 バイト超えて読み、超えたかどうかで大きすぎる応答を見分ける
             val body = response.bodyAsChannel().readRemaining(MAX_BODY_BYTES + 1).readByteArray()
             if (body.size > MAX_BODY_BYTES) {
-                logger.info("Client metadata too large: client_id={}", clientId)
+                logger.info("Client metadata too large: client_id={}", sanitizeForLog(clientId))
                 return null
             }
             parseClientName(clientId, body.decodeToString())
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            logger.info("Client metadata fetch failed: client_id={} {}", clientId, e.toString())
+            // 例外のメッセージにも URL が含まれうるため、同様に通す
+            logger.info("Client metadata fetch failed: client_id={} {}", sanitizeForLog(clientId), sanitizeForLog(e.toString()))
             null
         }
     }

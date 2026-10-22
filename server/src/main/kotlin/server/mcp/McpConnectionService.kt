@@ -8,6 +8,7 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import model.McpConnection
 import org.slf4j.LoggerFactory
+import server.util.sanitizeForLog
 import java.net.URI
 import java.security.MessageDigest
 import java.time.Clock
@@ -68,14 +69,14 @@ class McpConnectionService(
                         disabledAt = null,
                     ),
                 )
-                logger.info("MCP connection recorded: uid={} client_id={}", uid, clientId)
+                logger.info("MCP connection recorded: uid={} client_id={}", uid, sanitizeForLog(clientId))
             } else if (Duration.between(record.lastUsedAt, now) >= LAST_USED_UPDATE_INTERVAL) {
                 repository.updateLastUsedAt(uid, connectionId, now)
             }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            logger.warn("Failed to record MCP connection use: uid={} client_id={}", uid, clientId, e)
+            logger.warn("Failed to record MCP connection use: uid={} client_id={}", uid, sanitizeForLog(clientId), e)
         }
         return McpConnectionUse.ALLOWED
     }
@@ -109,7 +110,7 @@ class McpConnectionService(
         disabled: Boolean,
     ): McpConnection? {
         val record = repository.updateDisabledAt(uid, connectionId, if (disabled) clock.instant() else null) ?: return null
-        logger.info("MCP connection {}: uid={} client_id={}", if (disabled) "disabled" else "enabled", uid, record.clientId)
+        logger.info("MCP connection {}: uid={} client_id={}", if (disabled) "disabled" else "enabled", uid, sanitizeForLog(record.clientId))
         return record.toModel()
     }
 
@@ -133,7 +134,7 @@ class McpConnectionService(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            logger.warn("Failed to save MCP client name: uid={} client_id={}", uid, record.clientId, e)
+            logger.warn("Failed to save MCP client name: uid={} client_id={}", uid, sanitizeForLog(record.clientId), e)
         }
         return record.copy(clientName = clientName, clientNameFetchedAt = now)
     }
