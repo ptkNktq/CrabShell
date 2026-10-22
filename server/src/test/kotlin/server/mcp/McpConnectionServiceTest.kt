@@ -1,5 +1,6 @@
 package server.mcp
 
+import config.HttpTimeouts
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -199,14 +200,10 @@ class McpConnectionServiceTest {
         }
 
     @Test
-    fun metadataFetchTimesOutBeforeListDeadline() {
-        // 応答しないホストは締め切りより先に取得のタイムアウトで失敗させ、失敗として保存させる。
-        // 保存（Firestore への書き込み）も締め切りの中で終える必要があるため、その分の余裕を空けておく
-        // （Ktor の requestTimeoutMillis は接続を含むリクエスト全体の上限）
-        assertTrue(
-            CimdClientMetadataFetcher.REQUEST_TIMEOUT_MILLIS + McpConnectionService.METADATA_SAVE_MARGIN_MILLIS <=
-                McpConnectionService.METADATA_FETCH_DEADLINE_MILLIS,
-        )
+    fun listDeadlineFitsFrontendTimeout() {
+        // 締め切りは 1 件の取得のタイムアウト + 保存の時間から作る。Firestore の読み書きも含めて、フロントの API のタイムアウトに収める
+        assertTrue(McpConnectionService.METADATA_SAVE_MARGIN_MILLIS > 0)
+        assertTrue(McpConnectionService.METADATA_FETCH_DEADLINE_MILLIS * 2 <= HttpTimeouts.DEFAULT_REQUEST_TIMEOUT_MILLIS)
     }
 
     @Test

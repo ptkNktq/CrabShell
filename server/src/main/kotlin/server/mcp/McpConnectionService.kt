@@ -171,11 +171,12 @@ class McpConnectionService(
         // 表示名が取れていないものを取り直す間隔
         internal val CLIENT_NAME_RETRY_INTERVAL: Duration = Duration.ofHours(1)
 
-        // 一覧の表示時にメタデータの取り直しを待つ上限。フロントの API のタイムアウト（10 秒）に収める
-        internal const val METADATA_FETCH_DEADLINE_MILLIS = 5_000L
-
         // 取得に失敗した後、締め切りまでに表示名（の取得日時）を保存するために残しておく時間
-        internal const val METADATA_SAVE_MARGIN_MILLIS = 1_000L
+        internal const val METADATA_SAVE_MARGIN_MILLIS = 2_000L
+
+        // 一覧の表示時にメタデータの取り直しを待つ上限（5 秒）。フロントの API のタイムアウト（10 秒）に収める。
+        // 1 件の取得のタイムアウトに保存の時間を足して作り、応答しないホストでも締め切りの前に失敗を保存できるようにする
+        internal const val METADATA_FETCH_DEADLINE_MILLIS = CimdClientMetadataFetcher.REQUEST_TIMEOUT_MILLIS + METADATA_SAVE_MARGIN_MILLIS
 
         // 一覧に出す連携アプリの上限
         internal const val MAX_CONNECTIONS = 100
