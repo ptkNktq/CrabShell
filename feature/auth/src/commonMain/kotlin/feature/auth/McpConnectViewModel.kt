@@ -93,9 +93,12 @@ class McpConnectViewModel(
      *
      * 成功時は isCompleting を戻さない。遷移するまでの間にボタンが再度押せる状態に戻ると、
      * 使用済みの externalAuthId で再送してエラーになるため。
+     *
+     * 有効化の実行中は受け付けない。有効化より先に連携が完了すると、クライアントが無効のまま `/mcp` を呼んで 401 を受け、
+     * クライアントによっては連携し直すまで接続しなくなるため（Claude Code など）。失敗の案内も遷移で見られなくなる。
      */
     fun onContinue(externalAuthId: String?) {
-        if (uiState.isCompleting || uiState.isCancelled) return
+        if (uiState.isCompleting || uiState.isCancelled || uiState.disabledConnections.enablingId != null) return
         if (externalAuthId.isNullOrBlank()) {
             uiState = uiState.copy(errorMessage = INVALID_LINK_MESSAGE)
             return
@@ -115,7 +118,7 @@ class McpConnectViewModel(
 
     /** 連携をキャンセルする。連携のために開いた画面なので、アプリの他の画面へは進ませずに終わらせる */
     fun onCancel() {
-        if (uiState.isCompleting) return
+        if (uiState.isCompleting || uiState.disabledConnections.enablingId != null) return
         uiState = uiState.copy(isCancelled = true, errorMessage = null)
     }
 

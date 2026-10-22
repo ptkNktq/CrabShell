@@ -27,6 +27,9 @@ internal fun McpConnectContent(
     onContinue: () -> Unit,
     onCancel: () -> Unit,
 ) {
+    // 有効化の実行中は、完了を待ってから続けてもらう（先に連携が完了すると無効のまま接続されうる）
+    val actionsEnabled = !isCompleting && disabledConnections.enablingId == null
+
     McpConnectFrame(title = "AI アプリとの連携") {
         Text(
             text =
@@ -66,7 +69,7 @@ internal fun McpConnectContent(
         AppButton(
             onClick = onContinue,
             modifier = Modifier.fillMaxWidth().height(48.dp),
-            enabled = !isCompleting,
+            enabled = actionsEnabled,
         ) {
             if (isCompleting) {
                 CircularProgressIndicator(
@@ -81,7 +84,7 @@ internal fun McpConnectContent(
 
         AppTextButton(
             onClick = onCancel,
-            enabled = !isCompleting,
+            enabled = actionsEnabled,
         ) {
             Text("キャンセル")
         }

@@ -239,6 +239,34 @@ class McpConnectViewModelTest {
         }
 
     @Test
+    fun continueAndCancelAreIgnoredWhileEnabling() =
+        runTest(testDispatcher) {
+            coEvery { connectionRepository.getConnections() } returns
+                McpConnectionsResponse(enabled = true, connections = listOf(connection("a", "2026-10-20T00:00:00Z")))
+            val pending = CompletableDeferred<McpConnection>()
+            coEvery { connectionRepository.enable("a") } coAnswers { pending.await() }
+            coEvery { repository.complete("01J3X4Y5Z6") } returns "https://example.authkit.app/consent"
+            val vm = McpConnectViewModel(repository, connectionRepository)
+            advanceUntilIdle()
+
+            vm.onEnableConnection("a")
+            // 有効化より先に連携が完了すると、無効のまま接続されうる
+            vm.onContinue("01J3X4Y5Z6")
+            vm.onCancel()
+            assertFalse(vm.uiState.isCompleting)
+            assertFalse(vm.uiState.isCancelled)
+
+            pending.complete(connection("a"))
+            advanceUntilIdle()
+            coVerify(exactly = 0) { repository.complete(any()) }
+
+            // 有効化が終われば続けられる
+            vm.onContinue("01J3X4Y5Z6")
+            advanceUntilIdle()
+            assertEquals("https://example.authkit.app/consent", vm.uiState.redirectUri)
+        }
+
+    @Test
     fun enableConnectionFailureShowsError() =
         runTest(testDispatcher) {
             coEvery { connectionRepository.getConnections() } returns
