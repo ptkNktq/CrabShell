@@ -100,6 +100,11 @@ class CimdClientMetadataFetcherTest {
     fun fetchableUrlRequiresHttpsHostName() {
         assertTrue(CimdClientMetadataFetcher.isFetchableUrl(clientId))
         assertFalse(CimdClientMetadataFetcher.isFetchableUrl("https://10.0.0.1/client"))
+        assertFalse(CimdClientMetadataFetcher.isFetchableUrl("https://[::1]/client"))
+        // OkHttp は数字とドットだけのホストを IP とみなし、名前解決を経ずに接続する
+        assertFalse(CimdClientMetadataFetcher.isFetchableUrl("https://127.1/client"))
+        assertFalse(CimdClientMetadataFetcher.isFetchableUrl("https://2130706433/client"))
+        assertFalse(CimdClientMetadataFetcher.isFetchableUrl("https://127.0.0.1./client"))
         assertFalse(CimdClientMetadataFetcher.isFetchableUrl("ftp://claude.ai/client"))
     }
 

@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory
 import server.geo.IpClassifier
 import server.util.CloseOnce
 import java.net.InetAddress
+import java.net.Proxy
 import java.net.URI
 import java.net.UnknownHostException
 
@@ -37,7 +38,7 @@ interface ClientMetadataFetcher : AutoCloseable {
  * Client ID Metadata Document（client_id の URL で公開される JSON）から `client_name` を読む。
  *
  * client_id は利用者側が用意した任意の URL のため、サーバーから内部ネットワークへ接続させられないようにする（SSRF 対策）。
- * - https のみ。リダイレクトは追わない
+ * - https のみ。リダイレクトは追わない。プロキシも使わない（名前解決がプロキシ側で行われ、[PublicAddressDns] が効かなくなるため）
  * - 名前解決の結果からパブリックでないアドレスを除く（[PublicAddressDns]）。解決したアドレスにそのまま接続するため、
  *   確認した後に別のアドレスへ向け直される（DNS リバインディング）こともない
  * - 応答の大きさに上限を設け、タイムアウトも短くする
@@ -87,6 +88,10 @@ class CimdClientMetadataFetcher(
 
         private val json = Json { ignoreUnknownKeys = true }
 
+        // OkHttp が IP アドレスとみなして名前解決を経ずに接続するホストの形（okhttp3.internal の canParseAsIpAddress と同じ）。
+        // `127.1` のような短縮表記は Guava の判定では IP にならないが、OkHttp はこちらで IP として接続する
+        private val OKHTTP_IP_ADDRESS_LIKE = Regex("([0-9a-fA-F]*:[0-9a-fA-F:.]*)|([\\d.]+)")
+
         private fun createClient(): HttpClient =
             HttpClient(OkHttp) {
                 expectSuccess = false
@@ -96,6 +101,7 @@ class CimdClientMetadataFetcher(
                 }
                 engine {
                     config {
+                        proxy(Proxy.NO_PROXY)
                         dns(PublicAddressDns())
                         followRedirects(false)
                         followSslRedirects(false)
@@ -105,7 +111,7 @@ class CimdClientMetadataFetcher(
 
         /**
          * https でホスト名があり、資格情報を含まない URL だけを取りに行く。
-         * ホストが IP アドレスの場合は名前解決を経ず [PublicAddressDns] の確認をすり抜けるため、取りに行かない
+         * ホストが IP アドレス（OkHttp が IP とみなす形を含む）の場合は名前解決を経ず [PublicAddressDns] の確認をすり抜けるため、取りに行かない
          */
         internal fun isFetchableUrl(value: String): Boolean {
             val uri = runCatching { URI(value) }.getOrNull() ?: return false
@@ -113,6 +119,7 @@ class CimdClientMetadataFetcher(
             return uri.scheme.equals("https", ignoreCase = true) &&
                 !host.isNullOrEmpty() &&
                 !InetAddresses.isUriInetAddress(host) &&
+                !OKHTTP_IP_ADDRESS_LIKE.matches(host) &&
                 uri.rawUserInfo == null
         }
 
