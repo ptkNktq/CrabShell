@@ -80,6 +80,7 @@ class PreviewScreenshotGeneratorTest {
                 // McpConnectContent も内部で AppTheme + Surface を適用済み
                 McpConnectContent(
                     isCompleting = false,
+                    isLoadingDisabledConnections = false,
                     errorMessage = null,
                     disabledConnections = DisabledConnectionsState(),
                     onToggleDisabledExpanded = {},
@@ -115,6 +116,7 @@ class PreviewScreenshotGeneratorTest {
                 ) {
                     McpConnectContent(
                         isCompleting = false,
+                        isLoadingDisabledConnections = false,
                         errorMessage = null,
                         disabledConnections = state,
                         onToggleDisabledExpanded = {},

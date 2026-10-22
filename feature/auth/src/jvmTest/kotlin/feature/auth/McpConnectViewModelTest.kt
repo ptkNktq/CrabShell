@@ -59,6 +59,7 @@ class McpConnectViewModelTest {
         runTest(testDispatcher) {
             coEvery { repository.complete("01J3X4Y5Z6") } returns "https://example.authkit.app/consent"
             val vm = McpConnectViewModel(repository, connectionRepository)
+            advanceUntilIdle()
 
             vm.onContinue("01J3X4Y5Z6")
             assertTrue(vm.uiState.isCompleting)
@@ -74,6 +75,7 @@ class McpConnectViewModelTest {
         runTest(testDispatcher) {
             coEvery { repository.complete(any()) } throws Exception("Failed to complete authorization")
             val vm = McpConnectViewModel(repository, connectionRepository)
+            advanceUntilIdle()
 
             vm.onContinue("01J3X4Y5Z6")
             advanceUntilIdle()
@@ -98,6 +100,7 @@ class McpConnectViewModelTest {
             cases.forEach { (error, expected) ->
                 coEvery { repository.complete(any()) } throws error
                 val vm = McpConnectViewModel(repository, connectionRepository)
+                advanceUntilIdle()
 
                 vm.onContinue("01J3X4Y5Z6")
                 advanceUntilIdle()
@@ -110,6 +113,7 @@ class McpConnectViewModelTest {
     fun missingExternalAuthIdShowsErrorWithoutRequest() =
         runTest(testDispatcher) {
             val vm = McpConnectViewModel(repository, connectionRepository)
+            advanceUntilIdle()
 
             vm.onContinue(null)
             vm.onContinue(" ")
@@ -125,6 +129,7 @@ class McpConnectViewModelTest {
             val pending = CompletableDeferred<String>()
             coEvery { repository.complete(any()) } coAnswers { pending.await() }
             val vm = McpConnectViewModel(repository, connectionRepository)
+            advanceUntilIdle()
 
             vm.onContinue("01J3X4Y5Z6")
             vm.onContinue("01J3X4Y5Z6")
@@ -135,9 +140,34 @@ class McpConnectViewModelTest {
         }
 
     @Test
+    fun continueIsIgnoredUntilDisabledConnectionsAreLoaded() =
+        runTest(testDispatcher) {
+            val connections = CompletableDeferred<McpConnectionsResponse>()
+            coEvery { connectionRepository.getConnections() } coAnswers { connections.await() }
+            coEvery { repository.complete("01J3X4Y5Z6") } returns "https://example.authkit.app/consent"
+            val vm = McpConnectViewModel(repository, connectionRepository)
+
+            // 案内が出る前に続けると、無効にしたアプリだと気付かずに連携してしまう
+            assertTrue(vm.uiState.isLoadingDisabledConnections)
+            vm.onContinue("01J3X4Y5Z6")
+            advanceUntilIdle()
+            assertFalse(vm.uiState.isCompleting)
+            coVerify(exactly = 0) { repository.complete(any()) }
+
+            connections.complete(McpConnectionsResponse(enabled = true, connections = emptyList()))
+            advanceUntilIdle()
+            assertFalse(vm.uiState.isLoadingDisabledConnections)
+
+            vm.onContinue("01J3X4Y5Z6")
+            advanceUntilIdle()
+            assertEquals("https://example.authkit.app/consent", vm.uiState.redirectUri)
+        }
+
+    @Test
     fun cancelEndsConnectionWithoutRequest() =
         runTest(testDispatcher) {
             val vm = McpConnectViewModel(repository, connectionRepository)
+            advanceUntilIdle()
 
             vm.onCancel()
             // キャンセル後は連携を続けられない
@@ -155,6 +185,7 @@ class McpConnectViewModelTest {
             val pending = CompletableDeferred<String>()
             coEvery { repository.complete(any()) } coAnswers { pending.await() }
             val vm = McpConnectViewModel(repository, connectionRepository)
+            advanceUntilIdle()
 
             vm.onContinue("01J3X4Y5Z6")
             vm.onCancel()

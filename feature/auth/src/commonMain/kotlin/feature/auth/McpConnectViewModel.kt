@@ -23,6 +23,8 @@ data class McpConnectUiState(
     val isCancelled: Boolean = false,
     /** 無効にした連携アプリ。連携し直すアプリをここで有効にしてもらう */
     val disabledConnections: DisabledConnectionsState = DisabledConnectionsState(),
+    /** 無効にした連携アプリを読み込み中。終わるまで（失敗した場合を除く）連携を続けられない */
+    val isLoadingDisabledConnections: Boolean = true,
 )
 
 /** MCP クライアント（Claude Code 等）との連携画面。ユーザーの明示的な操作で連携を完了する */
@@ -39,7 +41,8 @@ class McpConnectViewModel(
 
     /**
      * 無効にした連携アプリを取得する（無効にした日の新しい順）。
-     * 取得できなくても連携は続けられるため、案内を出さないだけにする
+     * 取得できなくても連携は続けられるため、案内を出さないだけにする。
+     * 読み込み中に続けられると、無効にしたアプリだと気付かずに連携してしまうため、終わるまで続けさせない
      */
     private fun loadDisabledConnections() {
         viewModelScope.launch {
@@ -56,6 +59,8 @@ class McpConnectViewModel(
                 throw e
             } catch (e: Exception) {
                 AppLogger.w(TAG, "Failed to load MCP connections: ${e.message}")
+            } finally {
+                uiState = uiState.copy(isLoadingDisabledConnections = false)
             }
         }
     }
@@ -100,7 +105,13 @@ class McpConnectViewModel(
      * クライアントによっては連携し直すまで接続しなくなるため（Claude Code など）。失敗の案内も遷移で見られなくなる。
      */
     fun onContinue(externalAuthId: String?) {
-        if (uiState.isCompleting || uiState.isCancelled || uiState.disabledConnections.enablingId != null) return
+        if (uiState.isCompleting ||
+            uiState.isCancelled ||
+            uiState.isLoadingDisabledConnections ||
+            uiState.disabledConnections.enablingId != null
+        ) {
+            return
+        }
         if (externalAuthId.isNullOrBlank()) {
             uiState = uiState.copy(errorMessage = INVALID_LINK_MESSAGE)
             return

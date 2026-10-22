@@ -31,6 +31,7 @@ fun McpConnectScreen(vm: McpConnectViewModel = koinViewModel()) {
     } else {
         McpConnectContent(
             isCompleting = vm.uiState.isCompleting,
+            isLoadingDisabledConnections = vm.uiState.isLoadingDisabledConnections,
             errorMessage = vm.uiState.errorMessage,
             disabledConnections = vm.uiState.disabledConnections,
             onToggleDisabledExpanded = vm::onToggleDisabledExpanded,

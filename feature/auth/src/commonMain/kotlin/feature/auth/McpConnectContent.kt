@@ -19,6 +19,7 @@ import core.ui.theme.AppTheme
 @Composable
 internal fun McpConnectContent(
     isCompleting: Boolean,
+    isLoadingDisabledConnections: Boolean,
     errorMessage: String?,
     disabledConnections: DisabledConnectionsState,
     onToggleDisabledExpanded: () -> Unit,
@@ -70,7 +71,8 @@ internal fun McpConnectContent(
         AppButton(
             onClick = onContinue,
             modifier = Modifier.fillMaxWidth().height(48.dp),
-            enabled = actionsEnabled,
+            // 無効にしたアプリの案内が出る前に続けられないよう、読み込みを待つ
+            enabled = actionsEnabled && !isLoadingDisabledConnections,
         ) {
             if (isCompleting) {
                 CircularProgressIndicator(
