@@ -2,6 +2,7 @@ package feature.auth
 
 import core.network.ApiResponseException
 import core.network.McpAuthorizationRepository
+import core.network.McpConnectionRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -14,6 +15,8 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import model.McpAuthorizationErrors
+import model.McpConnection
+import model.McpConnectionsResponse
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -27,10 +30,23 @@ import kotlin.test.assertTrue
 class McpConnectViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private val repository = mockk<McpAuthorizationRepository>()
+    private val connectionRepository = mockk<McpConnectionRepository>()
+
+    private fun connection(
+        id: String,
+        disabledAt: String? = null,
+    ) = McpConnection(
+        id = id,
+        clientName = "app-$id",
+        firstUsedAt = "2026-09-01T00:00:00Z",
+        lastUsedAt = "2026-10-01T00:00:00Z",
+        disabledAt = disabledAt,
+    )
 
     @BeforeTest
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
+        coEvery { connectionRepository.getDisabledConnections() } returns McpConnectionsResponse(enabled = true, connections = emptyList())
     }
 
     @AfterTest
@@ -42,7 +58,8 @@ class McpConnectViewModelTest {
     fun successSetsRedirectUriAndKeepsCompleting() =
         runTest(testDispatcher) {
             coEvery { repository.complete("01J3X4Y5Z6") } returns "https://example.authkit.app/consent"
-            val vm = McpConnectViewModel(repository)
+            val vm = McpConnectViewModel(repository, connectionRepository)
+            advanceUntilIdle()
 
             vm.onContinue("01J3X4Y5Z6")
             assertTrue(vm.uiState.isCompleting)
@@ -57,7 +74,8 @@ class McpConnectViewModelTest {
     fun failureShowsErrorAndAllowsRetry() =
         runTest(testDispatcher) {
             coEvery { repository.complete(any()) } throws Exception("Failed to complete authorization")
-            val vm = McpConnectViewModel(repository)
+            val vm = McpConnectViewModel(repository, connectionRepository)
+            advanceUntilIdle()
 
             vm.onContinue("01J3X4Y5Z6")
             advanceUntilIdle()
@@ -81,7 +99,8 @@ class McpConnectViewModelTest {
                 )
             cases.forEach { (error, expected) ->
                 coEvery { repository.complete(any()) } throws error
-                val vm = McpConnectViewModel(repository)
+                val vm = McpConnectViewModel(repository, connectionRepository)
+                advanceUntilIdle()
 
                 vm.onContinue("01J3X4Y5Z6")
                 advanceUntilIdle()
@@ -93,7 +112,8 @@ class McpConnectViewModelTest {
     @Test
     fun missingExternalAuthIdShowsErrorWithoutRequest() =
         runTest(testDispatcher) {
-            val vm = McpConnectViewModel(repository)
+            val vm = McpConnectViewModel(repository, connectionRepository)
+            advanceUntilIdle()
 
             vm.onContinue(null)
             vm.onContinue(" ")
@@ -108,7 +128,8 @@ class McpConnectViewModelTest {
         runTest(testDispatcher) {
             val pending = CompletableDeferred<String>()
             coEvery { repository.complete(any()) } coAnswers { pending.await() }
-            val vm = McpConnectViewModel(repository)
+            val vm = McpConnectViewModel(repository, connectionRepository)
+            advanceUntilIdle()
 
             vm.onContinue("01J3X4Y5Z6")
             vm.onContinue("01J3X4Y5Z6")
@@ -119,9 +140,34 @@ class McpConnectViewModelTest {
         }
 
     @Test
+    fun continueIsIgnoredUntilDisabledConnectionsAreLoaded() =
+        runTest(testDispatcher) {
+            val connections = CompletableDeferred<McpConnectionsResponse>()
+            coEvery { connectionRepository.getDisabledConnections() } coAnswers { connections.await() }
+            coEvery { repository.complete("01J3X4Y5Z6") } returns "https://example.authkit.app/consent"
+            val vm = McpConnectViewModel(repository, connectionRepository)
+
+            // 案内が出る前に続けると、無効にしたアプリだと気付かずに連携してしまう
+            assertTrue(vm.uiState.isLoadingDisabledConnections)
+            vm.onContinue("01J3X4Y5Z6")
+            advanceUntilIdle()
+            assertFalse(vm.uiState.isCompleting)
+            coVerify(exactly = 0) { repository.complete(any()) }
+
+            connections.complete(McpConnectionsResponse(enabled = true, connections = emptyList()))
+            advanceUntilIdle()
+            assertFalse(vm.uiState.isLoadingDisabledConnections)
+
+            vm.onContinue("01J3X4Y5Z6")
+            advanceUntilIdle()
+            assertEquals("https://example.authkit.app/consent", vm.uiState.redirectUri)
+        }
+
+    @Test
     fun cancelEndsConnectionWithoutRequest() =
         runTest(testDispatcher) {
-            val vm = McpConnectViewModel(repository)
+            val vm = McpConnectViewModel(repository, connectionRepository)
+            advanceUntilIdle()
 
             vm.onCancel()
             // キャンセル後は連携を続けられない
@@ -138,7 +184,8 @@ class McpConnectViewModelTest {
         runTest(testDispatcher) {
             val pending = CompletableDeferred<String>()
             coEvery { repository.complete(any()) } coAnswers { pending.await() }
-            val vm = McpConnectViewModel(repository)
+            val vm = McpConnectViewModel(repository, connectionRepository)
+            advanceUntilIdle()
 
             vm.onContinue("01J3X4Y5Z6")
             vm.onCancel()
@@ -147,5 +194,176 @@ class McpConnectViewModelTest {
 
             assertFalse(vm.uiState.isCancelled)
             assertEquals("https://example.authkit.app/consent", vm.uiState.redirectUri)
+        }
+
+    @Test
+    fun loadsDisabledConnectionsInServerOrder() =
+        runTest(testDispatcher) {
+            coEvery { connectionRepository.getDisabledConnections() } returns
+                McpConnectionsResponse(
+                    enabled = true,
+                    connections =
+                        listOf(
+                            connection("new", disabledAt = "2026-10-20T00:00:00Z"),
+                            connection("old", disabledAt = "2026-10-01T00:00:00Z"),
+                        ),
+                )
+            val vm = McpConnectViewModel(repository, connectionRepository)
+            advanceUntilIdle()
+
+            // 無効にした日の新しい順はサーバーが返す順のまま
+            assertEquals(
+                listOf("new", "old"),
+                vm.uiState.disabledConnections.connections
+                    .map { it.id },
+            )
+            // 全件の一覧（表示名の取り直しが起こりうる）は呼ばない
+            coVerify(exactly = 0) { connectionRepository.getConnections() }
+        }
+
+    @Test
+    fun connectionsLoadFailureDoesNotBlockConnecting() =
+        runTest(testDispatcher) {
+            coEvery { connectionRepository.getDisabledConnections() } throws Exception("network error")
+            coEvery { repository.complete("01J3X4Y5Z6") } returns "https://example.authkit.app/consent"
+            val vm = McpConnectViewModel(repository, connectionRepository)
+            advanceUntilIdle()
+
+            assertTrue(
+                vm.uiState.disabledConnections.connections
+                    .isEmpty(),
+            )
+            assertNull(vm.uiState.errorMessage)
+            // 無効にしたアプリがあるか分からないことは伝える
+            assertTrue(vm.uiState.disabledConnectionsLoadFailed)
+
+            vm.onContinue("01J3X4Y5Z6")
+            advanceUntilIdle()
+            assertEquals("https://example.authkit.app/consent", vm.uiState.redirectUri)
+        }
+
+    @Test
+    fun retryLoadsDisabledConnectionsAfterFailure() =
+        runTest(testDispatcher) {
+            coEvery { connectionRepository.getDisabledConnections() } throws Exception("network error")
+            val vm = McpConnectViewModel(repository, connectionRepository)
+            advanceUntilIdle()
+            assertTrue(vm.uiState.disabledConnectionsLoadFailed)
+
+            val connections = CompletableDeferred<McpConnectionsResponse>()
+            coEvery { connectionRepository.getDisabledConnections() } coAnswers { connections.await() }
+            vm.onRetryLoadDisabledConnections()
+            // 読み込み中フラグは launch の前に立ち、重ねて読み込まない
+            assertTrue(vm.uiState.isLoadingDisabledConnections)
+            assertFalse(vm.uiState.disabledConnectionsLoadFailed)
+            vm.onRetryLoadDisabledConnections()
+
+            connections.complete(McpConnectionsResponse(enabled = true, connections = listOf(connection("a", "2026-10-20T00:00:00Z"))))
+            advanceUntilIdle()
+
+            assertFalse(vm.uiState.isLoadingDisabledConnections)
+            assertFalse(vm.uiState.disabledConnectionsLoadFailed)
+            assertEquals(
+                listOf("a"),
+                vm.uiState.disabledConnections.connections
+                    .map { it.id },
+            )
+            // 初回 + 再試行 1 回
+            coVerify(exactly = 2) { connectionRepository.getDisabledConnections() }
+        }
+
+    @Test
+    fun enableConnectionMarksItEnabledAndBlocksOtherRows() =
+        runTest(testDispatcher) {
+            coEvery { connectionRepository.getDisabledConnections() } returns
+                McpConnectionsResponse(
+                    enabled = true,
+                    connections = listOf(connection("a", "2026-10-20T00:00:00Z"), connection("b", "2026-10-19T00:00:00Z")),
+                )
+            val pending = CompletableDeferred<McpConnection>()
+            coEvery { connectionRepository.enable("a") } coAnswers { pending.await() }
+            val vm = McpConnectViewModel(repository, connectionRepository)
+            advanceUntilIdle()
+
+            vm.onEnableConnection("a")
+            // 実行中フラグは launch の前に立ち、他の行は押せない
+            assertEquals("a", vm.uiState.disabledConnections.enablingId)
+            vm.onEnableConnection("b")
+
+            pending.complete(connection("a"))
+            advanceUntilIdle()
+
+            assertNull(vm.uiState.disabledConnections.enablingId)
+            assertEquals(setOf("a"), vm.uiState.disabledConnections.enabledIds)
+            coVerify(exactly = 0) { connectionRepository.enable("b") }
+
+            // 有効にした行はもう押せない
+            vm.onEnableConnection("a")
+            advanceUntilIdle()
+            coVerify(exactly = 1) { connectionRepository.enable("a") }
+        }
+
+    @Test
+    fun continueAndCancelAreIgnoredWhileEnabling() =
+        runTest(testDispatcher) {
+            coEvery { connectionRepository.getDisabledConnections() } returns
+                McpConnectionsResponse(enabled = true, connections = listOf(connection("a", "2026-10-20T00:00:00Z")))
+            val pending = CompletableDeferred<McpConnection>()
+            coEvery { connectionRepository.enable("a") } coAnswers { pending.await() }
+            coEvery { repository.complete("01J3X4Y5Z6") } returns "https://example.authkit.app/consent"
+            val vm = McpConnectViewModel(repository, connectionRepository)
+            advanceUntilIdle()
+
+            vm.onEnableConnection("a")
+            // 有効化より先に連携が完了すると、無効のまま接続されうる
+            vm.onContinue("01J3X4Y5Z6")
+            vm.onCancel()
+            assertFalse(vm.uiState.isCompleting)
+            assertFalse(vm.uiState.isCancelled)
+
+            pending.complete(connection("a"))
+            advanceUntilIdle()
+            coVerify(exactly = 0) { repository.complete(any()) }
+
+            // 有効化が終われば続けられる
+            vm.onContinue("01J3X4Y5Z6")
+            advanceUntilIdle()
+            assertEquals("https://example.authkit.app/consent", vm.uiState.redirectUri)
+        }
+
+    @Test
+    fun enableConnectionFailureShowsError() =
+        runTest(testDispatcher) {
+            coEvery { connectionRepository.getDisabledConnections() } returns
+                McpConnectionsResponse(enabled = true, connections = listOf(connection("a", "2026-10-20T00:00:00Z")))
+            coEvery { connectionRepository.enable("a") } throws Exception("server error")
+            val vm = McpConnectViewModel(repository, connectionRepository)
+            advanceUntilIdle()
+
+            vm.onEnableConnection("a")
+            advanceUntilIdle()
+
+            assertEquals(McpConnectViewModel.ENABLE_FAILED_MESSAGE, vm.uiState.disabledConnections.errorMessage)
+            assertTrue(
+                vm.uiState.disabledConnections.enabledIds
+                    .isEmpty(),
+            )
+            assertNull(vm.uiState.disabledConnections.enablingId)
+        }
+
+    @Test
+    fun collapsingClearsFilter() =
+        runTest(testDispatcher) {
+            val vm = McpConnectViewModel(repository, connectionRepository)
+            advanceUntilIdle()
+
+            vm.onToggleDisabledExpanded()
+            vm.onDisabledFilterQueryChange("claude")
+            assertTrue(vm.uiState.disabledConnections.isExpanded)
+            assertEquals("claude", vm.uiState.disabledConnections.filterQuery)
+
+            vm.onToggleDisabledExpanded()
+            assertFalse(vm.uiState.disabledConnections.isExpanded)
+            assertEquals("", vm.uiState.disabledConnections.filterQuery)
         }
 }
