@@ -19,6 +19,7 @@ import server.ratelimit.RateLimitNames
  * 連携アプリの一覧・無効化・有効化の API（`/api` 配下）。設定画面と MCP 連携画面から呼ばれる。
  *
  * MCP が無効でも登録する（一覧は `enabled = false` を返し、画面側で案内を出すため）。
+ * 無効化・有効化は、MCP が無効なときは 404 にして記録を変えない。
  */
 fun Route.mcpConnectionRoutes() {
     val mcpConfig by inject<McpConfig>()
@@ -64,10 +65,10 @@ fun Route.mcpConnectionRoutes() {
                 response {
                     code(HttpStatusCode.OK) { body<McpConnection>() }
                     code(HttpStatusCode.BadRequest) { description = "ID が不正" }
-                    code(HttpStatusCode.NotFound) { description = "対象の連携アプリが見つからない" }
+                    code(HttpStatusCode.NotFound) { description = "対象の連携アプリが見つからない、または MCP 連携が無効" }
                 }
             }) {
-                respondSetDisabled(connectionService, disabled = true)
+                respondSetDisabled(mcpConfig, connectionService, disabled = true)
             }
 
             post("/mcp/connections/{id}/enable", {
@@ -79,19 +80,25 @@ fun Route.mcpConnectionRoutes() {
                 response {
                     code(HttpStatusCode.OK) { body<McpConnection>() }
                     code(HttpStatusCode.BadRequest) { description = "ID が不正" }
-                    code(HttpStatusCode.NotFound) { description = "対象の連携アプリが見つからない" }
+                    code(HttpStatusCode.NotFound) { description = "対象の連携アプリが見つからない、または MCP 連携が無効" }
                 }
             }) {
-                respondSetDisabled(connectionService, disabled = false)
+                respondSetDisabled(mcpConfig, connectionService, disabled = false)
             }
         }
     }
 }
 
 private suspend fun RoutingContext.respondSetDisabled(
+    mcpConfig: McpConfig,
     connectionService: McpConnectionService,
     disabled: Boolean,
 ) {
+    // 一覧が空を返すのと合わせ、MCP が無効なときは記録を変えない
+    if (!mcpConfig.enabled) {
+        call.respond(HttpStatusCode.NotFound, mapOf("error" to "MCP integration is disabled"))
+        return
+    }
     val id = call.parameters.getOrFail("id")
     if (!isMcpConnectionId(id)) {
         call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid id"))

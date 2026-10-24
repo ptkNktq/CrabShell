@@ -18,7 +18,7 @@ import java.time.Instant
 
 /** [McpConnectionService.checkAndRecordUse] の結果 */
 enum class McpConnectionUse {
-    /** 利用してよい（利用を記録した） */
+    /** 利用してよい（利用の記録は間引きや書き込みの失敗で行わない場合がある） */
     ALLOWED,
 
     /** ユーザーが無効にしたアプリ */
