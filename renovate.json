@@ -20,7 +20,7 @@
     },
     {
       "groupName": "Ktor",
-      "matchPackagePrefixes": ["io.ktor"]
+      "matchPackagePrefixes": ["io.ktor", "com.squareup.okhttp3"]
     },
     {
       "groupName": "Koin",
