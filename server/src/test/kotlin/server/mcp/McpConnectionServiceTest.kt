@@ -209,6 +209,20 @@ class McpConnectionServiceTest {
     }
 
     @Test
+    fun listDisabledUsesSavedNamesWithoutFetching() =
+        runTest {
+            val disabled = record(disabledAt = now, clientName = null, clientNameFetchedAt = null)
+            coEvery { repository.listDisabled("uid1") } returns listOf(disabled)
+
+            val connections = service.listDisabled("uid1")
+
+            // 連携画面を待たせないよう、名前が未取得でも取りに行かずホスト名を出す
+            assertEquals(listOf("claude.ai"), connections.map { it.clientName })
+            assertEquals(listOf(now.toString()), connections.map { it.disabledAt })
+            coVerify(exactly = 0) { fetcher.fetchClientName(any()) }
+        }
+
+    @Test
     fun setDisabledReturnsUpdatedConnectionOrNull() =
         runTest {
             coEvery { repository.updateDisabledAt("uid1", connectionId, now) } returns record(disabledAt = now)

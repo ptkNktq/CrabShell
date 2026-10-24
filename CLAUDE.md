@@ -122,7 +122,7 @@ server/              → Ktor server (Netty, JVM)
                          Firebase で削除・無効化されたユーザーは拒否。client_id のないトークンも拒否。リクエストごとに uid を閉じ込めた MCP Server を作る（McpServerFactory）。
                          連携アプリ（uid × client_id）は McpConnectionService が認証のたびに記録し（users/{uid}/mcpConnections。最終利用日時は 5 分ごと）、ユーザーが無効にしたアプリは 401 で拒否する（認証失敗には数えない）。
                            WorkOS は許可をユーザー × クライアント単位でしか持たず、トークンの更新と連携し直しを sid・iat で見分けられないため、「無効」は CrabShell 側で通さない状態として持ち、有効に戻せる
-                           一覧・無効化・有効化は /api/mcp/connections（MCP 無効時も登録し、一覧は enabled=false を返す）。表示名は一覧の取得時に CIMD の client_name を取得して 7 日キャッシュ（取れなかったものは 1 時間。取得は一覧全体で 5 秒で打ち切る）（CimdClientMetadataFetcher。OkHttp の DNS で非公開アドレスを除き、IP リテラル（OkHttp が IP とみなす `127.1` 等の形を含む）・リダイレクト・プロキシは不可）
+                           一覧・無効化・有効化は /api/mcp/connections（MCP 無効時も登録し、一覧は enabled=false を返す）。連携画面は無効のものだけを返す /api/mcp/connections/disabled を使う（Firestore の orderBy(disabledAt) で絞る。表示名は取り直さず、レート制限もかけない）。表示名は一覧の取得時に CIMD の client_name を取得して 7 日キャッシュ（取れなかったものは 1 時間。取得は一覧全体で 5 秒で打ち切る）（CimdClientMetadataFetcher。OkHttp の DNS で非公開アドレスを除き、IP リテラル（OkHttp が IP とみなす `127.1` 等の形を含む）・リダイレクト・プロキシは不可）
                          ツールは給餌の 3 つ（FeedingMcpTools）と支払額の概要（PaymentMcpTools。指定月の自分の負担額の合計・支払期日ごとの金額・振込総額だけを返し、項目名や個々の振込などの詳細は返さない）。
                          ツール共通の実行・監査ログ・エラー変換（runMcpTool）と結果の JSON 設定（McpToolResultJson。既定値も省略しない）は McpToolSupport に置く。
                          InvalidToolArgumentException のメッセージは AI への返答と INFO ログに出るため引数の値を埋め込まず、値は rejectedValue に入れて DEBUG ログにだけ出す（server/util/LogSanitizer.kt の sanitizeForLog を通す）

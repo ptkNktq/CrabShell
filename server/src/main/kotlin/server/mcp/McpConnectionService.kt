@@ -112,6 +112,12 @@ class McpConnectionService(
     }
 
     /**
+     * 無効にした連携アプリ（無効にした日の新しい順）。MCP 連携画面で、連携し直すアプリを有効に戻してもらうために使う。
+     * 画面の表示を待たせないよう、表示名は保存済みのもの（なければホスト名）を使い、メタデータは取り直さない
+     */
+    suspend fun listDisabled(uid: String): List<McpConnection> = repository.listDisabled(uid).map { it.toModel() }
+
+    /**
      * 連携アプリを無効にする・有効に戻す。
      * @return 更新後の連携アプリ。対象がなければ null
      */

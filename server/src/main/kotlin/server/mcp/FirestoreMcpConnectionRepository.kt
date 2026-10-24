@@ -39,6 +39,16 @@ class FirestoreMcpConnectionRepository(
             .documents
             .mapNotNull { it.toRecord() }
 
+    // orderBy はそのフィールドを持たないドキュメントを結果から除く（有効に戻すと無効にした日時は消す）ため、
+    // 無効にした日時で並べるだけで無効のものに絞れる（https://firebase.google.com/docs/firestore/query-data/order-limit-data）
+    override suspend fun listDisabled(uid: String): List<McpConnectionRecord> =
+        collection(uid)
+            .orderBy(FIELD_DISABLED_AT, Query.Direction.DESCENDING)
+            .get()
+            .await()
+            .documents
+            .mapNotNull { it.toRecord() }
+
     override suspend fun createIfAbsent(
         uid: String,
         record: McpConnectionRecord,

@@ -33,6 +33,9 @@ interface McpConnectionRepository {
         limit: Int,
     ): List<McpConnectionRecord>
 
+    /** 無効にした連携アプリだけを、無効にした日の新しい順に */
+    suspend fun listDisabled(uid: String): List<McpConnectionRecord>
+
     /** 新しく記録する。同じ ID の記録が既にあれば何もしない（同時に来た初回のリクエストで上書きしないため） */
     suspend fun createIfAbsent(
         uid: String,

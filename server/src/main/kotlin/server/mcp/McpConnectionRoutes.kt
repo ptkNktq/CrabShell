@@ -25,6 +25,21 @@ fun Route.mcpConnectionRoutes() {
     val connectionService by inject<McpConnectionService>()
 
     authenticated {
+        // 無効にした連携アプリ（MCP 連携画面用）。Firestore を読むだけで外部へは通信しないため、レート制限の対象にしない
+        // （設定画面の操作と制限を共有すると、連携画面の読み込みが 429 で失敗しうる）
+        get("/mcp/connections/disabled", {
+            tags = listOf("mcp")
+            summary = "無効にした連携アプリの一覧（無効にした日の新しい順）"
+            response {
+                code(HttpStatusCode.OK) {
+                    body<McpConnectionsResponse>()
+                }
+            }
+        }) {
+            val connections = if (mcpConfig.enabled) connectionService.listDisabled(call.firebasePrincipal.uid) else emptyList()
+            call.respond(McpConnectionsResponse(enabled = mcpConfig.enabled, connections = connections))
+        }
+
         // 一覧ではメタデータの取得（外部への通信）が起こりうるため、連打で外部へ通信させすぎないようにする
         rateLimit(RateLimitNames.MCP_CONNECTIONS) {
             get("/mcp/connections", {
