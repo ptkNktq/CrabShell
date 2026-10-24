@@ -126,7 +126,9 @@ class FirestoreMcpConnectionRepository(
         )
     }
 
-    private fun DocumentSnapshot.instant(field: String): Instant? = (get(field) as? FirestoreTimestamp)?.toDate()?.toInstant()
+    // 書き込み（ofTimeSecondsAndNanos）と精度を揃える（toDate() を経由するとミリ秒未満が落ちる）
+    private fun DocumentSnapshot.instant(field: String): Instant? =
+        (get(field) as? FirestoreTimestamp)?.let { Instant.ofEpochSecond(it.seconds, it.nanos.toLong()) }
 
     private fun Instant.toFirestoreTimestamp() = FirestoreTimestamp.ofTimeSecondsAndNanos(epochSecond, nano)
 
