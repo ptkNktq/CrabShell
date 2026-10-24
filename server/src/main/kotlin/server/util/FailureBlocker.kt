@@ -11,7 +11,8 @@ import java.util.concurrent.atomic.AtomicReference
  * - 状態はメモリだけに持つ。サーバーを再起動するとブロックは解除される
  * - 大量のキーで失敗させられてもメモリが増え続けないよう、記録中とブロック中の合計が [maxTrackedKeys] に達したら新しいキーは記録しない
  *
- * 失敗の記録とブロック状態をメモリに保持するため、使う側はアプリ全体で 1 インスタンスを共有すること。
+ * 失敗の記録とブロック状態をメモリに保持するため、これを持つクラス（各ガード）をアプリ全体で 1 インスタンスにすること
+ * （ガードごとに専用の [FailureBlocker] を 1 つ持ち、ガードを Koin の single で共有する）。
  */
 class FailureBlocker(
     private val maxFailures: Int,

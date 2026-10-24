@@ -126,7 +126,7 @@ class FirestoreMcpConnectionRepository(
         )
     }
 
-    // 書き込み（ofTimeSecondsAndNanos）と精度を揃える（toDate() を経由するとミリ秒未満が落ちる）
+    // Firestore は保存時にマイクロ秒まで切り捨てて保持する。toDate() を経由するとさらにミリ秒に丸められるため、seconds・nanos から直接作る
     private fun DocumentSnapshot.instant(field: String): Instant? =
         (get(field) as? FirestoreTimestamp)?.let { Instant.ofEpochSecond(it.seconds, it.nanos.toLong()) }
 
