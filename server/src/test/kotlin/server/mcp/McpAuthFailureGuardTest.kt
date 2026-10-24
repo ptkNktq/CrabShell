@@ -5,9 +5,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-// 窓・解除・記録数の上限は FailureBlockerTest で確かめる。ここではしきい値と、IP を数える単位を確かめる
+// 窓の数え方・解除・記録数の上限は FailureBlockerTest で確かめる。ここではしきい値・窓とブロックの長さの受け渡しと、IP を数える単位を確かめる
 class McpAuthFailureGuardTest {
-    private val now = Instant.parse("2026-03-14T00:00:00Z")
+    private var now = Instant.parse("2026-03-14T00:00:00Z")
     private val guard = McpAuthFailureGuard(now = { now })
 
     private fun fail(
@@ -41,5 +41,16 @@ class McpAuthFailureGuardTest {
         assertEquals("localhost", McpAuthFailureGuard.guardKey("localhost"))
         // IPv6 リテラルとして解釈できない値は、名前解決をせずそのまま使う
         assertEquals("g::1", McpAuthFailureGuard.guardKey("g::1"))
+    }
+
+    @Test
+    fun countsAgainAfterWindow() {
+        // 窓の長さが McpAuthFailureGuard.FAILURE_WINDOW として渡っていることを確かめる
+        repeat(McpAuthFailureGuard.MAX_FAILURES) { guard.recordFailure("1.1.1.1") }
+
+        now += McpAuthFailureGuard.FAILURE_WINDOW
+        repeat(McpAuthFailureGuard.MAX_FAILURES) { guard.recordFailure("1.1.1.1") }
+
+        assertNull(guard.remainingBlock("1.1.1.1"))
     }
 }
