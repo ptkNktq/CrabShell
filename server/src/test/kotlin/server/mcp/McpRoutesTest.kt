@@ -125,7 +125,9 @@ class McpRoutesTest {
             .withExpiresAt(Date.from(expiresAt))
             .sign(Algorithm.RSA256(publicKey, privateKey))
 
-    private fun authenticator() = McpTokenAuthenticator(firebaseAuthRepository, connectionService)
+    private val disabledConnectionGuard = McpDisabledConnectionGuard()
+
+    private fun authenticator() = McpTokenAuthenticator(firebaseAuthRepository, connectionService, disabledConnectionGuard)
 
     private fun ApplicationTestBuilder.setUp(jwkProvider: JwkProvider = this@McpRoutesTest.jwkProvider) {
         application {
@@ -312,6 +314,26 @@ class McpRoutesTest {
             // 有効に戻せば、同じトークンがそのまま通る
             coEvery { connectionService.checkAndRecordUse("uid1", "client_01") } returns McpConnectionUse.ALLOWED
             assertEquals(HttpStatusCode.OK, rpc(listTools).status)
+        }
+
+    @Test
+    fun repeatedRequestsFromDisabledConnectionBlockTheUser() =
+        testApplication {
+            setUp()
+            coEvery { connectionService.checkAndRecordUse("uid1", "client_01") } returns McpConnectionUse.DISABLED
+            val listTools = """{"jsonrpc":"2.0","id":1,"method":"tools/list"}"""
+
+            repeat(McpDisabledConnectionGuard.MAX_REJECTIONS + 1) {
+                assertEquals(HttpStatusCode.Unauthorized, rpc(listTools).status)
+            }
+
+            // 拒否されても送り続けるユーザーは、他のアプリ（有効なもの）からのリクエストも止める
+            coEvery { connectionService.checkAndRecordUse("uid1", "client_02") } returns McpConnectionUse.ALLOWED
+            val blocked = rpc(listTools, token = token(clientId = "client_02"))
+            assertEquals(HttpStatusCode.TooManyRequests, blocked.status)
+            assertEquals(McpDisabledConnectionGuard.BLOCK_DURATION.seconds.toString(), blocked.headers[HttpHeaders.RetryAfter])
+            // IP の認証失敗には数えない（IP をブロックしていれば、不正なトークンにも 401 ではなく 429 を返す）
+            assertEquals(HttpStatusCode.Unauthorized, rpc(listTools, token = token(issuer = "https://evil.authkit.app")).status)
         }
 
     @Test

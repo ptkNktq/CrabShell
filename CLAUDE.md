@@ -118,6 +118,7 @@ server/              → Ktor server (Netty, JVM)
                        MCP: server/mcp/。/mcp（stateless Streamable HTTP）+ /.well-known/oauth-protected-resource/mcp。
                          認可サーバーは WorkOS AuthKit（Standalone Connect）。JWT を JWKS・iss・aud で検証し、sub（完了 API に渡した uid がそのまま入る）を uid として使う。検証で拒否したトークンは iss・aud・sub・exp だけを WARN ログに出す（本体は出さない）。
                          認証失敗は IP ごと（IPv6 は /64 単位）に数え、1 分に 10 回を超えた IP は 30 分間 /mcp を 429 で拒否する（McpAuthFailureGuard。認証より前に判定し、正しいトークンも拒否。メモリのみで再起動で解除）。
+                         無効にした連携アプリへの拒否は IP ではなく uid ごとに数え、1 分に 30 回を超えたユーザーは 30 分間 /mcp を 429 で拒否する（McpDisabledConnectionGuard。他のアプリも止める。署名検証の直後に判定し、Firebase・Firestore に問い合わせない）。数える仕組みは server/util/FailureBlocker を共用。
                          JWKS の鍵は McpJwksPreflight が認証前に確認する（通信の失敗は 503 で失敗に数えない、取得頻度の上限は 503 で失敗に数える、該当する鍵がなければ 401）。Firebase への問い合わせ失敗も 503 にし、失敗に数えない（Ktor の jwt 認証は検証中の例外を素の 401 にするため、validate では例外を投げない）
                          Firebase で削除・無効化されたユーザーは拒否。client_id のないトークンも拒否。リクエストごとに uid を閉じ込めた MCP Server を作る（McpServerFactory）。
                          連携アプリ（uid × client_id）は McpConnectionService が認証のたびに記録し（users/{uid}/mcpConnections。最終利用日時は 5 分ごと）、ユーザーが無効にしたアプリは 401 で拒否する（認証失敗には数えない）。
@@ -223,7 +224,7 @@ The `server/build.gradle.kts` has a `copyWasmFrontend` task that copies the fron
 - Server auth: `server/src/main/kotlin/server/auth/` (AuthPlugin, FirebaseAuthRepository + FirebaseAdminAuthRepository, FirebaseAdminApp)
 - Server passkey: `server/src/main/kotlin/server/passkey/` (PasskeyRoutes, PasskeyConfig, WebAuthnVerifier, PasskeyCredentialRepository + ExposedPasskeyCredentialRepository, PasskeyDatabase, ChallengeStore, PasskeyLoginService)
 - Server geo: `server/src/main/kotlin/server/geo/` (IpClassifier, IpGeolocationService, MaxMind/NoOp 実装)
-- Server MCP: `server/src/main/kotlin/server/mcp/` (McpConfig, WorkOsClient, McpAuth（McpTokenAuthenticator・McpJwksPreflight）, McpAuthFailureGuard, McpAuthorizationService, McpConnectionService + McpConnectionRepository + FirestoreMcpConnectionRepository, ClientMetadataFetcher（CimdClientMetadataFetcher・PublicAddressDns）, McpServerFactory, McpToolSupport, FeedingMcpTools, PaymentMcpTools, McpRoutes, McpConnectionRoutes)
+- Server MCP: `server/src/main/kotlin/server/mcp/` (McpConfig, WorkOsClient, McpAuth（McpTokenAuthenticator・McpJwksPreflight）, McpAuthFailureGuard, McpDisabledConnectionGuard, McpAuthorizationService, McpConnectionService + McpConnectionRepository + FirestoreMcpConnectionRepository, ClientMetadataFetcher（CimdClientMetadataFetcher・PublicAddressDns）, McpServerFactory, McpToolSupport, FeedingMcpTools, PaymentMcpTools, McpRoutes, McpConnectionRoutes)
 - Core common: `core/common/src/commonMain/kotlin/core/common/` (Environment.kt, AppLogger.kt, TabResumedEvent.kt, ApplicationScope.kt)
 - Core common (wasmJsMain): `core/common/src/wasmJsMain/kotlin/core/common/` (Environment.kt, AppLogger.wasmJs.kt, PageVisibility.kt)
 - Core auth (commonMain): `core/auth/src/commonMain/kotlin/core/auth/` (AuthRepository interface, AuthState, IdTokenResult)

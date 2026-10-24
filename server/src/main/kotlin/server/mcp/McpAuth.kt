@@ -31,6 +31,7 @@ import server.auth.FirebaseAuthRepository
 import server.auth.FirebaseUserStatus
 import server.util.sanitizeForLog
 import java.net.URI
+import java.time.Duration
 import java.util.concurrent.TimeUnit
 
 private const val MCP_AUTH_PROVIDER_NAME = "mcp"
@@ -59,11 +60,13 @@ fun Route.mcpAuthenticated(build: Route.() -> Unit): Route = authenticate(MCP_AU
  * - `sub` は完了 API に渡した Firebase の uid なので、そのまま uid として使う
  * - Firebase 上で削除・無効化されたユーザーは、トークンが有効期限内でも拒否する
  * - `client_id` のないトークンは、連携アプリごとに無効化できないため拒否する（AuthKit のユーザートークンには必ず付く）
- * - ユーザーが設定画面で無効にした連携アプリは拒否する（[McpConnectionService]）
+ * - ユーザーが設定画面で無効にした連携アプリは拒否する（[McpConnectionService]）。拒否が続いたユーザーは
+ *   [McpDisabledConnectionGuard] がしばらく止め、その間は Firebase・Firestore に問い合わせずに断る
  */
 class McpTokenAuthenticator(
     private val firebaseAuthRepository: FirebaseAuthRepository,
     private val connectionService: McpConnectionService,
+    private val disabledConnectionGuard: McpDisabledConnectionGuard,
 ) {
     private val logger = LoggerFactory.getLogger(McpTokenAuthenticator::class.java)
 
@@ -77,6 +80,8 @@ class McpTokenAuthenticator(
         uid: String,
         clientId: String?,
     ): McpAuthResult {
+        // 署名を確かめた uid なので、問い合わせより前に判定して負荷をかけさせない
+        disabledConnectionGuard.remainingBlock(uid)?.let { return McpAuthResult.Blocked(it) }
         if (clientId.isNullOrEmpty()) {
             logger.warn("MCP token rejected: no client_id for {}", uid)
             return McpAuthResult.Rejected
@@ -107,6 +112,7 @@ class McpTokenAuthenticator(
             }
         if (use == McpConnectionUse.DISABLED) {
             logger.info("MCP token rejected: connection disabled by user {} client_id={}", uid, sanitizeForLog(clientId))
+            disabledConnectionGuard.recordRejection(uid)
             return McpAuthResult.Disabled
         }
         return McpAuthResult.Authenticated(McpPrincipal(uid = uid, clientId = clientId))
@@ -147,9 +153,15 @@ sealed interface McpAuthResult {
 
     /**
      * ユーザーが無効にした連携アプリ。署名の正しいトークンのため認証失敗には数えない
-     * （数えると、再試行を繰り返すクライアントのせいで同じ IP の他のアプリまでブロックされる）
+     * （数えると、再試行を繰り返すクライアントのせいで同じ IP の他のアプリまでブロックされる）。
+     * 代わりにユーザーごとに [McpDisabledConnectionGuard] で数える
      */
     data object Disabled : McpAuthResult
+
+    /** 無効にした連携アプリからのリクエストが続いたため、ユーザーの操作を止めている（[McpDisabledConnectionGuard]） */
+    data class Blocked(
+        val remaining: Duration,
+    ) : McpAuthResult
 
     /** 一時的な障害で判定できなかった（トークンの不正ではない） */
     data object Unavailable : McpAuthResult
@@ -172,6 +184,9 @@ private val McpAuthUnavailableKey = AttributeKey<Unit>("McpAuthUnavailable")
 
 /** ユーザーが無効にした連携アプリだったことを、validate から challenge へ伝える */
 private val McpConnectionDisabledKey = AttributeKey<Unit>("McpConnectionDisabled")
+
+/** ユーザーの操作を止めていること（解除までの残り時間）を、validate から challenge へ伝える */
+private val McpUserBlockedKey = AttributeKey<Duration>("McpUserBlocked")
 
 // 一時的な障害のときにクライアントへ伝える再試行までの秒数（JWKS の取得頻度の上限が 1 分単位のため）
 private const val MCP_UNAVAILABLE_RETRY_AFTER_SECONDS = 60
@@ -308,6 +323,10 @@ fun AuthenticationConfig.mcpJwt(
                     attributes.put(McpConnectionDisabledKey, Unit)
                     null
                 }
+                is McpAuthResult.Blocked -> {
+                    attributes.put(McpUserBlockedKey, result.remaining)
+                    null
+                }
                 McpAuthResult.Unavailable -> {
                     // 例外を投げると Ktor が素の 401 にしてしまうため、印を付けて challenge で 503 にする
                     attributes.put(McpAuthUnavailableKey, Unit)
@@ -319,6 +338,11 @@ fun AuthenticationConfig.mcpJwt(
             if (McpAuthUnavailableKey in call.attributes) {
                 // 一時的な障害は失敗に数えない
                 call.respondMcpUnavailable()
+                return@challenge
+            }
+            call.attributes.getOrNull(McpUserBlockedKey)?.let { remaining ->
+                // 署名の正しいトークンのため、IP の認証失敗には数えない
+                call.respondMcpBlocked(remaining)
                 return@challenge
             }
             if (McpConnectionDisabledKey in call.attributes) {
