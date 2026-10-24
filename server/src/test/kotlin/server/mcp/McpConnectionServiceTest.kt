@@ -110,7 +110,7 @@ class McpConnectionServiceTest {
     @Test
     fun listUsesCachedClientNameWithinRefreshInterval() =
         runTest {
-            coEvery { repository.list("uid1", McpConnectionService.MAX_CONNECTIONS) } returns listOf(record())
+            coEvery { repository.list("uid1") } returns listOf(record())
 
             val connections = service.list("uid1")
 
@@ -131,7 +131,7 @@ class McpConnectionServiceTest {
     @Test
     fun listRefreshesMissingOrStaleClientName() =
         runTest {
-            coEvery { repository.list("uid1", any()) } returns
+            coEvery { repository.list("uid1") } returns
                 listOf(record(clientName = null, clientNameFetchedAt = null))
             coEvery { fetcher.fetchClientName(clientId) } returns "Claude Code"
 
@@ -143,7 +143,7 @@ class McpConnectionServiceTest {
     fun failedRefreshKeepsPreviousNameAndFallsBackToHost() =
         runTest {
             val stale = now.minus(McpConnectionService.CLIENT_NAME_REFRESH_INTERVAL)
-            coEvery { repository.list("uid1", any()) } returns
+            coEvery { repository.list("uid1") } returns
                 listOf(
                     record(clientName = "Claude Code", clientNameFetchedAt = stale),
                     record(clientName = null, clientNameFetchedAt = stale).copy(id = "other", clientId = "https://example.com/client.json"),
@@ -166,7 +166,7 @@ class McpConnectionServiceTest {
                     clientName = null,
                     clientNameFetchedAt = retryDue,
                 ).copy(id = "other", clientId = "https://example.com/client.json")
-            coEvery { repository.list("uid1", any()) } returns
+            coEvery { repository.list("uid1") } returns
                 listOf(record(clientName = "Claude Code", clientNameFetchedAt = retryDue), other)
             coEvery { fetcher.fetchClientName("https://example.com/client.json") } returns "Example"
 
@@ -183,7 +183,7 @@ class McpConnectionServiceTest {
                     clientName = null,
                     clientNameFetchedAt = null,
                 ).copy(id = "other", clientId = "https://example.com/client.json")
-            coEvery { repository.list("uid1", any()) } returns listOf(record(clientName = null, clientNameFetchedAt = null), other)
+            coEvery { repository.list("uid1") } returns listOf(record(clientName = null, clientNameFetchedAt = null), other)
             coEvery { fetcher.fetchClientName(clientId) } coAnswers {
                 delay(McpConnectionService.METADATA_FETCH_DEADLINE_MILLIS * 10)
                 "Claude Code"

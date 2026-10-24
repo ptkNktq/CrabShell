@@ -95,7 +95,7 @@ class McpConnectionService(
      */
     suspend fun list(uid: String): List<McpConnection> {
         val now = clock.instant()
-        val records = repository.list(uid, MAX_CONNECTIONS)
+        val records = repository.list(uid)
         val semaphore = Semaphore(MAX_CONCURRENT_METADATA_FETCHES)
         return coroutineScope {
             records
@@ -183,9 +183,6 @@ class McpConnectionService(
         // 一覧の表示時にメタデータの取り直しを待つ上限（5 秒）。フロントの API のタイムアウト（10 秒）に収める。
         // 1 件の取得のタイムアウトに保存の時間を足して作り、応答しないホストでも締め切りの前に失敗を保存できるようにする
         internal const val METADATA_FETCH_DEADLINE_MILLIS = CimdClientMetadataFetcher.REQUEST_TIMEOUT_MILLIS + METADATA_SAVE_MARGIN_MILLIS
-
-        // 一覧に出す連携アプリの上限
-        internal const val MAX_CONNECTIONS = 100
 
         // 一覧の表示時にメタデータを同時に取りに行く数の上限
         private const val MAX_CONCURRENT_METADATA_FETCHES = 4

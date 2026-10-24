@@ -27,11 +27,8 @@ interface McpConnectionRepository {
         connectionId: String,
     ): McpConnectionRecord?
 
-    /** 最終利用日時の新しい順に、最大 [limit] 件 */
-    suspend fun list(
-        uid: String,
-        limit: Int,
-    ): List<McpConnectionRecord>
+    /** 最終利用日時の新しい順にすべて（記録は本人が連携を許可したアプリの分だけで、多くならない） */
+    suspend fun list(uid: String): List<McpConnectionRecord>
 
     /** 無効にした連携アプリだけを、無効にした日の新しい順に */
     suspend fun listDisabled(uid: String): List<McpConnectionRecord>

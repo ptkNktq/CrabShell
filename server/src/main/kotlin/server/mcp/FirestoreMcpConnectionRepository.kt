@@ -27,13 +27,9 @@ class FirestoreMcpConnectionRepository(
             .await()
             .toRecord()
 
-    override suspend fun list(
-        uid: String,
-        limit: Int,
-    ): List<McpConnectionRecord> =
+    override suspend fun list(uid: String): List<McpConnectionRecord> =
         collection(uid)
             .orderBy(FIELD_LAST_USED_AT, Query.Direction.DESCENDING)
-            .limit(limit)
             .get()
             .await()
             .documents
