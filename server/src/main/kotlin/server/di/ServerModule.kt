@@ -26,10 +26,16 @@ import server.geo.MaxMindIpGeolocationService
 import server.geo.NoOpIpGeolocationService
 import server.loginhistory.FirestoreLoginHistoryRepository
 import server.loginhistory.LoginHistoryRepository
+import server.mcp.CimdClientMetadataFetcher
+import server.mcp.ClientMetadataFetcher
 import server.mcp.FeedingMcpTools
+import server.mcp.FirestoreMcpConnectionRepository
 import server.mcp.McpAuthFailureGuard
 import server.mcp.McpAuthorizationService
 import server.mcp.McpConfig
+import server.mcp.McpConnectionRepository
+import server.mcp.McpConnectionService
+import server.mcp.McpDisabledConnectionGuard
 import server.mcp.McpJwksPreflight
 import server.mcp.McpServerFactory
 import server.mcp.McpTokenAuthenticator
@@ -111,8 +117,12 @@ val serverModule =
         single(createdAtStart = true) { McpConfig.fromEnv() }
         single<WorkOsClient> { WorkOsHttpClient(get()) }.closeOnStop()
         single<JwkProvider> { createJwkProvider(get()) }
-        single { McpTokenAuthenticator(get()) }
+        single<McpConnectionRepository> { FirestoreMcpConnectionRepository(get()) }
+        single<ClientMetadataFetcher> { CimdClientMetadataFetcher() }.closeOnStop()
+        single { McpConnectionService(get(), get()) }
+        single { McpTokenAuthenticator(get(), get(), get()) }
         single { McpAuthFailureGuard() }
+        single { McpDisabledConnectionGuard() }
         single { McpJwksPreflight(get(), get(), get(), get()) }
         single { McpAuthorizationService(get()) }
         single { FeedingMcpTools(get(), get()) }

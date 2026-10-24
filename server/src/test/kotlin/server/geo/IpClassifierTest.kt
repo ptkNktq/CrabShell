@@ -31,6 +31,12 @@ class IpClassifierTest {
     }
 
     @Test
+    fun `multicast addresses are rejected`() {
+        assertNull(IpClassifier.parsePublicAddress("224.0.0.1"))
+        assertNull(IpClassifier.parsePublicAddress("ff02::1"))
+    }
+
+    @Test
     fun `any-local addresses are rejected`() {
         assertNull(IpClassifier.parsePublicAddress("0.0.0.0"))
         assertNull(IpClassifier.parsePublicAddress("::"))

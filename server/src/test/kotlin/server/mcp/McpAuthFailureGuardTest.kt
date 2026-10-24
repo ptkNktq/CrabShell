@@ -1,11 +1,11 @@
 package server.mcp
 
-import java.time.Duration
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
+// 窓の数え方・解除・記録数の上限は FailureBlockerTest で確かめる。ここではしきい値・窓とブロックの長さの受け渡しと、IP を数える単位を確かめる
 class McpAuthFailureGuardTest {
     private var now = Instant.parse("2026-03-14T00:00:00Z")
     private val guard = McpAuthFailureGuard(now = { now })
@@ -27,27 +27,6 @@ class McpAuthFailureGuardTest {
     }
 
     @Test
-    fun blockIsLiftedAfterBlockDuration() {
-        fail("1.1.1.1", McpAuthFailureGuard.MAX_FAILURES + 1)
-
-        now += McpAuthFailureGuard.BLOCK_DURATION - Duration.ofSeconds(1)
-        assertEquals(Duration.ofSeconds(1), guard.remainingBlock("1.1.1.1"))
-
-        now += Duration.ofSeconds(1)
-        assertNull(guard.remainingBlock("1.1.1.1"))
-    }
-
-    @Test
-    fun failuresInDifferentWindowsAreNotAccumulated() {
-        fail("1.1.1.1", McpAuthFailureGuard.MAX_FAILURES)
-
-        now += McpAuthFailureGuard.FAILURE_WINDOW
-        fail("1.1.1.1", McpAuthFailureGuard.MAX_FAILURES)
-
-        assertNull(guard.remainingBlock("1.1.1.1"))
-    }
-
-    @Test
     fun ipv6AddressesInSamePrefixAreCountedTogether() {
         repeat(McpAuthFailureGuard.MAX_FAILURES + 1) { i -> guard.recordFailure("2001:db8:1:2::${i + 1}") }
 
@@ -65,17 +44,13 @@ class McpAuthFailureGuardTest {
     }
 
     @Test
-    fun newIpsAreNotTrackedOnceTrackedAndBlockedReachLimit() {
-        val guard = McpAuthFailureGuard(now = { now }, maxTrackedIps = 2)
-        repeat(McpAuthFailureGuard.MAX_FAILURES + 1) { guard.recordFailure("1.1.1.1") }
-        guard.recordFailure("2.2.2.2")
+    fun countsAgainAfterWindow() {
+        // 窓の長さが McpAuthFailureGuard.FAILURE_WINDOW として渡っていることを確かめる
+        repeat(McpAuthFailureGuard.MAX_FAILURES) { guard.recordFailure("1.1.1.1") }
 
-        // ブロック中 1 件 + 記録中 1 件で上限に達しているため、新しい IP は数えない
-        repeat(McpAuthFailureGuard.MAX_FAILURES + 1) { guard.recordFailure("3.3.3.3") }
+        now += McpAuthFailureGuard.FAILURE_WINDOW
+        repeat(McpAuthFailureGuard.MAX_FAILURES) { guard.recordFailure("1.1.1.1") }
 
-        assertNull(guard.remainingBlock("3.3.3.3"))
-        // すでに記録中の IP は数え続ける
-        repeat(McpAuthFailureGuard.MAX_FAILURES) { guard.recordFailure("2.2.2.2") }
-        assertEquals(McpAuthFailureGuard.BLOCK_DURATION, guard.remainingBlock("2.2.2.2"))
+        assertNull(guard.remainingBlock("1.1.1.1"))
     }
 }
