@@ -23,7 +23,9 @@ data class McpConnection(
 )
 
 /**
- * `GET /api/mcp/connections` のレスポンス DTO。
+ * 連携アプリの一覧のレスポンス DTO。次の 2 つの API で使う。
+ * - `GET /api/mcp/connections`: すべての連携アプリ（最終利用日時の新しい順）
+ * - `GET /api/mcp/connections/disabled`: 無効にした連携アプリだけ（無効にした日の新しい順。表示名は取り直さない）
  *
  * @property enabled サーバーで MCP 連携が有効か。無効の場合 [connections] は空
  */
