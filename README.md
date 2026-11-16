@@ -209,8 +209,24 @@ Dockerfile はマルチステージビルド（Gradle でビルド → JRE で�
 git checkout main && git pull
 git tag v1.0.0
 git push origin v1.0.0
-# → CD が ghcr.io/ptknktq/crabshell:latest と :v1.0.0 を push
+# → CD が ghcr.io/ptknktq/crabshell:latest と :v1.0.0 を push し、イメージに署名する
 ```
+
+#### イメージの署名
+
+CD は push したイメージに [cosign](https://github.com/sigstore/cosign) のキーレス署名を付ける。秘密鍵は持たず、GitHub Actions が実行ごとに発行する証明書で署名するので、鍵の管理は要らない。署名はイメージと同じ GHCR に保存される。
+
+本番サーバーは、イメージを使う前に「このリポジトリの CD ワークフローが `v*` タグから実行して署名したもの」であることを確かめる。ダイジェストは `docker pull` の出力の `Digest:` で分かる。
+
+```bash
+cosign verify ghcr.io/ptknktq/crabshell@sha256:<ダイジェスト> \
+  --certificate-identity-regexp '^https://github\.com/ptkNktq/CrabShell/\.github/workflows/cd\.yml@refs/tags/v[^/]+$' \
+  --certificate-oidc-issuer 'https://token.actions.githubusercontent.com'
+```
+
+- 手動実行（`workflow_dispatch`）や、下の手動ビルドで push したイメージは、この検証を通らない。署名を検証している本番サーバーには反映されず、次に `v*` タグでリリースするまで `:latest` の更新が止まる
+- 署名した事実（リポジトリ名、ワークフローのパス、タグ、コミット）は、Sigstore の公開の記録（Rekor）に残る
+- 検証が保証するのは、正規の CD が `v*` タグからビルドしたことまで。タグが指すコードの中身は保証しない
 
 #### 手動ビルド & push（CD を使わない場合）
 
