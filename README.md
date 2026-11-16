@@ -216,7 +216,11 @@ git push origin v1.0.0
 
 CD は push したイメージに [cosign](https://github.com/sigstore/cosign) のキーレス署名を付ける。秘密鍵は持たず、GitHub Actions が実行ごとに発行する証明書で署名するので、鍵の管理は要らない。署名はイメージと同じ GHCR に保存される。
 
-本番サーバーは、イメージを使う前に「このリポジトリの CD ワークフローが `v*` タグから実行して署名したもの」であることを確かめる。ダイジェストは `docker pull` の出力の `Digest:` で分かる。
+本番サーバーは、イメージを使う前に「このリポジトリの CD ワークフローが `v*` タグから実行して署名したもの」であることを確かめる。ダイジェストは `docker pull` の出力の `Digest:` で分かる。pull 済みのイメージからは、次のコマンドで `ghcr.io/ptknktq/crabshell@sha256:...` の形のまま取り出せる。
+
+```bash
+docker image inspect --format '{{index .RepoDigests 0}}' ghcr.io/ptknktq/crabshell:latest
+```
 
 ```bash
 cosign verify ghcr.io/ptknktq/crabshell@sha256:<ダイジェスト> \
