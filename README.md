@@ -222,6 +222,8 @@ CD は push したイメージに [cosign](https://github.com/sigstore/cosign) �
 docker image inspect --format '{{index .RepoDigests 0}}' ghcr.io/ptknktq/crabshell:latest
 ```
 
+取り出したダイジェストを、次のコマンドで検証する。
+
 ```bash
 cosign verify ghcr.io/ptknktq/crabshell@sha256:<ダイジェスト> \
   --certificate-identity-regexp '^https://github\.com/ptkNktq/CrabShell/\.github/workflows/cd\.yml@refs/tags/v[^/]+$' \
