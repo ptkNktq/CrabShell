@@ -39,7 +39,8 @@ jobs:
           digests=$(docker image inspect --format '{{range .RepoDigests}}{{println .}}{{end}}' \
             ghcr.io/ptknktq/crabshell:latest | grep '^ghcr\.io/ptknktq/crabshell@sha256:' || true)
           if [ "$(printf '%s\n' "$digests" | grep -c .)" -ne 1 ]; then
-            echo "::error::push したイメージのダイジェストを 1 つに特定できません: $digests"
+            # ::error:: の注釈になるのは 1 行だけなので、複数あるときも 1 行にまとめて出す
+            echo "::error::push したイメージのダイジェストを 1 つに特定できません: $(printf '%s' "$digests" | tr '\n' ' ')"
             exit 1
           fi
           echo "image=$digests" >> "$GITHUB_OUTPUT"
