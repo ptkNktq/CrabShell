@@ -24,12 +24,15 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push Docker image
         id: build
+        env:
+          # タグ名やブランチ名をスクリプトに直接展開すると、名前に含まれる $(...) などが実行されるので、環境変数で渡す
+          REF_NAME: ${{ github.ref_name }}
         run: |
           docker build --build-arg COMMIT_HASH=${GITHUB_SHA::7} \
             -t ghcr.io/ptknktq/crabshell:latest \
-            -t ghcr.io/ptknktq/crabshell:${{ github.ref_name }} .
+            -t "ghcr.io/ptknktq/crabshell:$REF_NAME" .
           docker push ghcr.io/ptknktq/crabshell:latest
-          docker push ghcr.io/ptknktq/crabshell:${{ github.ref_name }}
+          docker push "ghcr.io/ptknktq/crabshell:$REF_NAME"
           # 署名の対象にするダイジェスト（ghcr.io/ptknktq/crabshell@sha256:...）を取り出す。
           # タグは後から別のイメージに付け替えられるので、署名はダイジェストに対して行う。
           # 2 つのタグは同じイメージを指すので、ダイジェストは 1 つになる。
@@ -49,7 +52,8 @@ jobs:
           IMAGE: ${{ steps.build.outputs.image }}
         run: cosign sign --yes "$IMAGE"
       # 本番サーバーと同じ条件で検証し、検証できない署名のままリリースしたことにならないようにする。
-      # 本番サーバーが受け付けるのは v* タグからの実行だけなので、手動実行（workflow_dispatch）では行わない。
+      # 本番サーバーが受け付けるのは v* タグからの実行だけなので、ブランチからの手動実行（workflow_dispatch）では行わない。
+      # 手動実行でも、実行元に v* タグを選んだ場合は証明書の ref がタグ push と同じになるので、ここでも本番サーバーでも検証を通る。
       # 条件を変えるときは、本番サーバー側の検証の条件と揃える。
       - name: Verify signature
         if: startsWith(github.ref, 'refs/tags/v')
