@@ -13,9 +13,11 @@ jobs:
       packages: write
       # cosign のキーレス署名で、この実行を証明する OIDC トークンを受け取るために必要
       id-token: write
+    # このジョブは署名の権限（id-token）と GHCR への書き込み権限を持つので、アクションはすべてコミットのハッシュで固定する。
+    # タグは後から別のコミットに付け替えられるため。コメントのバージョンは Renovate が更新の判断に使うので消さない。
     steps:
-      - uses: actions/checkout@v7
-      - uses: docker/login-action@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
