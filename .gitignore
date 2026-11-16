@@ -41,6 +41,9 @@ package-lock.json
 # Dev process management
 .dev/
 
+# 一時作業ファイル（調査メモ・中間成果物など）
+.tmp/
+
 # OS
 .DS_Store
 Thumbs.db
