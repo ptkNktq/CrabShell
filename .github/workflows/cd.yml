@@ -53,18 +53,19 @@ jobs:
           IMAGE: ${{ steps.build.outputs.image }}
         run: cosign sign --yes "$IMAGE"
       # 本番サーバーと同じ条件で検証し、検証できない署名のままリリースしたことにならないようにする。
-      # 本番サーバーが受け付けるのは v* タグからの実行だけなので、ブランチからの手動実行（workflow_dispatch）では行わない。
-      # 手動実行でも、実行元に v* タグを選んだ場合は証明書の ref がタグ push と同じになるので、ここでも本番サーバーでも検証を通る。
-      # （手動実行は選んだタグの時点のこのファイルで動くので、署名の手順が入る前のタグを選ぶと署名されない）
+      # 本番サーバーが受け付けるのは、v* タグの push による実行だけ。手動実行（workflow_dispatch）は、
+      # 実行元に v* タグを選んでも受け付けない（古いタグから実行し直して、本番を古い版に戻せないようにするため）。
+      # そのため、手動実行ではこのステップを行わない。
       # 条件を変えるときは、本番サーバー側の検証の条件と揃える。
       - name: Verify signature
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
         env:
           IMAGE: ${{ steps.build.outputs.image }}
         run: |
           cosign verify "$IMAGE" \
             --certificate-identity-regexp '^https://github\.com/ptkNktq/CrabShell/\.github/workflows/cd\.yml@refs/tags/v[^/]+$' \
-            --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' > /dev/null
+            --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+            --certificate-github-workflow-trigger push > /dev/null
       - name: Notify Discord
         if: always()
         env:

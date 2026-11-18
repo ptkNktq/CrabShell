@@ -216,7 +216,7 @@ git push origin v1.0.0
 
 CD は push したイメージに [cosign](https://github.com/sigstore/cosign) のキーレス署名を付ける。秘密鍵は持たず、GitHub Actions が実行ごとに発行する証明書で署名するので、鍵の管理は要らない。署名はイメージと同じ GHCR に保存される。
 
-本番サーバーは、イメージを使う前に「このリポジトリの CD ワークフローが `v*` タグから実行して署名したもの」であることを確かめる。ダイジェストは `docker pull` の出力の `Digest:` で分かる。pull 済みのイメージからは、次のコマンドで `ghcr.io/ptknktq/crabshell@sha256:...` の形のまま取り出せる。
+本番サーバーは、イメージを使う前に「このリポジトリの CD ワークフローが `v*` タグの push で実行して署名したもの」であることを確かめる。ダイジェストは `docker pull` の出力の `Digest:` で分かる。pull 済みのイメージからは、次のコマンドで `ghcr.io/ptknktq/crabshell@sha256:...` の形のまま取り出せる。
 
 ```bash
 docker image inspect --format '{{index .RepoDigests 0}}' ghcr.io/ptknktq/crabshell:latest
@@ -227,14 +227,13 @@ docker image inspect --format '{{index .RepoDigests 0}}' ghcr.io/ptknktq/crabshe
 ```bash
 cosign verify ghcr.io/ptknktq/crabshell@sha256:<ダイジェスト> \
   --certificate-identity-regexp '^https://github\.com/ptkNktq/CrabShell/\.github/workflows/cd\.yml@refs/tags/v[^/]+$' \
-  --certificate-oidc-issuer 'https://token.actions.githubusercontent.com'
+  --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+  --certificate-github-workflow-trigger push
 ```
 
-- ブランチからの手動実行（`workflow_dispatch`）や、下の手動ビルドで push したイメージは、この検証を通らない。署名を検証している本番サーバーには反映されず、次に `v*` タグでリリースするまで `:latest` の更新が止まる
-- 手動実行でも、実行元に `v*` タグを選んだ場合は、タグの push と同じ扱いで検証を通る。そのタグのコードがビルドし直されて `:latest` と `:<タグ>` の両方を上書きするので、古いタグを選ぶと本番は古い版に戻る
-- ただし、手動実行は選んだタグの時点のワークフローで動く。署名を導入する前のタグを選ぶと、署名の手順がないままイメージが上書きされ、検証を通らない（本番は古い版に戻らず、更新が止まる）
+- CD の手動実行（`workflow_dispatch`）や、下の手動ビルドで push したイメージは、この検証を通らない。手動実行は、実行元に `v*` タグを選んでも通らない（古いタグから実行し直して、本番を古い版に戻せないようにするため）。どちらも `:latest` を上書きするので、署名を検証している本番サーバーには反映されず、次に `v*` タグでリリースするまで `:latest` の更新が止まる
 - 署名した事実（リポジトリ名、ワークフローのパス、タグ、コミット）は、Sigstore の公開の記録（Rekor）に残る
-- 検証が保証するのは、正規の CD が `v*` タグからビルドしたことまで。タグが指すコードの中身は保証しない
+- 検証が保証するのは、正規の CD が `v*` タグの push でビルドしたことまで。タグが指すコードの中身は保証しない
 
 #### 手動ビルド & push（CD を使わない場合）
 
