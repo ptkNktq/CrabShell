@@ -4,6 +4,7 @@ import feature.settings.CacheRefreshViewModel
 import feature.settings.GarbageScheduleViewModel
 import feature.settings.LicensesViewModel
 import feature.settings.LoginHistoryViewModel
+import feature.settings.McpConnectionsViewModel
 import feature.settings.MoneyDueDateNotificationViewModel
 import feature.settings.MoneyWebhookViewModel
 import feature.settings.PasskeyManagementViewModel
@@ -20,6 +21,7 @@ val settingsModule =
         viewModel { PasswordChangeViewModel(get()) }
         viewModel { PasskeyManagementViewModel(get()) }
         viewModel { LoginHistoryViewModel(get()) }
+        viewModel { McpConnectionsViewModel(get()) }
         viewModel { LicensesViewModel() }
         // 管理者専用カテゴリ。SettingsContent が isAdmin フィルタを通じてアクセスを制限するため、
         // 非管理者が各 Screen の koinViewModel() に到達することはない。

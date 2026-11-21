@@ -12,6 +12,8 @@ import core.network.LoginHistoryRepository
 import core.network.LoginHistoryRepositoryImpl
 import core.network.McpAuthorizationRepository
 import core.network.McpAuthorizationRepositoryImpl
+import core.network.McpConnectionRepository
+import core.network.McpConnectionRepositoryImpl
 import core.network.MoneyDueDateNotificationRepository
 import core.network.MoneyDueDateNotificationRepositoryImpl
 import core.network.MoneyRepository
@@ -61,4 +63,5 @@ val networkModule =
         single<CacheRepository> { CacheRepositoryImpl(get()) }
         single<LoginHistoryRepository> { LoginHistoryRepositoryImpl(get()) }
         single<McpAuthorizationRepository> { McpAuthorizationRepositoryImpl(get()) }
+        single<McpConnectionRepository> { McpConnectionRepositoryImpl(get()) }
     }

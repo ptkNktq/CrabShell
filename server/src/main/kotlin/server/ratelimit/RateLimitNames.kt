@@ -18,4 +18,7 @@ object RateLimitNames {
 
     /** MCP 連携の完了（WorkOS API を呼ぶ） */
     val MCP_AUTHORIZATION = RateLimitName("mcp-authorization")
+
+    /** 連携アプリの一覧・無効化・有効化（一覧でクライアントのメタデータを取りに行く） */
+    val MCP_CONNECTIONS = RateLimitName("mcp-connections")
 }

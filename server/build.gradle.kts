@@ -43,6 +43,10 @@ dependencies {
     // Ktor Client (Gemini API + Webhook 送信用)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.java)
+    // MCP クライアントのメタデータ取得用。接続先の IP を自前の DNS で絞り込む（SSRF 対策）ため OkHttp を使う
+    implementation(libs.ktor.client.okhttp)
+    // ktor-client-okhttp の推移的依存でもあるが、直接 import している（Dns）ため明示する
+    implementation(libs.okhttp)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
 

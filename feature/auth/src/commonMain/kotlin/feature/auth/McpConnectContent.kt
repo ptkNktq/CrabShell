@@ -1,7 +1,9 @@
 package feature.auth
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.*
@@ -17,10 +19,20 @@ import core.ui.theme.AppTheme
 @Composable
 internal fun McpConnectContent(
     isCompleting: Boolean,
+    isLoadingDisabledConnections: Boolean,
+    disabledConnectionsLoadFailed: Boolean,
     errorMessage: String?,
+    disabledConnections: DisabledConnectionsState,
+    onToggleDisabledExpanded: () -> Unit,
+    onDisabledFilterQueryChange: (String) -> Unit,
+    onEnableConnection: (String) -> Unit,
+    onRetryLoadDisabledConnections: () -> Unit,
     onContinue: () -> Unit,
     onCancel: () -> Unit,
 ) {
+    // 有効化の実行中は、完了を待ってから続けてもらう（先に連携が完了すると無効のまま接続されうる）
+    val actionsEnabled = !isCompleting && disabledConnections.enablingId == null
+
     McpConnectFrame(title = "AI アプリとの連携") {
         Text(
             text =
@@ -35,6 +47,20 @@ internal fun McpConnectContent(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+
+        if (disabledConnections.connections.isNotEmpty()) {
+            DisabledConnectionsNotice(
+                state = disabledConnections,
+                onToggleExpanded = onToggleDisabledExpanded,
+                onFilterQueryChange = onDisabledFilterQueryChange,
+                onEnable = onEnableConnection,
+                enabled = !isCompleting,
+            )
+        }
+
+        if (disabledConnectionsLoadFailed) {
+            DisabledConnectionsLoadFailedNotice(onRetry = onRetryLoadDisabledConnections, retryEnabled = !isCompleting)
+        }
 
         if (errorMessage != null) {
             SelectionContainer {
@@ -51,24 +77,70 @@ internal fun McpConnectContent(
         AppButton(
             onClick = onContinue,
             modifier = Modifier.fillMaxWidth().height(48.dp),
-            enabled = !isCompleting,
+            // 無効にしたアプリの案内が出る前に続けられないよう、読み込みを待つ
+            enabled = actionsEnabled && !isLoadingDisabledConnections,
         ) {
-            if (isCompleting) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-            } else {
-                Text("連携を続ける")
+            when {
+                isCompleting -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+                // 押せない理由が分かるよう、読み込み中であることを出す（無効表示の色に合わせる）
+                isLoadingDisabledConnections -> {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = LocalContentColor.current,
+                        )
+                        Text("連携の状態を確認しています")
+                    }
+                }
+                else -> Text("連携を続ける")
             }
         }
 
         AppTextButton(
             onClick = onCancel,
-            enabled = !isCompleting,
+            enabled = actionsEnabled,
         ) {
             Text("キャンセル")
+        }
+    }
+}
+
+/**
+ * 無効にした連携アプリを読み込めなかったことの注意。
+ * 連携は続けられるが、連携し直すアプリを無効にしていた場合は、無効のまま続けると使えないため気付けるようにする
+ */
+@Composable
+private fun DisabledConnectionsLoadFailedNotice(
+    onRetry: () -> Unit,
+    retryEnabled: Boolean,
+) {
+    val contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.secondaryContainer,
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text =
+                    "無効にしたアプリを確認できませんでした。連携し直すアプリを無効にしていた場合は、" +
+                        "もう一度確認して有効にするか、設定の「連携」で有効にしてから続けてください。",
+                style = MaterialTheme.typography.bodySmall,
+                color = contentColor,
+            )
+            AppTextButton(onClick = onRetry, enabled = retryEnabled) {
+                Text("もう一度確認する")
+            }
         }
     }
 }
@@ -96,37 +168,42 @@ private fun McpConnectFrame(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
         ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                Card(
-                    modifier = Modifier.widthIn(max = 440.dp).fillMaxWidth().padding(16.dp),
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        ),
+            // 高さが足りない画面でもボタンまで届くよう、枠ごとスクロールさせる。
+            // 収まる場合は従来どおり上下中央に置くため、最小の高さを画面の高さに揃える
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val minHeight = maxHeight
+                Box(
+                    modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).heightIn(min = minHeight),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Column(
-                        modifier = Modifier.padding(32.dp).fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    Card(
+                        modifier = Modifier.widthIn(max = 440.dp).fillMaxWidth().padding(16.dp),
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            ),
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Link,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
+                        Column(
+                            modifier = Modifier.padding(32.dp).fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Link,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
 
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                        )
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                            )
 
-                        content()
+                            content()
+                        }
                     }
                 }
             }

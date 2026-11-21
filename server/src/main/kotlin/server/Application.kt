@@ -50,6 +50,7 @@ import server.mcp.McpAuthFailureGuard
 import server.mcp.McpConfig
 import server.mcp.McpTokenAuthenticator
 import server.mcp.mcpAuthorizationRoutes
+import server.mcp.mcpConnectionRoutes
 import server.mcp.mcpJwt
 import server.mcp.mcpPrincipal
 import server.mcp.mcpRoutes
@@ -161,6 +162,11 @@ fun Application.module() {
             rateLimiter(limit = 5, refillPeriod = 60.seconds)
             requestKey { call -> call.firebasePrincipal.uid }
         }
+        // 連携画面で 1 件ずつ有効に戻す操作も考え、画面操作として十分な回数にする
+        register(RateLimitNames.MCP_CONNECTIONS) {
+            rateLimiter(limit = 30, refillPeriod = 60.seconds)
+            requestKey { call -> call.firebasePrincipal.uid }
+        }
     }
 
     configureStatusPages()
@@ -217,6 +223,7 @@ fun Application.module() {
             loginHistoryRoutes()
             passkeyRoutes()
             if (mcpConfig.enabled) mcpAuthorizationRoutes()
+            mcpConnectionRoutes()
         }
 
         if (mcpConfig.enabled) mcpRoutes(mcpConfig)

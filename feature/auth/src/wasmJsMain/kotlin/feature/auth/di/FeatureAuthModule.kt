@@ -15,5 +15,5 @@ val featureAuthModule =
         single { SignInWithHistoryService(get(), get(), get<ApplicationScope>()) }
         viewModel { LoginViewModel(get(), get(), get(), get()) }
         viewModel { PasskeySetupViewModel(get()) }
-        viewModel { McpConnectViewModel(get()) }
+        viewModel { McpConnectViewModel(get(), get()) }
     }
